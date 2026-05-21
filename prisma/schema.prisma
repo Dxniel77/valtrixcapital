@@ -1,0 +1,290 @@
+// Valtrix Capital — Prisma schema
+// See docs/DB_SCHEMA.md for the design rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Network {
+  BSC
+  POLYGON
+}
+
+enum Currency {
+  USDT
+}
+
+enum StakeStatus {
+  ACTIVE
+  COMPLETED
+  CANCELED
+}
+
+enum Direction {
+  UP
+  DOWN
+}
+
+enum TradeResult {
+  WIN
+  LOSS
+}
+
+enum TxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum WithdrawalStatus {
+  REQUESTED
+  APPROVED
+  SENT
+  CONFIRMED
+  REJECTED
+}
+
+enum AdminActionType {
+  ACTIVATE
+  DEACTIVATE
+  ADJUST_BALANCE
+  APPROVE_WITHDRAWAL
+  REJECT_WITHDRAWAL
+  UPDATE_CONFIG
+}
+
+// ------------------------------------------------------------
+// Core
+// ------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid())
+  walletAddress   String    @unique
+  email           String?   @unique
+  username        String?
+  role            UserRole  @default(USER)
+  isActive        Boolean   @default(true)
+  referralCode    String    @unique
+  referrerId      String?
+  earningsBalance BigInt    @default(0)
+  lockedCapital   BigInt    @default(0)
+  totalEarned     BigInt    @default(0)
+  payoutCap       BigInt    @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  referrer        User?     @relation("UserReferrer", fields: [referrerId], references: [id])
+  downline        User[]    @relation("UserReferrer")
+
+  stakes          Stake[]
+  trades          Trade[]
+  dailyYields     DailyYieldRecord[]
+  deposits        Deposit[]
+  withdrawals     Withdrawal[]
+  referralsAsUser Referral[]   @relation("ReferralUser")
+  referralsAsUpline Referral[] @relation("ReferralUpline")
+  commissionsEarned Commission[] @relation("CommissionBeneficiary")
+  commissionsFrom   Commission[] @relation("CommissionSource")
+  adminActions    AdminAction[] @relation("AdminActor")
+  targetedActions AdminAction[] @relation("AdminTarget")
+
+  @@index([referrerId])
+  @@index([walletAddress])
+}
+
+model Stake {
+  id          String      @id @default(uuid())
+  userId      String
+  amount      BigInt
+  network     Network
+  currency    Currency    @default(USDT)
+  depositId   String?     @unique
+  status      StakeStatus @default(ACTIVE)
+  startedAt   DateTime    @default(now())
+  completedAt DateTime?
+
+  user        User        @relation(fields: [userId], references: [id])
+  deposit     Deposit?    @relation(fields: [depositId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Trade {
+  id              String       @id @default(uuid())
+  userId          String
+  pair            String
+  direction       Direction
+  entryPrice      Decimal      @db.Decimal(20, 8)
+  exitPrice       Decimal?     @db.Decimal(20, 8)
+  durationSec     Int
+  openedAt        DateTime     @default(now())
+  resolvedAt      DateTime?
+  result          TradeResult?
+  bonusAppliedBps Int          @default(0)
+
+  user            User         @relation(fields: [userId], references: [id])
+
+  @@index([userId, openedAt])
+  @@index([userId, result])
+}
+
+model DailyYieldRecord {
+  id              String       @id @default(uuid())
+  userId          String
+  date            DateTime     @db.Date
+  baseRateBps     Int          @default(30)
+  winsCount       Int          @default(0)
+  bonusRateBps    Int          @default(0)
+  totalRateBps    Int
+  capitalSnapshot BigInt
+  creditedAmount  BigInt
+  createdAt       DateTime     @default(now())
+
+  user            User         @relation(fields: [userId], references: [id])
+  commissions     Commission[]
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model Referral {
+  id        String   @id @default(uuid())
+  userId    String
+  uplineId  String
+  level     Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation("ReferralUser", fields: [userId], references: [id])
+  upline    User     @relation("ReferralUpline", fields: [uplineId], references: [id])
+
+  @@unique([userId, level])
+  @@index([uplineId, level])
+}
+
+model Commission {
+  id              String           @id @default(uuid())
+  beneficiaryId   String
+  sourceUserId    String
+  level           Int
+  rateBps         Int
+  amount          BigInt
+  sourceYieldId   String
+  createdAt       DateTime         @default(now())
+
+  beneficiary     User             @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
+  sourceUser      User             @relation("CommissionSource", fields: [sourceUserId], references: [id])
+  sourceYield     DailyYieldRecord @relation(fields: [sourceYieldId], references: [id])
+
+  @@index([beneficiaryId])
+  @@index([sourceUserId])
+}
+
+model Deposit {
+  id            String   @id @default(uuid())
+  userId        String
+  network       Network
+  currency      Currency @default(USDT)
+  amount        BigInt
+  fromAddress   String
+  toAddress     String
+  txHash        String   @unique
+  confirmations Int      @default(0)
+  status        TxStatus @default(PENDING)
+  detectedAt    DateTime @default(now())
+  confirmedAt   DateTime?
+
+  user          User     @relation(fields: [userId], references: [id])
+  stake         Stake?
+
+  @@index([userId])
+}
+
+model Withdrawal {
+  id          String           @id @default(uuid())
+  userId      String
+  network     Network
+  currency    Currency         @default(USDT)
+  amount      BigInt
+  fee         BigInt
+  netAmount   BigInt
+  toAddress   String
+  status      WithdrawalStatus @default(REQUESTED)
+  txHash      String?
+  requestedAt DateTime         @default(now())
+  processedAt DateTime?
+
+  user        User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+}
+
+model BotOperation {
+  id          String    @id @default(uuid())
+  pair        String
+  direction   Direction
+  volume      BigInt
+  pnl         BigInt
+  pnlBps      Int
+  fakeTxHash  String    @unique
+  network     Network
+  executedAt  DateTime  @default(now())
+
+  @@index([executedAt])
+}
+
+model AdminAction {
+  id           String          @id @default(uuid())
+  adminId      String
+  targetUserId String?
+  action       AdminActionType
+  payload      Json
+  createdAt    DateTime        @default(now())
+
+  admin        User            @relation("AdminActor", fields: [adminId], references: [id])
+  target       User?           @relation("AdminTarget", fields: [targetUserId], references: [id])
+
+  @@index([adminId])
+  @@index([targetUserId])
+}
+
+model AppConfig {
+  id                 Int      @id @default(1)
+  baseYieldBps       Int      @default(30)
+  bonusPerWinBps     Int      @default(10)
+  maxTradesPerDay    Int      @default(7)
+  maxDailyYieldBps   Int      @default(100)
+  withdrawalFeeBps   Int      @default(300)
+  commissionRatesBps Int[]    @default([700, 300, 200, 100, 100, 50, 50])
+  minStake           BigInt   @default(15000000)
+  maxStake           BigInt   @default(100000000000)
+  minWithdrawal      BigInt   @default(10000000)
+  allowedPairs       String[] @default(["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT", "MATICUSDT"])
+  updatedAt          DateTime @updatedAt
+}
+
+// SIWE nonces for sign-in
+model AuthNonce {
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  address   String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([address])
+  @@index([expiresAt])
+}
