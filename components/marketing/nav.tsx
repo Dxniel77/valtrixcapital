@@ -35,15 +35,15 @@ export function MarketingNav() {
           : "bg-transparent"
       }`}
     >
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <Logo size="sm" showWordmark />
+      <div className="container flex h-20 items-center justify-between gap-4">
+        <Logo className="flex" size="lg" showWordmark />
 
         <nav className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm text-text-secondary transition-colors hover:text-text-primary"
+              className="text-lg font-large text-text-secondary transition-colors hover:text-text-primary"
             >
               {l.label}
             </Link>
@@ -51,10 +51,10 @@ export function MarketingNav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost" size="lg" className="text-lg">
             <Link href="/dashboard">{t("nav.dashboard")}</Link>
           </Button>
-          <ConnectWalletButton size="sm" />
+          <ConnectWalletButton size="lg" />
         </div>
 
         <button
@@ -63,7 +63,7 @@ export function MarketingNav() {
           onClick={() => setOpen((v) => !v)}
           aria-label={t("nav.toggleMenu")}
         >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
@@ -74,7 +74,7 @@ export function MarketingNav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="py-1 text-sm text-text-secondary"
+                className="py-1 text-lg font-large text-text-secondary"
                 onClick={() => setOpen(false)}
               >
                 {l.label}
