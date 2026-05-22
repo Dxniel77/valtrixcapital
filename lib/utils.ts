@@ -66,6 +66,9 @@ export function explorerUrl(network: "BSC" | "POLYGON", txHash: string) {
   return base + txHash;
 }
 
+/** Stable placeholder before client hydration. */
+export const COUNTDOWN_PLACEHOLDER = "--:--:--";
+
 export function formatCountdown(ms: number): string {
   if (ms <= 0) return "00:00:00";
   const totalSec = Math.floor(ms / 1000);

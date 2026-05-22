@@ -19,20 +19,20 @@ import {
 } from "lucide-react";
 import { useAccount } from "wagmi";
 import Link from "next/link";
-import { formatCountdown, nextUtcMidnightMs, shortenAddress } from "@/lib/utils";
+import {
+  COUNTDOWN_PLACEHOLDER,
+  formatCountdown,
+  shortenAddress,
+} from "@/lib/utils";
+import { useUtcMidnightCountdown } from "@/lib/hooks/use-utc-midnight-countdown";
 import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
 import { useI18n } from "@/lib/i18n/context";
 
 export default function DashboardOverviewPage() {
   const { t } = useI18n();
   const { address, isConnected } = useAccount();
-  const [countdown, setCountdown] = React.useState(nextUtcMidnightMs());
+  const countdown = useUtcMidnightCountdown();
   const summary = useDailySummary();
-
-  React.useEffect(() => {
-    const id = setInterval(() => setCountdown(nextUtcMidnightMs()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -87,7 +87,10 @@ export default function DashboardOverviewPage() {
           icon={Trophy}
           accent="info"
           hint={t("dashboard.overview.resetIn", {
-            time: formatCountdown(countdown),
+            time:
+              countdown !== null
+                ? formatCountdown(countdown)
+                : COUNTDOWN_PLACEHOLDER,
           })}
         />
         <StatTile
@@ -137,7 +140,7 @@ function DailyAttemptsCard({
   losses,
   total,
 }: {
-  remainingMs: number;
+  remainingMs: number | null;
   wins: number;
   losses: number;
   total: number;
@@ -178,7 +181,9 @@ function DailyAttemptsCard({
             <p className="mt-2 text-text-muted">
               {t("dashboard.overview.resetsIn")}{" "}
               <span className="font-mono text-text-primary">
-                {formatCountdown(remainingMs)}
+                {remainingMs !== null
+                  ? formatCountdown(remainingMs)
+                  : COUNTDOWN_PLACEHOLDER}
               </span>
             </p>
           </div>

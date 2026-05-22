@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 import { useTradeStore, type Position } from "@/lib/trade/store";
 import { findPair } from "@/lib/market/pairs";
 import { cn, formatNumber } from "@/lib/utils";
+import { useClientNow } from "@/lib/hooks/use-client-now";
 import { useI18n } from "@/lib/i18n/context";
 
 interface OpenPositionsProps {
@@ -25,15 +26,10 @@ export function OpenPositions({
     [positions],
   );
   const resolvePosition = useTradeStore((s) => s.resolvePosition);
-
-  const [tick, setTick] = React.useState(0);
-  React.useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 500);
-    return () => clearInterval(id);
-  }, []);
+  const now = useClientNow(500);
 
   React.useEffect(() => {
-    const now = Date.now();
+    if (now === null) return;
     for (const p of open) {
       const dueAt = p.openedAt + p.durationSec * 1000;
       if (now >= dueAt) {
@@ -47,7 +43,7 @@ export function OpenPositions({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick, open.length, currentPair, livePrice]);
+  }, [now, open.length, currentPair, livePrice]);
 
   if (open.length === 0) {
     return (
@@ -72,6 +68,7 @@ export function OpenPositions({
           <OpenPositionRow
             key={p.id}
             position={p}
+            now={now}
             livePrice={p.pair === currentPair ? livePrice : prices?.[p.pair] ?? null}
           />
         ))}
@@ -82,20 +79,27 @@ export function OpenPositions({
 
 function OpenPositionRow({
   position,
+  now,
   livePrice,
 }: {
   position: Position;
+  now: number | null;
   livePrice: number | null;
 }) {
   const { t } = useI18n();
   const pair = findPair(position.pair);
   const dueAt = position.openedAt + position.durationSec * 1000;
-  const remainingMs = Math.max(0, dueAt - Date.now());
+  const remainingMs =
+    now !== null ? Math.max(0, dueAt - now) : position.durationSec * 1000;
   const remainingSec = Math.ceil(remainingMs / 1000);
   const elapsedPct = Math.min(
     100,
     (1 - remainingMs / (position.durationSec * 1000)) * 100,
   );
+  const timerLabel =
+    now !== null
+      ? `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}`
+      : "--:--";
 
   const direction = position.direction;
   const isUp = direction === "UP";
@@ -155,10 +159,7 @@ function OpenPositionRow({
         </div>
 
         <div className="w-28 text-right">
-          <p className="font-mono text-sm text-text-primary">
-            {String(Math.floor(remainingSec / 60)).padStart(2, "0")}:
-            {String(remainingSec % 60).padStart(2, "0")}
-          </p>
+          <p className="font-mono text-sm text-text-primary">{timerLabel}</p>
           <p className="text-[10px] text-text-muted">
             {position.durationSec / 60}m
           </p>

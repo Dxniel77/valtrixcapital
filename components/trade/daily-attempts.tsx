@@ -3,18 +3,17 @@
 import * as React from "react";
 import { Info } from "lucide-react";
 import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
-import { formatCountdown, nextUtcMidnightMs } from "@/lib/utils";
+import {
+  COUNTDOWN_PLACEHOLDER,
+  formatCountdown,
+} from "@/lib/utils";
+import { useUtcMidnightCountdown } from "@/lib/hooks/use-utc-midnight-countdown";
 import { useI18n } from "@/lib/i18n/context";
 
 export function DailyAttempts() {
   const { t } = useI18n();
   const summary = useDailySummary();
-  const [countdown, setCountdown] = React.useState(nextUtcMidnightMs());
-
-  React.useEffect(() => {
-    const id = setInterval(() => setCountdown(nextUtcMidnightMs()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const countdown = useUtcMidnightCountdown();
 
   const pct = (summary.attemptsUsed / MAX_TRADES_PER_DAY) * 100;
 
@@ -28,7 +27,10 @@ export function DailyAttempts() {
           <Info className="h-3.5 w-3.5 text-text-muted" aria-hidden />
         </div>
         <span className="font-mono text-xs text-text-muted">
-          {t("trade.resetsIn")} {formatCountdown(countdown)}
+          {t("trade.resetsIn")}{" "}
+          {countdown !== null
+            ? formatCountdown(countdown)
+            : COUNTDOWN_PLACEHOLDER}
         </span>
       </div>
 
