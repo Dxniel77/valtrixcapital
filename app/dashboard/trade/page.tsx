@@ -8,6 +8,7 @@ import { PairSelector } from "@/components/trade/pair-selector";
 import { TimeframeSelector } from "@/components/trade/timeframe-selector";
 import { TradePanel } from "@/components/trade/trade-panel";
 import { OpenPositions } from "@/components/trade/open-positions";
+import { PositionCloseCountdown } from "@/components/trade/position-close-countdown";
 import { DailyAttempts } from "@/components/trade/daily-attempts";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -113,6 +114,7 @@ export default function TradePage() {
                 priceLines={priceLines}
                 height={460}
               />
+              <PositionCloseCountdown pairSymbol={pair.binance} />
               <ChartOverlay state={stream.status} />
             </div>
           </div>

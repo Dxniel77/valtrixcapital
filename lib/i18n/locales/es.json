@@ -364,6 +364,8 @@
     "now": "Ahora",
     "addPair": "Añadir par",
     "searchPair": "Buscar par",
-    "noMatchingPairs": "Sin pares coincidentes"
+    "noMatchingPairs": "Sin pares coincidentes",
+    "closingIn": "Cerrando operación",
+    "positionClosed": "Cerrada"
   }
 }
