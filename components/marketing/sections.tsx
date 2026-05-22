@@ -22,7 +22,7 @@ import { useI18n } from "@/lib/i18n/context";
 const featureKeys = [
   "web3",
   "markets",
-  "staking",
+  "quita",
   "yield",
   "network",
   "bot",
@@ -33,7 +33,7 @@ const featureKeys = [
 const featureIcons = {
   web3: Wallet,
   markets: LineChart,
-  staking: Layers,
+  quita: Layers,
   yield: TrendingUp,
   network: Users,
   bot: Bot,
@@ -67,7 +67,7 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
+              className="group cursor-pointer rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
             >
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10">
                 <Icon className="h-5 w-5" />
@@ -116,7 +116,7 @@ export function HowItWorksSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="relative overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card"
+            className="relative cursor-pointer overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card transition-colors hover:border-gold/30"
           >
             <span className="absolute right-5 top-5 font-mono text-xs text-text-muted">
               {s.n}
