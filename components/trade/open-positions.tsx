@@ -5,11 +5,11 @@ import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 import { useTradeStore, type Position } from "@/lib/trade/store";
 import { findPair } from "@/lib/market/pairs";
 import { cn, formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface OpenPositionsProps {
   currentPair: string;
   livePrice: number | null;
-  /** Optional map of latest prices for all open pairs. */
   prices?: Record<string, number | undefined>;
 }
 
@@ -18,6 +18,7 @@ export function OpenPositions({
   livePrice,
   prices,
 }: OpenPositionsProps) {
+  const { t } = useI18n();
   const positions = useTradeStore((s) => s.positions);
   const open = React.useMemo(
     () => positions.filter((p) => p.status === "OPEN"),
@@ -25,10 +26,9 @@ export function OpenPositions({
   );
   const resolvePosition = useTradeStore((s) => s.resolvePosition);
 
-  // Resolution timer — re-renders every 500ms and triggers resolution when due
   const [tick, setTick] = React.useState(0);
   React.useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 500);
+    const id = setInterval(() => setTick((n) => n + 1), 500);
     return () => clearInterval(id);
   }, []);
 
@@ -46,14 +46,13 @@ export function OpenPositions({
         }
       }
     }
-    // tick triggers
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, open.length, currentPair, livePrice]);
 
   if (open.length === 0) {
     return (
       <div className="surface-card flex items-center justify-center p-6 text-sm text-text-muted">
-        No open positions. Place a trade to see it here.
+        {t("trade.noOpenPositions")}
       </div>
     );
   }
@@ -62,9 +61,11 @@ export function OpenPositions({
     <div className="surface-card overflow-hidden">
       <header className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
         <h3 className="text-sm font-semibold text-text-primary">
-          Open positions
+          {t("trade.openPositions")}
         </h3>
-        <span className="text-xs text-text-muted">{open.length} active</span>
+        <span className="text-xs text-text-muted">
+          {t("trade.activeCount", { n: open.length })}
+        </span>
       </header>
       <ul className="divide-y divide-border-subtle">
         {open.map((p) => (
@@ -86,6 +87,7 @@ function OpenPositionRow({
   position: Position;
   livePrice: number | null;
 }) {
+  const { t } = useI18n();
   const pair = findPair(position.pair);
   const dueAt = position.openedAt + position.durationSec * 1000;
   const remainingMs = Math.max(0, dueAt - Date.now());
@@ -124,7 +126,7 @@ function OpenPositionRow({
               {pair?.base ?? position.pair}/{pair?.quote ?? "USDT"}
             </p>
             <p className="text-text-muted">
-              Entry{" "}
+              {t("dashboard.pages.history.entry")}{" "}
               <span className="font-mono text-text-secondary">
                 {formatNumber(position.entryPrice, {
                   decimals: pair?.pricePrecision ?? 2,
@@ -135,7 +137,7 @@ function OpenPositionRow({
         </div>
 
         <div className="text-right text-xs">
-          <p className="text-text-muted">Now</p>
+          <p className="text-text-muted">{t("trade.now")}</p>
           <p
             className={cn(
               "font-mono",
@@ -181,16 +183,17 @@ function OpenPositionRow({
 }
 
 export function ResolvedBadge({ status }: { status: "WIN" | "LOSS" }) {
+  const { t } = useI18n();
   if (status === "WIN") {
     return (
       <span className="inline-flex items-center gap-1 rounded-sm bg-success/10 px-1.5 py-0.5 text-xs text-success">
-        <CircleCheck className="h-3 w-3" /> WIN
+        <CircleCheck className="h-3 w-3" /> {t("common.win")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-sm bg-danger/10 px-1.5 py-0.5 text-xs text-danger">
-      <CircleX className="h-3 w-3" /> LOSS
+      <CircleX className="h-3 w-3" /> {t("common.loss")}
     </span>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { buildSiweMessage } from "@/lib/auth/siwe";
+import { t } from "@/lib/i18n";
 
 export interface SessionUser {
   id: string;
@@ -37,7 +38,7 @@ export function useSiwe() {
 
   const signIn = React.useCallback(async () => {
     if (!address || !chainId) {
-      setError("Connect a wallet first.");
+      setError(t("errors.connectFirst"));
       return null;
     }
     setLoading(true);
@@ -63,14 +64,14 @@ export function useSiwe() {
       });
       if (!verifyRes.ok) {
         const data = await verifyRes.json().catch(() => ({}));
-        throw new Error(data?.error ?? "Failed to verify signature");
+        throw new Error(data?.error ?? t("errors.verifyFailed"));
       }
       const verified = await verifyRes.json();
       setUser(verified.user);
       return verified.user as SessionUser;
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Sign-in failed";
+        err instanceof Error ? err.message : t("errors.signInFailed");
       setError(message);
       return null;
     } finally {

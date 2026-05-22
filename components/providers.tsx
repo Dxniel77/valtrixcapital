@@ -10,6 +10,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
+import { LocaleProvider } from "@/lib/i18n/context";
 
 const rainbowTheme: Theme = {
   ...darkTheme({
@@ -50,8 +51,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={rainbowTheme} modalSize="compact">
-          {children}
+        <RainbowKitProvider theme={rainbowTheme} modalSize="compact" locale="es-419">
+          <LocaleProvider>{children}</LocaleProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

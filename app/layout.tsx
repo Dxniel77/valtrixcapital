@@ -25,11 +25,11 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Valtrix Capital — Web3 Trading & Yield",
+    default: "Valtrix Capital — Trading Web3 y rendimiento",
     template: "%s · Valtrix Capital",
   },
   description:
-    "Stake on-chain. Trade live markets. Earn up to 1% daily with a 7-level referral network — all on BNB Chain and Polygon.",
+    "Haz staking on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 7 niveles — en BNB Chain y Polygon.",
   applicationName: "Valtrix Capital",
   authors: [{ name: "Valtrix Capital" }],
   keywords: [
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Valtrix Capital",
     description:
-      "Stake on-chain. Trade live markets. Earn up to 1% daily on BNB Chain & Polygon.",
+      "Haz staking on-chain. Opera mercados en vivo. Gana hasta un 1% diario en BNB Chain y Polygon.",
     url: "/",
     siteName: "Valtrix Capital",
     type: "website",
@@ -71,7 +71,7 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="en"
+      lang="es"
       suppressHydrationWarning
       className={`${inter.variable} ${sora.variable} ${jetbrains.variable} dark`}
     >

@@ -4,8 +4,10 @@ import * as React from "react";
 import { Info } from "lucide-react";
 import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
 import { formatCountdown, nextUtcMidnightMs } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 export function DailyAttempts() {
+  const { t } = useI18n();
   const summary = useDailySummary();
   const [countdown, setCountdown] = React.useState(nextUtcMidnightMs());
 
@@ -21,12 +23,12 @@ export function DailyAttempts() {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <h3 className="text-sm font-semibold text-text-primary">
-            Daily attempts
+            {t("trade.dailyAttempts")}
           </h3>
           <Info className="h-3.5 w-3.5 text-text-muted" aria-hidden />
         </div>
         <span className="font-mono text-xs text-text-muted">
-          Resets in {formatCountdown(countdown)}
+          {t("trade.resetsIn")} {formatCountdown(countdown)}
         </span>
       </div>
 
@@ -34,31 +36,31 @@ export function DailyAttempts() {
         <Ring
           percent={pct}
           big={`${summary.attemptsUsed}/${MAX_TRADES_PER_DAY}`}
-          small={`${summary.attemptsRemaining} left`}
+          small={`${summary.attemptsRemaining} ${t("trade.leftCount")}`}
         />
         <ul className="space-y-1.5 text-xs">
           <li className="flex justify-between gap-6">
-            <span className="text-text-secondary">Wins</span>
+            <span className="text-text-secondary">{t("trade.wins")}</span>
             <span className="font-mono text-success">{summary.wins}</span>
           </li>
           <li className="flex justify-between gap-6">
-            <span className="text-text-secondary">Losses</span>
+            <span className="text-text-secondary">{t("trade.losses")}</span>
             <span className="font-mono text-danger">{summary.losses}</span>
           </li>
           <li className="flex justify-between gap-6">
-            <span className="text-text-secondary">Base</span>
+            <span className="text-text-secondary">{t("trade.base")}</span>
             <span className="font-mono text-text-primary">
               {(summary.baseRateBps / 100).toFixed(2)}%
             </span>
           </li>
           <li className="flex justify-between gap-6">
-            <span className="text-text-secondary">Bonus</span>
+            <span className="text-text-secondary">{t("trade.bonus")}</span>
             <span className="font-mono text-gold">
               +{(summary.bonusRateBps / 100).toFixed(2)}%
             </span>
           </li>
           <li className="mt-1.5 flex justify-between gap-6 border-t border-border-subtle pt-1.5">
-            <span className="font-medium text-text-primary">Today</span>
+            <span className="font-medium text-text-primary">{t("trade.today")}</span>
             <span className="font-mono text-text-primary">
               {(summary.totalRateBps / 100).toFixed(2)}%
             </span>
@@ -80,7 +82,7 @@ export function DailyAttempts() {
                     : "bg-danger/70"
                   : "bg-bg-pressed"
               }`}
-              title={`Attempt ${i + 1}`}
+              title={t("trade.attempt", { n: i + 1 })}
             />
           );
         })}

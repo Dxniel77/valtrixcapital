@@ -17,18 +17,19 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
-const items = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/bot-trading", label: "Bot Trading", icon: Bot },
-  { href: "/dashboard/trade", label: "Trade", icon: LineChart },
-  { href: "/dashboard/portfolio", label: "Portfolio", icon: Briefcase },
-  { href: "/dashboard/history", label: "History", icon: History },
-  { href: "/dashboard/referrals", label: "Referrals", icon: Users },
-  { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
-  { href: "/dashboard/support", label: "Support", icon: Headphones },
-];
+const navKeys = [
+  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/bot-trading", key: "botTrading", icon: Bot },
+  { href: "/dashboard/trade", key: "trade", icon: LineChart },
+  { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },
+  { href: "/dashboard/history", key: "history", icon: History },
+  { href: "/dashboard/referrals", key: "referrals", icon: Users },
+  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
+  { href: "/dashboard/profile", key: "profile", icon: User },
+  { href: "/dashboard/support", key: "support", icon: Headphones },
+] as const;
 
 export function MobileNav({
   open,
@@ -38,6 +39,7 @@ export function MobileNav({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   React.useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -63,14 +65,14 @@ export function MobileNav({
             type="button"
             onClick={onClose}
             className="rounded-md p-2 text-text-secondary hover:bg-bg-hover"
-            aria-label="Close menu"
+            aria-label={t("dashboard.mobileNav.close")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
-            {items.map((it) => {
+            {navKeys.map((it) => {
               const active =
                 pathname === it.href ||
                 (it.href !== "/dashboard" && pathname.startsWith(it.href));
@@ -87,7 +89,7 @@ export function MobileNav({
                     )}
                   >
                     <it.icon className="h-[18px] w-[18px]" />
-                    {it.label}
+                    {t(`dashboard.nav.${it.key}`)}
                   </Link>
                 </li>
               );

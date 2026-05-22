@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
+import { t } from "@/lib/i18n";
 
 export default function NotFound() {
   return (
@@ -10,15 +11,14 @@ export default function NotFound() {
         404
       </h1>
       <p className="mt-3 max-w-md text-base text-text-secondary">
-        The page you're looking for has either moved or never existed. The
-        markets, however, are still very much alive.
+        {t("notFound.message")}
       </p>
       <div className="mt-8 flex gap-3">
         <Button asChild variant="primary" size="lg">
-          <Link href="/">Back home</Link>
+          <Link href="/">{t("notFound.backHome")}</Link>
         </Button>
         <Button asChild variant="outline" size="lg">
-          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard">{t("notFound.dashboard")}</Link>
         </Button>
       </div>
     </div>

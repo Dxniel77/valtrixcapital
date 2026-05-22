@@ -62,7 +62,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {loading ? (
           <span className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            <span>Loading…</span>
+            <span>Cargando…</span>
           </span>
         ) : (
           children

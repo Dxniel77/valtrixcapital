@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { useSiwe } from "@/lib/hooks/use-siwe";
+import { useI18n } from "@/lib/i18n/context";
 import { ShieldCheck, Wallet, KeyRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const { isConnected, address } = useAccount();
   const { signIn, loading, error, user } = useSiwe();
 
@@ -36,38 +38,35 @@ export default function SignInPage() {
 
         <Card className="shadow-elevated">
           <CardHeader>
-            <CardTitle className="text-center">Sign in to Valtrix</CardTitle>
+            <CardTitle className="text-center">{t("signIn.title")}</CardTitle>
             <p className="text-center text-sm text-text-secondary">
-              Two steps: connect your wallet, then sign a free message to prove
-              ownership.
+              {t("signIn.subtitle")}
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
             <Step
               n={1}
               icon={Wallet}
-              title="Connect wallet"
+              title={t("signIn.step1Title")}
               done={isConnected}
               cta={!isConnected ? <ConnectWalletButton size="md" /> : null}
             >
               {isConnected ? (
                 <p className="font-mono text-xs text-text-secondary">
-                  Connected as{" "}
+                  {t("signIn.step1Connected")}{" "}
                   <span className="text-text-primary">
                     {address?.slice(0, 6)}…{address?.slice(-4)}
                   </span>
                 </p>
               ) : (
-                <p className="text-xs text-text-muted">
-                  MetaMask, Trust, Rainbow or any WalletConnect-compatible wallet.
-                </p>
+                <p className="text-xs text-text-muted">{t("signIn.step1Hint")}</p>
               )}
             </Step>
 
             <Step
               n={2}
               icon={KeyRound}
-              title="Sign message"
+              title={t("signIn.step2Title")}
               done={!!user}
               cta={
                 isConnected ? (
@@ -78,26 +77,21 @@ export default function SignInPage() {
                     loading={loading}
                     disabled={!!user}
                   >
-                    {user ? "Signed" : "Sign in"}
+                    {user ? t("signIn.signed") : t("signIn.signIn")}
                     {!user ? <ArrowRight className="h-4 w-4" /> : null}
                   </Button>
                 ) : null
               }
             >
-              <p className="text-xs text-text-muted">
-                We never request a transaction or move funds. The signature only
-                proves wallet ownership.
-              </p>
+              <p className="text-xs text-text-muted">{t("signIn.step2Hint")}</p>
             </Step>
 
             <div className="rounded-md border border-border-subtle bg-bg-base/60 p-3 text-xs text-text-secondary">
               <span className="inline-flex items-center gap-1.5 text-success">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="font-medium">Non-custodial</span>
+                <span className="font-medium">{t("signIn.nonCustodial")}</span>
               </span>
-              <span className="ml-2">
-                Your keys stay in your wallet. We only verify a signed message.
-              </span>
+              <span className="ml-2">{t("signIn.nonCustodialDesc")}</span>
             </div>
           </CardContent>
         </Card>

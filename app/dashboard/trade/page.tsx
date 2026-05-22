@@ -21,17 +21,18 @@ import { useMarketStream } from "@/lib/market/use-market-stream";
 import { useTickers } from "@/lib/market/use-tickers";
 import { useTradeStore, utcDayKey } from "@/lib/trade/store";
 import { formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 import { Activity, WifiOff, Loader2, History } from "lucide-react";
 import Link from "next/link";
 
 export default function TradePage() {
+  const { t } = useI18n();
   const [pair, setPair] = React.useState<PairMeta>(DEFAULT_PAIR);
   const [timeframe, setTimeframe] = React.useState<Timeframe>(DEFAULT_TIMEFRAME);
 
   const stream = useMarketStream(pair.binance, timeframe);
   const tickers = useTickers(PAIRS.map((p) => p.binance));
 
-  // Day rollover trigger
   const rolloverIfNewDay = useTradeStore((s) => s.rolloverIfNewDay);
   React.useEffect(() => {
     rolloverIfNewDay();
@@ -41,38 +42,46 @@ export default function TradePage() {
 
   const positions = useTradeStore((s) => s.positions);
 
-  // Build entry-price reference lines for positions on the current pair
   const priceLines = React.useMemo(() => {
     return positions
       .filter((p) => p.status === "OPEN" && p.pair === pair.binance)
       .map((p) => ({
         price: p.entryPrice,
         color: p.direction === "UP" ? "#22C55E" : "#EF4444",
-        title: `${p.direction === "UP" ? "BUY" : "SELL"} entry`,
+        title:
+          p.direction === "UP"
+            ? t("trade.buyEntry")
+            : t("trade.sellEntry"),
         lineStyle: LineStyle.Dashed,
       }));
-  }, [positions, pair.binance]);
+  }, [positions, pair.binance, t]);
 
-  // Mini ticker map for cross-pair price lookup
   const priceMap = React.useMemo(() => {
     const out: Record<string, number | undefined> = {};
-    for (const [sym, t] of Object.entries(tickers)) {
-      out[sym] = t?.price;
+    for (const [sym, tick] of Object.entries(tickers)) {
+      out[sym] = tick?.price;
     }
     return out;
   }, [tickers]);
 
   const ticker = stream.ticker ?? tickers[pair.binance];
   const livePrice = stream.livePrice ?? ticker?.price ?? null;
-
-  // Date label for header
   const today = utcDayKey();
+
+  const statusLabel =
+    stream.status === "live"
+      ? t("trade.live", { source: stream.source ?? "binance" })
+      : stream.status === "connecting"
+        ? t("trade.connecting")
+        : stream.status === "error"
+          ? t("trade.offline")
+          : t("trade.idle");
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Trade"
-        subtitle={`Live markets, 1–5 minute UP/DOWN trades. UTC day · ${today}`}
+        title={t("trade.title")}
+        subtitle={t("trade.subtitle", { day: today })}
         actions={
           <Badge variant={stream.status === "live" ? "success" : "warning"}>
             <span
@@ -80,13 +89,7 @@ export default function TradePage() {
                 stream.status === "live" ? "bg-success" : "bg-warning"
               }`}
             />
-            {stream.status === "live"
-              ? `Live · ${stream.source ?? "binance"}`
-              : stream.status === "connecting"
-                ? "Connecting…"
-                : stream.status === "error"
-                  ? "Offline"
-                  : "Idle"}
+            {statusLabel}
           </Badge>
         }
       />
@@ -143,6 +146,7 @@ function PairHeader({
   price: number | null;
   ticker: { price: number; changePct: number } | null;
 }) {
+  const { t } = useI18n();
   const up = (ticker?.changePct ?? 0) >= 0;
   return (
     <div className="flex items-end gap-4">
@@ -162,13 +166,18 @@ function PairHeader({
             ? `${up ? "+" : ""}${ticker.changePct.toFixed(2)}%`
             : "—"}
         </p>
-        <p className="text-text-muted">24h</p>
+        <p className="text-text-muted">{t("trade.h24")}</p>
       </div>
     </div>
   );
 }
 
-function ChartOverlay({ state }: { state: "idle" | "connecting" | "live" | "error" }) {
+function ChartOverlay({
+  state,
+}: {
+  state: "idle" | "connecting" | "live" | "error";
+}) {
+  const { t } = useI18n();
   if (state === "live") return null;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-base/40 backdrop-blur-[1px]">
@@ -176,17 +185,17 @@ function ChartOverlay({ state }: { state: "idle" | "connecting" | "live" | "erro
         {state === "error" ? (
           <>
             <WifiOff className="h-3.5 w-3.5 text-danger" />
-            Could not reach market feed. Retrying…
+            {t("trade.feedError")}
           </>
         ) : state === "connecting" ? (
           <>
             <Loader2 className="h-3.5 w-3.5 animate-spin text-gold" />
-            Connecting to live feed…
+            {t("trade.feedConnecting")}
           </>
         ) : (
           <>
             <Activity className="h-3.5 w-3.5 text-text-muted" />
-            Idle
+            {t("trade.idle")}
           </>
         )}
       </div>
@@ -195,6 +204,7 @@ function ChartOverlay({ state }: { state: "idle" | "connecting" | "live" | "erro
 }
 
 function ResolvedTradesPreview() {
+  const { t } = useI18n();
   const positions = useTradeStore((s) => s.positions);
   const today = utcDayKey();
   const recent = React.useMemo(
@@ -211,13 +221,13 @@ function ResolvedTradesPreview() {
     <div className="surface-card overflow-hidden">
       <header className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
         <h3 className="text-sm font-semibold text-text-primary">
-          Recent trades (today)
+          {t("dashboard.pages.history.recentToday")}
         </h3>
         <Link
           href="/dashboard/history"
           className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-gold"
         >
-          <History className="h-3 w-3" /> Full history
+          <History className="h-3 w-3" /> {t("dashboard.pages.history.fullHistory")}
         </Link>
       </header>
       <ul className="divide-y divide-border-subtle">
@@ -237,7 +247,7 @@ function ResolvedTradesPreview() {
                   p.direction === "UP" ? "text-success" : "text-danger"
                 }`}
               >
-                {p.direction === "UP" ? "BUY ↑" : "SELL ↓"}
+                {p.direction === "UP" ? t("common.buyArrow") : t("common.sellArrow")}
               </span>
               <span className="font-mono text-text-secondary">
                 {formatNumber(p.entryPrice, {
@@ -260,7 +270,8 @@ function ResolvedTradesPreview() {
                     : "bg-danger/10 text-danger"
                 }`}
               >
-                {isWin ? "+0.10%" : "0.00%"} · {p.status}
+                {isWin ? "+0,10%" : "0,00%"} ·{" "}
+                {isWin ? t("common.win") : t("common.loss")}
               </span>
             </li>
           );

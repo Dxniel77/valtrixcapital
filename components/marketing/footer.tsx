@@ -1,44 +1,48 @@
+"use client";
+
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-
-const cols = [
-  {
-    title: "Platform",
-    links: [
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/dashboard/trade", label: "Trade" },
-      { href: "/dashboard/portfolio", label: "Portfolio" },
-      { href: "/dashboard/referrals", label: "Referrals" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { href: "/#how", label: "How it works" },
-      { href: "/#yield", label: "Yield model" },
-      { href: "/docs", label: "Documentation" },
-      { href: "/support", label: "Support" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "/terms", label: "Terms of Service" },
-      { href: "/privacy", label: "Privacy Policy" },
-      { href: "/risk", label: "Risk Disclosure" },
-    ],
-  },
-];
+import { useI18n } from "@/lib/i18n/context";
 
 export function MarketingFooter() {
+  const { t } = useI18n();
+
+  const cols = [
+    {
+      title: t("footer.platform"),
+      links: [
+        { href: "/dashboard", label: t("dashboard.nav.dashboard") },
+        { href: "/dashboard/trade", label: t("dashboard.nav.trade") },
+        { href: "/dashboard/portfolio", label: t("dashboard.nav.portfolio") },
+        { href: "/dashboard/referrals", label: t("dashboard.nav.referrals") },
+      ],
+    },
+    {
+      title: t("footer.resources"),
+      links: [
+        { href: "/#how", label: t("footer.how") },
+        { href: "/#yield", label: t("footer.yield") },
+        { href: "/docs", label: t("footer.docs") },
+        { href: "/support", label: t("footer.support") },
+      ],
+    },
+    {
+      title: t("footer.legal"),
+      links: [
+        { href: "/terms", label: t("footer.terms") },
+        { href: "/privacy", label: t("footer.privacy") },
+        { href: "/risk", label: t("footer.risk") },
+      ],
+    },
+  ];
+
   return (
     <footer className="mt-32 border-t border-border-subtle bg-bg-elevated/30">
       <div className="container grid gap-10 py-14 md:grid-cols-5">
         <div className="md:col-span-2">
           <Logo size="md" showWordmark />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-text-secondary">
-            A premium Web3 yield and trading ecosystem on BNB Chain & Polygon.
-            Stake. Trade. Build a network. All on-chain, all transparent.
+            {t("footer.tagline")}
           </p>
         </div>
         {cols.map((c) => (
@@ -63,10 +67,10 @@ export function MarketingFooter() {
       </div>
       <div className="border-t border-border-subtle">
         <div className="container flex flex-col items-center justify-between gap-2 py-6 text-xs text-text-muted md:flex-row">
-          <span>© {new Date().getFullYear()} Valtrix Capital. All rights reserved.</span>
-          <span className="font-mono">
-            BNB Chain · Polygon · BEP20 · Web3
+          <span>
+            © {new Date().getFullYear()} {t("footer.copyright")}
           </span>
+          <span className="font-mono">{t("footer.chains")}</span>
         </div>
       </div>
     </footer>

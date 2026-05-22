@@ -1,42 +1,47 @@
+"use client";
+
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LifeBuoy, MessagesSquare, Mail, Telescope } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function SupportPage() {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Support"
-        subtitle="Reach the Valtrix Capital team. Help center coming Week 6."
+        title={t("dashboard.pages.support.title")}
+        subtitle={t("dashboard.pages.support.subtitle")}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <SupportCard
           icon={MessagesSquare}
-          title="Live chat"
-          desc="Talk to a Valtrix team member directly. Avg response < 10 minutes."
-          cta="Open chat"
+          title={t("dashboard.pages.support.liveChat")}
+          desc={t("dashboard.pages.support.liveChatDesc")}
+          cta={t("dashboard.pages.support.openChat")}
           coming
         />
         <SupportCard
           icon={Mail}
-          title="Email"
-          desc="Send us a message. We answer within 24 hours."
+          title={t("dashboard.pages.support.email")}
+          desc={t("dashboard.pages.support.emailDesc")}
           cta="support@valtrix.capital"
           href="mailto:support@valtrix.capital"
         />
         <SupportCard
           icon={Telescope}
-          title="Docs & guides"
-          desc="Tutorials for staking, trading, referrals and withdrawals."
-          cta="Browse docs"
+          title={t("dashboard.pages.support.docs")}
+          desc={t("dashboard.pages.support.docsDesc")}
+          cta={t("dashboard.pages.support.browseDocs")}
           coming
         />
         <SupportCard
           icon={LifeBuoy}
-          title="Status & incidents"
-          desc="Real-time platform status, planned maintenance and post-mortems."
-          cta="View status"
+          title={t("dashboard.pages.support.status")}
+          desc={t("dashboard.pages.support.statusDesc")}
+          cta={t("dashboard.pages.support.viewStatus")}
           coming
         />
       </div>
@@ -59,6 +64,8 @@ function SupportCard({
   href?: string;
   coming?: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <Card>
       <CardHeader>
@@ -78,7 +85,7 @@ function SupportCard({
             </Button>
           ) : (
             <Button variant="outline" size="sm" disabled={coming}>
-              {coming ? "Coming soon" : cta}
+              {coming ? t("common.comingSoon") : cta}
             </Button>
           )}
         </div>

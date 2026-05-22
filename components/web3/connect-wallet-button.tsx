@@ -4,13 +4,13 @@ import * as React from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { ChevronDown, Wallet } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 import { cn, shortenAddress } from "@/lib/utils";
 
 interface ConnectWalletButtonProps {
   size?: ButtonProps["size"];
   variant?: ButtonProps["variant"];
   className?: string;
-  /** When true, renders a compact pill (avatar + short address). */
   compact?: boolean;
 }
 
@@ -20,6 +20,8 @@ export function ConnectWalletButton({
   className,
   compact = false,
 }: ConnectWalletButtonProps) {
+  const { t } = useI18n();
+
   return (
     <ConnectButton.Custom>
       {({
@@ -58,7 +60,7 @@ export function ConnectWalletButton({
                 type="button"
               >
                 <Wallet className="h-4 w-4" />
-                Connect Wallet
+                {t("common.connectWallet")}
               </Button>
             ) : chain.unsupported ? (
               <Button
@@ -67,7 +69,7 @@ export function ConnectWalletButton({
                 variant="danger"
                 type="button"
               >
-                Wrong network
+                {t("common.wrongNetwork")}
               </Button>
             ) : (
               <>
@@ -85,7 +87,7 @@ export function ConnectWalletButton({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        alt={chain.name ?? "Chain"}
+                        alt={chain.name ?? t("common.chain")}
                         src={chain.iconUrl}
                         className="h-full w-full"
                       />

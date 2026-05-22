@@ -11,6 +11,7 @@ import {
   useTradeStore,
 } from "@/lib/trade/store";
 import { cn, formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
 
 interface TradePanelProps {
@@ -19,6 +20,7 @@ interface TradePanelProps {
 }
 
 export function TradePanel({ pair, livePrice }: TradePanelProps) {
+  const { t } = useI18n();
   const [duration, setDuration] = React.useState<number>(60);
   const openPosition = useTradeStore((s) => s.openPosition);
   const summary = useDailySummary();
@@ -28,11 +30,11 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
 
   function handleTrade(direction: "UP" | "DOWN") {
     if (!livePrice) {
-      toast.error("Live price unavailable. Hold on a moment.");
+      toast.error(t("errors.priceUnavailable"));
       return;
     }
     if (summary.attemptsRemaining <= 0) {
-      toast.error("Out of daily attempts — reset at 00:00 UTC.");
+      toast.error(t("errors.noAttempts"));
       return;
     }
     const pos = openPosition({
@@ -42,25 +44,29 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
       durationSec: duration,
     });
     toast.success(
-      `${direction === "UP" ? "BUY ↑" : "SELL ↓"} ${pair.base}/${pair.quote} · ${formatNumber(
-        pos.entryPrice,
-        { decimals: pair.pricePrecision },
-      )} · ${duration / 60}m`,
+      t("errors.tradeSuccess", {
+        side: direction === "UP" ? t("common.buyArrow") : t("common.sellArrow"),
+        pair: `${pair.base}/${pair.quote}`,
+        price: formatNumber(pos.entryPrice, { decimals: pair.pricePrecision }),
+        duration: duration / 60,
+      }),
     );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-text-primary">Quick Trade</h3>
+        <h3 className="text-sm font-semibold text-text-primary">
+          {t("trade.quickTrade")}
+        </h3>
         <Badge variant={canTrade ? "gold" : "warning"}>
-          {summary.attemptsRemaining}/{MAX_TRADES_PER_DAY} left
+          {summary.attemptsRemaining}/{MAX_TRADES_PER_DAY} {t("trade.left")}
         </Badge>
       </div>
 
       <div>
         <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
-          Duration
+          {t("trade.duration")}
         </label>
         <div className="grid grid-cols-4 gap-1.5">
           {TRADE_DURATIONS.map((d) => (
@@ -83,7 +89,7 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
 
       <div>
         <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
-          Entry price
+          {t("trade.entryPrice")}
         </label>
         <div className="flex h-11 items-center justify-between rounded-md border border-border-subtle bg-bg-base px-3">
           <span className="font-mono text-base text-text-primary">
@@ -91,9 +97,7 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
               ? formatNumber(livePrice, { decimals: pair.pricePrecision })
               : "—"}
           </span>
-          <span className="text-xs text-text-muted">
-            {pair.quote}
-          </span>
+          <span className="text-xs text-text-muted">{pair.quote}</span>
         </div>
       </div>
 
@@ -105,7 +109,7 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
           disabled={!canTrade}
           onClick={() => handleTrade("UP")}
         >
-          BUY <ArrowUp className="h-4 w-4" />
+          {t("common.buy")} <ArrowUp className="h-4 w-4" />
         </Button>
         <Button
           variant="danger"
@@ -114,25 +118,25 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
           disabled={!canTrade}
           onClick={() => handleTrade("DOWN")}
         >
-          SELL <ArrowDown className="h-4 w-4" />
+          {t("common.sell")} <ArrowDown className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="rounded-md border border-border-subtle bg-bg-base/60 p-3 text-xs">
         <div className="flex justify-between py-0.5 text-text-secondary">
-          <span>Base yield (today)</span>
+          <span>{t("trade.baseYield")}</span>
           <span className="font-mono text-text-primary">
             {(summary.baseRateBps / 100).toFixed(2)}%
           </span>
         </div>
         <div className="flex justify-between py-0.5 text-text-secondary">
-          <span>Bonus from wins</span>
+          <span>{t("trade.bonusWins")}</span>
           <span className="font-mono text-gold">
             +{(summary.bonusRateBps / 100).toFixed(2)}%
           </span>
         </div>
         <div className="mt-1.5 flex justify-between border-t border-border-subtle pt-1.5 text-text-primary">
-          <span className="font-medium">Total daily</span>
+          <span className="font-medium">{t("trade.totalDaily")}</span>
           <span className="font-mono">
             {(summary.totalRateBps / 100).toFixed(2)}%
           </span>
@@ -142,10 +146,7 @@ export function TradePanel({ pair, livePrice }: TradePanelProps) {
       {!canTrade && summary.attemptsRemaining === 0 ? (
         <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            You've used all {MAX_TRADES_PER_DAY} trades today. Attempts reset at
-            00:00 UTC.
-          </span>
+          <span>{t("trade.noAttemptsLeft", { max: MAX_TRADES_PER_DAY })}</span>
         </div>
       ) : null}
     </div>

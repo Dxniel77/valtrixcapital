@@ -5,18 +5,20 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
+import { useI18n } from "@/lib/i18n/context";
 import { Menu, X } from "lucide-react";
 
-const links = [
-  { href: "/#features", label: "Features" },
-  { href: "/#how", label: "How it works" },
-  { href: "/#yield", label: "Yield model" },
-  { href: "/#referrals", label: "Referrals" },
-];
-
 export function MarketingNav() {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+
+  const links = [
+    { href: "/#features", label: t("nav.features") },
+    { href: "/#how", label: t("nav.how") },
+    { href: "/#yield", label: t("nav.yield") },
+    { href: "/#referrals", label: t("nav.referrals") },
+  ];
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -50,7 +52,7 @@ export function MarketingNav() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/dashboard">{t("nav.dashboard")}</Link>
           </Button>
           <ConnectWalletButton size="sm" />
         </div>
@@ -59,7 +61,7 @@ export function MarketingNav() {
           type="button"
           className="rounded-md p-2 text-text-secondary md:hidden"
           onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle menu"
+          aria-label={t("nav.toggleMenu")}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -80,7 +82,7 @@ export function MarketingNav() {
             ))}
             <div className="flex flex-col gap-2 pt-2">
               <Button asChild variant="outline" size="md">
-                <Link href="/dashboard">Open Dashboard</Link>
+                <Link href="/dashboard">{t("nav.openDashboard")}</Link>
               </Button>
               <ConnectWalletButton size="md" />
             </div>

@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronDown, Plus, Search } from "lucide-react";
 import { PAIRS, type PairMeta } from "@/lib/market/pairs";
 import { cn, formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface PairSelectorProps {
   active: PairMeta;
@@ -21,6 +22,7 @@ export function PairSelector({
   onChange,
   className,
 }: PairSelectorProps) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const popoverRef = React.useRef<HTMLDivElement | null>(null);
@@ -102,7 +104,7 @@ export function PairSelector({
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1 rounded-md border border-border-subtle bg-bg-base/60 px-2.5 py-1.5 text-xs text-text-secondary hover:border-border-strong"
-          aria-label="Add pair"
+          aria-label={t("trade.addPair")}
         >
           <Plus className="h-3.5 w-3.5" />
           <ChevronDown className="h-3 w-3" />
@@ -115,7 +117,7 @@ export function PairSelector({
                 <input
                   autoFocus
                   type="search"
-                  placeholder="Search pair"
+                  placeholder={t("trade.searchPair")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="h-8 w-full rounded-md border border-border-subtle bg-bg-base pl-7 pr-2 text-xs text-text-primary placeholder:text-text-muted focus:border-gold focus:outline-none"
@@ -175,7 +177,7 @@ export function PairSelector({
               })}
               {filtered.length === 0 ? (
                 <li className="px-2 py-3 text-center text-xs text-text-muted">
-                  No matching pairs
+                  {t("trade.noMatchingPairs")}
                 </li>
               ) : null}
             </ul>

@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n/context";
 
 interface ComingSoonProps {
   week: number;
@@ -10,6 +13,8 @@ interface ComingSoonProps {
 }
 
 export function ComingSoon({ week, title, description, features }: ComingSoonProps) {
+  const { t } = useI18n();
+
   return (
     <div className="relative overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated p-8 shadow-card md:p-12">
       <div className="absolute inset-0 -z-10 bg-hero-radial opacity-40" />
@@ -17,7 +22,7 @@ export function ComingSoon({ week, title, description, features }: ComingSoonPro
       <div className="max-w-2xl">
         <Badge variant="gold" className="mb-4">
           <Sparkles className="h-3 w-3" />
-          Week {week} delivery
+          {t("common.weekDelivery", { week })}
         </Badge>
         <h2 className="font-display text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
           {title}

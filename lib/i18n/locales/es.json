@@ -1,0 +1,369 @@
+{
+  "meta": {
+    "title": "Valtrix Capital — Trading Web3 y rendimiento",
+    "description": "Haz staking on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 7 niveles — en BNB Chain y Polygon."
+  },
+  "common": {
+    "connectWallet": "Conectar billetera",
+    "wrongNetwork": "Red incorrecta",
+    "chain": "Cadena",
+    "comingSoon": "Próximamente",
+    "weekDelivery": "Entrega semana {week}",
+    "open": "ABIERTA",
+    "win": "GANADA",
+    "loss": "PERDIDA",
+    "buy": "COMPRAR",
+    "sell": "VENDER",
+    "buyArrow": "COMPRAR ↑",
+    "sellArrow": "VENDER ↓",
+    "utc": "UTC",
+    "user": "Usuario",
+    "loading": "Cargando…"
+  },
+  "notFound": {
+    "message": "La página que buscas se movió o nunca existió. Los mercados, en cambio, siguen muy activos.",
+    "backHome": "Volver al inicio",
+    "dashboard": "Panel"
+  },
+  "api": {
+    "invalidBody": "Cuerpo de solicitud no válido",
+    "invalidNonce": "Nonce no válido o expirado",
+    "verifyFailed": "Falló la verificación de la firma"
+  },
+  "errors": {
+    "connectFirst": "Conecta una billetera primero.",
+    "verifyFailed": "No se pudo verificar la firma",
+    "signInFailed": "Error al iniciar sesión",
+    "priceUnavailable": "Precio en vivo no disponible. Espera un momento.",
+    "noAttempts": "Sin intentos diarios — reinicio a las 00:00 UTC.",
+    "tradeSuccess": "{side} {pair} · {price} · {duration}m"
+  },
+  "nav": {
+    "features": "Funciones",
+    "how": "Cómo funciona",
+    "yield": "Modelo de rendimiento",
+    "referrals": "Referidos",
+    "dashboard": "Panel",
+    "openDashboard": "Abrir panel",
+    "toggleMenu": "Abrir menú"
+  },
+  "hero": {
+    "badge": "Activo en BNB Chain y Polygon",
+    "titleSilver": "Haz staking on-chain.",
+    "titleGold": "Gana hasta un 1% diario.",
+    "titlePrimary": "Opera mercados en vivo.",
+    "subtitle": "Valtrix Capital es una plataforma de rendimiento nativa Web3. Conecta tu billetera, haz staking desde $15 hasta $100,000 y amplifica tu retorno diario ganando tus 7 operaciones del día — más una red de referidos de 7 niveles.",
+    "ctaHow": "Cómo funciona",
+    "trustNonCustodial": "Billetera no custodial",
+    "trustQuickTrades": "Operaciones rápidas de 1–5 min",
+    "trustNetwork": "Red de 7 niveles",
+    "mockNav": {
+      "dashboard": "Panel",
+      "botTrading": "Bot Trading",
+      "trade": "Operar",
+      "portfolio": "Portafolio",
+      "history": "Historial",
+      "referrals": "Referidos",
+      "wallet": "Billetera"
+    },
+    "mockStats": {
+      "activeCapital": "Capital activo",
+      "todayYield": "Rendimiento hoy",
+      "winsToday": "Victorias hoy",
+      "toCap": "Hasta tope 200%"
+    },
+    "mockTrade": {
+      "quickTrade": "Operación rápida",
+      "buy": "COMPRAR ↑",
+      "sell": "VENDER ↓",
+      "duration": "Duración",
+      "attempts": "Intentos",
+      "bonus": "Bono"
+    }
+  },
+  "features": {
+    "eyebrow": "Plataforma",
+    "title": "Diseñado para la nueva generación de",
+    "titleGold": "inversores on-chain",
+    "subtitle": "Todo lo que necesitas para poner capital a trabajar — trading, staking, referidos y transparencia total en un solo lugar.",
+    "items": {
+      "web3": { "title": "Nativo Web3", "desc": "Conecta MetaMask, Trust, Rainbow o cualquier billetera compatible con WalletConnect en BNB Chain o Polygon." },
+      "markets": { "title": "Mercados en vivo", "desc": "Velas reales de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos de 1m a 1D." },
+      "staking": { "title": "Staking flexible", "desc": "Haz staking de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
+      "yield": { "title": "Hasta 1% diario", "desc": "0,3% base + 0,1% por operación ganada en tus 7 intentos diarios. Tope de 1% por día." },
+      "network": { "title": "Red de 7 niveles", "desc": "Construye tu red de usuarios activos y acelera tu tope de pago con comisiones multinivel." },
+      "bot": { "title": "Transparencia del bot", "desc": "Operaciones institucionales reflejadas desde exchanges principales con hashes verificables en BscScan." },
+      "nonCustodial": { "title": "No custodial", "desc": "Inicias sesión con tu billetera. Nunca guardamos tus claves privadas. Todo con pruebas on-chain." },
+      "withdraw": { "title": "Retira cuando quieras", "desc": "Retira ganancias cuando quieras con una comisión fija del 3%. Liquidaciones en BSC o Polygon." }
+    }
+  },
+  "how": {
+    "eyebrow": "Cómo funciona",
+    "title": "De la billetera al",
+    "titleGold": "primer rendimiento",
+    "titleEnd": "en cuatro pasos",
+    "subtitle": "Un flujo no custodial y transparente, pensado para usuarios Web3 nuevos y experimentados.",
+    "steps": {
+      "1": { "title": "Conecta tu billetera", "desc": "MetaMask, Trust o WalletConnect. Elige BNB Chain o Polygon. Nunca custodiamos tus claves." },
+      "2": { "title": "Haz staking de tu capital", "desc": "Deposita entre $15 y $100,000 en USDT. Añade cuando quieras; los saldos se agregan." },
+      "3": { "title": "Juega tus 7 operaciones diarias", "desc": "Elige BTC, ETH, SOL, XRP, BNB o MATIC. Predice SUBE o BAJA en 1–5 minutos. Cada victoria suma +0,1% hoy." },
+      "4": { "title": "Gana a diario, retira cuando quieras", "desc": "El rendimiento se acredita a las 00:00 UTC. Retira ganancias cuando quieras (3% de comisión) hasta duplicar tu stake (200%)." }
+    }
+  },
+  "yield": {
+    "eyebrow": "Modelo de rendimiento",
+    "titleSilver": "Base predecible.",
+    "titleGold": "Potencial por rendimiento.",
+    "subtitle": "Tu retorno diario es determinista en la tasa base y se amplifica al ganar tus operaciones del día.",
+    "tableTitle": "Rendimiento diario = base + bono por victoria",
+    "tableSubtitle": "Todo calculado sobre tu capital total bloqueado.",
+    "colWins": "Operaciones ganadas",
+    "colBonus": "Bono",
+    "colTotal": "Total diario",
+    "colOn10k": "Sobre $10,000",
+    "rules": {
+      "cap": { "title": "Tope de pago 200%", "desc": "Cada stake activo se duplica cuando las ganancias totales alcanzan el 100% del principal. Luego un nuevo stake reabre ganancias." },
+      "reset": { "title": "Reinicio de operaciones 24h", "desc": "Las 7 operaciones diarias y bonos se reinician cada día a las 00:00 UTC. Los intentos no usados no se acumulan." },
+      "withdraw": { "title": "Flujo de retiro", "desc": "Retira tus ganancias cuando quieras. Comisión fija del 3%. Liquidación en BSC o Polygon a tu billetera conectada." }
+    }
+  },
+  "referrals": {
+    "eyebrow": "Red",
+    "title": "Un sistema de referidos de",
+    "titleGold": "7 niveles",
+    "titleEnd": "que se compone",
+    "subtitle": "Solo los referidos activos generan comisiones. Las comisiones aceleran tu propio tope del 200%, no restan a tu red.",
+    "tiersTitle": "Niveles de comisión",
+    "tiersSubtitle": "Tasas por defecto — totalmente configurables desde el panel de administración.",
+    "level": "Nivel {n}",
+    "leverageTitle": "Más que recompensas — es",
+    "leverageGold": "apalancamiento",
+    "leverageDesc": "Cada comisión que genera tu red fluye a tu saldo de ganancias, acelerando cuánto tardas en alcanzar tu tope del 200% y desbloquear un nuevo ciclo de staking. Solo los usuarios activos cuentan en tu red — manteniendo el ecosistema sano y real.",
+    "bullets": {
+      "link": "Enlace de referido único + código QR",
+      "tree": "Árbol visual de red por nivel",
+      "ledger": "Libro de comisiones en tiempo real",
+      "rates": "Tasas configurables por admin"
+    }
+  },
+  "cta": {
+    "titleSilver": "Tu capital merece",
+    "titleGold": "un mejor motor.",
+    "subtitle": "Conecta tu billetera y desbloquea rendimiento diario, mercados en vivo y una economía global de referidos — todo on-chain.",
+    "exploreDashboard": "Explorar panel"
+  },
+  "footer": {
+    "tagline": "Un ecosistema premium de rendimiento y trading Web3 en BNB Chain y Polygon. Staking. Trading. Construye una red. Todo on-chain, todo transparente.",
+    "platform": "Plataforma",
+    "resources": "Recursos",
+    "legal": "Legal",
+    "how": "Cómo funciona",
+    "yield": "Modelo de rendimiento",
+    "docs": "Documentación",
+    "support": "Soporte",
+    "terms": "Términos de servicio",
+    "privacy": "Política de privacidad",
+    "risk": "Divulgación de riesgos",
+    "copyright": "Valtrix Capital. Todos los derechos reservados.",
+    "chains": "BNB Chain · Polygon · BEP20 · Web3"
+  },
+  "signIn": {
+    "title": "Iniciar sesión en Valtrix",
+    "subtitle": "Dos pasos: conecta tu billetera y firma un mensaje gratuito para demostrar la propiedad.",
+    "step1Title": "Conectar billetera",
+    "step1Connected": "Conectado como",
+    "step1Hint": "MetaMask, Trust, Rainbow o cualquier billetera compatible con WalletConnect.",
+    "step2Title": "Firmar mensaje",
+    "step2Hint": "Nunca solicitamos una transacción ni movemos fondos. La firma solo demuestra la propiedad de la billetera.",
+    "signIn": "Iniciar sesión",
+    "signed": "Firmado",
+    "nonCustodial": "No custodial",
+    "nonCustodialDesc": "Tus claves permanecen en tu billetera. Solo verificamos un mensaje firmado."
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Panel",
+      "botTrading": "Bot Trading",
+      "trade": "Operar",
+      "portfolio": "Portafolio",
+      "history": "Historial",
+      "referrals": "Referidos",
+      "wallet": "Billetera",
+      "profile": "Perfil",
+      "support": "Soporte"
+    },
+    "header": {
+      "search": "Buscar pares, operaciones, usuarios…",
+      "balance": "Saldo",
+      "notifications": "Notificaciones",
+      "openMenu": "Abrir menú"
+    },
+    "sidebar": {
+      "expand": "Expandir barra lateral",
+      "collapse": "Contraer barra lateral",
+      "proTip": "Consejo",
+      "proTipText": "Gana las 7 operaciones hoy para alcanzar el tope diario del 1%."
+    },
+    "mobileNav": { "close": "Cerrar menú" },
+    "overview": {
+      "welcome": "Bienvenido de nuevo",
+      "subtitle": "Un resumen de tu actividad en Valtrix hoy.",
+      "viewPortfolio": "Ver portafolio",
+      "startTrading": "Empezar a operar",
+      "activeCapital": "Capital activo",
+      "todayYield": "Rendimiento hoy",
+      "winsToday": "Victorias hoy",
+      "toCap": "Hasta tope 200%",
+      "stakesHint": "2 stakes activos",
+      "capHint": "1,00% tope",
+      "resetIn": "Reinicio en {time}",
+      "capProgress": "$7,720 restantes",
+      "yieldWeek": "Rendimiento esta semana",
+      "weekBadge": "+4,18% semana hasta hoy",
+      "yieldNote": "El rendimiento diario es la suma del 0,3% base y +0,1% por operación ganada, calculado sobre tu capital activo total y acreditado a las 00:00 UTC.",
+      "dailyAttempts": "Intentos diarios",
+      "bonusBadge": "+{pct}% bono",
+      "wins": "victorias",
+      "losses": "pérdidas",
+      "attemptsLeft": "intentos restantes",
+      "resetsIn": "Reinicio en",
+      "useNextAttempt": "Usar siguiente intento",
+      "quickTrade": "Operar",
+      "quickBot": "Feed del bot",
+      "quickWallet": "Billetera",
+      "quickInvite": "Invitar",
+      "roadmapBadge": "Semana 1 de 6 — Fundación",
+      "roadmapText": "Estás viendo el shell de Valtrix Capital. Trading en vivo, staking, referidos y admin llegan en las próximas semanas.",
+      "seeRoadmap": "Ver hoja de ruta",
+      "days": { "mon": "Lun", "tue": "Mar", "wed": "Mié", "thu": "Jue", "fri": "Vie", "sat": "Sáb", "sun": "Dom" }
+    },
+    "pages": {
+      "wallet": {
+        "title": "Billetera",
+        "subtitle": "Deposita USDT, retira ganancias en BSC o Polygon.",
+        "comingTitle": "Billetera, depósitos y retiros",
+        "comingDesc": "Detección de depósitos no custodial y pagos revisados por admin con comisión fija del 3% en retiros."
+      },
+      "portfolio": {
+        "title": "Portafolio",
+        "subtitle": "Tus stakes activos, rendimiento acumulado y progreso hacia el tope del 200%.",
+        "comingTitle": "Motor de staking y rendimiento",
+        "comingDesc": "Deposita en BSC o Polygon, apila stakes en una base de capital activo y observa el rendimiento diario."
+      },
+      "botTrading": {
+        "title": "Bot Trading",
+        "subtitle": "Operaciones institucionales reflejadas desde exchanges principales con referencias on-chain.",
+        "comingTitle": "Feed del Bot Trading",
+        "comingDesc": "Transmisión en vivo de operaciones que ejecuta la empresa, con referencias verificables en BscScan / PolygonScan."
+      },
+      "referrals": {
+        "title": "Referidos",
+        "subtitle": "Construye tu red de 7 niveles. Solo cuentan los referidos activos.",
+        "comingTitle": "Sistema de referidos de 7 niveles",
+        "comingDesc": "Mecánica viral que acelera tu tope del 200% con cada downline activo."
+      },
+      "history": {
+        "title": "Historial",
+        "subtitle": "Toda la actividad de operaciones por par y duración.",
+        "exportCsv": "Exportar CSV",
+        "filterPlaceholder": "Filtrar por par (ej. BTC)…",
+        "comingTitle": "Historial completo de transacciones",
+        "comingDesc": "Depósitos, retiros, comisiones y créditos de rendimiento se unirán a este libro con referencias on-chain y exportación CSV.",
+        "comingFeatures": {
+          "0": "Hashes on-chain con enlaces BscScan / PolygonScan",
+          "1": "Filtro por tipo / fecha / par / red",
+          "2": "Exportación CSV para contabilidad e impuestos",
+          "3": "Paginación y vistas guardadas"
+        },
+        "filterAll": "Todas",
+        "filterOpen": "Abiertas",
+        "filterWins": "Ganadas",
+        "filterLosses": "Perdidas",
+        "empty": "Aún no hay operaciones.",
+        "firstTrade": "Haz tu primera operación",
+        "recentToday": "Operaciones recientes (hoy)",
+        "fullHistory": "Historial completo",
+        "colDate": "Fecha",
+        "colPair": "Par",
+        "colSide": "Lado",
+        "colEntry": "Entrada",
+        "colExit": "Salida",
+        "colDuration": "Duración",
+        "colResult": "Resultado",
+        "entry": "Entrada",
+        "winBonus": "GANADA · +0,10%"
+      },
+      "profile": {
+        "title": "Perfil",
+        "subtitle": "Tu billetera, estado de cuenta y configuración de seguridad.",
+        "walletCard": "Billetera",
+        "accountCard": "Cuenta",
+        "status": "Estado",
+        "connected": "Conectado",
+        "disconnected": "Desconectado",
+        "address": "Dirección",
+        "notConnected": "No conectado",
+        "network": "Red",
+        "account": "Cuenta",
+        "role": "Rol",
+        "memberSince": "Miembro desde",
+        "twoFa": "2FA",
+        "comingWeek6": "Semana 6",
+        "email": "Correo",
+        "emailOptional": "Opcional · Semana 6"
+      },
+      "support": {
+        "title": "Soporte",
+        "subtitle": "Contacta al equipo de Valtrix Capital. Centro de ayuda en la Semana 6.",
+        "liveChat": "Chat en vivo",
+        "liveChatDesc": "Habla con un miembro del equipo Valtrix. Respuesta media < 10 minutos.",
+        "openChat": "Abrir chat",
+        "email": "Correo",
+        "emailDesc": "Envíanos un mensaje. Respondemos en 24 horas.",
+        "docs": "Docs y guías",
+        "docsDesc": "Tutoriales de staking, trading, referidos y retiros.",
+        "browseDocs": "Ver documentación",
+        "status": "Estado e incidentes",
+        "statusDesc": "Estado de la plataforma en tiempo real, mantenimiento planificado y post-mortems.",
+        "viewStatus": "Ver estado"
+      }
+    }
+  },
+  "trade": {
+    "title": "Operar",
+    "subtitle": "Mercados en vivo, operaciones SUBE/BAJA de 1–5 minutos. Día UTC · {day}",
+    "live": "En vivo · {source}",
+    "connecting": "Conectando…",
+    "offline": "Sin conexión",
+    "idle": "Inactivo",
+    "h24": "24h",
+    "feedError": "No se pudo conectar al feed de mercado. Reintentando…",
+    "feedConnecting": "Conectando al feed en vivo…",
+    "buyEntry": "Entrada COMPRA",
+    "sellEntry": "Entrada VENTA",
+    "quickTrade": "Operación rápida",
+    "left": "restantes",
+    "duration": "Duración",
+    "entryPrice": "Precio de entrada",
+    "baseYield": "Rendimiento base (hoy)",
+    "bonusWins": "Bono por victorias",
+    "totalDaily": "Total diario",
+    "noAttemptsLeft": "Has usado las {max} operaciones de hoy. Los intentos se reinician a las 00:00 UTC.",
+    "dailyAttempts": "Intentos diarios",
+    "resetsIn": "Reinicio en",
+    "wins": "Victorias",
+    "losses": "Pérdidas",
+    "base": "Base",
+    "bonus": "Bono",
+    "today": "Hoy",
+    "leftCount": "restantes",
+    "attempt": "Intento {n}",
+    "openPositions": "Posiciones abiertas",
+    "activeCount": "{n} activas",
+    "noOpenPositions": "Sin posiciones abiertas. Haz una operación para verla aquí.",
+    "now": "Ahora",
+    "addPair": "Añadir par",
+    "searchPair": "Buscar par",
+    "noMatchingPairs": "Sin pares coincidentes"
+  }
+}

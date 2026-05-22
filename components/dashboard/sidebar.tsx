@@ -18,18 +18,19 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
-const items = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/bot-trading", label: "Bot Trading", icon: Bot },
-  { href: "/dashboard/trade", label: "Trade", icon: LineChart },
-  { href: "/dashboard/portfolio", label: "Portfolio", icon: Briefcase },
-  { href: "/dashboard/history", label: "History", icon: History },
-  { href: "/dashboard/referrals", label: "Referrals", icon: Users },
-  { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
-  { href: "/dashboard/support", label: "Support", icon: Headphones },
-];
+const navKeys = [
+  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/bot-trading", key: "botTrading", icon: Bot },
+  { href: "/dashboard/trade", key: "trade", icon: LineChart },
+  { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },
+  { href: "/dashboard/history", key: "history", icon: History },
+  { href: "/dashboard/referrals", key: "referrals", icon: Users },
+  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
+  { href: "/dashboard/profile", key: "profile", icon: User },
+  { href: "/dashboard/support", key: "support", icon: Headphones },
+] as const;
 
 export function Sidebar({
   collapsed,
@@ -39,6 +40,7 @@ export function Sidebar({
   onToggle: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <aside
@@ -56,7 +58,9 @@ export function Sidebar({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed ? t("dashboard.sidebar.expand") : t("dashboard.sidebar.collapse")
+          }
           className="rounded-md p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary"
         >
           <ChevronLeft
@@ -70,10 +74,11 @@ export function Sidebar({
 
       <nav className="flex-1 overflow-y-auto p-2">
         <ul className="space-y-0.5">
-          {items.map((it) => {
+          {navKeys.map((it) => {
             const active =
               pathname === it.href ||
               (it.href !== "/dashboard" && pathname.startsWith(it.href));
+            const label = t(`dashboard.nav.${it.key}`);
             return (
               <li key={it.href}>
                 <Link
@@ -85,13 +90,13 @@ export function Sidebar({
                       : "text-text-secondary hover:bg-bg-hover hover:text-text-primary",
                     collapsed && "justify-center",
                   )}
-                  title={collapsed ? it.label : undefined}
+                  title={collapsed ? label : undefined}
                 >
                   {active ? (
                     <span className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold" />
                   ) : null}
                   <it.icon className="h-[18px] w-[18px] shrink-0" />
-                  {!collapsed ? <span>{it.label}</span> : null}
+                  {!collapsed ? <span>{label}</span> : null}
                 </Link>
               </li>
             );
@@ -103,11 +108,9 @@ export function Sidebar({
         <div className="m-3 rounded-lg border border-gold/30 bg-gradient-to-br from-gold/5 to-transparent p-3 text-xs">
           <div className="mb-1 inline-flex items-center gap-1.5 text-gold">
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="font-medium">Pro tip</span>
+            <span className="font-medium">{t("dashboard.sidebar.proTip")}</span>
           </div>
-          <p className="text-text-secondary">
-            Win all 7 trades today to hit the 1% daily cap.
-          </p>
+          <p className="text-text-secondary">{t("dashboard.sidebar.proTipText")}</p>
         </div>
       ) : null}
     </aside>

@@ -1,24 +1,22 @@
+"use client";
+
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ComingSoon } from "@/components/dashboard/coming-soon";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function ReferralsPage() {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Referrals"
-        subtitle="Build your 7-level network. Only active referrals count."
+        title={t("dashboard.pages.referrals.title")}
+        subtitle={t("dashboard.pages.referrals.subtitle")}
       />
       <ComingSoon
-        week={4}
-        title="7-level referral system"
-        description="A viral mechanic that accelerates your 200% payout cap with every active downline."
-        features={[
-          "Personal referral link + QR code",
-          "Downline tree by level (1–7)",
-          "Per-level commission ledger",
-          "Active vs. inactive flagging",
-          "Admin-configurable commission rates",
-        ]}
+        week={5}
+        title={t("dashboard.pages.referrals.comingTitle")}
+        description={t("dashboard.pages.referrals.comingDesc")}
       />
     </div>
   );

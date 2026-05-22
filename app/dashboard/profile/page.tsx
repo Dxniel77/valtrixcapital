@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useAccount, useChainId } from "wagmi";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { CHAIN_META } from "@/lib/wagmi";
 import { shortenAddress } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function ProfilePage() {
+  const { t } = useI18n();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const chain = chainId ? CHAIN_META[chainId] : null;
@@ -18,38 +19,42 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Profile"
-        subtitle="Your wallet, account status and security settings."
+        title={t("dashboard.pages.profile.title")}
+        subtitle={t("dashboard.pages.profile.subtitle")}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Wallet</CardTitle>
+            <CardTitle>{t("dashboard.pages.profile.walletCard")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <Row label="Status">
+            <Row label={t("dashboard.pages.profile.status")}>
               {isConnected ? (
                 <Badge variant="success">
                   <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                  Connected
+                  {t("dashboard.pages.profile.connected")}
                 </Badge>
               ) : (
-                <Badge variant="warning">Disconnected</Badge>
+                <Badge variant="warning">
+                  {t("dashboard.pages.profile.disconnected")}
+                </Badge>
               )}
             </Row>
             <Separator />
-            <Row label="Address">
+            <Row label={t("dashboard.pages.profile.address")}>
               {address ? (
                 <span className="font-mono text-text-primary">
                   {shortenAddress(address, 10, 8)}
                 </span>
               ) : (
-                <span className="text-text-muted">Not connected</span>
+                <span className="text-text-muted">
+                  {t("dashboard.pages.profile.notConnected")}
+                </span>
               )}
             </Row>
             <Separator />
-            <Row label="Network">
+            <Row label={t("dashboard.pages.profile.network")}>
               {chain ? (
                 <Badge variant="gold">{chain.name}</Badge>
               ) : (
@@ -57,7 +62,7 @@ export default function ProfilePage() {
               )}
             </Row>
             <Separator />
-            <Row label="Account">
+            <Row label={t("dashboard.pages.profile.account")}>
               <ConnectWalletButton variant="outline" size="sm" />
             </Row>
           </CardContent>
@@ -65,23 +70,27 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Account</CardTitle>
+            <CardTitle>{t("dashboard.pages.profile.accountCard")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <Row label="Role">
-              <Badge>User</Badge>
+            <Row label={t("dashboard.pages.profile.role")}>
+              <Badge>{t("common.user")}</Badge>
             </Row>
             <Separator />
-            <Row label="Member since">
-              <span className="font-mono text-text-primary">May 2026</span>
+            <Row label={t("dashboard.pages.profile.memberSince")}>
+              <span className="font-mono text-text-primary">Mayo 2026</span>
             </Row>
             <Separator />
-            <Row label="2FA">
-              <Badge variant="warning">Coming Week 6</Badge>
+            <Row label={t("dashboard.pages.profile.twoFa")}>
+              <Badge variant="warning">
+                {t("dashboard.pages.profile.comingWeek6")}
+              </Badge>
             </Row>
             <Separator />
-            <Row label="Email">
-              <span className="text-text-muted">Optional · Week 6</span>
+            <Row label={t("dashboard.pages.profile.email")}>
+              <span className="text-text-muted">
+                {t("dashboard.pages.profile.emailOptional")}
+              </span>
             </Row>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck, Zap, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
+import { useI18n } from "@/lib/i18n/context";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -17,6 +18,8 @@ const stagger = {
 };
 
 export function Hero() {
+  const { t } = useI18n();
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 -z-10 grid-bg opacity-60" />
@@ -32,7 +35,7 @@ export function Hero() {
           <motion.div variants={fadeUp}>
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-xs text-gold">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold animate-pulse-soft" />
-              Live on BNB Chain & Polygon
+              {t("hero.badge")}
             </span>
           </motion.div>
 
@@ -40,19 +43,17 @@ export function Hero() {
             variants={fadeUp}
             className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl"
           >
-            <span className="text-gradient-silver">Stake on-chain.</span>{" "}
-            <span className="text-gradient-gold">Earn up to 1% daily.</span>
+            <span className="text-gradient-silver">{t("hero.titleSilver")}</span>{" "}
+            <span className="text-gradient-gold">{t("hero.titleGold")}</span>
             <br />
-            <span className="text-text-primary">Trade live markets.</span>
+            <span className="text-text-primary">{t("hero.titlePrimary")}</span>
           </motion.h1>
 
           <motion.p
             variants={fadeUp}
             className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-text-secondary md:text-lg"
           >
-            Valtrix Capital is a Web3-native yield platform. Connect your
-            wallet, stake from $15 to $100,000, and amplify your daily return by
-            winning your 7 daily trades — plus a 7-level referral network.
+            {t("hero.subtitle")}
           </motion.p>
 
           <motion.div
@@ -62,7 +63,7 @@ export function Hero() {
             <ConnectWalletButton size="lg" />
             <Button asChild variant="outline" size="lg">
               <Link href="/#how">
-                How it works <ArrowRight className="h-4 w-4" />
+                {t("hero.ctaHow")} <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </motion.div>
@@ -72,13 +73,14 @@ export function Hero() {
             className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-text-muted"
           >
             <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Non-custodial wallet
+              <ShieldCheck className="h-3.5 w-3.5 text-success" />{" "}
+              {t("hero.trustNonCustodial")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-gold" /> 1–5 min quick trades
+              <Zap className="h-3.5 w-3.5 text-gold" /> {t("hero.trustQuickTrades")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Network className="h-3.5 w-3.5 text-info" /> 7-level network
+              <Network className="h-3.5 w-3.5 text-info" /> {t("hero.trustNetwork")}
             </span>
           </motion.div>
         </motion.div>
@@ -100,23 +102,33 @@ export function Hero() {
 }
 
 function HeroDashboardMock() {
+  const { t } = useI18n();
+
+  const navItems = [
+    { key: "dashboard", active: true },
+    { key: "botTrading", active: false },
+    { key: "trade", active: false },
+    { key: "portfolio", active: false },
+    { key: "history", active: false },
+    { key: "referrals", active: false },
+    { key: "wallet", active: false },
+  ] as const;
+
+  const stats = [
+    { key: "activeCapital", v: "$12,450", d: "+0.6%", up: true },
+    { key: "todayYield", v: "$74.70", d: "+0.6%", up: true },
+    { key: "winsToday", v: "3 / 7", d: "+0.3%", up: true },
+    { key: "toCap", v: "62%", d: "−", up: true },
+  ] as const;
+
   return (
     <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md bg-bg-base">
       <div className="absolute inset-0 grid-bg opacity-40" />
       <div className="relative flex h-full">
-        {/* Mini sidebar */}
         <div className="hidden w-44 shrink-0 flex-col gap-1 border-r border-border-subtle bg-bg-elevated/60 p-3 md:flex">
-          {[
-            { label: "Dashboard", active: true },
-            { label: "Bot Trading", active: false },
-            { label: "Trade", active: false },
-            { label: "Portfolio", active: false },
-            { label: "History", active: false },
-            { label: "Referrals", active: false },
-            { label: "Wallet", active: false },
-          ].map((i) => (
+          {navItems.map((i) => (
             <div
-              key={i.label}
+              key={i.key}
               className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] ${
                 i.active
                   ? "border-l-2 border-gold bg-gold/10 text-gold"
@@ -124,26 +136,20 @@ function HeroDashboardMock() {
               }`}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
-              {i.label}
+              {t(`hero.mockNav.${i.key}`)}
             </div>
           ))}
         </div>
 
-        {/* Mock dashboard */}
         <div className="flex-1 p-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
-              { l: "Active Capital", v: "$12,450", d: "+0.6%", up: true },
-              { l: "Today's Yield", v: "$74.70", d: "+0.6%", up: true },
-              { l: "Wins Today", v: "3 / 7", d: "+0.3%", up: true },
-              { l: "To 200% Cap", v: "62%", d: "−", up: true },
-            ].map((s) => (
+            {stats.map((s) => (
               <div
-                key={s.l}
+                key={s.key}
                 className="rounded-md border border-border-subtle bg-bg-elevated/60 p-3"
               >
                 <p className="text-[10px] uppercase tracking-wider text-text-muted">
-                  {s.l}
+                  {t(`hero.mockStats.${s.key}`)}
                 </p>
                 <p className="mt-1 font-mono text-lg text-text-primary">{s.v}</p>
                 <p
@@ -167,20 +173,29 @@ function HeroDashboardMock() {
             </div>
             <div className="rounded-md border border-border-subtle bg-bg-elevated/60 p-3">
               <p className="mb-2 text-[10px] uppercase tracking-wider text-text-muted">
-                Quick Trade
+                {t("hero.mockTrade.quickTrade")}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-md bg-success/15 py-2 text-center text-xs text-success">
-                  BUY ↑
+                  {t("hero.mockTrade.buy")}
                 </div>
                 <div className="rounded-md bg-danger/15 py-2 text-center text-xs text-danger">
-                  SELL ↓
+                  {t("hero.mockTrade.sell")}
                 </div>
               </div>
               <div className="mt-3 space-y-1.5 text-[10px] text-text-secondary">
-                <div className="flex justify-between"><span>Duration</span><span className="font-mono">1m</span></div>
-                <div className="flex justify-between"><span>Attempts</span><span className="font-mono">7 / 7</span></div>
-                <div className="flex justify-between"><span>Bonus</span><span className="font-mono text-gold">+0.0%</span></div>
+                <div className="flex justify-between">
+                  <span>{t("hero.mockTrade.duration")}</span>
+                  <span className="font-mono">1m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{t("hero.mockTrade.attempts")}</span>
+                  <span className="font-mono">7 / 7</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{t("hero.mockTrade.bonus")}</span>
+                  <span className="font-mono text-gold">+0.0%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -191,16 +206,16 @@ function HeroDashboardMock() {
 }
 
 function FakeCandlesticks() {
-  const candles = React.useMemo(() => {
-    const seed = [
+  const candles = React.useMemo(
+    () => [
       [3, 5], [4, 7], [6, 4], [3, 6], [5, 8], [7, 5], [4, 3],
       [6, 8], [8, 11], [9, 7], [7, 10], [10, 12], [9, 8],
       [11, 14], [12, 10], [10, 13], [13, 15], [11, 9], [12, 14],
       [14, 11], [13, 16], [15, 12], [14, 17], [16, 13], [15, 18],
       [17, 14], [16, 19], [18, 15], [17, 20], [19, 16],
-    ];
-    return seed;
-  }, []);
+    ],
+    [],
+  );
 
   return (
     <div className="flex h-24 items-end gap-1">

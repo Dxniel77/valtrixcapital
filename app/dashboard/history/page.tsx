@@ -17,10 +17,12 @@ import {
   Download,
   Search,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 type FilterKey = "ALL" | "WIN" | "LOSS" | "OPEN";
 
 export default function HistoryPage() {
+  const { t } = useI18n();
   const positions = useTradeStore((s) => s.positions);
   const [filter, setFilter] = React.useState<FilterKey>("ALL");
   const [query, setQuery] = React.useState("");
@@ -44,16 +46,20 @@ export default function HistoryPage() {
     return c;
   }, [positions]);
 
+  const comingFeatures = [0, 1, 2, 3].map((i) =>
+    t(`dashboard.pages.history.comingFeatures.${i}`),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="History"
-        subtitle="All trade activity across pairs and durations."
+        title={t("dashboard.pages.history.title")}
+        subtitle={t("dashboard.pages.history.subtitle")}
         actions={
           <Button variant="outline" size="md" disabled>
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> {t("dashboard.pages.history.exportCsv")}
             <Badge variant="default" className="ml-2 text-[10px]">
-              Week 5
+              Semana 5
             </Badge>
           </Button>
         }
@@ -64,7 +70,7 @@ export default function HistoryPage() {
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
           <input
-            placeholder="Filter by pair (e.g. BTC)…"
+            placeholder={t("dashboard.pages.history.filterPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-9 w-full rounded-md border border-border-subtle bg-bg-base pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-gold focus:outline-none sm:w-72"
@@ -80,14 +86,9 @@ export default function HistoryPage() {
 
       <ComingSoon
         week={5}
-        title="Full transaction history"
-        description="Deposits, withdrawals, commissions and yield credits will join this trade ledger with on-chain references and CSV export."
-        features={[
-          "On-chain tx hashes with BscScan / PolygonScan links",
-          "Filter by event type / date / pair / network",
-          "CSV export for accounting & taxes",
-          "Pagination + saved views",
-        ]}
+        title={t("dashboard.pages.history.comingTitle")}
+        description={t("dashboard.pages.history.comingDesc")}
+        features={comingFeatures}
       />
     </div>
   );
@@ -102,11 +103,12 @@ function FilterTabs({
   counts: Record<FilterKey, number>;
   onChange: (f: FilterKey) => void;
 }) {
+  const { t } = useI18n();
   const items: { key: FilterKey; label: string }[] = [
-    { key: "ALL", label: "All" },
-    { key: "OPEN", label: "Open" },
-    { key: "WIN", label: "Wins" },
-    { key: "LOSS", label: "Losses" },
+    { key: "ALL", label: t("dashboard.pages.history.filterAll") },
+    { key: "OPEN", label: t("dashboard.pages.history.filterOpen") },
+    { key: "WIN", label: t("dashboard.pages.history.filterWins") },
+    { key: "LOSS", label: t("dashboard.pages.history.filterLosses") },
   ];
   return (
     <div className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
@@ -136,11 +138,12 @@ function FilterTabs({
 }
 
 function EmptyState() {
+  const { t } = useI18n();
   return (
     <div className="surface-card flex flex-col items-center justify-center gap-3 p-12 text-center">
-      <p className="text-sm text-text-secondary">No trades yet.</p>
+      <p className="text-sm text-text-secondary">{t("dashboard.pages.history.empty")}</p>
       <Button asChild variant="primary" size="md">
-        <Link href="/dashboard/trade">Place your first trade</Link>
+        <Link href="/dashboard/trade">{t("dashboard.pages.history.firstTrade")}</Link>
       </Button>
     </div>
   );
@@ -161,19 +164,23 @@ function TradesTable({
     status: TradeStatus;
   }[];
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="surface-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-border-subtle text-left text-xs uppercase tracking-wider text-text-muted">
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Pair</th>
-              <th className="px-4 py-3 font-medium">Side</th>
-              <th className="px-4 py-3 font-medium">Entry</th>
-              <th className="px-4 py-3 font-medium">Exit</th>
-              <th className="px-4 py-3 font-medium">Duration</th>
-              <th className="px-4 py-3 font-medium text-right">Result</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colDate")}</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colPair")}</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colSide")}</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colEntry")}</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colExit")}</th>
+              <th className="px-4 py-3 font-medium">{t("dashboard.pages.history.colDuration")}</th>
+              <th className="px-4 py-3 font-medium text-right">
+                {t("dashboard.pages.history.colResult")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">
@@ -185,11 +192,11 @@ function TradesTable({
                 <tr key={p.id} className="hover:bg-bg-hover/40">
                   <td className="px-4 py-3 text-text-secondary">
                     <p className="font-mono">
-                      {new Date(p.openedAt).toLocaleString("en-GB", {
+                      {new Date(p.openedAt).toLocaleString("es-ES", {
                         hour12: false,
                         timeZone: "UTC",
                       })}{" "}
-                      UTC
+                      {t("common.utc")}
                     </p>
                     <p className="text-xs text-text-muted">
                       {utcDayKey(p.openedAt)}
@@ -214,7 +221,7 @@ function TradesTable({
                       ) : (
                         <ArrowDown className="h-3 w-3" />
                       )}
-                      {p.direction === "UP" ? "BUY" : "SELL"}
+                      {p.direction === "UP" ? t("common.buy") : t("common.sell")}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-text-secondary">
@@ -234,14 +241,15 @@ function TradesTable({
                   </td>
                   <td className="px-4 py-3 text-right">
                     {isOpen ? (
-                      <Badge variant="warning">OPEN</Badge>
+                      <Badge variant="warning">{t("common.open")}</Badge>
                     ) : isWin ? (
                       <Badge variant="success">
-                        <CircleCheck className="h-3 w-3" /> WIN · +0.10%
+                        <CircleCheck className="h-3 w-3" />{" "}
+                        {t("dashboard.pages.history.winBonus")}
                       </Badge>
                     ) : (
                       <Badge variant="danger">
-                        <CircleX className="h-3 w-3" /> LOSS
+                        <CircleX className="h-3 w-3" /> {t("common.loss")}
                       </Badge>
                     )}
                   </td>

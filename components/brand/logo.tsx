@@ -53,7 +53,7 @@ export function Logo({
 
   if (asLink) {
     return (
-      <Link href="/" aria-label="Valtrix Capital home">
+      <Link href="/" aria-label="Inicio de Valtrix Capital">
         {content}
       </Link>
     );

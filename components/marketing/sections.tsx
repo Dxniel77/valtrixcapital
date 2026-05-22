@@ -14,127 +14,99 @@ import {
   Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
+import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/context";
+
+const featureKeys = [
+  "web3",
+  "markets",
+  "staking",
+  "yield",
+  "network",
+  "bot",
+  "nonCustodial",
+  "withdraw",
+] as const;
+
+const featureIcons = {
+  web3: Wallet,
+  markets: LineChart,
+  staking: Layers,
+  yield: TrendingUp,
+  network: Users,
+  bot: Bot,
+  nonCustodial: ShieldCheck,
+  withdraw: Repeat,
+};
 
 export function FeaturesSection() {
-  const items = [
-    {
-      icon: Wallet,
-      title: "Web3 native",
-      desc: "Connect MetaMask, Trust, Rainbow or any WalletConnect-compatible wallet on BNB Chain or Polygon.",
-    },
-    {
-      icon: LineChart,
-      title: "Live markets",
-      desc: "Real Binance & Bybit candles across BTC, ETH, SOL, XRP, BNB and MATIC. 1m to 1D timeframes.",
-    },
-    {
-      icon: Layers,
-      title: "Flexible staking",
-      desc: "Stake any amount from $15 to $100,000. Multiple stakes sum into one active capital base.",
-    },
-    {
-      icon: TrendingUp,
-      title: "Up to 1% daily",
-      desc: "0.3% base + 0.1% per winning trade across your 7 daily attempts. Capped at 1% per day.",
-    },
-    {
-      icon: Users,
-      title: "7-level network",
-      desc: "Build a downline of active users and accelerate your payout cap with multi-tier commissions.",
-    },
-    {
-      icon: Bot,
-      title: "Bot transparency",
-      desc: "See institutional operations mirrored from major exchanges with BscScan-verifiable hashes.",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Non-custodial",
-      desc: "You sign in with your wallet. We never hold your private keys. All on-chain proofs.",
-    },
-    {
-      icon: Repeat,
-      title: "Withdraw anytime",
-      desc: "Pull profits whenever you want with a flat 3% fee. Settlements on BSC or Polygon.",
-    },
-  ];
+  const { t } = useI18n();
 
   return (
     <section id="features" className="container py-24">
       <SectionHead
-        eyebrow="Platform"
+        eyebrow={t("features.eyebrow")}
         title={
           <>
-            Built for the new generation of <br className="hidden md:block" />
-            <span className="text-gradient-gold">on-chain investors</span>
+            {t("features.title")}{" "}
+            <br className="hidden md:block" />
+            <span className="text-gradient-gold">{t("features.titleGold")}</span>
           </>
         }
-        subtitle="Every primitive you need to put capital to work — trading, staking, referrals and full transparency in one place."
+        subtitle={t("features.subtitle")}
       />
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((it, i) => (
-          <motion.div
-            key={it.title}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4, delay: i * 0.05 }}
-            className="group rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
-          >
-            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10">
-              <it.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-semibold text-text-primary">
-              {it.title}
-            </h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-              {it.desc}
-            </p>
-          </motion.div>
-        ))}
+        {featureKeys.map((key, i) => {
+          const Icon = featureIcons[key];
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.4, delay: i * 0.05 }}
+              className="group rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
+            >
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-semibold text-text-primary">
+                {t(`features.items.${key}.title`)}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
+                {t(`features.items.${key}.desc`)}
+              </p>
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );
 }
 
 export function HowItWorksSection() {
+  const { t } = useI18n();
   const steps = [
-    {
-      n: "01",
-      icon: Wallet,
-      title: "Connect your wallet",
-      desc: "MetaMask, Trust or WalletConnect. Pick BNB Chain or Polygon. We never custody your keys.",
-    },
-    {
-      n: "02",
-      icon: Coins,
-      title: "Stake your capital",
-      desc: "Deposit any amount between $15 and $100,000 in USDT. Add to your stake anytime; balances aggregate.",
-    },
-    {
-      n: "03",
-      icon: LineChart,
-      title: "Play your 7 daily trades",
-      desc: "Choose BTC, ETH, SOL, XRP, BNB or MATIC. Predict UP or DOWN over 1–5 minutes. Each win adds +0.1% to today.",
-    },
-    {
-      n: "04",
-      icon: TrendingUp,
-      title: "Earn daily, withdraw anytime",
-      desc: "Yield is credited at 00:00 UTC. Withdraw profits whenever (3% fee) until your stake doubles (200%).",
-    },
-  ];
+    { n: "01", icon: Wallet, key: "1" },
+    { n: "02", icon: Coins, key: "2" },
+    { n: "03", icon: LineChart, key: "3" },
+    { n: "04", icon: TrendingUp, key: "4" },
+  ] as const;
 
   return (
     <section id="how" className="container py-24">
       <SectionHead
-        eyebrow="How it works"
+        eyebrow={t("how.eyebrow")}
         title={
           <>
-            From wallet to <span className="text-gradient-gold">first yield</span> in four steps
+            {t("how.title")}{" "}
+            <span className="text-gradient-gold">{t("how.titleGold")}</span>{" "}
+            {t("how.titleEnd")}
           </>
         }
-        subtitle="A non-custodial, transparent flow designed for both new and experienced Web3 users."
+        subtitle={t("how.subtitle")}
       />
       <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         {steps.map((s, i) => (
@@ -153,10 +125,10 @@ export function HowItWorksSection() {
               <s.icon className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-semibold text-text-primary">
-              {s.title}
+              {t(`how.steps.${s.key}.title`)}
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-              {s.desc}
+              {t(`how.steps.${s.key}.desc`)}
             </p>
           </motion.div>
         ))}
@@ -166,36 +138,38 @@ export function HowItWorksSection() {
 }
 
 export function YieldModelSection() {
+  const { t } = useI18n();
+
   return (
     <section id="yield" className="container py-24">
       <SectionHead
-        eyebrow="Yield model"
+        eyebrow={t("yield.eyebrow")}
         title={
           <>
-            <span className="text-gradient-silver">Predictable base.</span>{" "}
-            <span className="text-gradient-gold">Performance upside.</span>
+            <span className="text-gradient-silver">{t("yield.titleSilver")}</span>{" "}
+            <span className="text-gradient-gold">{t("yield.titleGold")}</span>
           </>
         }
-        subtitle="Your daily return is deterministic at the base rate and amplifies as you win your daily trades."
+        subtitle={t("yield.subtitle")}
       />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        <div className="surface-card p-6 lg:col-span-2">
+        <div className="surface-card lg:col-span-2 p-6">
           <h3 className="text-base font-semibold text-text-primary">
-            Daily yield = base + bonus per win
+            {t("yield.tableTitle")}
           </h3>
           <p className="mt-1 text-sm text-text-secondary">
-            All calculated on your total locked capital.
+            {t("yield.tableSubtitle")}
           </p>
 
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wider text-text-muted">
                 <tr className="border-b border-border-subtle">
-                  <th className="py-2 pr-4 font-medium">Trades won</th>
-                  <th className="py-2 pr-4 font-medium">Bonus</th>
-                  <th className="py-2 pr-4 font-medium">Total daily</th>
-                  <th className="py-2 font-medium">On $10,000</th>
+                  <th className="py-2 pr-4 font-medium">{t("yield.colWins")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("yield.colBonus")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("yield.colTotal")}</th>
+                  <th className="py-2 font-medium">{t("yield.colOn10k")}</th>
                 </tr>
               </thead>
               <tbody className="font-mono text-text-primary">
@@ -204,11 +178,17 @@ export function YieldModelSection() {
                   return (
                     <tr key={w} className="border-b border-border-subtle/60">
                       <td className="py-2.5 pr-4">{w} / 7</td>
-                      <td className="py-2.5 pr-4 text-gold">+{(w * 0.1).toFixed(1)}%</td>
-                      <td className={`py-2.5 pr-4 ${total >= 1 ? "text-success" : "text-text-primary"}`}>
+                      <td className="py-2.5 pr-4 text-gold">
+                        +{(w * 0.1).toFixed(1)}%
+                      </td>
+                      <td
+                        className={`py-2.5 pr-4 ${total >= 1 ? "text-success" : "text-text-primary"}`}
+                      >
                         {total.toFixed(1)}%
                       </td>
-                      <td className="py-2.5">${(10000 * total / 100).toFixed(2)}</td>
+                      <td className="py-2.5">
+                        ${((10000 * total) / 100).toFixed(2)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -220,18 +200,18 @@ export function YieldModelSection() {
         <div className="space-y-4">
           <RuleCard
             icon={Lock}
-            title="200% payout cap"
-            desc="Each active stake doubles once total earnings reach 100% of its principal. Then a new stake re-opens earnings."
+            title={t("yield.rules.cap.title")}
+            desc={t("yield.rules.cap.desc")}
           />
           <RuleCard
             icon={Repeat}
-            title="24h trade reset"
-            desc="The 7 daily trades and bonuses reset every day at 00:00 UTC. Unused attempts do not roll over."
+            title={t("yield.rules.reset.title")}
+            desc={t("yield.rules.reset.desc")}
           />
           <RuleCard
             icon={Coins}
-            title="Withdraw flow"
-            desc="Withdraw your earnings any time. Flat 3% fee. Settles on BSC or Polygon to your connected wallet."
+            title={t("yield.rules.withdraw.title")}
+            desc={t("yield.rules.withdraw.desc")}
           />
         </div>
       </div>
@@ -260,6 +240,7 @@ function RuleCard({
 }
 
 export function ReferralsSection() {
+  const { t } = useI18n();
   const tiers = [
     { lvl: 1, pct: 7 },
     { lvl: 2, pct: 3 },
@@ -269,53 +250,60 @@ export function ReferralsSection() {
     { lvl: 6, pct: 0.5 },
     { lvl: 7, pct: 0.5 },
   ];
+
   return (
     <section id="referrals" className="container py-24">
       <SectionHead
-        eyebrow="Network"
+        eyebrow={t("referrals.eyebrow")}
         title={
           <>
-            A <span className="text-gradient-gold">7-level</span> referral system that compounds
+            {t("referrals.title")}{" "}
+            <span className="text-gradient-gold">{t("referrals.titleGold")}</span>{" "}
+            {t("referrals.titleEnd")}
           </>
         }
-        subtitle="Only active referrals earn commissions. Commissions accelerate your own 200% payout cap, not subtract from your downline."
+        subtitle={t("referrals.subtitle")}
       />
       <div className="mt-12 grid items-center gap-10 lg:grid-cols-2">
         <div className="surface-card p-6">
           <h3 className="text-base font-semibold text-text-primary">
-            Commission tiers
+            {t("referrals.tiersTitle")}
           </h3>
           <p className="mt-1 text-sm text-text-secondary">
-            Default rates — fully configurable from the admin panel.
+            {t("referrals.tiersSubtitle")}
           </p>
           <ul className="mt-4 divide-y divide-border-subtle">
-            {tiers.map((t) => (
+            {tiers.map((tier) => (
               <li
-                key={t.lvl}
+                key={tier.lvl}
                 className="flex items-center justify-between py-2.5 text-sm"
               >
-                <span className="text-text-secondary">Level {t.lvl}</span>
-                <span className="font-mono text-gold">{t.pct}%</span>
+                <span className="text-text-secondary">
+                  {t("referrals.level", { n: tier.lvl })}
+                </span>
+                <span className="font-mono text-gold">{tier.pct}%</span>
               </li>
             ))}
           </ul>
         </div>
         <div>
           <h3 className="text-2xl font-semibold text-text-primary">
-            More than rewards — it's <span className="text-gradient-gold">leverage</span>.
+            {t("referrals.leverageTitle")}{" "}
+            <span className="text-gradient-gold">
+              {t("referrals.leverageGold")}
+            </span>
+            .
           </h3>
           <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            Every commission your network generates flows into your earnings
-            balance, accelerating how quickly you reach your 200% cap and unlock
-            a fresh staking cycle. Only <strong className="text-text-primary">active</strong>{" "}
-            users count toward your network — keeping the ecosystem healthy and
-            real.
+            {t("referrals.leverageDesc")}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-text-secondary">
-            <li className="flex gap-2"><span className="text-gold">→</span> Unique referral link + QR code</li>
-            <li className="flex gap-2"><span className="text-gold">→</span> Visual downline tree by level</li>
-            <li className="flex gap-2"><span className="text-gold">→</span> Real-time commission ledger</li>
-            <li className="flex gap-2"><span className="text-gold">→</span> Admin-configurable rates</li>
+            {(["link", "tree", "ledger", "rates"] as const).map((key) => (
+              <li key={key} className="flex gap-2">
+                <span className="text-gold">→</span>
+                {t(`referrals.bullets.${key}`)}
+              </li>
+            ))}
           </ul>
         </div>
       </div>
@@ -348,38 +336,27 @@ function SectionHead({
 }
 
 export function CtaSection() {
+  const { t } = useI18n();
+
   return (
     <section className="container py-24">
       <div className="relative overflow-hidden rounded-xl border border-gold/30 bg-bg-elevated p-10 text-center shadow-elevated md:p-14">
         <div className="absolute inset-0 -z-10 bg-hero-radial opacity-80" />
         <div className="absolute inset-0 -z-10 grid-bg opacity-40" />
         <h2 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
-          <span className="text-gradient-silver">Your capital deserves</span>{" "}
-          <span className="text-gradient-gold">a better engine.</span>
+          <span className="text-gradient-silver">{t("cta.titleSilver")}</span>{" "}
+          <span className="text-gradient-gold">{t("cta.titleGold")}</span>
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-text-secondary md:text-base">
-          Connect your wallet and unlock daily yield, live markets and a global
-          referral economy — fully on-chain.
+          {t("cta.subtitle")}
         </p>
         <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <ConnectInline />
+          <ConnectWalletButton size="lg" />
+          <Button asChild variant="outline" size="lg">
+            <Link href="/dashboard">{t("cta.exploreDashboard")}</Link>
+          </Button>
         </div>
       </div>
     </section>
-  );
-}
-
-import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-
-function ConnectInline() {
-  return (
-    <>
-      <ConnectWalletButton size="lg" />
-      <Button asChild variant="outline" size="lg">
-        <Link href="/dashboard">Explore dashboard</Link>
-      </Button>
-    </>
   );
 }

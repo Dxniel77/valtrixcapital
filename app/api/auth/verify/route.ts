@@ -3,6 +3,7 @@ import { z } from "zod";
 import { consumeNonce, verifySiwe } from "@/lib/auth/siwe";
 import { createSession } from "@/lib/auth/session";
 import { randomBytes } from "crypto";
+import { t } from "@/lib/i18n";
 
 const bodySchema = z.object({
   message: z.string().min(1),
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     parsed = bodySchema.parse(await req.json());
   } catch (err) {
     return NextResponse.json(
-      { error: "Invalid request body" },
+      { error: t("api.invalidBody") },
       { status: 400 },
     );
   }
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   const ok = consumeNonce(parsed.nonce);
   if (!ok) {
     return NextResponse.json(
-      { error: "Invalid or expired nonce" },
+      { error: t("api.invalidNonce") },
       { status: 401 },
     );
   }
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     expectedNonce: parsed.nonce,
   });
   if (!result) {
-    return NextResponse.json({ error: "Signature verification failed" }, { status: 401 });
+    return NextResponse.json({ error: t("api.verifyFailed") }, { status: 401 });
   }
 
   // Week 1: skip DB write — issue a session keyed by wallet address.
