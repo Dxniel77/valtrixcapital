@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Valtrix Capital — Trading Web3 y rendimiento",
-    "description": "Haz staking on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 7 niveles — en BNB Chain y Polygon."
+    "description": "Haz quita on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 7 niveles — en BNB Chain y Polygon."
   },
   "common": {
     "connectWallet": "Conectar billetera",
@@ -49,10 +49,10 @@
   },
   "hero": {
     "badge": "Activo en BNB Chain y Polygon",
-    "titleSilver": "Haz staking on-chain.",
+    "titleSilver": "Haz quita on-chain.",
     "titleGold": "Gana hasta un 1% diario.",
     "titlePrimary": "Opera mercados en vivo.",
-    "subtitle": "Valtrix Capital es una plataforma de rendimiento nativa Web3. Conecta tu billetera, haz staking desde $15 hasta $100,000 y amplifica tu retorno diario ganando tus 7 operaciones del día — más una red de referidos de 7 niveles.",
+    "subtitle": "Valtrix Capital es una plataforma de rendimiento nativa Web3. Conecta tu billetera, haz quita desde $15 hasta $100,000 y amplifica tu retorno diario ganando tus 7 operaciones del día — más una red de referidos de 7 niveles.",
     "ctaHow": "Cómo funciona",
     "trustNonCustodial": "Billetera no custodial",
     "trustQuickTrades": "Operaciones rápidas de 1–5 min",
@@ -85,11 +85,11 @@
     "eyebrow": "Plataforma",
     "title": "Diseñado para la nueva generación de",
     "titleGold": "inversores on-chain",
-    "subtitle": "Todo lo que necesitas para poner capital a trabajar — trading, staking, referidos y transparencia total en un solo lugar.",
+    "subtitle": "Todo lo que necesitas para poner capital a trabajar — trading, quita, referidos y transparencia total en un solo lugar.",
     "items": {
       "web3": { "title": "Nativo Web3", "desc": "Conecta MetaMask, Trust, Rainbow o cualquier billetera compatible con WalletConnect en BNB Chain o Polygon." },
       "markets": { "title": "Mercados en vivo", "desc": "Velas reales de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos de 1m a 1D." },
-      "staking": { "title": "Staking flexible", "desc": "Haz staking de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
+      "quita": { "title": "Quita flexible", "desc": "Haz quita de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
       "yield": { "title": "Hasta 1% diario", "desc": "0,3% base + 0,1% por operación ganada en tus 7 intentos diarios. Tope de 1% por día." },
       "network": { "title": "Red de 7 niveles", "desc": "Construye tu red de usuarios activos y acelera tu tope de pago con comisiones multinivel." },
       "bot": { "title": "Transparencia del bot", "desc": "Operaciones institucionales reflejadas desde exchanges principales con hashes verificables en BscScan." },
@@ -105,7 +105,7 @@
     "subtitle": "Un flujo no custodial y transparente, pensado para usuarios Web3 nuevos y experimentados.",
     "steps": {
       "1": { "title": "Conecta tu billetera", "desc": "MetaMask, Trust o WalletConnect. Elige BNB Chain o Polygon. Nunca custodiamos tus claves." },
-      "2": { "title": "Haz staking de tu capital", "desc": "Deposita entre $15 y $100,000 en USDT. Añade cuando quieras; los saldos se agregan." },
+      "2": { "title": "Haz quita de tu capital", "desc": "Deposita entre $15 y $100,000 en USDT. Añade cuando quieras; los saldos se agregan." },
       "3": { "title": "Juega tus 7 operaciones diarias", "desc": "Elige BTC, ETH, SOL, XRP, BNB o MATIC. Predice SUBE o BAJA en 1–5 minutos. Cada victoria suma +0,1% hoy." },
       "4": { "title": "Gana a diario, retira cuando quieras", "desc": "El rendimiento se acredita a las 00:00 UTC. Retira ganancias cuando quieras (3% de comisión) hasta duplicar tu stake (200%)." }
     }
@@ -138,7 +138,7 @@
     "level": "Nivel {n}",
     "leverageTitle": "Más que recompensas — es",
     "leverageGold": "apalancamiento",
-    "leverageDesc": "Cada comisión que genera tu red fluye a tu saldo de ganancias, acelerando cuánto tardas en alcanzar tu tope del 200% y desbloquear un nuevo ciclo de staking. Solo los usuarios activos cuentan en tu red — manteniendo el ecosistema sano y real.",
+    "leverageDesc": "Cada comisión que genera tu red fluye a tu saldo de ganancias, acelerando cuánto tardas en alcanzar tu tope del 200% y desbloquear un nuevo ciclo de quita. Solo los usuarios activos cuentan en tu red — manteniendo el ecosistema sano y real.",
     "bullets": {
       "link": "Enlace de referido único + código QR",
       "tree": "Árbol visual de red por nivel",
@@ -153,7 +153,7 @@
     "exploreDashboard": "Explorar panel"
   },
   "footer": {
-    "tagline": "Un ecosistema premium de rendimiento y trading Web3 en BNB Chain y Polygon. Staking. Trading. Construye una red. Todo on-chain, todo transparente.",
+    "tagline": "Un ecosistema premium de rendimiento y trading Web3 en BNB Chain y Polygon. Quita. Trading. Construye una red. Todo on-chain, todo transparente.",
     "platform": "Plataforma",
     "resources": "Recursos",
     "legal": "Legal",
@@ -233,7 +233,7 @@
       "quickWallet": "Billetera",
       "quickInvite": "Invitar",
       "roadmapBadge": "Semana 1 de 6 — Fundación",
-      "roadmapText": "Estás viendo el shell de Valtrix Capital. Trading en vivo, staking, referidos y admin llegan en las próximas semanas.",
+      "roadmapText": "Estás viendo el shell de Valtrix Capital. Trading en vivo, quita, referidos y admin llegan en las próximas semanas.",
       "seeRoadmap": "Ver hoja de ruta",
       "days": { "mon": "Lun", "tue": "Mar", "wed": "Mié", "thu": "Jue", "fri": "Vie", "sat": "Sáb", "sun": "Dom" }
     },
@@ -247,7 +247,7 @@
       "portfolio": {
         "title": "Portafolio",
         "subtitle": "Tus stakes activos, rendimiento acumulado y progreso hacia el tope del 200%.",
-        "comingTitle": "Motor de staking y rendimiento",
+        "comingTitle": "Motor de quita y rendimiento",
         "comingDesc": "Deposita en BSC o Polygon, apila stakes en una base de capital activo y observa el rendimiento diario."
       },
       "botTrading": {
@@ -321,7 +321,7 @@
         "email": "Correo",
         "emailDesc": "Envíanos un mensaje. Respondemos en 24 horas.",
         "docs": "Docs y guías",
-        "docsDesc": "Tutoriales de staking, trading, referidos y retiros.",
+        "docsDesc": "Tutoriales de quita, trading, referidos y retiros.",
         "browseDocs": "Ver documentación",
         "status": "Estado e incidentes",
         "statusDesc": "Estado de la plataforma en tiempo real, mantenimiento planificado y post-mortems.",
