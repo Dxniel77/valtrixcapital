@@ -51,9 +51,9 @@ export function Sidebar({
     >
       <div className="flex h-16 items-center justify-between border-b border-border-subtle px-4">
         {collapsed ? (
-          <Logo size="sm" showWordmark={false} />
+          <Logo className="flex" size="sm" showWordmark={false} />
         ) : (
-          <Logo size="sm" showWordmark />
+          <Logo className="flex" size="sm" showWordmark />
         )}
         <button
           type="button"
