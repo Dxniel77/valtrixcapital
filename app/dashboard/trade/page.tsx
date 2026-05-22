@@ -114,7 +114,10 @@ export default function TradePage() {
                 priceLines={priceLines}
                 height={460}
               />
-              <PositionCloseCountdown pairSymbol={pair.binance} />
+              <PositionCloseCountdown
+                pairSymbol={pair.binance}
+                livePrice={livePrice}
+              />
               <ChartOverlay state={stream.status} />
             </div>
           </div>

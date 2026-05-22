@@ -48,6 +48,18 @@ export function utcDayKey(ts = Date.now()): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function resolveTradeOutcome(
+  position: Pick<Position, "direction" | "entryPrice">,
+  exitPrice: number,
+): "WIN" | "LOSS" {
+  const movedUp = exitPrice > position.entryPrice;
+  const movedDown = exitPrice < position.entryPrice;
+  if (position.direction === "UP") {
+    return movedUp ? "WIN" : "LOSS";
+  }
+  return movedDown ? "WIN" : "LOSS";
+}
+
 const initial: Pick<TradeState, "positions" | "utcDay"> = {
   positions: [],
   utcDay: utcDayKey(),
@@ -81,14 +93,7 @@ export const useTradeStore = create<TradeState>()(
           positions: s.positions.map((p) => {
             if (p.id !== id) return p;
             if (p.status !== "OPEN") return p;
-            const movedUp = exitPrice > p.entryPrice;
-            const movedDown = exitPrice < p.entryPrice;
-            let status: TradeStatus;
-            if (p.direction === "UP") {
-              status = movedUp ? "WIN" : movedDown ? "LOSS" : "LOSS";
-            } else {
-              status = movedDown ? "WIN" : movedUp ? "LOSS" : "LOSS";
-            }
+            const status = resolveTradeOutcome(p, exitPrice);
             return {
               ...p,
               status,

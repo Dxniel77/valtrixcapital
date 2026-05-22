@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useTradeStore, type Position } from "@/lib/trade/store";
+import {
+  resolveTradeOutcome,
+  useTradeStore,
+  type Position,
+} from "@/lib/trade/store";
 import { cn } from "@/lib/utils";
 import { useClientNow } from "@/lib/hooks/use-client-now";
 import { useI18n } from "@/lib/i18n/context";
@@ -11,6 +15,7 @@ const CLOSED_FLASH_MS = 2000;
 
 interface PositionCloseCountdownProps {
   pairSymbol: string;
+  livePrice: number | null;
 }
 
 function urgentOpenForPair(open: Position[], pairSymbol: string, now: number) {
@@ -26,7 +31,27 @@ function urgentOpenForPair(open: Position[], pairSymbol: string, now: number) {
   return best;
 }
 
-export function PositionCloseCountdown({ pairSymbol }: PositionCloseCountdownProps) {
+function outcomeForPosition(
+  position: Position | undefined,
+  livePrice: number | null,
+): "WIN" | "LOSS" | null {
+  if (!position) return null;
+  if (position.status === "WIN" || position.status === "LOSS") {
+    return position.status;
+  }
+  if (livePrice !== null && livePrice > 0) {
+    return resolveTradeOutcome(position, livePrice);
+  }
+  if (typeof position.exitPrice === "number" && position.exitPrice > 0) {
+    return resolveTradeOutcome(position, position.exitPrice);
+  }
+  return null;
+}
+
+export function PositionCloseCountdown({
+  pairSymbol,
+  livePrice,
+}: PositionCloseCountdownProps) {
   const { t } = useI18n();
   const positions = useTradeStore((s) => s.positions);
   const open = React.useMemo(
@@ -35,7 +60,10 @@ export function PositionCloseCountdown({ pairSymbol }: PositionCloseCountdownPro
   );
 
   const now = useClientNow(200);
-  const [closedFlash, setClosedFlash] = React.useState(false);
+  const [resultFlash, setResultFlash] = React.useState(false);
+  const [closedPositionId, setClosedPositionId] = React.useState<string | null>(
+    null,
+  );
   const trackedIdRef = React.useRef<string | null>(null);
 
   const urgent =
@@ -44,33 +72,51 @@ export function PositionCloseCountdown({ pairSymbol }: PositionCloseCountdownPro
     ? Math.max(0, Math.ceil(urgent.remainingMs / 1000))
     : null;
 
+  const closedPosition = closedPositionId
+    ? positions.find((p) => p.id === closedPositionId)
+    : undefined;
+
+  const activePosition = urgent?.position ?? closedPosition;
+  const outcome = outcomeForPosition(activePosition, livePrice);
+
   React.useEffect(() => {
     if (urgent) {
       trackedIdRef.current = urgent.position.id;
-      setClosedFlash(false);
+      setResultFlash(false);
+      setClosedPositionId(null);
       return;
     }
     if (trackedIdRef.current) {
+      const id = trackedIdRef.current;
       trackedIdRef.current = null;
-      setClosedFlash(true);
-      const id = setTimeout(() => setClosedFlash(false), CLOSED_FLASH_MS);
-      return () => clearTimeout(id);
+      setClosedPositionId(id);
+      setResultFlash(true);
+      const timer = setTimeout(() => {
+        setResultFlash(false);
+        setClosedPositionId(null);
+      }, CLOSED_FLASH_MS);
+      return () => clearTimeout(timer);
     }
   }, [urgent?.position.id]);
 
   const showCountdown =
     urgent !== null && remainingSec !== null && remainingSec > 0;
-  const showClosed = closedFlash || (urgent !== null && remainingSec === 0);
+  const showResult =
+    outcome !== null &&
+    (resultFlash || (urgent !== null && remainingSec === 0));
 
-  if (now === null || (!showCountdown && !showClosed)) return null;
+  if (now === null || (!showCountdown && !showResult)) return null;
 
   const countdownDigit =
     remainingSec !== null && remainingSec > 0
       ? Math.max(1, remainingSec - 1)
       : null;
 
-  const label = showClosed
-    ? t("trade.positionClosed")
+  const isWin = outcome === "WIN";
+  const label = showResult
+    ? isWin
+      ? t("common.win")
+      : t("common.loss")
     : String(countdownDigit);
 
   return (
@@ -83,20 +129,20 @@ export function PositionCloseCountdown({ pairSymbol }: PositionCloseCountdownPro
         key={label}
         className={cn(
           "animate-in fade-in zoom-in-90 flex flex-col items-center duration-200",
-          showClosed ? "text-gold-bright" : "text-text-primary",
+          showResult && (isWin ? "text-success" : "text-danger"),
         )}
       >
         <span
           className={cn(
             "font-mono font-bold tabular-nums tracking-tight",
-            showClosed
+            showResult
               ? "text-4xl uppercase sm:text-5xl"
-              : "text-7xl sm:text-8xl md:text-9xl",
+              : "text-7xl sm:text-8xl md:text-9xl text-text-primary",
           )}
         >
           {label}
         </span>
-        {!showClosed && (
+        {!showResult && (
           <span className="mt-2 text-xs font-medium uppercase tracking-widest text-text-secondary">
             {t("trade.closingIn")}
           </span>
