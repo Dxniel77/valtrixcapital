@@ -12,7 +12,7 @@ interface LogoProps {
 const dims = {
   sm: { w: 36, h: 36, text: "text-base" },
   md: { w: 44, h: 44, text: "text-lg" },
-  lg: { w: 64, h: 64, text: "text-2xl" },
+  lg: { w: 56, h: 56, text: "text-2xl" },
 } as const;
 
 export function Logo({
