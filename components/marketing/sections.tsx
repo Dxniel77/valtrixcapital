@@ -45,8 +45,6 @@ const featureIcons = {
   withdraw: Repeat,
 };
 
-const SPOTLIGHT_INTERVAL_MS = 2800;
-
 const cardGridVariants: Variants = {
   hidden: {},
   show: {
@@ -75,19 +73,15 @@ const iconVariants: Variants = {
 
 function AnimatedCardShell({
   index,
-  spotlight,
   reducedMotion,
   className,
   children,
 }: {
   index: number;
-  spotlight: boolean;
   reducedMotion: boolean;
   className: string;
   children: React.ReactNode;
 }) {
-  const isActive = spotlight && !reducedMotion;
-
   return (
     <motion.div
       variants={reducedMotion ? undefined : cardVariants}
@@ -97,30 +91,18 @@ function AnimatedCardShell({
           : { y: -8, scale: 1.02, transition: { duration: 0.22 } }
       }
       whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-      animate={
-        reducedMotion
-          ? undefined
-          : {
-              y: isActive ? -6 : [0, -5, 0],
-              ...(isActive && {
-                boxShadow:
-                  "0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.45), 0 0 28px rgba(212,175,55,0.28)",
-              }),
-            }
-      }
+      animate={reducedMotion ? undefined : { y: [0, -5, 0] }}
       transition={
         reducedMotion
           ? undefined
-          : isActive
-            ? { duration: 0.45, ease: "easeOut" }
-            : {
-                y: {
-                  duration: 3.2 + index * 0.25,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: index * 0.18,
-                },
-              }
+          : {
+              y: {
+                duration: 3.2 + index * 0.25,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: index * 0.18,
+              },
+            }
       }
       className={className}
     >
@@ -129,30 +111,14 @@ function AnimatedCardShell({
   );
 }
 
-function useCardSpotlight(count: number, reducedMotion: boolean | null) {
-  const [spotlightIndex, setSpotlightIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    if (reducedMotion) return;
-    const id = window.setInterval(() => {
-      setSpotlightIndex((i) => (i + 1) % count);
-    }, SPOTLIGHT_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [count, reducedMotion]);
-
-  return spotlightIndex;
-}
-
 function FeatureCard({
   index,
-  spotlight,
   reducedMotion,
   title,
   desc,
   icon: Icon,
 }: {
   index: number;
-  spotlight: boolean;
   reducedMotion: boolean;
   title: string;
   desc: string;
@@ -161,7 +127,6 @@ function FeatureCard({
   return (
     <AnimatedCardShell
       index={index}
-      spotlight={spotlight}
       reducedMotion={reducedMotion}
       className="group cursor-pointer rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
     >
@@ -181,7 +146,6 @@ function FeatureCard({
 
 function HowStepCard({
   index,
-  spotlight,
   reducedMotion,
   stepNumber,
   title,
@@ -189,7 +153,6 @@ function HowStepCard({
   icon: Icon,
 }: {
   index: number;
-  spotlight: boolean;
   reducedMotion: boolean;
   stepNumber: string;
   title: string;
@@ -199,7 +162,6 @@ function HowStepCard({
   return (
     <AnimatedCardShell
       index={index}
-      spotlight={spotlight}
       reducedMotion={reducedMotion}
       className="group relative cursor-pointer overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card transition-colors hover:border-gold/30"
     >
@@ -223,10 +185,6 @@ function HowStepCard({
 export function FeaturesSection() {
   const { t } = useI18n();
   const reducedMotion = useReducedMotion();
-  const spotlightIndex = useCardSpotlight(
-    featureKeys.length,
-    reducedMotion,
-  );
 
   return (
     <section id="features" className="container py-24">
@@ -254,7 +212,6 @@ export function FeaturesSection() {
             <FeatureCard
               key={key}
               index={i}
-              spotlight={spotlightIndex === i}
               reducedMotion={!!reducedMotion}
               title={t(`features.items.${key}.title`)}
               desc={t(`features.items.${key}.desc`)}
@@ -276,7 +233,6 @@ export function HowItWorksSection() {
     { n: "03", icon: LineChart, key: "3" },
     { n: "04", icon: TrendingUp, key: "4" },
   ] as const;
-  const spotlightIndex = useCardSpotlight(steps.length, reducedMotion);
 
   return (
     <section id="how" className="container py-24">
@@ -302,7 +258,6 @@ export function HowItWorksSection() {
           <HowStepCard
             key={s.n}
             index={i}
-            spotlight={spotlightIndex === i}
             reducedMotion={!!reducedMotion}
             stepNumber={s.n}
             title={t(`how.steps.${s.key}.title`)}
