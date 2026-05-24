@@ -13,7 +13,11 @@ import {
   TrendingUp,
   Lock,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 import Link from "next/link";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { Button } from "@/components/ui/button";
@@ -41,8 +45,188 @@ const featureIcons = {
   withdraw: Repeat,
 };
 
+const SPOTLIGHT_INTERVAL_MS = 2800;
+
+const cardGridVariants: Variants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.09, delayChildren: 0.12 },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 32, scale: 0.92 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 280, damping: 24 },
+  },
+};
+
+const iconVariants: Variants = {
+  rest: { scale: 1, rotate: 0 },
+  hover: {
+    scale: 1.12,
+    rotate: -4,
+    transition: { type: "spring", stiffness: 400, damping: 14 },
+  },
+};
+
+function AnimatedCardShell({
+  index,
+  spotlight,
+  reducedMotion,
+  className,
+  children,
+}: {
+  index: number;
+  spotlight: boolean;
+  reducedMotion: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const isActive = spotlight && !reducedMotion;
+
+  return (
+    <motion.div
+      variants={reducedMotion ? undefined : cardVariants}
+      whileHover={
+        reducedMotion
+          ? undefined
+          : { y: -8, scale: 1.02, transition: { duration: 0.22 } }
+      }
+      whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+      animate={
+        reducedMotion
+          ? undefined
+          : {
+              y: isActive ? -6 : [0, -5, 0],
+              ...(isActive && {
+                boxShadow:
+                  "0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.45), 0 0 28px rgba(212,175,55,0.28)",
+              }),
+            }
+      }
+      transition={
+        reducedMotion
+          ? undefined
+          : isActive
+            ? { duration: 0.45, ease: "easeOut" }
+            : {
+                y: {
+                  duration: 3.2 + index * 0.25,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: index * 0.18,
+                },
+              }
+      }
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function useCardSpotlight(count: number, reducedMotion: boolean | null) {
+  const [spotlightIndex, setSpotlightIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    if (reducedMotion) return;
+    const id = window.setInterval(() => {
+      setSpotlightIndex((i) => (i + 1) % count);
+    }, SPOTLIGHT_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [count, reducedMotion]);
+
+  return spotlightIndex;
+}
+
+function FeatureCard({
+  index,
+  spotlight,
+  reducedMotion,
+  title,
+  desc,
+  icon: Icon,
+}: {
+  index: number;
+  spotlight: boolean;
+  reducedMotion: boolean;
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <AnimatedCardShell
+      index={index}
+      spotlight={spotlight}
+      reducedMotion={reducedMotion}
+      className="group cursor-pointer rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
+    >
+      <motion.div
+        variants={iconVariants}
+        initial="rest"
+        whileHover={reducedMotion ? undefined : "hover"}
+        className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10"
+      >
+        <Icon className="h-5 w-5" />
+      </motion.div>
+      <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{desc}</p>
+    </AnimatedCardShell>
+  );
+}
+
+function HowStepCard({
+  index,
+  spotlight,
+  reducedMotion,
+  stepNumber,
+  title,
+  desc,
+  icon: Icon,
+}: {
+  index: number;
+  spotlight: boolean;
+  reducedMotion: boolean;
+  stepNumber: string;
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <AnimatedCardShell
+      index={index}
+      spotlight={spotlight}
+      reducedMotion={reducedMotion}
+      className="group relative cursor-pointer overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card transition-colors hover:border-gold/30"
+    >
+      <span className="absolute right-5 top-5 font-mono text-xs text-text-muted">
+        {stepNumber}
+      </span>
+      <motion.div
+        variants={iconVariants}
+        initial="rest"
+        whileHover={reducedMotion ? undefined : "hover"}
+        className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gold-gradient text-text-inverse"
+      >
+        <Icon className="h-5 w-5" />
+      </motion.div>
+      <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-text-secondary">{desc}</p>
+    </AnimatedCardShell>
+  );
+}
+
 export function FeaturesSection() {
   const { t } = useI18n();
+  const reducedMotion = useReducedMotion();
+  const spotlightIndex = useCardSpotlight(
+    featureKeys.length,
+    reducedMotion,
+  );
 
   return (
     <section id="features" className="container py-24">
@@ -57,43 +241,42 @@ export function FeaturesSection() {
         }
         subtitle={t("features.subtitle")}
       />
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <motion.div
+        className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        variants={reducedMotion ? undefined : cardGridVariants}
+        initial={reducedMotion ? false : "hidden"}
+        whileInView={reducedMotion ? undefined : "show"}
+        viewport={{ once: true, amount: 0.15 }}
+      >
         {featureKeys.map((key, i) => {
           const Icon = featureIcons[key];
           return (
-            <motion.div
+            <FeatureCard
               key={key}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group cursor-pointer rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
-            >
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10">
-                <Icon className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-text-primary">
-                {t(`features.items.${key}.title`)}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                {t(`features.items.${key}.desc`)}
-              </p>
-            </motion.div>
+              index={i}
+              spotlight={spotlightIndex === i}
+              reducedMotion={!!reducedMotion}
+              title={t(`features.items.${key}.title`)}
+              desc={t(`features.items.${key}.desc`)}
+              icon={Icon}
+            />
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }
 
 export function HowItWorksSection() {
   const { t } = useI18n();
+  const reducedMotion = useReducedMotion();
   const steps = [
     { n: "01", icon: Wallet, key: "1" },
     { n: "02", icon: Coins, key: "2" },
     { n: "03", icon: LineChart, key: "3" },
     { n: "04", icon: TrendingUp, key: "4" },
   ] as const;
+  const spotlightIndex = useCardSpotlight(steps.length, reducedMotion);
 
   return (
     <section id="how" className="container py-24">
@@ -108,31 +291,26 @@ export function HowItWorksSection() {
         }
         subtitle={t("how.subtitle")}
       />
-      <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <motion.div
+        className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4"
+        variants={reducedMotion ? undefined : cardGridVariants}
+        initial={reducedMotion ? false : "hidden"}
+        whileInView={reducedMotion ? undefined : "show"}
+        viewport={{ once: true, amount: 0.15 }}
+      >
         {steps.map((s, i) => (
-          <motion.div
+          <HowStepCard
             key={s.n}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="relative cursor-pointer overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card transition-colors hover:border-gold/30"
-          >
-            <span className="absolute right-5 top-5 font-mono text-xs text-text-muted">
-              {s.n}
-            </span>
-            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gold-gradient text-text-inverse">
-              <s.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-semibold text-text-primary">
-              {t(`how.steps.${s.key}.title`)}
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-              {t(`how.steps.${s.key}.desc`)}
-            </p>
-          </motion.div>
+            index={i}
+            spotlight={spotlightIndex === i}
+            reducedMotion={!!reducedMotion}
+            stepNumber={s.n}
+            title={t(`how.steps.${s.key}.title`)}
+            desc={t(`how.steps.${s.key}.desc`)}
+            icon={s.icon}
+          />
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }

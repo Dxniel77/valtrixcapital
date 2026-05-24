@@ -49,8 +49,8 @@
   },
   "hero": {
     "badge": "Activo en BNB Chain y Polygon",
-    "titleSilver": "Haz quita on-chain.",
-    "titleGold": "Gana hasta un 1% diario.",
+    "titleSilver": "Quita on-chain.",
+    "titleGold": "Genera hasta un 1% diario.",
     "titlePrimary": "Opera mercados en vivo.",
     "subtitle": "Valtrix Capital es una ecosystem de rendimiento nativa Web3. Conecta tu billetera, haz quita desde $15 hasta $100,000 y amplifica tu retorno diario ganando tus 7 operaciones del día — más una red de referidos de 7 niveles.",
     "ctaHow": "Cómo funciona",
@@ -89,7 +89,7 @@
     "items": {
       "web3": { "title": "Nativo Web3", "desc": "Conecta MetaMask, Trust, Rainbow o cualquier billetera compatible con WalletConnect en BNB Chain o Polygon." },
       "markets": { "title": "Mercados en vivo", "desc": "Velas reales de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos de 1m a 1D." },
-      "quita": { "title": "Quita flexible", "desc": "Haz quita de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
+      "quita": { "title": "Quita flexible", "desc": "Haz de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
       "yield": { "title": "Hasta 1% diario", "desc": "0,3% base + 0,1% por operación ganada en tus 7 intentos diarios. Tope de 1% por día." },
       "network": { "title": "Red de 7 niveles", "desc": "Construye tu red de usuarios activos y acelera tu tope de pago con comisiones multinivel." },
       "bot": { "title": "Transparencia del bot", "desc": "Operaciones institucionales reflejadas desde exchanges principales con hashes verificables en BscScan." },
