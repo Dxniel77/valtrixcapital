@@ -17,15 +17,47 @@ const stagger = {
   show: { transition: { staggerChildren: 0.08 } },
 };
 
+const LANDING_VIDEO_SRC = "/videos/landing%20video.mp4";
+
+function HeroVideoBackground() {
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    videoRef.current?.play().catch(() => {});
+  }, []);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        aria-hidden
+      >
+        <source src={LANDING_VIDEO_SRC} type="video/mp4" />
+      </video>
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg-base/75 via-bg-base/45 to-bg-base/85"
+        aria-hidden
+      />
+    </>
+  );
+}
+
 export function Hero() {
   const { t } = useI18n();
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 grid-bg opacity-60" />
-      <div className="absolute inset-x-0 -top-32 -z-10 h-[480px] bg-hero-radial" />
+    <section className="relative -mt-20 min-h-screen overflow-hidden pt-20">
+      <div className="absolute inset-0 z-0">
+        <HeroVideoBackground />
+      </div>
 
-      <div className="container relative pb-24 pt-20 lg:pt-28">
+      <div className="container relative z-10 pb-24 pt-12 lg:pt-20">
         <motion.div
           initial="hidden"
           animate="show"
@@ -92,9 +124,9 @@ export function Hero() {
           className="relative mx-auto mt-16 max-w-5xl"
         >
           <div className="absolute -inset-px rounded-xl bg-gold-gradient opacity-30 blur-xl" />
-          <div className="surface-card relative overflow-hidden p-2">
+          {/* <div className="surface-card relative overflow-hidden p-2">
             <HeroDashboardMock />
-          </div>
+          </div> */}
         </motion.div>
       </div>
     </section>
