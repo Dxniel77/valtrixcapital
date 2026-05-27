@@ -300,6 +300,7 @@ export function YieldModelSection() {
               <thead className="text-left text-xs uppercase tracking-wider text-text-muted">
                 <tr className="border-b border-border-subtle">
                   <th className="py-2 pr-4 font-medium">{t("yield.colWins")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("yield.colBase")}</th>
                   <th className="py-2 pr-4 font-medium">{t("yield.colBonus")}</th>
                   <th className="py-2 pr-4 font-medium">{t("yield.colTotal")}</th>
                   <th className="py-2 font-medium">{t("yield.colOn10k")}</th>
@@ -311,6 +312,7 @@ export function YieldModelSection() {
                   return (
                     <tr key={w} className="border-b border-border-subtle/60">
                       <td className="py-2.5 pr-4">{w} / 7</td>
+                      <td className="py-2.5 pr-4">0.3%</td>
                       <td className="py-2.5 pr-4 text-gold">
                         +{(w * 0.1).toFixed(1)}%
                       </td>
