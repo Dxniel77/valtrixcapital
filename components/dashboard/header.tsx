@@ -5,7 +5,11 @@ import { Bell, Menu, Search } from "lucide-react";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { Logo } from "@/components/brand/logo";
 import { useI18n } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils";
+import {
+  useStakingStore,
+  useStakingStoreHydrated,
+} from "@/lib/staking/store";
+import { cn, formatNumber } from "@/lib/utils";
 
 export function DashboardHeader({
   onOpenMobileNav,
@@ -56,6 +60,8 @@ export function DashboardHeader({
 }
 
 function BalancePill({ label }: { label: string }) {
+  const hydrated = useStakingStoreHydrated();
+  const balance = useStakingStore((s) => s.earningsBalance);
   return (
     <Link
       href="/dashboard/wallet"
@@ -65,7 +71,9 @@ function BalancePill({ label }: { label: string }) {
       )}
     >
       <span className="text-text-muted">{label}</span>
-      <span className="font-mono text-text-primary">10,450.00</span>
+      <span className="font-mono text-text-primary">
+        {hydrated ? formatNumber(balance, { decimals: 2 }) : "—"}
+      </span>
       <span className="text-text-muted">USDT</span>
     </Link>
   );

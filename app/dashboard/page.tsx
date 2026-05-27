@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { StatTile } from "@/components/ui/stat-tile";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { useAccount } from "wagmi";
 import {
   Activity,
   ArrowUpRight,
@@ -14,18 +11,35 @@ import {
   LineChart,
   Lock,
   Sparkles,
+  TrendingUp,
   Trophy,
+  Unlock,
   Wallet,
 } from "lucide-react";
-import { useAccount } from "wagmi";
-import Link from "next/link";
+
+import { PageHeader } from "@/components/dashboard/page-header";
+import { StatTile } from "@/components/ui/stat-tile";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StartStakingCTA } from "@/components/staking/start-staking-cta";
 import {
   COUNTDOWN_PLACEHOLDER,
   formatCountdown,
+  formatNumber,
   shortenAddress,
 } from "@/lib/utils";
 import { useUtcMidnightCountdown } from "@/lib/hooks/use-utc-midnight-countdown";
 import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
+import {
+  PAYOUT_CAP_MULTIPLIER,
+  usePortfolioSummary,
+  useStakingStore,
+  useStakingStoreHydrated,
+  useTodayYieldPreview,
+  useYieldEngine,
+  type DailyYield,
+} from "@/lib/staking/store";
 import { useI18n } from "@/lib/i18n/context";
 
 export default function DashboardOverviewPage() {
@@ -33,6 +47,14 @@ export default function DashboardOverviewPage() {
   const { address, isConnected } = useAccount();
   const countdown = useUtcMidnightCountdown();
   const summary = useDailySummary();
+  const portfolio = usePortfolioSummary();
+  const preview = useTodayYieldPreview();
+  const hydrated = useStakingStoreHydrated();
+  const yields = useStakingStore((s) => s.dailyYields);
+
+  useYieldEngine();
+
+  const hasCapital = hydrated && portfolio.totalCapital > 0;
 
   return (
     <div className="space-y-6">
@@ -53,12 +75,16 @@ export default function DashboardOverviewPage() {
                 {t("dashboard.overview.viewPortfolio")}
               </Link>
             </Button>
-            <Button asChild variant="primary" size="md">
-              <Link href="/dashboard/trade">
-                {t("dashboard.overview.startTrading")}{" "}
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            {hasCapital ? (
+              <Button asChild variant="primary" size="md">
+                <Link href="/dashboard/trade">
+                  {t("dashboard.overview.startTrading")}{" "}
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <StartStakingCTA size="md" />
+            )}
           </>
         }
       />
@@ -66,19 +92,38 @@ export default function DashboardOverviewPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={t("dashboard.overview.activeCapital")}
-          value="$12,450.00"
-          delta={{ value: 6.2 }}
+          value={`$${formatNumber(portfolio.totalCapital, { decimals: 2 })}`}
           icon={Coins}
           accent="gold"
-          hint={t("dashboard.overview.stakesHint")}
+          hint={
+            portfolio.activeStakes > 0
+              ? t("dashboard.overview.stakesHintN", {
+                  n: portfolio.activeStakes,
+                })
+              : t("dashboard.overview.stakesHintEmpty")
+          }
+          delta={
+            portfolio.totalCapital > 0
+              ? {
+                  value:
+                    (portfolio.totalEarned /
+                      Math.max(portfolio.totalCapital, 1)) *
+                    100,
+                }
+              : undefined
+          }
         />
         <StatTile
           label={t("dashboard.overview.todayYield")}
-          value={`${(summary.totalRateBps / 100).toFixed(2)}%`}
-          delta={{ value: summary.bonusRateBps / 100 }}
+          value={`${(preview.totalRateBps / 100).toFixed(2)}%`}
+          delta={{ value: preview.bonusRateBps / 100 }}
           icon={Activity}
           accent="success"
-          hint={`${(summary.totalRateBps / 100).toFixed(2)}% ${t("dashboard.overview.capHint")}`}
+          hint={
+            hasCapital
+              ? `$${formatNumber(preview.projectedAmount, { decimals: 2 })} ${t("dashboard.overview.projected")}`
+              : `${(preview.totalRateBps / 100).toFixed(2)}% ${t("dashboard.overview.capHint")}`
+          }
         />
         <StatTile
           label={t("dashboard.overview.winsToday")}
@@ -95,10 +140,18 @@ export default function DashboardOverviewPage() {
         />
         <StatTile
           label={t("dashboard.overview.toCap")}
-          value="62%"
-          icon={Lock}
+          value={`${formatNumber(portfolio.capProgressPct, { decimals: 0 })}%`}
+          icon={portfolio.isCapReached ? Unlock : Lock}
           accent="silver"
-          hint={t("dashboard.overview.capProgress")}
+          hint={
+            hasCapital
+              ? t("dashboard.overview.capRemaining", {
+                  amount: formatNumber(portfolio.remainingToCap, {
+                    decimals: 0,
+                  }),
+                })
+              : t("dashboard.overview.capStakeFirst")
+          }
         />
       </div>
 
@@ -107,11 +160,18 @@ export default function DashboardOverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>{t("dashboard.overview.yieldWeek")}</CardTitle>
-              <Badge variant="success">{t("dashboard.overview.weekBadge")}</Badge>
+              {yields.length > 0 ? (
+                <Badge variant="success">
+                  +${formatNumber(weekTotal(yields), { decimals: 2 })}{" "}
+                  {t("dashboard.overview.last7d")}
+                </Badge>
+              ) : (
+                <Badge variant="default">{t("dashboard.overview.noYieldYet")}</Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <WeekChart />
+            <YieldWeekChart yields={yields} preview={preview} />
             <p className="mt-3 text-xs text-text-muted">
               {t("dashboard.overview.yieldNote")}
             </p>
@@ -119,6 +179,13 @@ export default function DashboardOverviewPage() {
         </Card>
 
         <div className="space-y-4">
+          {!hydrated ? (
+            <CapitalCalloutSkeleton />
+          ) : !hasCapital ? (
+            <CapitalCallout />
+          ) : (
+            <PayoutMiniCard portfolio={portfolio} />
+          )}
           <DailyAttemptsCard
             remainingMs={countdown}
             wins={summary.wins}
@@ -130,6 +197,182 @@ export default function DashboardOverviewPage() {
       </div>
 
       <RoadmapBanner />
+    </div>
+  );
+}
+
+function weekTotal(yields: DailyYield[]): number {
+  return yields.slice(0, 7).reduce((acc, y) => acc + y.creditedAmount, 0);
+}
+
+function CapitalCalloutSkeleton() {
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-5">
+        <div className="h-5 w-32 animate-pulse rounded bg-bg-hover" />
+        <div className="h-5 w-48 animate-pulse rounded bg-bg-hover" />
+        <div className="h-4 w-full animate-pulse rounded bg-bg-hover" />
+        <div className="h-10 w-full animate-pulse rounded bg-bg-hover" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function CapitalCallout() {
+  const { t } = useI18n();
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-5">
+        <Badge variant="gold">
+          <Sparkles className="h-3 w-3" />
+          {t("dashboard.overview.startStakingBadge")}
+        </Badge>
+        <h3 className="font-display text-base font-semibold text-text-primary">
+          {t("dashboard.overview.capitalCalloutTitle")}
+        </h3>
+        <p className="text-xs text-text-secondary">
+          {t("dashboard.overview.capitalCalloutDesc")}
+        </p>
+        <StartStakingCTA className="w-full" size="md" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function PayoutMiniCard({
+  portfolio,
+}: {
+  portfolio: ReturnType<typeof usePortfolioSummary>;
+}) {
+  const { t } = useI18n();
+  const pct = Math.min(100, portfolio.capProgressPct);
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">
+            {t("dashboard.overview.payoutCapTitle")}
+          </CardTitle>
+          <Badge variant={portfolio.isCapReached ? "success" : "gold"}>
+            {portfolio.isCapReached ? (
+              <Unlock className="h-3 w-3" />
+            ) : (
+              <Lock className="h-3 w-3" />
+            )}
+            {(PAYOUT_CAP_MULTIPLIER * 100).toFixed(0)}%
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">
+              {t("dashboard.overview.totalEarned")}
+            </p>
+            <p className="font-mono text-xl text-text-primary">
+              ${formatNumber(portfolio.totalEarned, { decimals: 2 })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">
+              {t("dashboard.overview.payoutCapLabel")}
+            </p>
+            <p className="font-mono text-sm text-text-secondary">
+              ${formatNumber(portfolio.payoutCap, { decimals: 0 })}
+            </p>
+          </div>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-bg-base">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-gold via-gold-bright to-gold transition-[width] duration-700"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-mono text-text-primary">
+            {formatNumber(pct, { decimals: 1 })}%
+          </span>
+          <Link
+            href="/dashboard/portfolio"
+            className="inline-flex items-center gap-1 text-text-secondary hover:text-gold"
+          >
+            {t("dashboard.overview.viewPortfolio")}{" "}
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function YieldWeekChart({
+  yields,
+  preview,
+}: {
+  yields: DailyYield[];
+  preview: ReturnType<typeof useTodayYieldPreview>;
+}) {
+  const { t } = useI18n();
+  const recent = yields.slice(0, 7).slice().reverse();
+  const today = preview.totalRateBps / 100;
+  const data = [
+    ...recent.map((y) => ({
+      label: y.date.slice(5),
+      rate: y.totalRateBps / 100,
+      amount: y.creditedAmount,
+      isToday: false,
+    })),
+    {
+      label: t("dashboard.overview.todayChartLabel"),
+      rate: today,
+      amount: preview.projectedAmount,
+      isToday: true,
+    },
+  ].slice(-7);
+  const max = 1;
+  const chartHeight = 176;
+  return (
+    <div
+      className="grid gap-3"
+      style={{
+        gridTemplateColumns: `repeat(${Math.max(data.length, 7)}, minmax(0, 1fr))`,
+        height: chartHeight + 36,
+      }}
+    >
+      {data.map((day, idx) => {
+        const barH = (Math.min(day.rate, max) / max) * chartHeight;
+        return (
+          <div
+            key={idx}
+            className="flex flex-col items-center justify-end gap-2"
+          >
+            <div className="relative w-full" style={{ height: chartHeight }}>
+              <div
+                className={`absolute bottom-0 left-0 right-0 rounded-t-md transition-[height] duration-500 ${
+                  day.isToday
+                    ? "bg-gradient-to-t from-info/20 to-info"
+                    : "bg-gradient-to-t from-gold/20 to-gold/80"
+                }`}
+                style={{ height: Math.max(barH, 2) }}
+              />
+              <span
+                className="absolute left-1/2 -translate-x-1/2 font-mono text-[10px] text-text-secondary"
+                style={{ bottom: Math.max(barH, 2) + 4 }}
+              >
+                {day.rate.toFixed(2)}%
+              </span>
+            </div>
+            <span
+              className={`text-xs ${day.isToday ? "text-info" : "text-text-muted"}`}
+            >
+              {day.label}
+            </span>
+          </div>
+        );
+      })}
+      {Array.from({ length: Math.max(0, 7 - data.length) }).map((_, i) => (
+        <div key={`pad-${i}`} className="opacity-0" />
+      ))}
     </div>
   );
 }
@@ -244,9 +487,9 @@ function QuickLinksCard() {
   const { t } = useI18n();
   const links = [
     { href: "/dashboard/trade", icon: LineChart, label: t("dashboard.overview.quickTrade") },
+    { href: "/dashboard/portfolio", icon: TrendingUp, label: t("dashboard.overview.quickPortfolio") },
     { href: "/dashboard/bot-trading", icon: Bot, label: t("dashboard.overview.quickBot") },
     { href: "/dashboard/wallet", icon: Wallet, label: t("dashboard.overview.quickWallet") },
-    { href: "/dashboard/referrals", icon: Sparkles, label: t("dashboard.overview.quickInvite") },
   ];
   return (
     <Card>
@@ -263,48 +506,6 @@ function QuickLinksCard() {
         ))}
       </CardContent>
     </Card>
-  );
-}
-
-function WeekChart() {
-  const { t } = useI18n();
-  const days = [
-    { d: t("dashboard.overview.days.mon"), v: 0.4 },
-    { d: t("dashboard.overview.days.tue"), v: 0.6 },
-    { d: t("dashboard.overview.days.wed"), v: 0.5 },
-    { d: t("dashboard.overview.days.thu"), v: 0.9 },
-    { d: t("dashboard.overview.days.fri"), v: 0.7 },
-    { d: t("dashboard.overview.days.sat"), v: 0.3 },
-    { d: t("dashboard.overview.days.sun"), v: 0.6 },
-  ];
-  const max = 1;
-  const chartHeight = 176;
-  return (
-    <div className="grid grid-cols-7 gap-3" style={{ height: chartHeight + 36 }}>
-      {days.map((day) => {
-        const barH = (day.v / max) * chartHeight;
-        return (
-          <div
-            key={day.d}
-            className="flex flex-col items-center justify-end gap-2"
-          >
-            <div className="relative w-full" style={{ height: chartHeight }}>
-              <div
-                className="absolute bottom-0 left-0 right-0 rounded-t-md bg-gradient-to-t from-gold/20 to-gold/80 transition-[height] duration-500"
-                style={{ height: barH }}
-              />
-              <span
-                className="absolute left-1/2 -translate-x-1/2 font-mono text-[10px] text-text-secondary"
-                style={{ bottom: barH + 4 }}
-              >
-                {day.v.toFixed(2)}%
-              </span>
-            </div>
-            <span className="text-xs text-text-muted">{day.d}</span>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
