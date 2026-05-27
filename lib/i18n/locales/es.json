@@ -49,10 +49,10 @@
   },
   "hero": {
     "badge": "Activo en BNB Chain y Polygon",
-    "titleSilver": "Quita on-chain.",
-    "titleGold": "Genera hasta un 1% diario.",
-    "titlePrimary": "Opera mercados en vivo.",
-    "subtitle": "Valtrix Capital es una ecosystem de rendimiento nativa Web3. Conecta tu billetera, haz quita desde $15 hasta $100,000 y amplifica tu retorno diario ganando tus 7 operaciones del día — más una red de referidos de 7 niveles.",
+    "titleSilver": "",
+    "titleGold": "Opera mercados en tiempo real.",
+    "titlePrimary": "",
+    "subtitle": "VALTRIX CAPITAL es un ecosistema digital enfocado en tecnología Web3, automatización e innovación financiera. Conecta tu billetera y accede a un entorno diseñado para evolución digital, herramientas inteligentes y crecimiento dentro del ecosistema.",
     "ctaHow": "Cómo funciona",
     "trustNonCustodial": "Billetera no custodial",
     "trustQuickTrades": "Operaciones rápidas de 1–5 min",
@@ -82,68 +82,69 @@
     }
   },
   "features": {
-    "eyebrow": "Plataforma",
+    "eyebrow": "",
     "title": "Diseñado para la nueva generación de",
-    "titleGold": "inversores on-chain",
-    "subtitle": "Todo lo que necesitas para poner capital a trabajar — trading, quita, referidos y transparencia total en un solo lugar.",
+    "titleGold": "inversores digitales",
+    "subtitle": "Todo lo que necesitas para poner tu capital en movimiento: trading, herramientas inteligentes, comunidad y transparencia en un solo ecosistema.",
     "items": {
-      "web3": { "title": "Nativo Web3", "desc": "Conecta MetaMask, Trust, Rainbow o cualquier billetera compatible con WalletConnect en BNB Chain o Polygon." },
-      "markets": { "title": "Mercados en vivo", "desc": "Velas reales de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos de 1m a 1D." },
-      "quita": { "title": "Quita flexible", "desc": "Haz de $15 a $100,000. Varios stakes se suman en una sola base de capital activo." },
-      "yield": { "title": "Hasta 1% diario", "desc": "0,3% base + 0,1% por operación ganada en tus 7 intentos diarios. Tope de 1% por día." },
-      "network": { "title": "Red de 7 niveles", "desc": "Construye tu red de usuarios activos y acelera tu tope de pago con comisiones multinivel." },
-      "bot": { "title": "Transparencia del bot", "desc": "Operaciones institucionales reflejadas desde exchanges principales con hashes verificables en BscScan." },
-      "nonCustodial": { "title": "No custodial", "desc": "Inicias sesión con tu billetera. Nunca guardamos tus claves privadas. Todo con pruebas on-chain." },
+      "web3": { "title": "Tecnología Web3 integrada", "desc": "Conecta MetaMask, Trust Wallet, Rainbow y otras billeteras compatibles con WalletConnect en BNB Chain y Polygon." },
+      "markets": { "title": "Mercados en vivo", "desc": "Datos de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos temporales de 1m a 1D." },
+      "quita": { "title": "Flexible", "desc": "Accesos desde $15 hasta $100,000 usdt integrados en una sola base de capital activa." },
+      "yield": { "title": "Performance Daily", "desc": "0,3% base + rendimiento dinámico por actividad operativa diaria." },
+      "network": { "title": "Network", "desc": "Red de comunidad y crecimiento colaborativo hasta 7 niveles." },
+      "bot": { "title": "Actividad Operativa", "desc": "Actividad reflejada desde mercados y exchanges principales con registros verificables en BscScan." },
+      "nonCustodial": { "title": "Acceso Seguro", "desc": "Conexión mediante billetera digital sin almacenamiento de claves privadas." },
       "withdraw": { "title": "Retira cuando quieras", "desc": "Retira ganancias cuando quieras con una comisión fija del 3%. Liquidaciones en BSC o Polygon." }
     }
   },
   "how": {
     "eyebrow": "Cómo funciona",
-    "title": "De la billetera al",
-    "titleGold": "primer rendimiento",
+    "title": "De la billetera a la",
+    "titleGold": "actividad dentro del ecosistema",
     "titleEnd": "en cuatro pasos",
-    "subtitle": "Un flujo no custodial y transparente, pensado para usuarios Web3 nuevos y experimentados.",
+    "subtitle": "Un entorno transparente y conectado diseñado para usuarios Web3.",
     "steps": {
-      "1": { "title": "Conecta tu billetera", "desc": "MetaMask, Trust o WalletConnect. Elige BNB Chain o Polygon. Nunca custodiamos tus claves." },
-      "2": { "title": "Haz quita de tu capital", "desc": "Deposita entre $15 y $100,000 en USDT. Añade cuando quieras; los saldos se agregan." },
-      "3": { "title": "Juega tus 7 operaciones diarias", "desc": "Elige BTC, ETH, SOL, XRP, BNB o MATIC. Predice SUBE o BAJA en 1–5 minutos. Cada victoria suma +0,1% hoy." },
-      "4": { "title": "Gana a diario, retira cuando quieras", "desc": "El rendimiento se acredita a las 00:00 UTC. Retira ganancias cuando quieras (3% de comisión) hasta duplicar tu stake (200%)." }
+      "1": { "title": "Conecta", "desc": "MetaMask, Trust Wallet o WalletConnect en BNB Chain y Polygon. Acceso seguro mediante billetera digital." },
+      "2": { "title": "Accede al ecosistema", "desc": "Desde $15 hasta $100,000 en USDT. Los nuevos aportes se integran automáticamente al balance activo." },
+      "3": { "title": "Realiza hasta 7 operaciones diarias", "desc": "En BTC, ETH, SOL, XRP, BNB y MATIC. Movimientos de mercado en marcos de 1 a 5 minutos." },
+      "4": { "title": "Generación diaria de actividad", "desc": "Con retiros flexibles y objetivos de participación de hasta el 200% dentro del ecosistema." }
     }
   },
   "yield": {
     "eyebrow": "Modelo de rendimiento",
-    "titleSilver": "Base predecible.",
-    "titleGold": "Potencial por rendimiento.",
-    "subtitle": "Tu retorno diario es determinista en la tasa base y se amplifica al ganar tus operaciones del día.",
-    "tableTitle": "Rendimiento diario = base + bono por victoria",
-    "tableSubtitle": "Todo calculado sobre tu capital total bloqueado.",
+    "titleSilver": "Base estable con rendimiento dinámico por actividad operativa.",
+    "titleGold": "",
+    "subtitle": "El ecosistema integra una tasa base operativa que puede potenciarse mediante participación y operaciones diarias.",
+    "tableTitle": "Rendimiento diario = base operativa + actividad por operaciones",
+    "tableSubtitle": "Todo calculado sobre tu capital total activo.",
     "colWins": "Operaciones ganadas",
+    "colBase": "Base operativa",
     "colBonus": "Bono",
     "colTotal": "Total diario",
     "colOn10k": "Sobre $10,000",
     "rules": {
-      "cap": { "title": "Tope de pago 200%", "desc": "Cada stake activo se duplica cuando las ganancias totales alcanzan el 100% del principal. Luego un nuevo stake reabre ganancias." },
-      "reset": { "title": "Reinicio de operaciones 24h", "desc": "Las 7 operaciones diarias y bonos se reinician cada día a las 00:00 UTC. Los intentos no usados no se acumulan." },
-      "withdraw": { "title": "Flujo de retiro", "desc": "Retira tus ganancias cuando quieras. Comisión fija del 3%. Liquidación en BSC o Polygon a tu billetera conectada." }
+      "cap": { "title": "Objetivo operativo 200%", "desc": "Cada capital activo mantiene participación dentro del ecosistema hasta alcanzar un objetivo operativo del 200%. Nuevas integraciones de capital permiten reactivar participación y actividad dentro del sistema." },
+      "reset": { "title": "Reinicio operativo 24h", "desc": "Las operaciones diarias y actividad operativa se reinician cada día a las 00:00 UTC. La actividad no utilizada no es acumulable." },
+      "withdraw": { "title": "Flujo de retiro", "desc": "Retiros flexibles con comisión operativa fija del 4%. Liquidación disponible en BNB Chain y Polygon mediante la billetera conectada." }
     }
   },
   "referrals": {
-    "eyebrow": "Red",
-    "title": "Un sistema de referidos de",
-    "titleGold": "7 niveles",
-    "titleEnd": "que se compone",
-    "subtitle": "Solo los referidos activos generan comisiones. Las comisiones aceleran tu propio tope del 200%, no restan a tu red.",
+    "eyebrow": "Comunidad",
+    "title": "Sistema de crecimiento",
+    "titleGold": "conectado mediante participación",
+    "titleEnd": "activa dentro del ecosistema",
+    "subtitle": "El desarrollo de comunidad puede acelerar los objetivos operativos y potenciar el alcance máximo de participación hasta el 200%.",
     "tiersTitle": "Niveles de comisión",
     "tiersSubtitle": "Tasas por defecto — totalmente configurables desde el panel de administración.",
     "level": "Nivel {n}",
-    "leverageTitle": "Más que recompensas — es",
-    "leverageGold": "apalancamiento",
-    "leverageDesc": "Cada comisión que genera tu red fluye a tu saldo de ganancias, acelerando cuánto tardas en alcanzar tu tope del 200% y desbloquear un nuevo ciclo de quita. Solo los usuarios activos cuentan en tu red — manteniendo el ecosistema sano y real.",
+    "leverageTitle": "Comunidad y",
+    "leverageGold": "crecimiento",
+    "leverageDesc": "El crecimiento de comunidad impulsa la actividad dentro del ecosistema y puede acelerar los objetivos operativos hasta el 200%. Solo la participación activa dentro de la comunidad genera actividad operativa, fortaleciendo la estabilidad y desarrollo del ecosistema.",
     "bullets": {
-      "link": "Enlace de referido único + código QR",
-      "tree": "Árbol visual de red por nivel",
-      "ledger": "Libro de comisiones en tiempo real",
-      "rates": "Tasas configurables por admin"
+      "link": "Enlace de acceso personalizado + código QR",
+      "tree": "Visualización de estructura por niveles",
+      "ledger": "Registro operativo en tiempo real",
+      "rates": "Configuración dinámica del ecosistema"
     }
   },
   "cta": {
