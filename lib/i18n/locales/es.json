@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Valtrix Capital — Trading Web3 y rendimiento",
-    "description": "Haz quita on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 7 niveles — en BNB Chain y Polygon."
+    "description": "Haz quita on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 8 niveles — en BNB Chain y Polygon."
   },
   "common": {
     "connectWallet": "Conectar billetera",
@@ -56,7 +56,7 @@
     "ctaHow": "Cómo funciona",
     "trustNonCustodial": "Billetera no custodial",
     "trustQuickTrades": "Operaciones rápidas de 1–5 min",
-    "trustNetwork": "Red de 7 niveles",
+    "trustNetwork": "Red de 8 niveles",
     "mockNav": {
       "dashboard": "Panel",
       "botTrading": "Bot Trading",
@@ -272,8 +272,8 @@
       },
       "referrals": {
         "title": "Referidos",
-        "subtitle": "Construye tu red de 7 niveles. Solo cuentan los referidos activos.",
-        "comingTitle": "Sistema de referidos de 7 niveles",
+        "subtitle": "Construye tu red de 8 niveles. Solo cuentan los referidos activos.",
+        "comingTitle": "Sistema de referidos de 8 niveles",
         "comingDesc": "Mecánica viral que acelera tu tope del 200% con cada downline activo."
       },
       "history": {

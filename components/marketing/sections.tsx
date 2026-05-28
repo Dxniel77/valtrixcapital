@@ -384,6 +384,7 @@ export function ReferralsSection() {
     { lvl: 5, pct: 1 },
     { lvl: 6, pct: 0.5 },
     { lvl: 7, pct: 0.5 },
+    { lvl: 8, pct: 0.25 },
   ];
 
   return (
