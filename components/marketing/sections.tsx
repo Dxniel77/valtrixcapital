@@ -307,11 +307,11 @@ export function YieldModelSection() {
                 </tr>
               </thead>
               <tbody className="font-mono text-text-primary">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((w) => {
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((w) => {
                   const total = 0.3 + w * 0.1;
                   return (
                     <tr key={w} className="border-b border-border-subtle/60">
-                      <td className="py-2.5 pr-4">{w} / 8</td>
+                      <td className="py-2.5 pr-4">{w} / 7</td>
                       <td className="py-2.5 pr-4">0.3%</td>
                       <td className="py-2.5 pr-4 text-gold">
                         +{(w * 0.1).toFixed(1)}%
