@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Valtrix Capital — Trading Web3 y rendimiento",
-    "description": "Haz quita on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 8 niveles — en BNB Chain y Polygon."
+    "description": "Haz on-chain. Opera mercados en vivo. Gana hasta un 1% diario con una red de referidos de 8 niveles — en BNB Chain y Polygon."
   },
   "common": {
     "connectWallet": "Conectar billetera",
@@ -154,7 +154,7 @@
     "exploreDashboard": "Explorar panel"
   },
   "footer": {
-    "tagline": "Un ecosistema premium de rendimiento y trading Web3 en BNB Chain y Polygon. Quita. Trading. Construye una red. Todo on-chain, todo transparente.",
+    "tagline": "Un ecosistema premium de rendimiento y trading Web3 en BNB Chain y Polygon. Trading. Construye una red. Todo on-chain, todo transparente.",
     "platform": "Plataforma",
     "resources": "Recursos",
     "legal": "Legal",
@@ -217,9 +217,9 @@
       "toCap": "Hasta tope 200%",
       "stakesHint": "2 stakes activos",
       "stakesHintN": "{n} quita(s) activa(s)",
-      "stakesHintEmpty": "Aún sin capital · empieza tu quita",
+      "stakesHintEmpty": "Aún sin capital · empieza tu",
       "projected": "proyectado hoy",
-      "capStakeFirst": "Haz tu primera quita",
+      "capStakeFirst": "Haz tu primera",
       "capRemaining": "${amount} para desbloquear",
       "capHint": "1,00% tope",
       "resetIn": "Reinicio en {time}",
@@ -243,7 +243,7 @@
       "quickWallet": "Billetera",
       "quickInvite": "Invitar",
       "startStakingBadge": "Pon a trabajar tu capital",
-      "capitalCalloutTitle": "Comienza tu primera quita",
+      "capitalCalloutTitle": "Comienza tu primera",
       "capitalCalloutDesc": "Bloquea desde $15 hasta $100,000 USDT en BSC o Polygon y empieza a acumular rendimiento diario.",
       "payoutCapTitle": "Tope de pago",
       "totalEarned": "Total ganado",
@@ -335,7 +335,7 @@
         "email": "Correo",
         "emailDesc": "Envíanos un mensaje. Respondemos en 24 horas.",
         "docs": "Docs y guías",
-        "docsDesc": "Tutoriales de quita, trading, referidos y retiros.",
+        "docsDesc": "Tutoriales de, trading, referidos y retiros.",
         "browseDocs": "Ver documentación",
         "status": "Estado e incidentes",
         "statusDesc": "Estado de la plataforma en tiempo real, mantenimiento planificado y post-mortems.",
@@ -344,9 +344,9 @@
     }
   },
   "staking": {
-    "startStaking": "Comenzar quita",
+    "startStaking": "Comenzar",
     "deposit": {
-      "title": "Nueva quita",
+      "title": "Nueva",
       "subtitle": "Bloquea USDT en BSC o Polygon. Mínimo $15, máximo $100,000.",
       "amountLabel": "Cantidad",
       "range": "Mín ${min} · Máx ${max}",
@@ -356,11 +356,11 @@
         "BSC": "USDT BEP20 · gas bajo",
         "POLYGON": "USDT Polygon · gas mínimo"
       },
-      "projectionTitle": "Proyección sobre esta quita",
+      "projectionTitle": "Proyección sobre esta",
       "dailyMin": "Rendimiento diario mínimo (0,30%)",
       "dailyMax": "Rendimiento diario máximo (1,00%)",
       "payoutCap": "Tope de pago (200%)",
-      "connectWalletFirst": "Conecta tu billetera para hacer quita.",
+      "connectWalletFirst": "Conecta tu billetera para hacer.",
       "switchToNetwork": "Cambia tu billetera a {network} para continuar.",
       "switchAndContinue": "Cambiar red y continuar",
       "switchFailed": "No se pudo cambiar la red. Inténtalo de nuevo.",
@@ -373,17 +373,17 @@
       "walletInstructions": "Revisa tu billetera y aprueba la transferencia USDT a la tesorería Valtrix en {network}.",
       "awaitingSignature": "Esperando firma…",
       "confirmingTitle": "Confirmando en cadena",
-      "confirmingSubtitle": "Esperamos {required} confirmaciones para activar tu quita.",
+      "confirmingSubtitle": "Esperamos {required} confirmaciones para activar tu.",
       "confirmingHint": "Tu transacción se está confirmando en {network}. Esto suele tardar menos de un minuto.",
       "txHash": "Hash de transacción",
       "successTitle": "¡Tu capital está trabajando!",
-      "successSubtitle": "Tu quita está activa y empieza a generar rendimiento esta noche a las 00:00 UTC.",
-      "successHeadline": "Quita confirmada",
+      "successSubtitle": "Tu está activa y empieza a generar rendimiento esta noche a las 00:00 UTC.",
+      "successHeadline": "Confirmada",
       "successDescription": "Tu capital se sumó a tu base activa. Las próximas acumulaciones diarias aparecerán en tu portafolio.",
       "lockedBadge": "Bloqueado hasta 200% ROI",
       "viewPortfolio": "Ver portafolio",
       "done": "Listo",
-      "toastConfirmed": "Quita confirmada · capital activo"
+      "toastConfirmed": "Confirmada · capital activo"
     },
     "portfolio": {
       "title": "Portafolio",
@@ -399,7 +399,7 @@
         "yieldTitle": "0,3% – 1% diario",
         "yieldDesc": "Base más bono por victoria en tus 7 operaciones.",
         "lockTitle": "Tope 200%",
-        "lockDesc": "Cada quita se desbloquea al duplicar el capital."
+        "lockDesc": "Cada se desbloquea al duplicar el capital."
       },
       "activeCapital": "Capital activo",
       "activeStakes": "{n} quita(s) activa(s)",
@@ -417,7 +417,7 @@
       "miniBase": "Base",
       "miniBonus": "Bono",
       "miniTotal": "Total hoy",
-      "payoutNote": "Tu capital se libera cuando las ganancias acumuladas igualan el 100% de tus depósitos. Después puedes abrir una nueva quita.",
+      "payoutNote": "Tu capital se libera cuando las ganancias acumuladas igualan el 100% de tus depósitos. Después puedes abrir una nueva.",
       "todayTitle": "Vista previa de hoy",
       "todayBadge": "En curso",
       "todayProjected": "Proyectado al cierre UTC",
