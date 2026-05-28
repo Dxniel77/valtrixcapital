@@ -91,7 +91,7 @@
       "markets": { "title": "Mercados en vivo", "desc": "Datos de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos temporales de 1m a 1D." },
       "quita": { "title": "Flexible", "desc": "Accesos desde $15 hasta $100,000 usdt integrados en una sola base de capital activa." },
       "yield": { "title": "Performance Daily", "desc": "0,3% base + rendimiento dinámico por actividad operativa diaria." },
-      "network": { "title": "Network", "desc": "Red de comunidad y crecimiento colaborativo hasta 7 niveles." },
+      "network": { "title": "Network", "desc": "Red de comunidad y crecimiento colaborativo hasta 8 niveles." },
       "bot": { "title": "Actividad Operativa", "desc": "Actividad reflejada desde mercados y exchanges principales con registros verificables en BscScan." },
       "nonCustodial": { "title": "Acceso Seguro", "desc": "Conexión mediante billetera digital sin almacenamiento de claves privadas." },
       "withdraw": { "title": "Retira cuando quieras", "desc": "Retira ganancias cuando quieras con una comisión fija del 3%. Liquidaciones en BSC o Polygon." }
