@@ -377,14 +377,14 @@ function RuleCard({
 export function ReferralsSection() {
   const { t } = useI18n();
   const tiers = [
-    { lvl: 1, pct: 7 },
-    { lvl: 2, pct: 3 },
-    { lvl: 3, pct: 2 },
-    { lvl: 4, pct: 1 },
-    { lvl: 5, pct: 1 },
-    { lvl: 6, pct: 0.5 },
-    { lvl: 7, pct: 0.5 },
-    { lvl: 8, pct: 0.25 },
+    { lvl: 1, pct: 20 },
+    { lvl: 2, pct: 10 },
+    { lvl: 3, pct: 10 },
+    { lvl: 4, pct: 10 },
+    { lvl: 5, pct: 5 },
+    { lvl: 6, pct: 5 },
+    { lvl: 7, pct: 5 },
+    { lvl: 8, pct: 5 },
   ];
 
   return (
