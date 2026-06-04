@@ -15,6 +15,7 @@ import {
   DEFAULT_PAIR,
   DEFAULT_TIMEFRAME,
   PAIRS,
+  TIMEFRAMES,
   type PairMeta,
   type Timeframe,
 } from "@/lib/market/pairs";
@@ -48,7 +49,7 @@ export default function TradePage() {
       .filter((p) => p.status === "OPEN" && p.pair === pair.binance)
       .map((p) => ({
         price: p.entryPrice,
-        color: p.direction === "UP" ? "#22C55E" : "#EF4444",
+        color: p.direction === "UP" ? "#26C6DA" : "#FF6B6B",
         title:
           p.direction === "UP"
             ? t("trade.buyEntry")
@@ -68,6 +69,8 @@ export default function TradePage() {
   const ticker = stream.ticker ?? tickers[pair.binance];
   const livePrice = stream.livePrice ?? ticker?.price ?? null;
   const today = utcDayKey();
+  const timeframeLabel =
+    TIMEFRAMES.find((tf) => tf.value === timeframe)?.label ?? timeframe;
 
   const statusLabel =
     stream.status === "live"
@@ -95,8 +98,8 @@ export default function TradePage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        <div className="min-w-0 space-y-4">
           <PairSelector active={pair} tickers={tickers} onChange={setPair} />
 
           <div className="surface-card overflow-hidden">
@@ -105,14 +108,16 @@ export default function TradePage() {
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
 
-            <div className="relative">
+            <div className="relative bg-bg-base/40">
               <TradingChart
                 key={`${pair.binance}-${timeframe}`}
                 candles={stream.candles}
                 livePrice={livePrice ?? undefined}
                 precision={pair.pricePrecision}
+                pairLabel={`${pair.base}/${pair.quote}`}
+                timeframeLabel={timeframeLabel}
                 priceLines={priceLines}
-                height={460}
+                height={400}
               />
               <PositionCloseCountdown
                 pairSymbol={pair.binance}
