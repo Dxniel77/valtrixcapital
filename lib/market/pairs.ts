@@ -23,6 +23,10 @@ export type MarketSource = "binance" | "bybit";
 export interface PairMeta {
   /** Display ticker, e.g. "BTC". */
   base: string;
+  /** Optional label in the picker (e.g. MATIC while trading POLUSDT). */
+  displayBase?: string;
+  /** Extra search terms (e.g. legacy ticker names). */
+  searchAliases?: string[];
   /** Quote currency, almost always USDT. */
   quote: string;
   /** Binance symbol, e.g. "BTCUSDT". */
@@ -41,7 +45,22 @@ export interface PairMeta {
 
 /** Blofin-style perpetual symbol label, e.g. BTC-USDT-SWAP. */
 export function formatSwapSymbol(pair: PairMeta): string {
-  return `${pair.base}-${pair.quote}-SWAP`;
+  const label = pair.displayBase ?? pair.base;
+  return `${label}-${pair.quote}-SWAP`;
+}
+
+export function pairMatchesSearch(pair: PairMeta, query: string): boolean {
+  const q = query.trim().toUpperCase();
+  if (!q) return true;
+  return (
+    pair.base.includes(q) ||
+    (pair.displayBase?.includes(q) ?? false) ||
+    pair.binance.includes(q) ||
+    pair.bybit.includes(q) ||
+    formatSwapSymbol(pair).includes(q) ||
+    pair.name.toUpperCase().includes(q) ||
+    (pair.searchAliases?.some((a) => a.toUpperCase().includes(q)) ?? false)
+  );
 }
 
 export const PAIRS: PairMeta[] = [
@@ -96,10 +115,12 @@ export const PAIRS: PairMeta[] = [
     leverage: "50X",
   },
   {
-    base: "MATIC",
+    base: "POL",
+    displayBase: "MATIC",
+    searchAliases: ["MATIC", "MATICUSDT", "POLYGON"],
     quote: "USDT",
-    binance: "MATICUSDT",
-    bybit: "MATICUSDT",
+    binance: "POLUSDT",
+    bybit: "POLUSDT",
     name: "Polygon",
     pricePrecision: 4,
     color: "#8247E5",

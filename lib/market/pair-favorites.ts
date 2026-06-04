@@ -6,9 +6,10 @@ export function readPairFavorites(): string[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((x): x is string => typeof x === "string")
-      : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x): x is string => typeof x === "string")
+      .map((s) => (s === "MATICUSDT" ? "POLUSDT" : s));
   } catch {
     return [];
   }

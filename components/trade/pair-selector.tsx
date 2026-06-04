@@ -5,6 +5,7 @@ import { ChevronDown, Search, Star } from "lucide-react";
 import {
   PAIRS,
   formatSwapSymbol,
+  pairMatchesSearch,
   type MarketSource,
   type PairMeta,
 } from "@/lib/market/pairs";
@@ -31,7 +32,7 @@ interface PairSelectorProps {
   className?: string;
 }
 
-const EXCHANGE_TABS: ExchangeTab[] = ["favorites", "binance", "bybit"];
+const EXCHANGE_TABS: ExchangeTab[] = ["favorites", "binance"];
 
 export function PairSelector({
   active,
@@ -56,19 +57,16 @@ export function PairSelector({
       : t("trade.exchangeBinance");
 
   const filtered = React.useMemo(() => {
-    const q = search.trim().toUpperCase();
     let list = PAIRS;
     if (tab === "favorites") {
-      list = PAIRS.filter((p) => favorites.includes(p.binance));
+      list = PAIRS.filter(
+        (p) =>
+          favorites.includes(p.binance) ||
+          favorites.includes(p.bybit),
+      );
     }
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.base.includes(q) ||
-        p.binance.includes(q) ||
-        formatSwapSymbol(p).includes(q) ||
-        p.name.toUpperCase().includes(q),
-    );
+    if (!search.trim()) return list;
+    return list.filter((p) => pairMatchesSearch(p, search));
   }, [search, tab, favorites]);
 
   const handleToggleFavorite = (symbol: string, e: React.MouseEvent) => {
@@ -187,11 +185,11 @@ export function PairSelector({
                     <button
                       type="button"
                       onClick={() => selectPair(p)}
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      className="grid min-w-0 flex-1 grid-cols-[1fr_auto_auto_3.5rem] items-center gap-2 text-left"
                     >
                       <span
                         className={cn(
-                          "min-w-0 flex-1 truncate font-mono text-sm",
+                          "truncate font-mono text-sm",
                           isActive ? "text-[#FB923C]" : "text-text-primary",
                         )}
                       >
@@ -201,22 +199,29 @@ export function PairSelector({
                       <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-success">
                         {t("trade.marketLinear")}
                       </span>
-
                       <span className="shrink-0 font-mono text-xs text-text-muted">
                         {p.leverage}
                       </span>
 
-                      {tick ? (
-                        <span
-                          className={cn(
-                            "shrink-0 w-14 text-right font-mono text-[10px]",
-                            up ? "text-success" : "text-danger",
-                          )}
-                        >
-                          {up ? "+" : ""}
-                          {tick.changePct.toFixed(2)}%
-                        </span>
-                      ) : null}
+                      <span
+                        className={cn(
+                          "text-right font-mono text-[10px] tabular-nums",
+                          tick
+                            ? up
+                              ? "text-success"
+                              : "text-danger"
+                            : "text-text-muted",
+                        )}
+                      >
+                        {tick ? (
+                          <>
+                            {up ? "+" : ""}
+                            {tick.changePct.toFixed(2)}%
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </span>
                     </button>
                   </div>
                 </li>
