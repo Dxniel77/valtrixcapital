@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Trophy,
   Unlock,
+  Users,
   Wallet,
 } from "lucide-react";
 
@@ -40,6 +41,11 @@ import {
   useYieldEngine,
   type DailyYield,
 } from "@/lib/staking/store";
+import {
+  useBotFeedEngine,
+  useCompanyProfits,
+} from "@/lib/bot/store";
+import { useCommissionEngine } from "@/lib/referrals/store";
 import { useI18n } from "@/lib/i18n/context";
 
 export default function DashboardOverviewPage() {
@@ -51,8 +57,11 @@ export default function DashboardOverviewPage() {
   const preview = useTodayYieldPreview();
   const hydrated = useStakingStoreHydrated();
   const yields = useStakingStore((s) => s.dailyYields);
+  const companyProfits = useCompanyProfits();
 
   useYieldEngine();
+  useCommissionEngine();
+  useBotFeedEngine();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
 
@@ -88,6 +97,8 @@ export default function DashboardOverviewPage() {
           </>
         }
       />
+
+      <CompanyProfitsStrip profits={companyProfits} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -203,6 +214,50 @@ export default function DashboardOverviewPage() {
 
 function weekTotal(yields: DailyYield[]): number {
   return yields.slice(0, 7).reduce((acc, y) => acc + y.creditedAmount, 0);
+}
+
+function CompanyProfitsStrip({
+  profits,
+}: {
+  profits: { today: number; week: number; allTime: number };
+}) {
+  const { t } = useI18n();
+  const items = [
+    { label: t("dashboard.overview.companyToday"), value: profits.today },
+    { label: t("dashboard.overview.companyWeek"), value: profits.week },
+    { label: t("dashboard.overview.companyAllTime"), value: profits.allTime },
+  ];
+  return (
+    <div className="overflow-hidden rounded-lg border border-gold/30 bg-gradient-to-r from-gold/10 via-bg-elevated to-info/5">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
+            <Bot className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gold">
+              {t("dashboard.overview.companyProfits")}
+            </p>
+            <p className="text-[11px] text-text-muted">
+              {t("dashboard.overview.companyProfitsHint")}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {items.map((it) => (
+            <div key={it.label} className="text-right">
+              <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                {it.label}
+              </p>
+              <p className="font-mono text-base text-text-primary sm:text-lg">
+                ${formatNumber(it.value, { decimals: 0 })}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CapitalCalloutSkeleton() {
@@ -487,7 +542,7 @@ function QuickLinksCard() {
   const { t } = useI18n();
   const links = [
     { href: "/dashboard/trade", icon: LineChart, label: t("dashboard.overview.quickTrade") },
-    { href: "/dashboard/portfolio", icon: TrendingUp, label: t("dashboard.overview.quickPortfolio") },
+    { href: "/dashboard/referrals", icon: Users, label: t("dashboard.overview.quickInvite") },
     { href: "/dashboard/bot-trading", icon: Bot, label: t("dashboard.overview.quickBot") },
     { href: "/dashboard/wallet", icon: Wallet, label: t("dashboard.overview.quickWallet") },
   ];

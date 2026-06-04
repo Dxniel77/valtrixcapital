@@ -46,7 +46,7 @@
 
 ## Week 4 — "Network + Bot Feed"
 
-- Referrals screen: link, QR, share buttons, 7-level downline tree, commissions earned per level, active vs inactive flags.
+- Referrals screen: link, QR, share buttons, 8-level downline tree, commissions earned per level, active vs inactive flags.
 - Commission engine credits uplines automatically on each `DailyYieldRecord`.
 - Bot Trading screen: live operations feed (configurable cadence), each row with pair, direction, volume, P/L %, timestamp, **BscScan link** (or PolygonScan).
 - Dashboard top strip: "Company Profits (Today / Week / All-time)".
