@@ -20,6 +20,13 @@
     "user": "Usuario",
     "loading": "Cargando…"
   },
+  "theme": {
+    "light": "Modo claro",
+    "dark": "Modo oscuro",
+    "toggle": "Cambiar tema",
+    "switchToLight": "Activar modo claro",
+    "switchToDark": "Activar modo oscuro"
+  },
   "notFound": {
     "message": "La página que buscas se movió o nunca existió. Los mercados, en cambio, siguen muy activos.",
     "backHome": "Volver al inicio",

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { useI18n } from "@/lib/i18n/context";
 import { Menu, X } from "lucide-react";
@@ -51,20 +52,24 @@ export function MarketingNav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle size="icon" />
           <Button asChild variant="ghost" size="lg" className="text-lg">
             <Link href="/dashboard">{t("nav.dashboard")}</Link>
           </Button>
           <ConnectWalletButton size="lg" />
         </div>
 
-        <button
-          type="button"
-          className="rounded-md p-2 text-text-secondary md:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={t("nav.toggleMenu")}
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle size="icon" />
+          <button
+            type="button"
+            className="rounded-md p-2 text-text-secondary"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={t("nav.toggleMenu")}
+          >
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {open ? (

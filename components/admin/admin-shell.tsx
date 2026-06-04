@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminSeed } from "@/lib/admin/store";
@@ -98,7 +99,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="hidden md:block">
             <span className="text-sm text-text-muted">{t("admin.headerNote")}</span>
           </div>
-          <nav className="flex items-center gap-1 md:hidden">
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="hidden md:inline-flex" />
+            <nav className="flex items-center gap-1 md:hidden">
             {navItems.map((it) => {
               const active =
                 pathname === it.href ||
@@ -117,7 +120,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-          </nav>
+            </nav>
+            <ThemeToggle className="md:hidden" />
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </div>

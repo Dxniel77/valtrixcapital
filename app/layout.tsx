@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { Providers } from "@/components/providers";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/theme/themed-toaster";
 import "./globals.css";
 
 const inter = Inter({
@@ -73,21 +73,11 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${inter.variable} ${sora.variable} ${jetbrains.variable} dark`}
+      className={`${inter.variable} ${sora.variable} ${jetbrains.variable}`}
     >
       <body className="min-h-screen font-sans">
         <Providers>{children}</Providers>
-        <Toaster
-          position="top-right"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: "hsl(228 14% 13%)",
-              border: "1px solid hsl(228 11% 16%)",
-              color: "hsl(240 14% 96%)",
-            },
-          }}
-        />
+        <ThemedToaster />
       </body>
     </html>
   );

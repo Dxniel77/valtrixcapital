@@ -3,33 +3,56 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Surfaces */
+  /* Default + dark (avoids flash before hydration) */
+  :root,
+  .dark {
     --bg-base: 240 14% 5%;
     --bg-elevated: 230 14% 9%;
     --bg-hover: 228 14% 13%;
     --bg-pressed: 228 12% 16%;
     --border-subtle: 228 11% 16%;
     --border-strong: 228 9% 26%;
-
-    /* Text */
     --text-primary: 240 14% 96%;
     --text-secondary: 222 8% 64%;
     --text-muted: 222 6% 40%;
     --text-inverse: 240 14% 5%;
-
-    /* Brand */
     --gold: 45 65% 52%;
     --gold-bright: 42 80% 65%;
     --gold-muted: 43 56% 35%;
     --silver: 222 11% 78%;
     --silver-bright: 222 16% 90%;
-
-    /* Semantic */
     --success: 142 71% 45%;
     --danger: 0 84% 60%;
     --info: 217 91% 60%;
     --warning: 38 92% 50%;
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+    --body-gradient-1: hsl(var(--gold) / 0.08);
+    --body-gradient-2: hsl(var(--info) / 0.06);
+  }
+
+  .light {
+    --bg-base: 220 20% 97%;
+    --bg-elevated: 0 0% 100%;
+    --bg-hover: 220 14% 94%;
+    --bg-pressed: 220 12% 90%;
+    --border-subtle: 220 13% 91%;
+    --border-strong: 220 10% 80%;
+    --text-primary: 222 47% 11%;
+    --text-secondary: 220 9% 40%;
+    --text-muted: 220 8% 52%;
+    --text-inverse: 0 0% 100%;
+    --gold: 43 74% 42%;
+    --gold-bright: 42 85% 48%;
+    --gold-muted: 43 50% 32%;
+    --silver: 220 10% 35%;
+    --silver-bright: 220 12% 22%;
+    --success: 142 71% 36%;
+    --danger: 0 72% 51%;
+    --info: 217 91% 50%;
+    --warning: 38 92% 45%;
+    --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.04) inset, 0 4px 16px rgba(15, 23, 42, 0.08);
+    --body-gradient-1: hsl(var(--gold) / 0.06);
+    --body-gradient-2: hsl(var(--info) / 0.04);
   }
 
   * {
@@ -44,8 +67,8 @@
 
   body {
     background-image:
-      radial-gradient(ellipse 60% 40% at 10% -10%, hsl(var(--gold) / 0.08), transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 0%, hsl(var(--info) / 0.06), transparent 60%);
+      radial-gradient(ellipse 60% 40% at 10% -10%, var(--body-gradient-1), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 0%, var(--body-gradient-2), transparent 60%);
     background-attachment: fixed;
   }
 
@@ -91,14 +114,19 @@
   }
 
   .text-gradient-silver {
-    background: linear-gradient(180deg, #FFFFFF 0%, #C0C5CE 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--text-primary)) 0%,
+      hsl(var(--silver)) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .surface-card {
-    @apply rounded-lg border border-border-subtle bg-bg-elevated shadow-card;
+    @apply rounded-lg border border-border-subtle bg-bg-elevated;
+    box-shadow: var(--shadow-card);
   }
 
   .surface-card-hoverable {
@@ -133,4 +161,23 @@
   .scroll-fade-x {
     mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
   }
+
+  /* Hero keeps original landing video + dark scrim in light mode */
+  .hero-over-video {
+    --text-primary: 240 14% 96%;
+    --text-secondary: 222 8% 64%;
+    --text-muted: 222 6% 55%;
+    --silver: 222 11% 78%;
+    --silver-bright: 222 16% 90%;
+  }
+
+  .light header.bg-transparent .text-text-secondary {
+    color: hsl(222 8% 64%);
+  }
+
+  .light header.bg-transparent .text-text-secondary:hover,
+  .light header.bg-transparent .hover\:text-text-primary:hover {
+    color: hsl(240 14% 96%);
+  }
+
 }

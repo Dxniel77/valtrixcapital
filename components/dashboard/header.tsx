@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Bell, Menu, Search } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { Logo } from "@/components/brand/logo";
 import { useI18n } from "@/lib/i18n/context";
@@ -44,6 +45,7 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
+        <ThemeToggle />
         <BalancePill label={t("dashboard.header.balance")} />
         <button
           type="button"
