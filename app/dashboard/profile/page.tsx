@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useAccount, useChainId } from "wagmi";
+import { ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { CHAIN_META } from "@/lib/wagmi";
@@ -95,6 +98,27 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-gold/30">
+        <CardContent className="flex flex-col items-start justify-between gap-3 p-5 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="font-display text-base font-semibold text-text-primary">
+                {t("dashboard.overview.adminPanel")}
+              </p>
+              <p className="text-xs text-text-secondary">
+                {t("admin.headerNote")}
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="primary" size="md">
+            <Link href="/admin">{t("dashboard.overview.adminPanel")}</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
