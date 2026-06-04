@@ -100,11 +100,17 @@ export default function TradePage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         <div className="min-w-0 space-y-4">
-          <PairSelector active={pair} tickers={tickers} onChange={setPair} />
-
           <div className="surface-card overflow-hidden">
-            <div className="flex flex-col items-start justify-between gap-3 border-b border-border-subtle px-4 py-3 sm:flex-row sm:items-center">
-              <PairHeader pair={pair} price={livePrice} ticker={ticker ?? null} />
+            <div className="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <PairSelector
+                  active={pair}
+                  source={stream.source}
+                  tickers={tickers}
+                  onChange={setPair}
+                />
+                <PairHeader pair={pair} price={livePrice} ticker={ticker ?? null} />
+              </div>
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
 

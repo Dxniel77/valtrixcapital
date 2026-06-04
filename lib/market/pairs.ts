@@ -18,6 +18,8 @@ export const BINANCE_INTERVAL: Record<Timeframe, string> = {
   "1D": "1d",
 };
 
+export type MarketSource = "binance" | "bybit";
+
 export interface PairMeta {
   /** Display ticker, e.g. "BTC". */
   base: string;
@@ -33,6 +35,13 @@ export interface PairMeta {
   pricePrecision: number;
   /** Hex color used on the pair chip. */
   color: string;
+  /** Demo leverage label shown in the symbol picker. */
+  leverage: string;
+}
+
+/** Blofin-style perpetual symbol label, e.g. BTC-USDT-SWAP. */
+export function formatSwapSymbol(pair: PairMeta): string {
+  return `${pair.base}-${pair.quote}-SWAP`;
 }
 
 export const PAIRS: PairMeta[] = [
@@ -44,6 +53,7 @@ export const PAIRS: PairMeta[] = [
     name: "Bitcoin",
     pricePrecision: 2,
     color: "#F7931A",
+    leverage: "100X",
   },
   {
     base: "ETH",
@@ -53,6 +63,7 @@ export const PAIRS: PairMeta[] = [
     name: "Ethereum",
     pricePrecision: 2,
     color: "#627EEA",
+    leverage: "100X",
   },
   {
     base: "BNB",
@@ -62,6 +73,7 @@ export const PAIRS: PairMeta[] = [
     name: "BNB",
     pricePrecision: 2,
     color: "#F0B90B",
+    leverage: "50X",
   },
   {
     base: "SOL",
@@ -71,6 +83,7 @@ export const PAIRS: PairMeta[] = [
     name: "Solana",
     pricePrecision: 2,
     color: "#9945FF",
+    leverage: "50X",
   },
   {
     base: "XRP",
@@ -80,6 +93,7 @@ export const PAIRS: PairMeta[] = [
     name: "XRP",
     pricePrecision: 4,
     color: "#23292F",
+    leverage: "50X",
   },
   {
     base: "MATIC",
@@ -89,6 +103,7 @@ export const PAIRS: PairMeta[] = [
     name: "Polygon",
     pricePrecision: 4,
     color: "#8247E5",
+    leverage: "25X",
   },
   {
     base: "ADA",
@@ -98,6 +113,7 @@ export const PAIRS: PairMeta[] = [
     name: "Cardano",
     pricePrecision: 4,
     color: "#0033AD",
+    leverage: "25X",
   },
   {
     base: "AVAX",
@@ -107,6 +123,7 @@ export const PAIRS: PairMeta[] = [
     name: "Avalanche",
     pricePrecision: 3,
     color: "#E84142",
+    leverage: "25X",
   },
 ];
 

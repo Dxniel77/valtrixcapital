@@ -1,23 +1,41 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Plus, Search } from "lucide-react";
-import { PAIRS, type PairMeta } from "@/lib/market/pairs";
-import { cn, formatNumber } from "@/lib/utils";
+import { ChevronDown, Search, Star } from "lucide-react";
+import {
+  PAIRS,
+  formatSwapSymbol,
+  type MarketSource,
+  type PairMeta,
+} from "@/lib/market/pairs";
+import {
+  readPairFavorites,
+  togglePairFavorite,
+} from "@/lib/market/pair-favorites";
+import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type ExchangeTab = "favorites" | MarketSource;
 
 interface PairSelectorProps {
   active: PairMeta;
-  /** Map of binance symbol → live ticker (price, change). */
+  /** Live feed source shown on the trigger badge. */
+  source?: MarketSource | null;
   tickers: Record<string, { price: number; changePct: number } | undefined>;
   onChange: (pair: PairMeta) => void;
   className?: string;
 }
 
-const TOP_BAR_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"];
+const EXCHANGE_TABS: ExchangeTab[] = ["favorites", "binance", "bybit"];
 
 export function PairSelector({
   active,
+  source,
   tickers,
   onChange,
   className,
@@ -25,165 +43,196 @@ export function PairSelector({
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const popoverRef = React.useRef<HTMLDivElement | null>(null);
+  const [tab, setTab] = React.useState<ExchangeTab>("binance");
+  const [favorites, setFavorites] = React.useState<string[]>([]);
 
   React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    setFavorites(readPairFavorites());
   }, [open]);
+
+  const exchangeLabel =
+    source === "bybit"
+      ? t("trade.exchangeBybit")
+      : t("trade.exchangeBinance");
 
   const filtered = React.useMemo(() => {
     const q = search.trim().toUpperCase();
-    if (!q) return PAIRS;
-    return PAIRS.filter(
+    let list = PAIRS;
+    if (tab === "favorites") {
+      list = PAIRS.filter((p) => favorites.includes(p.binance));
+    }
+    if (!q) return list;
+    return list.filter(
       (p) =>
         p.base.includes(q) ||
         p.binance.includes(q) ||
+        formatSwapSymbol(p).includes(q) ||
         p.name.toUpperCase().includes(q),
     );
-  }, [search]);
+  }, [search, tab, favorites]);
 
-  const topPairs = React.useMemo(
-    () => PAIRS.filter((p) => TOP_BAR_PAIRS.includes(p.binance)),
-    [],
-  );
+  const handleToggleFavorite = (symbol: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(togglePairFavorite(symbol));
+  };
+
+  const selectPair = (p: PairMeta) => {
+    onChange(p);
+    setOpen(false);
+    setSearch("");
+  };
 
   return (
-    <div className={cn("flex items-center gap-2 overflow-x-auto", className)}>
-      {topPairs.map((p) => {
-        const t = tickers[p.binance];
-        const isActive = p.binance === active.binance;
-        const up = (t?.changePct ?? 0) >= 0;
-        return (
-          <button
-            key={p.binance}
-            type="button"
-            onClick={() => onChange(p)}
-            className={cn(
-              "group flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs whitespace-nowrap transition-colors",
-              isActive
-                ? "border-gold/40 bg-gold/10 text-text-primary"
-                : "border-border-subtle bg-bg-base/60 text-text-secondary hover:border-border-strong",
-            )}
-          >
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: p.color }}
-            />
-            <span className="font-mono">
-              {p.base}/{p.quote}
-            </span>
-            {t ? (
-              <span
-                className={cn(
-                  "font-mono text-[10px]",
-                  up ? "text-success" : "text-danger",
-                )}
-              >
-                {up ? "+" : ""}
-                {t.changePct.toFixed(2)}%
-              </span>
-            ) : (
-              <span className="font-mono text-[10px] text-text-muted">—</span>
-            )}
-          </button>
-        );
-      })}
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full border border-border-strong bg-bg-base/80 px-3 py-1.5 text-sm transition-colors hover:border-[#FB923C]/40 hover:bg-bg-hover",
+          className,
+        )}
+        aria-label={t("trade.selectSymbol")}
+      >
+        <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+        <span className="font-mono font-medium text-text-primary">
+          {formatSwapSymbol(active)}
+        </span>
+        <span className="rounded bg-[#F97316] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+          {exchangeLabel}
+        </span>
+        <ChevronDown className="h-4 w-4 text-text-muted" />
+      </button>
 
-      <div className="relative" ref={popoverRef}>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1 rounded-md border border-border-subtle bg-bg-base/60 px-2.5 py-1.5 text-xs text-text-secondary hover:border-border-strong"
-          aria-label={t("trade.addPair")}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          showClose
+          className="max-w-[440px] gap-0 p-0"
         >
-          <Plus className="h-3.5 w-3.5" />
-          <ChevronDown className="h-3 w-3" />
-        </button>
-        {open ? (
-          <div className="absolute left-0 top-full z-40 mt-2 w-72 rounded-lg border border-border-subtle bg-bg-elevated shadow-elevated">
-            <div className="border-b border-border-subtle p-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-                <input
-                  autoFocus
-                  type="search"
-                  placeholder={t("trade.searchPair")}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 w-full rounded-md border border-border-subtle bg-bg-base pl-7 pr-2 text-xs text-text-primary placeholder:text-text-muted focus:border-gold focus:outline-none"
-                />
-              </div>
+          <DialogTitle className="sr-only">{t("trade.selectSymbol")}</DialogTitle>
+
+          {/* Exchange tabs */}
+          <div className="border-b border-border-subtle px-3 pt-4">
+            <div className="scroll-fade-x flex gap-1 overflow-x-auto pb-2">
+              {EXCHANGE_TABS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTab(id)}
+                  className={cn(
+                    "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    tab === id
+                      ? "bg-bg-hover text-text-primary"
+                      : "text-text-muted hover:text-text-secondary",
+                  )}
+                >
+                  {id === "favorites"
+                    ? t("trade.exchangeFavorites")
+                    : id === "binance"
+                      ? t("trade.exchangeBinance")
+                      : t("trade.exchangeBybit")}
+                </button>
+              ))}
             </div>
-            <ul className="max-h-72 overflow-y-auto p-1">
-              {filtered.map((p) => {
-                const t = tickers[p.binance];
-                const up = (t?.changePct ?? 0) >= 0;
-                return (
-                  <li key={p.binance}>
+          </div>
+
+          {/* Search */}
+          <div className="border-b border-border-subtle p-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                autoFocus
+                type="search"
+                placeholder={t("trade.searchSymbolsPlaceholder")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 w-full rounded-lg border border-border-subtle bg-bg-base pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-[#FB923C]/50 focus:outline-none focus:ring-1 focus:ring-[#FB923C]/30"
+              />
+            </div>
+          </div>
+
+          {/* Symbol list */}
+          <ul className="max-h-[min(420px,55vh)] overflow-y-auto py-1">
+            {filtered.map((p) => {
+              const isActive = p.binance === active.binance;
+              const isFavorite = favorites.includes(p.binance);
+              const tick = tickers[p.binance];
+              const up = (tick?.changePct ?? 0) >= 0;
+
+              return (
+                <li key={p.binance}>
+                  <div
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-2.5 transition-colors",
+                      isActive ? "bg-bg-hover" : "hover:bg-bg-hover/60",
+                    )}
+                  >
                     <button
                       type="button"
-                      onClick={() => {
-                        onChange(p);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                      className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                      onClick={(e) => handleToggleFavorite(p.binance, e)}
+                      className="shrink-0 rounded p-0.5 text-text-muted hover:text-[#FB923C]"
+                      aria-label={
+                        isFavorite
+                          ? t("trade.removeFavorite")
+                          : t("trade.addFavorite")
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ background: p.color }}
-                        />
-                        <span className="font-mono">
-                          {p.base}/{p.quote}
-                        </span>
-                        <span className="text-text-muted">{p.name}</span>
-                      </span>
-                      <span className="flex items-center gap-2 font-mono">
-                        {t ? (
-                          <>
-                            <span className="text-text-primary">
-                              {formatNumber(t.price, {
-                                decimals: p.pricePrecision,
-                              })}
-                            </span>
-                            <span
-                              className={cn(
-                                "w-12 text-right",
-                                up ? "text-success" : "text-danger",
-                              )}
-                            >
-                              {up ? "+" : ""}
-                              {t.changePct.toFixed(2)}%
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-text-muted">—</span>
+                      <Star
+                        className={cn(
+                          "h-4 w-4",
+                          isFavorite && "fill-[#FB923C] text-[#FB923C]",
                         )}
-                      </span>
+                      />
                     </button>
-                  </li>
-                );
-              })}
-              {filtered.length === 0 ? (
-                <li className="px-2 py-3 text-center text-xs text-text-muted">
-                  {t("trade.noMatchingPairs")}
+
+                    <button
+                      type="button"
+                      onClick={() => selectPair(p)}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate font-mono text-sm",
+                          isActive ? "text-[#FB923C]" : "text-text-primary",
+                        )}
+                      >
+                        {formatSwapSymbol(p)}
+                      </span>
+
+                      <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-success">
+                        {t("trade.marketLinear")}
+                      </span>
+
+                      <span className="shrink-0 font-mono text-xs text-text-muted">
+                        {p.leverage}
+                      </span>
+
+                      {tick ? (
+                        <span
+                          className={cn(
+                            "shrink-0 w-14 text-right font-mono text-[10px]",
+                            up ? "text-success" : "text-danger",
+                          )}
+                        >
+                          {up ? "+" : ""}
+                          {tick.changePct.toFixed(2)}%
+                        </span>
+                      ) : null}
+                    </button>
+                  </div>
                 </li>
-              ) : null}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-    </div>
+              );
+            })}
+
+            {filtered.length === 0 ? (
+              <li className="px-4 py-8 text-center text-sm text-text-muted">
+                {tab === "favorites" && favorites.length === 0
+                  ? t("trade.noFavorites")
+                  : t("trade.noMatchingPairs")}
+              </li>
+            ) : null}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
