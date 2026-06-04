@@ -25,6 +25,8 @@ interface PriceMarker {
 }
 
 interface TradingChartProps {
+  symbol: string;
+  timeframe: string;
   candles: Candle[];
   livePrice?: number;
   precision?: number;
@@ -88,6 +90,21 @@ function formatVolume(v: number): string {
   return v.toFixed(0);
 }
 
+/** Initial zoom: show a short recent window (large candles), not all 300 bars. */
+const INITIAL_VISIBLE_BARS: Record<string, number> = {
+  "1m": 78,
+  "5m": 72,
+  "15m": 56,
+  "1h": 48,
+  "4h": 42,
+  "1D": 30,
+};
+
+function getInitialVisibleBars(timeframe: string, totalBars: number): number {
+  const target = INITIAL_VISIBLE_BARS[timeframe] ?? 72;
+  return Math.min(target, Math.max(totalBars - 1, 24));
+}
+
 function OhlcvBar({
   pairLabel,
   timeframeLabel,
@@ -137,6 +154,8 @@ function OhlcvBar({
 }
 
 export function TradingChart({
+  symbol,
+  timeframe,
   candles,
   livePrice,
   precision = 2,
@@ -157,17 +176,20 @@ export function TradingChart({
   const paletteRef = React.useRef<ChartPalette>(getPalette(isDark));
   const candlesRef = React.useRef<Candle[]>(candles);
 
-  const userAdjustedViewRef = React.useRef(false);
-  const didInitialFitRef = React.useRef(false);
+  const dataEpochRef = React.useRef(0);
+  const viewEpochRef = React.useRef(0);
   const prevCandleCountRef = React.useRef(0);
   const prevLastTimeRef = React.useRef<number | null>(null);
   const programmaticViewRef = React.useRef(false);
+  const pendingFitRef = React.useRef(false);
+  const pendingBarCountRef = React.useRef(0);
+  const loadedSymbolRef = React.useRef<string | null>(null);
 
   const [ohlcv, setOhlcv] = React.useState<OhlcvDisplay | null>(null);
 
   const lastCandle = candles[candles.length - 1];
   const displayOhlcv = React.useMemo((): OhlcvDisplay | null => {
-    if (!lastCandle) return ohlcv;
+    if (!lastCandle) return null;
     const close =
       typeof livePrice === "number" && livePrice > 0 ? livePrice : lastCandle.close;
     return {
@@ -177,17 +199,59 @@ export function TradingChart({
       close,
       volume: lastCandle.volume,
     };
-  }, [lastCandle, livePrice, ohlcv]);
+  }, [lastCandle, livePrice]);
+
+  const applyInitialChartView = React.useCallback(() => {
+    const chart = chartRef.current;
+    const barCount = pendingBarCountRef.current;
+    if (!chart || barCount === 0) return;
+
+    const visible = getInitialVisibleBars(timeframe, barCount);
+    programmaticViewRef.current = true;
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(0, barCount - visible),
+      to: barCount + 4,
+    });
+    programmaticViewRef.current = false;
+    pendingFitRef.current = false;
+  }, [timeframe]);
+
+  const scheduleInitialChartView = React.useCallback((barCount: number) => {
+    pendingBarCountRef.current = barCount;
+    pendingFitRef.current = true;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        applyInitialChartView();
+      });
+    });
+  }, [applyInitialChartView]);
+
+  const applyInitialChartViewRef = React.useRef(applyInitialChartView);
+  applyInitialChartViewRef.current = applyInitialChartView;
+
+  // Reset when pair / dataset identity changes
+  React.useEffect(() => {
+    dataEpochRef.current += 1;
+    viewEpochRef.current = 0;
+    prevCandleCountRef.current = 0;
+    prevLastTimeRef.current = null;
+    loadedSymbolRef.current = null;
+    pendingFitRef.current = true;
+    setOhlcv(null);
+
+    const series = seriesRef.current;
+    const volume = volumeRef.current;
+    if (series && volume) {
+      series.setData([]);
+      volume.setData([]);
+    }
+  }, [symbol, timeframe]);
 
   // Init chart (once per mount)
   React.useEffect(() => {
     if (!containerRef.current) return;
     const palette = getPalette(isDark);
     paletteRef.current = palette;
-    userAdjustedViewRef.current = false;
-    didInitialFitRef.current = false;
-    prevCandleCountRef.current = 0;
-    prevLastTimeRef.current = null;
 
     const chart = createChart(containerRef.current, {
       autoSize: true,
@@ -212,10 +276,9 @@ export function TradingChart({
         borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 6,
-        barSpacing: 7,
-        fixLeftEdge: false,
-        fixRightEdge: false,
+        rightOffset: 8,
+        barSpacing: 10,
+        minBarSpacing: 6,
       },
       crosshair: {
         mode: CrosshairMode.Magnet,
@@ -273,24 +336,12 @@ export function TradingChart({
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       if (!programmaticViewRef.current) {
-        userAdjustedViewRef.current = true;
+        viewEpochRef.current = dataEpochRef.current;
       }
     });
 
     chart.subscribeCrosshairMove((param) => {
-      if (!param.time || !seriesRef.current) {
-        const last = candlesRef.current[candlesRef.current.length - 1];
-        if (last) {
-          setOhlcv({
-            open: last.open,
-            high: last.high,
-            low: last.low,
-            close: last.close,
-            volume: last.volume,
-          });
-        }
-        return;
-      }
+      if (!param.time || !seriesRef.current) return;
       const bar = param.seriesData.get(seriesRef.current) as
         | CandlestickData<Time>
         | undefined;
@@ -309,7 +360,14 @@ export function TradingChart({
     seriesRef.current = series;
     volumeRef.current = volume;
 
+    const ro = new ResizeObserver(() => {
+      if (!pendingFitRef.current) return;
+      applyInitialChartViewRef.current();
+    });
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
@@ -319,7 +377,6 @@ export function TradingChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-theme
   React.useEffect(() => {
     const chart = chartRef.current;
     const series = seriesRef.current;
@@ -375,19 +432,26 @@ export function TradingChart({
     });
   }, [precision]);
 
-  // Sync candles without resetting zoom
+  // Sync candles — preserve zoom only within the same symbol dataset
   React.useEffect(() => {
     candlesRef.current = candles;
     const series = seriesRef.current;
     const volume = volumeRef.current;
     const chart = chartRef.current;
-    if (!series || !volume || !chart || candles.length === 0) return;
+    if (!series || !volume || !chart) return;
+
+    if (candles.length === 0) return;
 
     const palette = paletteRef.current;
     const last = candles[candles.length - 1];
     const prevCount = prevCandleCountRef.current;
     const prevLastTime = prevLastTimeRef.current;
-    const savedRange = userAdjustedViewRef.current
+    const symbolChanged = loadedSymbolRef.current !== symbol;
+    const canRestoreView =
+      !symbolChanged &&
+      viewEpochRef.current === dataEpochRef.current &&
+      viewEpochRef.current > 0;
+    const savedRange = canRestoreView
       ? chart.timeScale().getVisibleLogicalRange()
       : null;
 
@@ -398,11 +462,13 @@ export function TradingChart({
     });
 
     const isLastBarUpdate =
+      !symbolChanged &&
       prevCount > 0 &&
       candles.length === prevCount &&
       last.time === prevLastTime;
 
     const isNewBar =
+      !symbolChanged &&
       prevCount > 0 &&
       candles.length === prevCount + 1 &&
       prevLastTime !== null &&
@@ -437,22 +503,30 @@ export function TradingChart({
         })),
       );
       volume.setData(candles.map(volPoint));
+      loadedSymbolRef.current = symbol;
+
+      setOhlcv({
+        open: last.open,
+        high: last.high,
+        low: last.low,
+        close: last.close,
+        volume: last.volume,
+      });
 
       programmaticViewRef.current = true;
       if (savedRange) {
         chart.timeScale().setVisibleLogicalRange(savedRange);
-      } else if (!didInitialFitRef.current && !userAdjustedViewRef.current) {
-        chart.timeScale().fitContent();
-        didInitialFitRef.current = true;
+        pendingFitRef.current = false;
+      } else {
+        scheduleInitialChartView(candles.length);
       }
       programmaticViewRef.current = false;
     }
 
     prevCandleCountRef.current = candles.length;
     prevLastTimeRef.current = last.time;
-  }, [candles]);
+  }, [candles, symbol, scheduleInitialChartView]);
 
-  // Live tick on last bar only (no full candles array churn)
   React.useEffect(() => {
     if (typeof livePrice !== "number" || livePrice <= 0) return;
     if (!seriesRef.current || candles.length === 0) return;

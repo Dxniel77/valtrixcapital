@@ -110,8 +110,11 @@ export default function TradePage() {
 
             <div className="relative bg-bg-base/40">
               <TradingChart
-                key={`${pair.binance}-${timeframe}`}
-                candles={stream.candles}
+                symbol={pair.binance}
+                timeframe={timeframe}
+                candles={
+                  stream.activeSymbol === pair.binance ? stream.candles : []
+                }
                 livePrice={livePrice ?? undefined}
                 precision={pair.pricePrecision}
                 pairLabel={`${pair.base}/${pair.quote}`}

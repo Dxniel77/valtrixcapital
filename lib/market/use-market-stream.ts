@@ -7,6 +7,8 @@ import { fetchKlinesBybit, fetchTickerBybit } from "./bybit";
 import type { Timeframe } from "./pairs";
 
 export interface MarketStreamState {
+  /** Symbol the current candles belong to (empty candles while switching). */
+  activeSymbol: string;
   candles: Candle[];
   livePrice: number | null;
   ticker: Ticker | null;
@@ -17,6 +19,7 @@ export interface MarketStreamState {
 
 export function useMarketStream(symbol: string, timeframe: Timeframe) {
   const [state, setState] = React.useState<MarketStreamState>({
+    activeSymbol: symbol,
     candles: [],
     livePrice: null,
     ticker: null,
@@ -27,15 +30,15 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
 
   React.useEffect(() => {
     let aborted = false;
-    setState((s) => ({
-      ...s,
+    setState({
+      activeSymbol: symbol,
       candles: [],
       livePrice: null,
       ticker: null,
       status: "connecting",
       source: null,
       error: null,
-    }));
+    });
 
     // Load historical candles. Prefer Binance, fallback to Bybit.
     (async () => {
