@@ -271,7 +271,7 @@
       "winsToday": "Victories today",
       "toCap": "Up to 200%",
       "stakesHint": "2 active stakes",
-      "stakesHintN": "{n} remove(s) active(s)",
+      "stakesHintN": "{n} active asset(s)",
       "stakesHintEmpty": "Even without capital · start your",
       "projected": "projected today",
       "capStakeFirst": "make your first",
@@ -331,7 +331,7 @@
       },
       "portfolio": {
         "title": "Portfolio",
-        "subtitle": "Your active withdrawals, accumulated performance and progress towards the 200% cap."
+        "subtitle": "Your active assets, accumulated performance and progress toward the 200% cap."
       },
       "botTrading": {
         "title": "Bot Trading",
@@ -456,7 +456,7 @@
     },
     "portfolio": {
       "title": "Portfolio",
-      "subtitle": "Your active withdrawals, accumulated performance and progress at the maximum of 200%.",
+      "subtitle": "Your active assets, accumulated performance and progress toward the 200% cap.",
       "addCapital": "Add capital",
       "emptyBadge": "Week 3 · Capital works",
       "emptyTitle": "You do not have active capital yet",
@@ -471,7 +471,7 @@
         "lockDesc": "Each is unlocked by doubling capital."
       },
       "activeCapital": "Active capital",
-      "activeStakes": "{n} remove(s) active(s)",
+      "activeStakes": "{n} active asset(s)",
       "totalEarned": "Total won",
       "earningsHint": "Credited to your balance",
       "progressCap": "Progress to the top",
@@ -503,9 +503,9 @@
       "yieldRate": "Rate",
       "yieldCredited": "Accredited",
       "yieldWins": "Victories",
-      "stakesTitle": "You remove",
+      "stakesTitle": "My assets",
       "stakesCount": "{n} total",
-      "stakesEmpty": "No removal yet.",
+      "stakesEmpty": "No assets yet.",
       "stakeActive": "Active",
       "stakeCompleted": "Completed",
       "stakePending": "Earring",

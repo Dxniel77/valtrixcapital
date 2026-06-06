@@ -59,7 +59,6 @@ export default function BotTradingPage() {
     <div className="space-y-6">
       <PageHeader
         title={t("botPage.title")}
-        subtitle={t("botPage.subtitle")}
         actions={
           <Badge variant={running ? "success" : "warning"}>
             <span

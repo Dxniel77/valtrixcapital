@@ -270,8 +270,8 @@
       "todayYield": "Rendimiento hoy",
       "winsToday": "Victorias hoy",
       "toCap": "Hasta tope 200%",
-      "stakesHint": "2 stakes activos",
-      "stakesHintN": "{n} quita(s) activa(s)",
+      "stakesHint": "2 activos activos",
+      "stakesHintN": "{n} activo(s) activo(s)",
       "stakesHintEmpty": "Aún sin capital · empieza tu",
       "projected": "proyectado hoy",
       "capStakeFirst": "Haz tu primera",
@@ -331,7 +331,7 @@
       },
       "portfolio": {
         "title": "Portafolio",
-        "subtitle": "Tus quitas activas, rendimiento acumulado y progreso hacia el tope del 200%."
+        "subtitle": "Tus activos activos, rendimiento acumulado y progreso hacia el tope del 200%."
       },
       "botTrading": {
         "title": "Bot Trading",
@@ -456,7 +456,7 @@
     },
     "portfolio": {
       "title": "Portafolio",
-      "subtitle": "Tus quitas activas, rendimiento acumulado y progreso al tope del 200%.",
+      "subtitle": "Tus activos activos, rendimiento acumulado y progreso al tope del 200%.",
       "addCapital": "Añadir capital",
       "emptyBadge": "Semana 3 · El capital trabaja",
       "emptyTitle": "Aún no tienes capital activo",
@@ -471,7 +471,7 @@
         "lockDesc": "Cada se desbloquea al duplicar el capital."
       },
       "activeCapital": "Capital activo",
-      "activeStakes": "{n} quita(s) activa(s)",
+      "activeStakes": "{n} activo(s) activo(s)",
       "totalEarned": "Total ganado",
       "earningsHint": "Acreditado a tu saldo",
       "progressCap": "Progreso al tope",
@@ -503,9 +503,9 @@
       "yieldRate": "Tasa",
       "yieldCredited": "Acreditado",
       "yieldWins": "Victorias",
-      "stakesTitle": "Quitas",
+      "stakesTitle": "Mis activos",
       "stakesCount": "{n} total",
-      "stakesEmpty": "Sin quitas todavía.",
+      "stakesEmpty": "Sin activos todavía.",
       "stakeActive": "Activa",
       "stakeCompleted": "Completada",
       "stakePending": "Pendiente",
