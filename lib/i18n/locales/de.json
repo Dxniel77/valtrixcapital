@@ -586,6 +586,8 @@
     "withdrawCta": "Zurückziehen",
     "availableBalance": "Verfügbares Guthaben",
     "availableHint": "Bereit zur Abholung",
+    "pendingNetwork": "Netzwerk ausstehend",
+    "pendingNetworkHint": "Empfehlungsprovisionen · alle 24 h (00:00 UTC)",
     "totalEarned": "Insgesamt gewonnen",
     "totalEarnedHint": "Leistung + Provisionen",
     "activeCapital": "Aktives Kapital",

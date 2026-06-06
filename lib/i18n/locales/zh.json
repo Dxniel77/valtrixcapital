@@ -586,6 +586,8 @@
     "withdrawCta": "Withdraw",
     "availableBalance": "Available balance",
     "availableHint": "Ready to pick up",
+    "pendingNetwork": "待处理网络收益",
+    "pendingNetworkHint": "推荐佣金 · 每 24 小时入账 (00:00 UTC)",
     "totalEarned": "总获胜",
     "totalEarnedHint": "Performance + commissions",
     "activeCapital": "活跃资本",

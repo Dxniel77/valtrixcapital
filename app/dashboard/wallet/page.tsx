@@ -28,17 +28,16 @@ import {
   usePortfolioSummary,
   useStakingStore,
   useStakingStoreHydrated,
-  useYieldEngine,
   type StakingNetwork,
 } from "@/lib/staking/store";
 import {
   WITHDRAWAL_FLOW,
   useWalletStore,
-  useWithdrawalEngine,
   type Withdrawal,
   type WithdrawalStatus,
 } from "@/lib/wallet/store";
 import { DEPOSIT_ADDRESSES, USDT_CONTRACTS } from "@/lib/wallet/constants";
+import { useReferralsStore } from "@/lib/referrals/store";
 import { useLedger } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
 
@@ -47,10 +46,8 @@ export default function WalletPage() {
   const hydrated = useStakingStoreHydrated();
   const summary = usePortfolioSummary();
   const earningsBalance = useStakingStore((s) => s.earningsBalance);
+  const pendingNetwork = useReferralsStore((s) => s.pendingNetworkEarnings);
   const withdrawals = useWalletStore((s) => s.withdrawals);
-
-  useYieldEngine();
-  useWithdrawalEngine();
 
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
 
@@ -75,13 +72,20 @@ export default function WalletPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={t("walletPage.availableBalance")}
           value={`$${formatNumber(hydrated ? earningsBalance : 0, { decimals: 2 })}`}
           icon={WalletIcon}
           accent="gold"
           hint={t("walletPage.availableHint")}
+        />
+        <StatTile
+          label={t("walletPage.pendingNetwork")}
+          value={`$${formatNumber(hydrated ? pendingNetwork : 0, { decimals: 2 })}`}
+          icon={Clock}
+          accent="info"
+          hint={t("walletPage.pendingNetworkHint")}
         />
         <StatTile
           label={t("walletPage.totalEarned")}
@@ -94,7 +98,7 @@ export default function WalletPage() {
           label={t("walletPage.activeCapital")}
           value={`$${formatNumber(hydrated ? summary.totalCapital : 0, { decimals: 2 })}`}
           icon={ArrowUpFromLine}
-          accent="info"
+          accent="silver"
           hint={t("walletPage.activeCapitalHint")}
         />
       </div>

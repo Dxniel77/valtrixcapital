@@ -38,14 +38,12 @@ import {
   useStakingStore,
   useStakingStoreHydrated,
   useTodayYieldPreview,
-  useYieldEngine,
   type DailyYield,
 } from "@/lib/staking/store";
 import {
   useBotFeedEngine,
   useCompanyProfits,
 } from "@/lib/bot/store";
-import { useCommissionEngine } from "@/lib/referrals/store";
 import { useI18n } from "@/lib/i18n/context";
 
 export default function DashboardOverviewPage() {
@@ -59,8 +57,6 @@ export default function DashboardOverviewPage() {
   const yields = useStakingStore((s) => s.dailyYields);
   const companyProfits = useCompanyProfits();
 
-  useYieldEngine();
-  useCommissionEngine();
   useBotFeedEngine();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;

@@ -26,7 +26,6 @@ import {
   useStakingStoreHydrated,
   useTodayYieldPreview,
   usePortfolioSummary,
-  useYieldEngine,
   type DailyYield,
 } from "@/lib/staking/store";
 import {
@@ -43,8 +42,6 @@ export default function PortfolioPage() {
   const dailyYields = useStakingStore((s) => s.dailyYields);
   const summary = usePortfolioSummary();
   const preview = useTodayYieldPreview();
-
-  useYieldEngine();
 
   const hasCapital = hydrated && stakes.length > 0;
 

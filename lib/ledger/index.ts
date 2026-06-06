@@ -34,6 +34,7 @@ export function useLedger(): LedgerEntry[] {
   const stakes = useStakingStore((s) => s.stakes);
   const pendingDeposit = useStakingStore((s) => s.pendingDeposit);
   const dailyYields = useStakingStore((s) => s.dailyYields);
+  const instantCredits = useStakingStore((s) => s.instantCredits);
   const positions = useTradeStore((s) => s.positions);
   const commissions = useReferralsStore((s) => s.commissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
@@ -90,6 +91,18 @@ export function useLedger(): LedgerEntry[] {
       });
     }
 
+    for (const c of instantCredits) {
+      entries.push({
+        id: `op_${c.id}`,
+        category: "YIELD",
+        timestamp: c.createdAt,
+        amount: c.amount,
+        network: null,
+        txHash: null,
+        status: "INSTANT",
+      });
+    }
+
     for (const c of commissions) {
       entries.push({
         id: `com_${c.id}`,
@@ -120,7 +133,7 @@ export function useLedger(): LedgerEntry[] {
 
     entries.sort((a, b) => b.timestamp - a.timestamp);
     return entries;
-  }, [stakes, pendingDeposit, dailyYields, positions, commissions, withdrawals]);
+  }, [stakes, pendingDeposit, dailyYields, instantCredits, positions, commissions, withdrawals]);
 }
 
 export function ledgerToCsv(entries: LedgerEntry[]): string {

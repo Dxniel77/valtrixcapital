@@ -13,12 +13,10 @@ import { ShareButtons } from "@/components/referrals/share-buttons";
 import { useI18n } from "@/lib/i18n/context";
 import {
   referralLink,
-  useCommissionEngine,
   useReferralLevelStats,
   useReferralsStore,
   useReferralsStoreHydrated,
 } from "@/lib/referrals/store";
-import { useYieldEngine } from "@/lib/staking/store";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 
 export default function ReferralsPage() {
@@ -32,10 +30,6 @@ export default function ReferralsPage() {
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const downline = useReferralsStore((s) => s.downline);
   const levelStats = useReferralLevelStats();
-
-  // Keep yield + commission engines running so the ledger fills over time.
-  useYieldEngine();
-  useCommissionEngine();
 
   React.useEffect(() => {
     if (hydrated) ensureCode(address);

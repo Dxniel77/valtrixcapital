@@ -40,6 +40,14 @@ export interface DailyYield {
   createdAt: number;
 }
 
+export interface InstantCredit {
+  id: string;
+  positionId: string;
+  amount: number;
+  createdAt: number;
+  type: "TRADE_WIN";
+}
+
 export interface PendingDeposit {
   id: string;
   amount: number;
@@ -58,6 +66,8 @@ export const REQUIRED_CONFIRMATIONS = 12;
 interface StakingState {
   stakes: Stake[];
   dailyYields: DailyYield[];
+  instantCredits: InstantCredit[];
+  creditedPositionIds: string[];
   earningsBalance: number;
   totalEarned: number;
   pendingDeposit: PendingDeposit | null;
@@ -69,12 +79,16 @@ interface StakingState {
   cancelPendingDeposit: () => void;
 
   catchupAccruals: (positions: Position[]) => void;
+  creditTradeWin: (positionId: string, amount: number) => boolean;
+  creditNetworkPayout: (amount: number) => number;
   reset: () => void;
 }
 
 const initial = {
   stakes: [] as Stake[],
   dailyYields: [] as DailyYield[],
+  instantCredits: [] as InstantCredit[],
+  creditedPositionIds: [] as string[],
   earningsBalance: 0,
   totalEarned: 0,
   pendingDeposit: null as PendingDeposit | null,
@@ -181,7 +195,12 @@ export const useStakingStore = create<StakingState>()(
           const wins = dayPositions.filter((p) => p.status === "WIN").length;
           const losses = dayPositions.filter((p) => p.status === "LOSS").length;
           const rate = computeDailyRate(wins);
-          const credited = (capital * rate.totalRateBps) / 10_000;
+          const rawCredit = (capital * BASE_YIELD_BPS) / 10_000;
+          const applied = applyEarningsCredit(
+            { stakes: state.stakes, totalEarned },
+            rawCredit,
+          );
+          if (applied <= 0) continue;
           const record: DailyYield = {
             id: makeId("yld"),
             date,
@@ -191,12 +210,12 @@ export const useStakingStore = create<StakingState>()(
             totalRateBps: rate.totalRateBps,
             wins,
             losses,
-            creditedAmount: credited,
+            creditedAmount: applied,
             createdAt: Date.now(),
           };
           newRecords.push(record);
-          earnings += credited;
-          totalEarned += credited;
+          earnings += applied;
+          totalEarned += applied;
         }
         if (newRecords.length === 0) {
           if (state.lastAccrualDay !== today) set({ lastAccrualDay: today });
@@ -206,24 +225,52 @@ export const useStakingStore = create<StakingState>()(
           a.date < b.date ? 1 : -1,
         );
 
-        const totalCapital = sumStakes(state.stakes);
-        const payoutCap = totalCapital * PAYOUT_CAP_MULTIPLIER;
-        const stakes =
-          totalCapital > 0 && totalEarned >= payoutCap
-            ? state.stakes.map((s) =>
-                s.status === "ACTIVE"
-                  ? { ...s, status: "COMPLETED" as const }
-                  : s,
-              )
-            : state.stakes;
-
         set({
           dailyYields: merged,
           earningsBalance: earnings,
           totalEarned,
-          stakes,
+          stakes: stakesIfCapReached(state.stakes, totalEarned),
           lastAccrualDay: today,
         });
+      },
+
+      creditTradeWin: (positionId, amount) => {
+        if (amount <= 0) return false;
+        const state = get();
+        if (state.creditedPositionIds.includes(positionId)) return false;
+
+        const applied = applyEarningsCredit(state, amount);
+        if (applied <= 0) return false;
+
+        const credit: InstantCredit = {
+          id: makeId("op"),
+          positionId,
+          amount: applied,
+          createdAt: Date.now(),
+          type: "TRADE_WIN",
+        };
+
+        set((s) => ({
+          creditedPositionIds: [...s.creditedPositionIds, positionId],
+          instantCredits: [credit, ...s.instantCredits].slice(0, 500),
+          earningsBalance: s.earningsBalance + applied,
+          totalEarned: s.totalEarned + applied,
+          stakes: stakesIfCapReached(s.stakes, s.totalEarned + applied),
+        }));
+        return true;
+      },
+
+      creditNetworkPayout: (amount) => {
+        if (amount <= 0) return 0;
+        const state = get();
+        const applied = applyEarningsCredit(state, amount);
+        if (applied <= 0) return 0;
+        set((s) => ({
+          earningsBalance: s.earningsBalance + applied,
+          totalEarned: s.totalEarned + applied,
+          stakes: stakesIfCapReached(s.stakes, s.totalEarned + applied),
+        }));
+        return applied;
       },
 
       reset: () => set(initial),
@@ -242,6 +289,8 @@ export const useStakingStore = create<StakingState>()(
       partialize: (s) => ({
         stakes: s.stakes,
         dailyYields: s.dailyYields,
+        instantCredits: s.instantCredits,
+        creditedPositionIds: s.creditedPositionIds,
         earningsBalance: s.earningsBalance,
         totalEarned: s.totalEarned,
         pendingDeposit: s.pendingDeposit,
@@ -253,10 +302,36 @@ export const useStakingStore = create<StakingState>()(
 
 // --- Helpers ---
 
-function sumStakes(stakes: Stake[]): number {
+export function activeCapital(stakes: Stake[]): number {
   return stakes
     .filter((s) => s.status === "ACTIVE")
     .reduce((acc, s) => acc + s.amount, 0);
+}
+
+function applyEarningsCredit(
+  state: Pick<StakingState, "stakes" | "totalEarned">,
+  amount: number,
+): number {
+  const totalCapital = activeCapital(state.stakes);
+  const payoutCap = totalCapital * PAYOUT_CAP_MULTIPLIER;
+  if (payoutCap <= 0) return 0;
+  const room = Math.max(0, payoutCap - state.totalEarned);
+  return Math.min(amount, room);
+}
+
+function stakesIfCapReached(stakes: Stake[], totalEarned: number): Stake[] {
+  const totalCapital = activeCapital(stakes);
+  const payoutCap = totalCapital * PAYOUT_CAP_MULTIPLIER;
+  if (totalCapital > 0 && totalEarned >= payoutCap) {
+    return stakes.map((s) =>
+      s.status === "ACTIVE" ? { ...s, status: "COMPLETED" as const } : s,
+    );
+  }
+  return stakes;
+}
+
+function sumStakes(stakes: Stake[]): number {
+  return activeCapital(stakes);
 }
 
 function enumerateAccrualDays(stakes: Stake[], today: string): string[] {

@@ -586,6 +586,8 @@
     "withdrawCta": "Withdraw",
     "availableBalance": "Available balance",
     "availableHint": "Ready to pick up",
+    "pendingNetwork": "Pending network",
+    "pendingNetworkHint": "Referral commissions · credited every 24h (00:00 UTC)",
     "totalEarned": "Total won",
     "totalEarnedHint": "Performance + commissions",
     "activeCapital": "Active capital",

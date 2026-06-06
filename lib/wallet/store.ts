@@ -65,9 +65,9 @@ function makeTxHash(): string {
 
 /** Simulated dwell time (ms) for each pending status before auto-advancing. */
 const STATUS_DWELL_MS: Partial<Record<WithdrawalStatus, number>> = {
-  REQUESTED: 4_000,
-  REVIEW: 6_000,
-  PROCESSING: 5_000,
+  REQUESTED: 2_000,
+  REVIEW: 2_000,
+  PROCESSING: 2_000,
 };
 
 export const useWalletStore = create<WalletState>()(

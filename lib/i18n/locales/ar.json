@@ -586,6 +586,8 @@
     "withdrawCta": "ينسحب",
     "availableBalance": "الرصيد المتاح",
     "availableHint": "على استعداد لالتقاط",
+    "pendingNetwork": "شبكة معلقة",
+    "pendingNetworkHint": "عمولات الإحالة · تُودَع كل 24 ساعة (00:00 UTC)",
     "totalEarned": "إجمالي الفوز",
     "totalEarnedHint": "الأداء + العمولات",
     "activeCapital": "رأس المال النشط",

@@ -4,6 +4,7 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useStakingStore, useStakingStoreHydrated } from "@/lib/staking/store";
+import { utcDayKey } from "@/lib/trade/store";
 import {
   COMMISSION_RATES_BPS,
   MIN_ACTIVE_CAPITAL_USDT,
@@ -50,12 +51,15 @@ interface ReferralsState {
   commissions: CommissionRecord[];
   processedYieldIds: string[];
   totalCommissions: number;
+  pendingNetworkEarnings: number;
+  lastNetworkPayoutDay: string | null;
 
   ensureCode: (walletAddress?: string) => string;
   seedDemoNetwork: () => void;
   processCommissionsForYields: (
     yields: { id: string; date: string; creditedAmount: number }[],
   ) => void;
+  payoutNetworkEarnings: () => number;
   reset: () => void;
 }
 
@@ -65,6 +69,8 @@ const initial = {
   commissions: [] as CommissionRecord[],
   processedYieldIds: [] as string[],
   totalCommissions: 0,
+  pendingNetworkEarnings: 0,
+  lastNetworkPayoutDay: null as string | null,
 };
 
 function makeId(prefix: string): string {
@@ -194,14 +200,30 @@ export const useReferralsStore = create<ReferralsState>()(
           commissions: mergedCommissions,
           processedYieldIds: [...processed],
           totalCommissions: state.totalCommissions + creditTotal,
+          pendingNetworkEarnings: state.pendingNetworkEarnings + creditTotal,
         });
 
         if (creditTotal > 0) {
-          useStakingStore.setState((s) => ({
-            earningsBalance: s.earningsBalance + creditTotal,
-            totalEarned: s.totalEarned + creditTotal,
-          }));
+          get().payoutNetworkEarnings();
         }
+      },
+
+      payoutNetworkEarnings: () => {
+        const state = get();
+        if (state.pendingNetworkEarnings <= 0) return 0;
+
+        const today = utcDayKey();
+        if (state.lastNetworkPayoutDay === today) return 0;
+
+        const amount = state.pendingNetworkEarnings;
+        const credited = useStakingStore.getState().creditNetworkPayout(amount);
+        if (credited <= 0) return 0;
+
+        set({
+          pendingNetworkEarnings: Math.max(0, amount - credited),
+          lastNetworkPayoutDay: today,
+        });
+        return credited;
       },
 
       reset: () => set(initial),
@@ -223,6 +245,8 @@ export const useReferralsStore = create<ReferralsState>()(
         commissions: s.commissions,
         processedYieldIds: s.processedYieldIds,
         totalCommissions: s.totalCommissions,
+        pendingNetworkEarnings: s.pendingNetworkEarnings,
+        lastNetworkPayoutDay: s.lastNetworkPayoutDay,
       }),
     },
   ),
@@ -274,4 +298,20 @@ export function useCommissionEngine(): void {
       })),
     );
   }, [hydrated, stakingHydrated, dailyYields, process]);
+}
+
+/** Pays accumulated network commissions to withdrawable balance every UTC day. */
+export function useNetworkPayoutEngine(): void {
+  const hydrated = useReferralsStoreHydrated();
+  const stakingHydrated = useStakingStoreHydrated();
+  const payout = useReferralsStore((s) => s.payoutNetworkEarnings);
+  const pending = useReferralsStore((s) => s.pendingNetworkEarnings);
+  const dailyYields = useStakingStore((s) => s.dailyYields);
+
+  React.useEffect(() => {
+    if (!hydrated || !stakingHydrated) return;
+    payout();
+    const id = window.setInterval(payout, 60_000);
+    return () => window.clearInterval(id);
+  }, [hydrated, stakingHydrated, payout, pending, dailyYields]);
 }
