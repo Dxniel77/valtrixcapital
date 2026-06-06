@@ -14,6 +14,8 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "@/lib/market/types";
+import { emaSeriesFromCandles } from "@/lib/market/indicators";
+import type { ChartIndicatorState } from "@/components/trade/chart-indicators";
 import { formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +35,13 @@ interface TradingChartProps {
   pairLabel?: string;
   timeframeLabel?: string;
   priceLines?: PriceMarker[];
+  indicators?: ChartIndicatorState;
   className?: string;
   height?: number;
+}
+
+export interface TradingChartHandle {
+  resetZoom: () => void;
 }
 
 interface ChartPalette {
@@ -153,18 +160,25 @@ function OhlcvBar({
   );
 }
 
-export function TradingChart({
-  symbol,
-  timeframe,
-  candles,
-  livePrice,
-  precision = 2,
-  pairLabel,
-  timeframeLabel,
-  priceLines,
-  className,
-  height = 400,
-}: TradingChartProps) {
+export const TradingChart = React.forwardRef<
+  TradingChartHandle,
+  TradingChartProps
+>(function TradingChart(
+  {
+    symbol,
+    timeframe,
+    candles,
+    livePrice,
+    precision = 2,
+    pairLabel,
+    timeframeLabel,
+    priceLines,
+    indicators = { volume: true, ema20: true, ema50: false },
+    className,
+    height,
+  },
+  ref,
+) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
 
@@ -172,6 +186,8 @@ export function TradingChart({
   const chartRef = React.useRef<IChartApi | null>(null);
   const seriesRef = React.useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = React.useRef<ISeriesApi<"Histogram"> | null>(null);
+  const ema20Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const ema50Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
   const linesRef = React.useRef<IPriceLine[]>([]);
   const paletteRef = React.useRef<ChartPalette>(getPalette(isDark));
   const candlesRef = React.useRef<Candle[]>(candles);
@@ -215,6 +231,15 @@ export function TradingChart({
     programmaticViewRef.current = false;
     pendingFitRef.current = false;
   }, [timeframe]);
+
+  React.useImperativeHandle(ref, () => ({
+    resetZoom: () => {
+      const barCount = candlesRef.current.length;
+      if (barCount === 0) return;
+      pendingBarCountRef.current = barCount;
+      applyInitialChartView();
+    },
+  }));
 
   const scheduleInitialChartView = React.useCallback((barCount: number) => {
     pendingBarCountRef.current = barCount;
@@ -299,7 +324,7 @@ export function TradingChart({
         mouseWheel: true,
         pressedMouseMove: true,
         horzTouchDrag: true,
-        vertTouchDrag: false,
+        vertTouchDrag: true,
       },
       handleScale: {
         axisPressedMouseMove: true,
@@ -334,6 +359,24 @@ export function TradingChart({
       scaleMargins: { top: 0.88, bottom: 0 },
     });
 
+    const ema20 = chart.addLineSeries({
+      color: "#F97316",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.ema20,
+    });
+
+    const ema50 = chart.addLineSeries({
+      color: "#A855F7",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.ema50,
+    });
+
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       if (!programmaticViewRef.current) {
         viewEpochRef.current = dataEpochRef.current;
@@ -359,6 +402,8 @@ export function TradingChart({
     chartRef.current = chart;
     seriesRef.current = series;
     volumeRef.current = volume;
+    ema20Ref.current = ema20;
+    ema50Ref.current = ema50;
 
     const ro = new ResizeObserver(() => {
       if (!pendingFitRef.current) return;
@@ -372,6 +417,8 @@ export function TradingChart({
       chartRef.current = null;
       seriesRef.current = null;
       volumeRef.current = null;
+      ema20Ref.current = null;
+      ema50Ref.current = null;
       linesRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -525,7 +572,46 @@ export function TradingChart({
 
     prevCandleCountRef.current = candles.length;
     prevLastTimeRef.current = last.time;
-  }, [candles, symbol, scheduleInitialChartView]);
+
+    syncIndicatorSeries(candles, indicators);
+  }, [candles, symbol, scheduleInitialChartView, indicators]);
+
+  React.useEffect(() => {
+    syncIndicatorSeries(candlesRef.current, indicators);
+  }, [indicators]);
+
+  function syncIndicatorSeries(
+    data: Candle[],
+    ind: ChartIndicatorState,
+  ) {
+    const volume = volumeRef.current;
+    const ema20 = ema20Ref.current;
+    const ema50 = ema50Ref.current;
+    const chart = chartRef.current;
+    if (!volume || !ema20 || !ema50 || !chart) return;
+
+    volume.applyOptions({ visible: ind.volume });
+    ema20.applyOptions({ visible: ind.ema20 });
+    ema50.applyOptions({ visible: ind.ema50 });
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: ind.volume ? { top: 0.88, bottom: 0 } : { top: 0.98, bottom: 0 },
+    });
+    chart.priceScale("right").applyOptions({
+      scaleMargins: { top: 0.12, bottom: ind.volume ? 0.28 : 0.08 },
+    });
+
+    ema20.setData(
+      ind.ema20 && data.length >= 20
+        ? emaSeriesFromCandles(data, 20)
+        : [],
+    );
+    ema50.setData(
+      ind.ema50 && data.length >= 50
+        ? emaSeriesFromCandles(data, 50)
+        : [],
+    );
+  }
 
   React.useEffect(() => {
     if (typeof livePrice !== "number" || livePrice <= 0) return;
@@ -566,7 +652,10 @@ export function TradingChart({
   }, [priceLines]);
 
   return (
-    <div className={cn("relative", className)} style={{ width: "100%", height }}>
+    <div
+      className={cn("relative w-full", height == null && "h-full", className)}
+      style={height != null ? { height } : undefined}
+    >
       <OhlcvBar
         pairLabel={pairLabel}
         timeframeLabel={timeframeLabel}
@@ -574,7 +663,7 @@ export function TradingChart({
         precision={precision}
         palette={paletteRef.current}
       />
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} className="h-full w-full touch-pan-y" />
     </div>
   );
-}
+});

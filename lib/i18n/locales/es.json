@@ -95,14 +95,38 @@
     "titleGold": "inversores digitales",
     "subtitle": "Todo lo que necesitas para poner tu capital en movimiento: trading, herramientas inteligentes, comunidad y transparencia en un solo ecosistema.",
     "items": {
-      "web3": { "title": "Tecnología Web3 integrada", "desc": "Conecta MetaMask, Trust Wallet, Rainbow y otras billeteras compatibles con WalletConnect en BNB Chain y Polygon." },
-      "markets": { "title": "Mercados en vivo", "desc": "Datos de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos temporales de 1m a 1D." },
-      "quita": { "title": "Flexible", "desc": "Accesos desde $15 hasta $100,000 usdt integrados en una sola base de capital activa." },
-      "yield": { "title": "Performance Daily", "desc": "0,3% base + rendimiento dinámico por actividad operativa diaria." },
-      "network": { "title": "Network", "desc": "Red de comunidad y crecimiento colaborativo hasta 8 niveles." },
-      "bot": { "title": "Actividad Operativa", "desc": "Actividad reflejada desde mercados y exchanges principales con registros verificables en BscScan." },
-      "nonCustodial": { "title": "Acceso Seguro", "desc": "Conexión mediante billetera digital sin almacenamiento de claves privadas." },
-      "withdraw": { "title": "Retira cuando quieras", "desc": "Retira ganancias cuando quieras con una comisión fija del 4%. Liquidaciones en BSC o Polygon." }
+      "web3": {
+        "title": "Tecnología Web3 integrada",
+        "desc": "Conecta MetaMask, Trust Wallet, Rainbow y otras billeteras compatibles con WalletConnect en BNB Chain y Polygon."
+      },
+      "markets": {
+        "title": "Mercados en vivo",
+        "desc": "Datos de Binance y Bybit en BTC, ETH, SOL, XRP, BNB y MATIC. Marcos temporales de 1m a 1D."
+      },
+      "quita": {
+        "title": "Flexible",
+        "desc": "Accesos desde $15 hasta $100,000 usdt integrados en una sola base de capital activa."
+      },
+      "yield": {
+        "title": "Performance Daily",
+        "desc": "0,3% base + rendimiento dinámico por actividad operativa diaria."
+      },
+      "network": {
+        "title": "Network",
+        "desc": "Red de comunidad y crecimiento colaborativo hasta 8 niveles."
+      },
+      "bot": {
+        "title": "Actividad Operativa",
+        "desc": "Actividad reflejada desde mercados y exchanges principales con registros verificables en BscScan."
+      },
+      "nonCustodial": {
+        "title": "Acceso Seguro",
+        "desc": "Conexión mediante billetera digital sin almacenamiento de claves privadas."
+      },
+      "withdraw": {
+        "title": "Retira cuando quieras",
+        "desc": "Retira ganancias cuando quieras con una comisión fija del 4%. Liquidaciones en BSC o Polygon."
+      }
     }
   },
   "how": {
@@ -112,10 +136,22 @@
     "titleEnd": "en cuatro pasos",
     "subtitle": "Un entorno transparente y conectado diseñado para usuarios Web3.",
     "steps": {
-      "1": { "title": "Conecta", "desc": "MetaMask, Trust Wallet o WalletConnect en BNB Chain y Polygon. Acceso seguro mediante billetera digital." },
-      "2": { "title": "Accede al ecosistema", "desc": "Desde $15 hasta $100,000 en USDT. Los nuevos aportes se integran automáticamente al balance activo." },
-      "3": { "title": "Realiza hasta 7 operaciones diarias", "desc": "En BTC, ETH, SOL, XRP, BNB y MATIC. Movimientos de mercado en marcos de 1 a 5 minutos." },
-      "4": { "title": "Generación diaria de actividad", "desc": "Con retiros flexibles y objetivos de participación de hasta el 200% dentro del ecosistema." }
+      "1": {
+        "title": "Conecta",
+        "desc": "MetaMask, Trust Wallet o WalletConnect en BNB Chain y Polygon. Acceso seguro mediante billetera digital."
+      },
+      "2": {
+        "title": "Accede al ecosistema",
+        "desc": "Desde $15 hasta $100,000 en USDT. Los nuevos aportes se integran automáticamente al balance activo."
+      },
+      "3": {
+        "title": "Realiza hasta 7 operaciones diarias",
+        "desc": "En BTC, ETH, SOL, XRP, BNB y MATIC. Movimientos de mercado en marcos de 1 a 5 minutos."
+      },
+      "4": {
+        "title": "Generación diaria de actividad",
+        "desc": "Con retiros flexibles y objetivos de participación de hasta el 200% dentro del ecosistema."
+      }
     }
   },
   "yield": {
@@ -131,9 +167,18 @@
     "colTotal": "Total diario",
     "colOn10k": "Sobre $10,000",
     "rules": {
-      "cap": { "title": "Objetivo operativo 200%", "desc": "Cada capital activo mantiene participación dentro del ecosistema hasta alcanzar un objetivo operativo del 200%. Nuevas integraciones de capital permiten reactivar participación y actividad dentro del sistema." },
-      "reset": { "title": "Reinicio operativo 24h", "desc": "Las operaciones diarias y actividad operativa se reinician cada día a las 00:00 UTC. La actividad no utilizada no es acumulable." },
-      "withdraw": { "title": "Flujo de retiro", "desc": "Retiros flexibles con comisión operativa fija del 4%. Liquidación disponible en BNB Chain y Polygon mediante la billetera conectada." }
+      "cap": {
+        "title": "Objetivo operativo 200%",
+        "desc": "Cada capital activo mantiene participación dentro del ecosistema hasta alcanzar un objetivo operativo del 200%. Nuevas integraciones de capital permiten reactivar participación y actividad dentro del sistema."
+      },
+      "reset": {
+        "title": "Reinicio operativo 24h",
+        "desc": "Las operaciones diarias y actividad operativa se reinician cada día a las 00:00 UTC. La actividad no utilizada no es acumulable."
+      },
+      "withdraw": {
+        "title": "Flujo de retiro",
+        "desc": "Retiros flexibles con comisión operativa fija del 4%. Liquidación disponible en BNB Chain y Polygon mediante la billetera conectada."
+      }
     }
   },
   "referrals": {
@@ -213,7 +258,9 @@
       "proTip": "Consejo",
       "proTipText": "Gana las 7 operaciones hoy para alcanzar el tope diario del 1%."
     },
-    "mobileNav": { "close": "Cerrar menú" },
+    "mobileNav": {
+      "close": "Cerrar menú"
+    },
     "overview": {
       "welcome": "Bienvenido de nuevo",
       "subtitle": "Un resumen de tu actividad en Valtrix hoy.",
@@ -265,7 +312,15 @@
       "companyToday": "Hoy",
       "companyWeek": "Semana",
       "companyAllTime": "Histórico",
-      "days": { "mon": "Lun", "tue": "Mar", "wed": "Mié", "thu": "Jue", "fri": "Vie", "sat": "Sáb", "sun": "Dom" }
+      "days": {
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb",
+        "sun": "Dom"
+      }
     },
     "pages": {
       "wallet": {
@@ -765,6 +820,14 @@
     "noFavorites": "Sin favoritos. Marca una estrella en un par.",
     "noMatchingPairs": "Sin pares coincidentes",
     "closingIn": "Cerrando operación",
-    "positionClosed": "Cerrada"
+    "positionClosed": "Cerrada",
+    "indicators": {
+      "title": "Indicadores",
+      "volume": "Volumen",
+      "ema20": "EMA 20",
+      "ema50": "EMA 50",
+      "resetZoom": "Reiniciar zoom"
+    },
+    "yieldSummary": "Rendimiento diario"
   }
 }

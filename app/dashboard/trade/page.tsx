@@ -3,10 +3,18 @@
 import * as React from "react";
 import { LineStyle } from "lightweight-charts";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { TradingChart } from "@/components/trade/trading-chart";
+import {
+  TradingChart,
+  type TradingChartHandle,
+} from "@/components/trade/trading-chart";
+import {
+  ChartIndicators,
+  DEFAULT_CHART_INDICATORS,
+} from "@/components/trade/chart-indicators";
 import { PairSelector } from "@/components/trade/pair-selector";
 import { TimeframeSelector } from "@/components/trade/timeframe-selector";
-import { TradePanel } from "@/components/trade/trade-panel";
+import { TradeQuickBar } from "@/components/trade/trade-quick-bar";
+import { TradeYieldSummary } from "@/components/trade/trade-yield-summary";
 import { OpenPositions } from "@/components/trade/open-positions";
 import { PositionCloseCountdown } from "@/components/trade/position-close-countdown";
 import { DailyAttempts } from "@/components/trade/daily-attempts";
@@ -29,8 +37,11 @@ import Link from "next/link";
 
 export default function TradePage() {
   const { t } = useI18n();
+  const chartRef = React.useRef<TradingChartHandle>(null);
   const [pair, setPair] = React.useState<PairMeta>(DEFAULT_PAIR);
   const [timeframe, setTimeframe] = React.useState<Timeframe>(DEFAULT_TIMEFRAME);
+  const [duration, setDuration] = React.useState(60);
+  const [indicators, setIndicators] = React.useState(DEFAULT_CHART_INDICATORS);
 
   const stream = useMarketStream(pair.binance, timeframe);
   const tickers = useTickers(PAIRS.map((p) => p.binance));
@@ -82,7 +93,7 @@ export default function TradePage() {
           : t("trade.idle");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 lg:space-y-5">
       <PageHeader
         title={t("trade.title")}
         subtitle={t("trade.subtitle", { day: today })}
@@ -98,24 +109,38 @@ export default function TradePage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-4">
           <div className="surface-card overflow-hidden">
-            <div className="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <PairSelector
-                  active={pair}
-                  source={stream.source}
-                  tickers={tickers}
-                  onChange={setPair}
-                />
-                <PairHeader pair={pair} price={livePrice} ticker={ticker ?? null} />
+            <div className="flex flex-col gap-2 border-b border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                  <PairSelector
+                    active={pair}
+                    source={stream.source}
+                    tickers={tickers}
+                    onChange={setPair}
+                  />
+                  <PairHeader
+                    pair={pair}
+                    price={livePrice}
+                    ticker={ticker ?? null}
+                    compact
+                  />
+                </div>
+                <TimeframeSelector value={timeframe} onChange={setTimeframe} />
               </div>
-              <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
 
-            <div className="relative bg-bg-base/40">
+            <ChartIndicators
+              value={indicators}
+              onChange={setIndicators}
+              onResetZoom={() => chartRef.current?.resetZoom()}
+            />
+
+            <div className="relative h-[min(52vh,380px)] min-h-[260px] bg-bg-base/40 sm:min-h-[300px] lg:h-[420px]">
               <TradingChart
+                ref={chartRef}
                 symbol={pair.binance}
                 timeframe={timeframe}
                 candles={
@@ -126,7 +151,8 @@ export default function TradePage() {
                 pairLabel={`${pair.base}/${pair.quote}`}
                 timeframeLabel={timeframeLabel}
                 priceLines={priceLines}
-                height={400}
+                indicators={indicators}
+                className="h-full"
               />
               <PositionCloseCountdown
                 pairSymbol={pair.binance}
@@ -134,6 +160,13 @@ export default function TradePage() {
               />
               <ChartOverlay state={stream.status} />
             </div>
+
+            <TradeQuickBar
+              pair={pair}
+              livePrice={livePrice}
+              duration={duration}
+              onDurationChange={setDuration}
+            />
           </div>
 
           <OpenPositions
@@ -143,12 +176,16 @@ export default function TradePage() {
           />
 
           <ResolvedTradesPreview />
+
+          <div className="lg:hidden">
+            <DailyAttempts />
+          </div>
         </div>
 
-        <aside className="space-y-4">
-          <DailyAttempts />
-          <div className="surface-card p-5">
-            <TradePanel pair={pair} livePrice={livePrice} />
+        <aside className="hidden space-y-4 lg:block">
+          <div className="sticky top-20 space-y-4">
+            <DailyAttempts />
+            <TradeYieldSummary />
           </div>
         </aside>
       </div>
@@ -160,26 +197,36 @@ function PairHeader({
   pair,
   price,
   ticker,
+  compact = false,
 }: {
   pair: PairMeta;
   price: number | null;
   ticker: { price: number; changePct: number } | null;
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const up = (ticker?.changePct ?? 0) >= 0;
   return (
-    <div className="flex items-end gap-4">
+    <div className="flex items-end gap-3">
       <div>
-        <p className="font-mono text-sm text-text-secondary">
-          {pair.base}/{pair.quote}
-        </p>
-        <p className="font-mono text-2xl text-text-primary">
+        {!compact ? (
+          <p className="font-mono text-sm text-text-secondary">
+            {pair.base}/{pair.quote}
+          </p>
+        ) : null}
+        <p
+          className={
+            compact
+              ? "font-mono text-lg text-text-primary sm:text-xl"
+              : "font-mono text-2xl text-text-primary"
+          }
+        >
           {price !== null
             ? formatNumber(price, { decimals: pair.pricePrecision })
             : "—"}
         </p>
       </div>
-      <div className="pb-1 text-xs">
+      <div className="pb-0.5 text-xs">
         <p className={`font-mono ${up ? "text-success" : "text-danger"}`}>
           {ticker
             ? `${up ? "+" : ""}${ticker.changePct.toFixed(2)}%`
@@ -256,7 +303,7 @@ function ResolvedTradesPreview() {
           return (
             <li
               key={p.id}
-              className="grid grid-cols-5 items-center gap-2 px-4 py-2 text-xs"
+              className="grid grid-cols-2 items-center gap-2 px-4 py-2 text-xs sm:grid-cols-5"
             >
               <span className="font-mono text-text-primary">
                 {pairInfo?.base ?? p.pair.replace("USDT", "")}/USDT
@@ -268,7 +315,7 @@ function ResolvedTradesPreview() {
               >
                 {p.direction === "UP" ? t("common.buyArrow") : t("common.sellArrow")}
               </span>
-              <span className="font-mono text-text-secondary">
+              <span className="hidden font-mono text-text-secondary sm:block">
                 {formatNumber(p.entryPrice, {
                   decimals: pairInfo?.pricePrecision ?? 2,
                 })}{" "}
@@ -279,7 +326,7 @@ function ResolvedTradesPreview() {
                     })
                   : "—"}
               </span>
-              <span className="font-mono text-text-muted">
+              <span className="hidden font-mono text-text-muted sm:block">
                 {p.durationSec / 60}m
               </span>
               <span

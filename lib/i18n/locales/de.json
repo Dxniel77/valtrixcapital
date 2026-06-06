@@ -820,6 +820,14 @@
     "noFavorites": "Keine Favoriten. Erziele einen Stern für ein Paar.",
     "noMatchingPairs": "Keine passenden Paare",
     "closingIn": "Schließvorgang",
-    "positionClosed": "Geschlossen"
+    "positionClosed": "Geschlossen",
+    "indicators": {
+      "title": "Indicators",
+      "volume": "Volume",
+      "ema20": "EMA 20",
+      "ema50": "EMA 50",
+      "resetZoom": "Reset zoom"
+    },
+    "yieldSummary": "Daily yield"
   }
 }
