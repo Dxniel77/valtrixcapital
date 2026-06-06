@@ -245,6 +245,7 @@
       "portfolio": "Portafolio",
       "history": "Historial",
       "referrals": "Referidos",
+      "share": "Compartir",
       "wallet": "Billetera",
       "profile": "Perfil",
       "support": "Soporte"
@@ -648,7 +649,33 @@
       "submitted": "Retiro enviado a revisión",
       "successHeadline": "¡Solicitud recibida!",
       "successBody": "Enviaremos ${amount} USDT a {address} tras la revisión. Suele tardar unos minutos.",
-      "done": "Listo"
+      "done": "Listo",
+      "eligibilityOpen": "Retiros disponibles.",
+      "eligibilityUnlocked": "Has cumplido las condiciones. Puedes retirar tus ganancias.",
+      "eligibilityLocked": "Tu cuenta está activa, pero los retiros se habilitan al cumplir ventas directas o volumen en niveles 1 y 2.",
+      "eligibilityTitle": "Retiros bloqueados",
+      "eligibilityProgress": "Ventas directas: ${direct} / ${directMin} · N1: ${l1} / ${l1Min} · N2: ${l2} / ${l2Min}"
+    }
+  },
+  "share": {
+    "title": "Compartir ganancias",
+    "subtitle": "Descarga una imagen para marketing con tus ganancias diarias, semanales, mensuales y de los últimos 3 meses.",
+    "download": "Descargar imagen",
+    "reportsTitle": "Descargar reportes",
+    "poster": {
+      "networkUser": "Red + ganancia pasiva + operativa",
+      "soloUser": "Ganancia diaria + operativa",
+      "daily": "Hoy",
+      "weekly": "Esta semana",
+      "monthly": "Este mes",
+      "threeMonths": "Últimos 3 meses",
+      "footer": "valtrix.capital · Resultados individuales"
+    },
+    "exports": {
+      "earnings": "Reporte de ganancias",
+      "withdrawals": "Reporte de retiros",
+      "network": "Reporte de red",
+      "operational": "Reporte operativo"
     }
   },
   "historyPage": {
@@ -676,9 +703,13 @@
     "headerNote": "Panel de administración · datos de demostración",
     "nav": {
       "overview": "Resumen",
+      "grant": "Dar cuenta",
+      "lookup": "Buscar usuario",
+      "leaders": "Top facturación",
       "users": "Usuarios",
       "movements": "Movimientos",
       "network": "Red",
+      "reports": "Reportes",
       "settings": "Ajustes",
       "audit": "Auditoría"
     },
@@ -686,7 +717,9 @@
       "USER_ACTIVATED": "Usuario activado",
       "USER_DEACTIVATED": "Usuario desactivado",
       "BALANCE_ADJUSTED": "Saldo ajustado",
-      "SETTINGS_UPDATED": "Ajustes actualizados"
+      "SETTINGS_UPDATED": "Ajustes actualizados",
+      "ACCOUNT_GRANTED": "Cuenta concedida",
+      "WITHDRAWAL_UNLOCKED": "Retiro habilitado"
     },
     "overview": {
       "title": "Resumen",
@@ -782,6 +815,73 @@
       "colTarget": "Objetivo",
       "colDetail": "Detalle",
       "colActor": "Autor"
+    },
+    "grant": {
+      "title": "Dar cuenta",
+      "subtitle": "Concede acceso a un usuario con condiciones de retiro personalizadas.",
+      "formTitle": "Nueva cuenta",
+      "walletLabel": "Billetera",
+      "aliasLabel": "Usuario",
+      "aliasPlaceholder": "nombre.usuario",
+      "modeLabel": "Condición para retirar",
+      "modeDirect": "Ventas directas",
+      "modeNetwork": "Niveles 1 y 2",
+      "modeEither": "Cualquiera (OR)",
+      "directMinLabel": "Mín. ventas directas (USDT)",
+      "l1MinLabel": "Mín. volumen N1",
+      "l2MinLabel": "Mín. volumen N2",
+      "hint": "El usuario puede operar con normalidad. Los retiros se habilitan automáticamente al cumplir la condición.",
+      "submit": "Conceder cuenta",
+      "invalidWallet": "Billetera inválida",
+      "invalidAlias": "Ingresa un nombre de usuario",
+      "success": "Cuenta concedida"
+    },
+    "lookup": {
+      "title": "Buscar usuario",
+      "subtitle": "Consulta por billetera o nombre de usuario.",
+      "searchPlaceholder": "Billetera o usuario…",
+      "emptyPrompt": "Escribe una billetera o usuario para ver el detalle.",
+      "notFound": "No se encontró ningún usuario.",
+      "capital": "Capital activo",
+      "balance": "Saldo retirable",
+      "directRefs": "Referidos directos",
+      "networkSize": "Tamaño de red",
+      "granted": "Cuenta concedida",
+      "withdrawOk": "Retiro habilitado",
+      "withdrawLocked": "Retiro bloqueado",
+      "operational": "Ganancia operativa",
+      "network": "Ganancia de red",
+      "passive": "Ganancia pasiva",
+      "networkLevels": "Red por nivel",
+      "level": "Nivel",
+      "members": "Miembros",
+      "volume": "Volumen",
+      "history": "Historial de movimientos"
+    },
+    "leaders": {
+      "title": "Top facturación",
+      "subtitle": "Usuarios que más han facturado por periodo.",
+      "week": "Última semana",
+      "month": "Último mes",
+      "threeMonths": "Últimos 3 meses",
+      "export": "Exportar CSV",
+      "colUser": "Usuario",
+      "colTotal": "Total",
+      "colOperational": "Operativa",
+      "colNetwork": "Red",
+      "colPassive": "Pasiva"
+    },
+    "reports": {
+      "title": "Reportes",
+      "subtitle": "Descarga reportes CSV de la plataforma.",
+      "users": "Usuarios",
+      "usersDesc": "Listado completo con capital, saldo y estado de retiro.",
+      "movements": "Movimientos",
+      "movementsDesc": "Todos los eventos financieros.",
+      "audit": "Auditoría",
+      "auditDesc": "Acciones administrativas registradas.",
+      "myLedger": "Mi libro mayor",
+      "myLedgerDesc": "Movimientos de la sesión conectada."
     }
   },
   "trade": {

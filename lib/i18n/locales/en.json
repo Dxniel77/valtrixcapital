@@ -245,6 +245,7 @@
       "portfolio": "Portfolio",
       "history": "Record",
       "referrals": "Referrals",
+      "share": "Share",
       "wallet": "Wallet",
       "profile": "Profile",
       "support": "Medium"
@@ -648,7 +649,33 @@
       "submitted": "Withdrawal sent for review",
       "successHeadline": "Request received!",
       "successBody": "We will send ${amount} USDT to {address} upon review. It usually takes a few minutes.",
-      "done": "Ready"
+      "done": "Ready",
+      "eligibilityOpen": "Withdrawals available.",
+      "eligibilityUnlocked": "You met the requirements. You can withdraw your earnings.",
+      "eligibilityLocked": "Your account is active, but withdrawals unlock after direct sales or L1+L2 volume targets.",
+      "eligibilityTitle": "Withdrawals locked",
+      "eligibilityProgress": "Direct sales: ${direct} / ${directMin} · L1: ${l1} / ${l1Min} · L2: ${l2} / ${l2Min}"
+    }
+  },
+  "share": {
+    "title": "Share earnings",
+    "subtitle": "Download a marketing image with daily, weekly, monthly and 3-month earnings.",
+    "download": "Download image",
+    "reportsTitle": "Download reports",
+    "poster": {
+      "networkUser": "Network + passive + operational",
+      "soloUser": "Daily yield + operational",
+      "daily": "Today",
+      "weekly": "This week",
+      "monthly": "This month",
+      "threeMonths": "Last 3 months",
+      "footer": "valtrix.capital · Individual results"
+    },
+    "exports": {
+      "earnings": "Earnings report",
+      "withdrawals": "Withdrawals report",
+      "network": "Network report",
+      "operational": "Operational report"
     }
   },
   "historyPage": {
@@ -676,9 +703,13 @@
     "headerNote": "Admin panel demo data",
     "nav": {
       "overview": "Summary",
+      "grant": "Grant account",
+      "lookup": "User lookup",
+      "leaders": "Top performers",
       "users": "Users",
       "movements": "Movements",
       "network": "Grid",
+      "reports": "Reports",
       "settings": "Settings",
       "audit": "Audit"
     },
@@ -686,7 +717,9 @@
       "USER_ACTIVATED": "Activated user",
       "USER_DEACTIVATED": "Deactivated user",
       "BALANCE_ADJUSTED": "Adjusted balance",
-      "SETTINGS_UPDATED": "Updated settings"
+      "SETTINGS_UPDATED": "Updated settings",
+      "ACCOUNT_GRANTED": "Account granted",
+      "WITHDRAWAL_UNLOCKED": "Withdrawal unlocked"
     },
     "overview": {
       "title": "Summary",
@@ -782,6 +815,73 @@
       "colTarget": "Aim",
       "colDetail": "Detail",
       "colActor": "Author"
+    },
+    "grant": {
+      "title": "Grant account",
+      "subtitle": "Give a user access with custom withdrawal conditions.",
+      "formTitle": "New account",
+      "walletLabel": "Wallet",
+      "aliasLabel": "Username",
+      "aliasPlaceholder": "username",
+      "modeLabel": "Withdrawal condition",
+      "modeDirect": "Direct sales",
+      "modeNetwork": "Levels 1 & 2",
+      "modeEither": "Either (OR)",
+      "directMinLabel": "Min. direct sales (USDT)",
+      "l1MinLabel": "Min. L1 volume",
+      "l2MinLabel": "Min. L2 volume",
+      "hint": "User can trade normally. Withdrawals unlock automatically when conditions are met.",
+      "submit": "Grant account",
+      "invalidWallet": "Invalid wallet",
+      "invalidAlias": "Enter a username",
+      "success": "Account granted"
+    },
+    "lookup": {
+      "title": "User lookup",
+      "subtitle": "Search by wallet or username.",
+      "searchPlaceholder": "Wallet or username…",
+      "emptyPrompt": "Enter a wallet or username to view details.",
+      "notFound": "No user found.",
+      "capital": "Active capital",
+      "balance": "Withdrawable balance",
+      "directRefs": "Direct referrals",
+      "networkSize": "Network size",
+      "granted": "Account granted",
+      "withdrawOk": "Withdrawals enabled",
+      "withdrawLocked": "Withdrawals locked",
+      "operational": "Operational earnings",
+      "network": "Network earnings",
+      "passive": "Passive earnings",
+      "networkLevels": "Network by level",
+      "level": "Level",
+      "members": "Members",
+      "volume": "Volume",
+      "history": "Movement history"
+    },
+    "leaders": {
+      "title": "Top performers",
+      "subtitle": "Highest billing users by period.",
+      "week": "Last week",
+      "month": "Last month",
+      "threeMonths": "Last 3 months",
+      "export": "Export CSV",
+      "colUser": "User",
+      "colTotal": "Total",
+      "colOperational": "Operational",
+      "colNetwork": "Network",
+      "colPassive": "Passive"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Download platform CSV reports.",
+      "users": "Users",
+      "usersDesc": "Full list with capital, balance and withdrawal status.",
+      "movements": "Movements",
+      "movementsDesc": "All financial events.",
+      "audit": "Audit",
+      "auditDesc": "Recorded admin actions.",
+      "myLedger": "My ledger",
+      "myLedgerDesc": "Connected session movements."
     }
   },
   "trade": {

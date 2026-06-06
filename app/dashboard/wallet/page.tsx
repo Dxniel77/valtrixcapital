@@ -40,6 +40,8 @@ import { DEPOSIT_ADDRESSES, USDT_CONTRACTS } from "@/lib/wallet/constants";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { useLedger } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
+import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { Lock } from "lucide-react";
 
 export default function WalletPage() {
   const { t } = useI18n();
@@ -48,6 +50,7 @@ export default function WalletPage() {
   const earningsBalance = useStakingStore((s) => s.earningsBalance);
   const pendingNetwork = useReferralsStore((s) => s.pendingNetworkEarnings);
   const withdrawals = useWalletStore((s) => s.withdrawals);
+  const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
 
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
 
@@ -65,9 +68,15 @@ export default function WalletPage() {
             variant="primary"
             size="md"
             onClick={() => setWithdrawOpen(true)}
-            disabled={!hydrated || earningsBalance <= 0}
+            disabled={!hydrated || earningsBalance <= 0 || !eligible}
+            title={!eligible ? t(messageKey) : undefined}
           >
-            <ArrowUpFromLine className="h-4 w-4" /> {t("walletPage.withdrawCta")}
+            {!eligible && adminUser?.accountGranted ? (
+              <Lock className="h-4 w-4" />
+            ) : (
+              <ArrowUpFromLine className="h-4 w-4" />
+            )}{" "}
+            {t("walletPage.withdrawCta")}
           </Button>
         }
       />
@@ -102,6 +111,16 @@ export default function WalletPage() {
           hint={t("walletPage.activeCapitalHint")}
         />
       </div>
+
+      {!eligible && adminUser?.accountGranted ? (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div>
+            <p className="font-medium text-warning">{t("walletPage.withdraw.eligibilityTitle")}</p>
+            <p className="mt-1 text-text-secondary">{t(messageKey)}</p>
+          </div>
+        </div>
+      ) : null}
 
       {pending.length > 0 ? (
         <div className="space-y-3">

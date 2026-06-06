@@ -6,6 +6,12 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UsernameGate } from "@/components/user/username-gate";
 import { EarningsEngines } from "@/components/earnings/earnings-engines";
+import { useAdminUserSync } from "@/lib/hooks/use-admin-user-sync";
+
+function DashboardRuntime() {
+  useAdminUserSync();
+  return <EarningsEngines />;
+}
 
 export default function DashboardLayout({
   children,
@@ -17,7 +23,7 @@ export default function DashboardLayout({
 
   return (
     <UsernameGate>
-      <EarningsEngines />
+      <DashboardRuntime />
       <div className="flex min-h-screen bg-bg-base">
         <Sidebar
           collapsed={collapsed}

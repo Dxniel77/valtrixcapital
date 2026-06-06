@@ -28,6 +28,8 @@ import {
 } from "@/lib/wallet/constants";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
+import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { Lock } from "lucide-react";
 
 type Step = "form" | "success";
 
@@ -44,6 +46,7 @@ export function WithdrawModal({
 
   const available = useStakingStore((s) => s.earningsBalance);
   const requestWithdrawal = useWalletStore((s) => s.requestWithdrawal);
+  const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState("");
@@ -68,9 +71,13 @@ export function WithdrawModal({
   const validAddress = /^0x[a-fA-F0-9]{40}$/.test(destination.trim());
   const amountValid =
     breakdown.amount >= MIN_WITHDRAWAL_USDT && breakdown.amount <= available;
-  const canSubmit = isConnected && amountValid && validAddress;
+  const canSubmit = isConnected && amountValid && validAddress && eligible;
 
   function handleSubmit() {
+    if (!eligible) {
+      toast.error(t(messageKey));
+      return;
+    }
     if (!isConnected) {
       toast.error(t("walletPage.withdraw.connectFirst"));
       return;
@@ -234,6 +241,28 @@ export function WithdrawModal({
                 <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
                   <Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{t("walletPage.withdraw.connectFirst")}</span>
+                </div>
+              ) : null}
+
+              {isConnected && !eligible && adminUser?.accountGranted ? (
+                <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
+                  <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">{t("walletPage.withdraw.eligibilityTitle")}</p>
+                    <p className="mt-1 text-warning/90">{t(messageKey)}</p>
+                    {adminUser.withdrawalRule ? (
+                      <p className="mt-1 text-text-muted">
+                        {t("walletPage.withdraw.eligibilityProgress", {
+                          direct: formatNumber(adminUser.directSalesVolume, { decimals: 0 }),
+                          directMin: formatNumber(adminUser.withdrawalRule.directSalesMin, { decimals: 0 }),
+                          l1: formatNumber(adminUser.levelVolumes[0] ?? 0, { decimals: 0 }),
+                          l1Min: formatNumber(adminUser.withdrawalRule.level1VolumeMin, { decimals: 0 }),
+                          l2: formatNumber(adminUser.levelVolumes[1] ?? 0, { decimals: 0 }),
+                          l2Min: formatNumber(adminUser.withdrawalRule.level2VolumeMin, { decimals: 0 }),
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
             </DialogBody>

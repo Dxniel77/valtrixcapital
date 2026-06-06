@@ -15,7 +15,14 @@ import {
 } from "@/lib/wallet/constants";
 import { STAKE_MAX_USDT, STAKE_MIN_USDT } from "@/lib/staking/store";
 import { PAIRS } from "@/lib/market/pairs";
+import {
+  DEFAULT_WITHDRAWAL_RULE,
+  shouldUnlockWithdrawals,
+  type WithdrawalRule,
+} from "@/lib/admin/withdrawal-eligibility";
+import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
 
+export type { WithdrawalRule };
 export type AdminUserStatus = "ACTIVE" | "INACTIVE";
 export type AdminUserRole = "USER" | "ADMIN";
 export type AdminNetwork = "BSC" | "POLYGON";
@@ -33,6 +40,14 @@ export interface AdminUser {
   referrals: number;
   uplineWallet: string | null;
   joinedAt: number;
+  accountGranted: boolean;
+  withdrawalUnlocked: boolean;
+  withdrawalRule: WithdrawalRule;
+  directSalesVolume: number;
+  levelVolumes: number[];
+  operationalEarned: number;
+  networkEarned: number;
+  passiveEarned: number;
 }
 
 export interface AdminMovement {
@@ -80,6 +95,27 @@ interface AdminState {
     username: string;
     joinedAt: number;
   }) => void;
+  grantAccount: (input: {
+    wallet: string;
+    alias: string;
+    rule: WithdrawalRule;
+    uplineWallet?: string | null;
+  }) => AdminUser | null;
+  updateWithdrawalRule: (id: string, rule: WithdrawalRule) => void;
+  syncLiveUserMetrics: (
+    wallet: string,
+    metrics: {
+      capital: number;
+      balance: number;
+      totalEarned: number;
+      operationalEarned: number;
+      networkEarned: number;
+      passiveEarned: number;
+      directReferrals: number;
+      directSalesVolume: number;
+      levelVolumes: number[];
+    },
+  ) => void;
   setUserStatus: (id: string, status: AdminUserStatus) => void;
   adjustBalance: (id: string, delta: number, note: string) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
@@ -125,20 +161,33 @@ function buildDemoUsers(): AdminUser[] {
     const totalEarned = active
       ? Math.round(capital * (0.05 + Math.random() * 1.4) * 100) / 100
       : 0;
-    users.push({
-      id: makeId("usr"),
-      alias: ALIASES[i],
-      wallet: makeWallet(),
-      role: i === 0 ? "ADMIN" : "USER",
-      status: active ? "ACTIVE" : "INACTIVE",
-      network: Math.random() > 0.5 ? "BSC" : "POLYGON",
-      capital,
-      balance: Math.round(totalEarned * (0.2 + Math.random() * 0.5) * 100) / 100,
-      totalEarned,
-      referrals: Math.floor(Math.random() * 24),
-      uplineWallet: i > 2 ? users[Math.floor(Math.random() * Math.min(i, 5))].wallet : null,
-      joinedAt: now - Math.floor(Math.random() * 90) * 86_400_000,
-    });
+    users.push(
+      enrichDemoUser(
+        {
+          id: makeId("usr"),
+          alias: ALIASES[i],
+          wallet: makeWallet(),
+          role: i === 0 ? "ADMIN" : "USER",
+          status: active ? "ACTIVE" : "INACTIVE",
+          network: Math.random() > 0.5 ? "BSC" : "POLYGON",
+          capital,
+          balance: Math.round(totalEarned * (0.2 + Math.random() * 0.5) * 100) / 100,
+          totalEarned,
+          referrals: Math.floor(Math.random() * 24),
+          uplineWallet: i > 2 ? users[Math.floor(Math.random() * Math.min(i, 5))].wallet : null,
+          joinedAt: now - Math.floor(Math.random() * 90) * 86_400_000,
+          accountGranted: false,
+          withdrawalUnlocked: false,
+          withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
+          directSalesVolume: 0,
+          levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
+          operationalEarned: 0,
+          networkEarned: 0,
+          passiveEarned: 0,
+        },
+        i,
+      ),
+    );
   }
   return users;
 }
@@ -212,7 +261,7 @@ export const useAdminStore = create<AdminState>()(
         }
         set((s) => ({
           users: [
-            {
+            recomputeWithdrawalUnlock({
               id: profile.id,
               alias: profile.username,
               wallet: profile.wallet,
@@ -225,9 +274,137 @@ export const useAdminStore = create<AdminState>()(
               referrals: 0,
               uplineWallet: null,
               joinedAt: profile.joinedAt,
-            },
+              accountGranted: true,
+              withdrawalUnlocked: false,
+              withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
+              directSalesVolume: 0,
+              levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
+              operationalEarned: 0,
+              networkEarned: 0,
+              passiveEarned: 0,
+            }),
             ...s.users,
           ],
+        }));
+      },
+
+      grantAccount: ({ wallet, alias, rule, uplineWallet = null }) => {
+        const key = wallet.toLowerCase();
+        const existing = get().users.find((u) => u.wallet.toLowerCase() === key);
+        if (existing) {
+          const updated = recomputeWithdrawalUnlock({
+            ...existing,
+            alias,
+            accountGranted: true,
+            withdrawalRule: rule,
+            uplineWallet: uplineWallet ?? existing.uplineWallet,
+          });
+          set((s) => ({
+            users: s.users.map((u) => (u.id === existing.id ? updated : u)),
+            audit: [
+              {
+                id: makeId("aud"),
+                action: "ACCOUNT_GRANTED",
+                target: alias,
+                detail: `Cuenta con reglas de retiro actualizada`,
+                actor: "admin",
+                timestamp: Date.now(),
+              },
+              ...s.audit,
+            ].slice(0, 200),
+          }));
+          return updated;
+        }
+
+        const user = recomputeWithdrawalUnlock({
+          id: makeId("usr"),
+          alias,
+          wallet,
+          role: "USER",
+          status: "ACTIVE",
+          network: "BSC",
+          capital: 0,
+          balance: 0,
+          totalEarned: 0,
+          referrals: 0,
+          uplineWallet,
+          joinedAt: Date.now(),
+          accountGranted: true,
+          withdrawalUnlocked: false,
+          withdrawalRule: rule,
+          directSalesVolume: 0,
+          levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
+          operationalEarned: 0,
+          networkEarned: 0,
+          passiveEarned: 0,
+        });
+
+        set((s) => ({
+          users: [user, ...s.users],
+          audit: [
+            {
+              id: makeId("aud"),
+              action: "ACCOUNT_GRANTED",
+              target: alias,
+              detail: "Nueva cuenta con condiciones de retiro",
+              actor: "admin",
+              timestamp: Date.now(),
+            },
+            ...s.audit,
+          ].slice(0, 200),
+        }));
+        return user;
+      },
+
+      updateWithdrawalRule: (id, rule) => {
+        const user = get().users.find((u) => u.id === id);
+        if (!user) return;
+        const updated = recomputeWithdrawalUnlock({
+          ...user,
+          withdrawalRule: rule,
+        });
+        set((s) => ({
+          users: s.users.map((u) => (u.id === id ? updated : u)),
+        }));
+      },
+
+      syncLiveUserMetrics: (wallet, metrics) => {
+        const key = wallet.toLowerCase();
+        const user = get().users.find((u) => u.wallet.toLowerCase() === key);
+        if (!user) return;
+
+        const updated = recomputeWithdrawalUnlock({
+          ...user,
+          capital: metrics.capital,
+          balance: metrics.balance,
+          totalEarned: metrics.totalEarned,
+          operationalEarned: metrics.operationalEarned,
+          networkEarned: metrics.networkEarned,
+          passiveEarned: metrics.passiveEarned,
+          referrals: metrics.directReferrals,
+          directSalesVolume: metrics.directSalesVolume,
+          levelVolumes: metrics.levelVolumes,
+        });
+
+        const wasLocked = user.accountGranted && !user.withdrawalUnlocked;
+        const nowUnlocked = updated.withdrawalUnlocked;
+
+        set((s) => ({
+          users: s.users.map((u) => (u.wallet.toLowerCase() === key ? updated : u)),
+          audit:
+            wasLocked && nowUnlocked
+              ? [
+                  {
+                    id: makeId("aud"),
+                    action: "WITHDRAWAL_UNLOCKED",
+                    target: user.alias,
+                    detail: "Condiciones de retiro cumplidas",
+                    actor: "system",
+                    timestamp: Date.now(),
+                  },
+                  ...s.audit,
+                ].slice(0, 200)
+              : s.audit,
         }));
       },
 
@@ -304,7 +481,7 @@ export const useAdminStore = create<AdminState>()(
         }),
     }),
     {
-      name: "valtrix.admin.v1",
+      name: "valtrix.admin.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
           ? {

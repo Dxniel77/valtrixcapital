@@ -112,7 +112,7 @@ export function syncProfileToAdmin(profile: UserProfile): void {
 function isUsernameTakenInAdmin(usernameKey: string): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const raw = window.localStorage.getItem("valtrix.admin.v1");
+    const raw = window.localStorage.getItem("valtrix.admin.v2");
     if (!raw) return false;
     const parsed = JSON.parse(raw) as {
       state?: { users?: Array<{ alias?: string }> };

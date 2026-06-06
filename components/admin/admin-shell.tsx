@@ -6,10 +6,14 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ClipboardList,
+  FileSpreadsheet,
   LayoutDashboard,
   Network,
+  Search,
   Settings,
   ShieldCheck,
+  Trophy,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -22,9 +26,13 @@ import { useAdminSeed } from "@/lib/admin/store";
 
 const navItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
+  { href: "/admin/grant", key: "grant", icon: UserPlus },
+  { href: "/admin/lookup", key: "lookup", icon: Search },
+  { href: "/admin/leaders", key: "leaders", icon: Trophy },
   { href: "/admin/users", key: "users", icon: Users },
   { href: "/admin/movements", key: "movements", icon: Wallet },
   { href: "/admin/network", key: "network", icon: Network },
+  { href: "/admin/reports", key: "reports", icon: FileSpreadsheet },
   { href: "/admin/settings", key: "settings", icon: Settings },
   { href: "/admin/audit", key: "audit", icon: ClipboardList },
 ] as const;
