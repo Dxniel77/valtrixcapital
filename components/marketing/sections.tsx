@@ -22,6 +22,7 @@ import Link from "next/link";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
+import { cn } from "@/lib/utils";
 
 const featureKeys = [
   "web3",
@@ -71,19 +72,33 @@ const iconVariants: Variants = {
   },
 };
 
+const glowCardClasses =
+  "-translate-y-2 border-gold bg-gold shadow-gold-glow [&_.fc-icon]:border-black/10 [&_.fc-icon]:bg-black/10 [&_.fc-icon]:text-text-inverse [&_.fc-title]:text-text-inverse [&_.fc-desc]:text-text-inverse/80";
+
 function AnimatedCardShell({
   index,
   reducedMotion,
   className,
   children,
+  onActivate,
 }: {
   index: number;
   reducedMotion: boolean;
   className: string;
   children: React.ReactNode;
+  onActivate?: () => void;
 }) {
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onActivate?.();
+        }
+      }}
       variants={reducedMotion ? undefined : cardVariants}
       whileHover={
         reducedMotion
@@ -117,29 +132,48 @@ function FeatureCard({
   title,
   desc,
   icon: Icon,
+  isActive,
+  onActivate,
 }: {
   index: number;
   reducedMotion: boolean;
   title: string;
   desc: string;
   icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  onActivate: () => void;
 }) {
   return (
     <AnimatedCardShell
       index={index}
       reducedMotion={reducedMotion}
-      className="group cursor-pointer rounded-lg border border-border-subtle bg-bg-elevated p-5 shadow-card transition-colors hover:border-gold/30"
+      onActivate={onActivate}
+      className={cn(
+        "group cursor-pointer rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-card outline-none transition-all duration-300 ease-out touch-manipulation",
+        "hover:border-gold hover:bg-gold hover:shadow-gold-glow",
+        "hover:[&_.fc-icon]:border-black/10 hover:[&_.fc-icon]:bg-black/10 hover:[&_.fc-icon]:text-text-inverse",
+        "hover:[&_.fc-title]:text-text-inverse hover:[&_.fc-desc]:text-text-inverse/80",
+        "active:border-gold active:bg-gold active:shadow-gold-glow",
+        "active:[&_.fc-icon]:border-black/10 active:[&_.fc-icon]:bg-black/10 active:[&_.fc-icon]:text-text-inverse",
+        "active:[&_.fc-title]:text-text-inverse active:[&_.fc-desc]:text-text-inverse/80",
+        "focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base",
+        isActive && glowCardClasses,
+      )}
     >
       <motion.div
         variants={iconVariants}
         initial="rest"
         whileHover={reducedMotion ? undefined : "hover"}
-        className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors group-hover:bg-gold/10"
+        className="fc-icon mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold transition-colors duration-300 group-hover:border-black/10 group-hover:bg-black/10 group-hover:text-text-inverse"
       >
         <Icon className="h-5 w-5" />
       </motion.div>
-      <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{desc}</p>
+      <h3 className="fc-title text-base font-semibold text-text-primary transition-colors duration-300">
+        {title}
+      </h3>
+      <p className="fc-desc mt-1.5 text-sm leading-relaxed text-text-secondary transition-colors duration-300">
+        {desc}
+      </p>
     </AnimatedCardShell>
   );
 }
@@ -151,6 +185,8 @@ function HowStepCard({
   title,
   desc,
   icon: Icon,
+  isActive,
+  onActivate,
 }: {
   index: number;
   reducedMotion: boolean;
@@ -158,26 +194,45 @@ function HowStepCard({
   title: string;
   desc: string;
   icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  onActivate: () => void;
 }) {
   return (
     <AnimatedCardShell
       index={index}
       reducedMotion={reducedMotion}
-      className="group relative cursor-pointer overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated p-6 shadow-card transition-colors hover:border-gold/30"
+      onActivate={onActivate}
+      className={cn(
+        "group relative cursor-pointer overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-card outline-none transition-all duration-300 ease-out touch-manipulation",
+        "hover:border-gold hover:bg-gold hover:shadow-gold-glow",
+        "hover:[&_.fc-icon]:bg-black/15 hover:[&_.fc-icon]:text-text-inverse",
+        "hover:[&_.fc-title]:text-text-inverse hover:[&_.fc-desc]:text-text-inverse/80",
+        "hover:[&_.fc-step]:text-text-inverse/50",
+        "active:border-gold active:bg-gold active:shadow-gold-glow",
+        "active:[&_.fc-icon]:bg-black/15 active:[&_.fc-icon]:text-text-inverse",
+        "active:[&_.fc-title]:text-text-inverse active:[&_.fc-desc]:text-text-inverse/80",
+        "focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base",
+        isActive && glowCardClasses,
+        isActive && "[&_.fc-step]:text-text-inverse/50",
+      )}
     >
-      <span className="absolute right-5 top-5 font-mono text-xs text-text-muted">
+      <span className="fc-step absolute right-5 top-5 font-mono text-xs text-text-muted transition-colors duration-300">
         {stepNumber}
       </span>
       <motion.div
         variants={iconVariants}
         initial="rest"
         whileHover={reducedMotion ? undefined : "hover"}
-        className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gold-gradient text-text-inverse"
+        className="fc-icon mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gold-gradient text-text-inverse transition-colors duration-300"
       >
         <Icon className="h-5 w-5" />
       </motion.div>
-      <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-text-secondary">{desc}</p>
+      <h3 className="fc-title text-lg font-semibold text-text-primary transition-colors duration-300">
+        {title}
+      </h3>
+      <p className="fc-desc mt-2 text-sm leading-relaxed text-text-secondary transition-colors duration-300">
+        {desc}
+      </p>
     </AnimatedCardShell>
   );
 }
@@ -185,6 +240,7 @@ function HowStepCard({
 export function FeaturesSection() {
   const { t } = useI18n();
   const reducedMotion = useReducedMotion();
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
   return (
     <section id="features" className="container py-24">
@@ -216,6 +272,10 @@ export function FeaturesSection() {
               title={t(`features.items.${key}.title`)}
               desc={t(`features.items.${key}.desc`)}
               icon={Icon}
+              isActive={activeIndex === i}
+              onActivate={() =>
+                setActiveIndex((prev) => (prev === i ? null : i))
+              }
             />
           );
         })}
@@ -227,6 +287,7 @@ export function FeaturesSection() {
 export function HowItWorksSection() {
   const { t } = useI18n();
   const reducedMotion = useReducedMotion();
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
   const steps = [
     { n: "01", icon: Wallet, key: "1" },
     { n: "02", icon: Coins, key: "2" },
@@ -263,6 +324,10 @@ export function HowItWorksSection() {
             title={t(`how.steps.${s.key}.title`)}
             desc={t(`how.steps.${s.key}.desc`)}
             icon={s.icon}
+            isActive={activeIndex === i}
+            onActivate={() =>
+              setActiveIndex((prev) => (prev === i ? null : i))
+            }
           />
         ))}
       </motion.div>
