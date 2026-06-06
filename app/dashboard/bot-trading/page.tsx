@@ -30,8 +30,10 @@ import {
 import { PAIRS } from "@/lib/market/pairs";
 import {
   cn,
+  explorerName,
   explorerUrl,
   formatNumber,
+  networkLabel,
   shortenHash,
 } from "@/lib/utils";
 
@@ -242,16 +244,28 @@ function BotRow({ op, isNewest }: { op: BotOperation; isNewest: boolean }) {
         <RelativeTime ts={op.executedAt} />
       </span>
 
-      <a
-        href={explorerUrl(op.network, op.fakeTxHash)}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center justify-end gap-1 font-mono text-xs text-text-secondary hover:text-gold md:text-right"
-        title={op.network === "BSC" ? "BscScan" : "PolygonScan"}
-      >
-        {shortenHash(op.fakeTxHash)}
-        <ExternalLink className="h-3 w-3" />
-      </a>
+      <div className="col-span-2 flex flex-col items-end gap-1 md:col-span-1">
+        <span
+          className={cn(
+            "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+            op.network === "BSC"
+              ? "bg-warning/15 text-warning"
+              : "bg-info/15 text-info",
+          )}
+        >
+          {networkLabel(op.network)}
+        </span>
+        <a
+          href={explorerUrl(op.network, op.fakeTxHash)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex max-w-full items-center justify-end gap-1 font-mono text-xs text-text-secondary hover:text-gold"
+          title={`${explorerName(op.network)} · ${op.fakeTxHash}`}
+        >
+          <span className="truncate">{shortenHash(op.fakeTxHash)}</span>
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+      </div>
     </li>
   );
 }

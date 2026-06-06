@@ -66,6 +66,14 @@ export function explorerUrl(network: "BSC" | "POLYGON", txHash: string) {
   return base + txHash;
 }
 
+export function explorerName(network: "BSC" | "POLYGON") {
+  return network === "BSC" ? "BscScan" : "PolygonScan";
+}
+
+export function networkLabel(network: "BSC" | "POLYGON") {
+  return network === "BSC" ? "BSC" : "Polygon";
+}
+
 /** Stable placeholder before client hydration. */
 export const COUNTDOWN_PLACEHOLDER = "--:--:--";
 

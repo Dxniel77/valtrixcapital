@@ -4,6 +4,10 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { PAIRS } from "@/lib/market/pairs";
+import {
+  normalizeBotTxHash,
+  pickReferenceTxHash,
+} from "@/lib/bot/reference-txs";
 
 export type BotNetwork = "BSC" | "POLYGON";
 export type BotDirection = "UP" | "DOWN";
@@ -49,31 +53,30 @@ function makeId(): string {
   return `bot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-function makeTxHash(): string {
-  let out = "0x";
-  const hex = "0123456789abcdef";
-  for (let i = 0; i < 64; i += 1) {
-    out += hex[Math.floor(Math.random() * 16)];
-  }
-  return out;
-}
-
 function randomOp(): BotOperation {
   const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
   const direction: BotDirection = Math.random() > 0.48 ? "UP" : "DOWN";
   const volume = Math.round((5_000 + Math.random() * 95_000) / 100) * 100;
   const pnlBps = Math.round((Math.random() - 0.35) * 800);
   const network: BotNetwork = Math.random() > 0.55 ? "BSC" : "POLYGON";
+  const id = makeId();
   return {
-    id: makeId(),
+    id,
     pair: pair.binance,
     direction,
     volume,
     pnlBps,
     network,
-    fakeTxHash: makeTxHash(),
+    fakeTxHash: pickReferenceTxHash(network, id),
     executedAt: Date.now(),
   };
+}
+
+function normalizeOperations(ops: BotOperation[]): BotOperation[] {
+  return ops.map((op) => ({
+    ...op,
+    fakeTxHash: normalizeBotTxHash(op.network, op.id, op.fakeTxHash),
+  }));
 }
 
 export const useBotStore = create<BotState>()(
@@ -93,9 +96,18 @@ export const useBotStore = create<BotState>()(
       },
 
       seedInitial: (n = 12) => {
-        if (get().operations.length >= n) return;
-        const ops: BotOperation[] = [];
-        for (let i = 0; i < n; i += 1) {
+        const prev = get().operations;
+        const normalized = normalizeOperations(prev);
+        const migrated = normalized.some(
+          (op, i) => op.fakeTxHash !== prev[i]?.fakeTxHash,
+        );
+        if (migrated) set({ operations: normalized });
+
+        const count = migrated ? normalized.length : prev.length;
+        if (count >= n) return;
+
+        const ops = [...(migrated ? normalized : prev)];
+        for (let i = ops.length; i < n; i += 1) {
           const op = randomOp();
           op.executedAt = Date.now() - i * 45_000;
           ops.push(op);
@@ -106,7 +118,7 @@ export const useBotStore = create<BotState>()(
       reset: () => set(initial),
     }),
     {
-      name: "valtrix.bot.v1",
+      name: "valtrix.bot.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
           ? {
@@ -121,6 +133,10 @@ export const useBotStore = create<BotState>()(
         cadence: s.cadence,
         running: s.running,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state?.operations?.length) return;
+        state.operations = normalizeOperations(state.operations);
+      },
     },
   ),
 );
