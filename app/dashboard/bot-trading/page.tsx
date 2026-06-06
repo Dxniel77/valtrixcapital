@@ -24,7 +24,6 @@ import {
   useBotStoreHydrated,
   useCompanyProfits,
   botProfitUsd,
-  type BotCadence,
   type BotOperation,
 } from "@/lib/bot/store";
 import { PAIRS } from "@/lib/market/pairs";
@@ -42,9 +41,7 @@ export default function BotTradingPage() {
   const hydrated = useBotStoreHydrated();
   const operations = useBotStore((s) => s.operations);
   const running = useBotStore((s) => s.running);
-  const cadence = useBotStore((s) => s.cadence);
   const setRunning = useBotStore((s) => s.setRunning);
-  const setCadence = useBotStore((s) => s.setCadence);
   const profits = useCompanyProfits();
 
   useBotFeedEngine();
@@ -108,7 +105,6 @@ export default function BotTradingPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>{t("botPage.feedTitle")}</CardTitle>
             <div className="flex items-center gap-2">
-              <CadenceSelector value={cadence} onChange={setCadence} />
               <Button
                 variant={running ? "outline" : "primary"}
                 size="sm"
@@ -149,40 +145,6 @@ export default function BotTradingPage() {
       </Card>
 
       <p className="text-xs text-text-muted">{t("botPage.disclaimer")}</p>
-    </div>
-  );
-}
-
-function CadenceSelector({
-  value,
-  onChange,
-}: {
-  value: BotCadence;
-  onChange: (c: BotCadence) => void;
-}) {
-  const { t } = useI18n();
-  const options: { value: BotCadence; label: string }[] = [
-    { value: "fast", label: t("botPage.cadenceFast") },
-    { value: "normal", label: t("botPage.cadenceNormal") },
-    { value: "slow", label: t("botPage.cadenceSlow") },
-  ];
-  return (
-    <div className="inline-flex items-center gap-0.5 rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "rounded px-2.5 py-1 text-xs transition-colors",
-            value === o.value
-              ? "bg-gold/15 text-gold"
-              : "text-text-secondary hover:text-text-primary",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
     </div>
   );
 }
