@@ -74,6 +74,12 @@ interface AdminState {
   seeded: boolean;
 
   seedDemo: () => void;
+  upsertRegisteredUser: (profile: {
+    id: string;
+    wallet: string;
+    username: string;
+    joinedAt: number;
+  }) => void;
   setUserStatus: (id: string, status: AdminUserStatus) => void;
   adjustBalance: (id: string, delta: number, note: string) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
@@ -187,6 +193,42 @@ export const useAdminStore = create<AdminState>()(
           movements: buildDemoMovements(users),
           seeded: true,
         });
+      },
+
+      upsertRegisteredUser: (profile) => {
+        const wallet = profile.wallet.toLowerCase();
+        const existing = get().users.find(
+          (u) => u.wallet.toLowerCase() === wallet,
+        );
+        if (existing) {
+          set((s) => ({
+            users: s.users.map((u) =>
+              u.wallet.toLowerCase() === wallet
+                ? { ...u, alias: profile.username, joinedAt: profile.joinedAt }
+                : u,
+            ),
+          }));
+          return;
+        }
+        set((s) => ({
+          users: [
+            {
+              id: profile.id,
+              alias: profile.username,
+              wallet: profile.wallet,
+              role: "USER",
+              status: "ACTIVE",
+              network: "BSC",
+              capital: 0,
+              balance: 0,
+              totalEarned: 0,
+              referrals: 0,
+              uplineWallet: null,
+              joinedAt: profile.joinedAt,
+            },
+            ...s.users,
+          ],
+        }));
       },
 
       setUserStatus: (id, status) => {

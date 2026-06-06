@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
+import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
-import { ShieldCheck, Wallet, KeyRound, ArrowRight } from "lucide-react";
+import { useUserRegistry } from "@/lib/user/store";
+import { ShieldCheck, Wallet, KeyRound, UserRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
@@ -18,14 +20,29 @@ export default function SignInPage() {
   const { t } = useI18n();
   const { isConnected, address } = useAccount();
   const { signIn, loading, error, user } = useSiwe();
+  const getProfile = useUserRegistry((s) => s.getProfile);
+  const [profile, setProfile] = React.useState(
+    () => getProfile(address) ?? null,
+  );
+  const [showUsernameDialog, setShowUsernameDialog] = React.useState(false);
 
   React.useEffect(() => {
-    if (user) router.replace("/dashboard");
-  }, [user, router]);
+    setProfile(getProfile(address) ?? null);
+  }, [address, getProfile]);
+
+  React.useEffect(() => {
+    if (user && profile) router.replace("/dashboard");
+  }, [user, profile, router]);
 
   React.useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
+
+  React.useEffect(() => {
+    if (user && isConnected && address && !profile) {
+      setShowUsernameDialog(true);
+    }
+  }, [user, isConnected, address, profile]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
@@ -90,6 +107,27 @@ export default function SignInPage() {
               <p className="text-xs text-text-muted">{t("signIn.step2Hint")}</p>
             </Step>
 
+            <Step
+              n={3}
+              icon={UserRound}
+              title={t("signIn.step3Title")}
+              done={!!profile}
+              cta={
+                user && isConnected && !profile ? (
+                  <Button
+                    size="md"
+                    variant="primary"
+                    onClick={() => setShowUsernameDialog(true)}
+                  >
+                    {t("signIn.step3Title")}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : null
+              }
+            >
+              <p className="text-xs text-text-muted">{t("signIn.step3Hint")}</p>
+            </Step>
+
             <div className="rounded-md border border-border-subtle bg-bg-base/60 p-3 text-xs text-text-secondary">
               <span className="inline-flex items-center gap-1.5 text-success">
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -100,6 +138,17 @@ export default function SignInPage() {
           </CardContent>
         </Card>
       </div>
+
+      {address ? (
+        <UsernameSetupDialog
+          open={showUsernameDialog}
+          wallet={address}
+          onComplete={(next) => {
+            setProfile(next);
+            setShowUsernameDialog(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

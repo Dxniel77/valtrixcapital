@@ -12,12 +12,15 @@ import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { CHAIN_META } from "@/lib/wagmi";
 import { shortenAddress } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import { useUserRegistry } from "@/lib/user/store";
+import { formatMemberSince } from "@/lib/user/format";
 
 export default function ProfilePage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const chain = chainId ? CHAIN_META[chainId] : null;
+  const profile = useUserRegistry((s) => s.getProfile(address));
 
   return (
     <div className="space-y-6">
@@ -76,24 +79,24 @@ export default function ProfilePage() {
             <CardTitle>{t("dashboard.pages.profile.accountCard")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <Row label={t("dashboard.pages.profile.role")}>
-              <Badge>{t("common.user")}</Badge>
+            <Row label={t("dashboard.pages.profile.username")}>
+              {profile ? (
+                <Badge variant="gold">{profile.username}</Badge>
+              ) : (
+                <span className="text-text-muted">
+                  {t("dashboard.pages.profile.usernameNotSet")}
+                </span>
+              )}
             </Row>
             <Separator />
             <Row label={t("dashboard.pages.profile.memberSince")}>
-              <span className="font-mono text-text-primary">Mayo 2026</span>
-            </Row>
-            <Separator />
-            <Row label={t("dashboard.pages.profile.twoFa")}>
-              <Badge variant="warning">
-                {t("dashboard.pages.profile.comingWeek6")}
-              </Badge>
-            </Row>
-            <Separator />
-            <Row label={t("dashboard.pages.profile.email")}>
-              <span className="text-text-muted">
-                {t("dashboard.pages.profile.emailOptional")}
-              </span>
+              {profile ? (
+                <span className="font-mono text-text-primary">
+                  {formatMemberSince(profile.joinedAt, locale)}
+                </span>
+              ) : (
+                <span className="text-text-muted">—</span>
+              )}
             </Row>
           </CardContent>
         </Card>
