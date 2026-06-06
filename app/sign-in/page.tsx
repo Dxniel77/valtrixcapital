@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
@@ -28,6 +29,9 @@ export default function SignInPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="absolute right-4 top-4 z-10">
+        <LanguageSelector />
+      </div>
       <div className="absolute inset-0 -z-10 grid-bg opacity-50" />
       <div className="absolute inset-x-0 top-0 -z-10 h-[480px] bg-hero-radial" />
 

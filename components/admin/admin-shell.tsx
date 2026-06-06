@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
@@ -100,6 +101,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm text-text-muted">{t("admin.headerNote")}</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSelector className="hidden md:inline-flex" />
             <ThemeToggle className="hidden md:inline-flex" />
             <nav className="flex items-center gap-1 md:hidden">
             {navItems.map((it) => {

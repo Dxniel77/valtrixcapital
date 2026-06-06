@@ -12,7 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
-import { LocaleProvider } from "@/lib/i18n/context";
+import { LocaleProvider, useRainbowKitLocale } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 function buildRainbowTheme(mode: "light" | "dark"): Theme {
@@ -64,11 +64,16 @@ function buildRainbowTheme(mode: "light" | "dark"): Theme {
 
 function RainbowKitThemed({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
+  const rainbowLocale = useRainbowKitLocale();
   const mode = resolvedTheme === "light" ? "light" : "dark";
   const theme = React.useMemo(() => buildRainbowTheme(mode), [mode]);
 
   return (
-    <RainbowKitProvider theme={theme} modalSize="compact" locale="es-419">
+    <RainbowKitProvider
+      theme={theme}
+      modalSize="compact"
+      locale={rainbowLocale}
+    >
       {children}
     </RainbowKitProvider>
   );
@@ -91,9 +96,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitThemed>
-            <LocaleProvider>{children}</LocaleProvider>
-          </RainbowKitThemed>
+          <LocaleProvider>
+            <RainbowKitThemed>{children}</RainbowKitThemed>
+          </LocaleProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

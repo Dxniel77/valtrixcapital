@@ -58,9 +58,13 @@ export function ConnectWalletButton({
                 size={size}
                 variant={variant}
                 type="button"
+                className={cn(compact && "gap-1.5 px-3 text-sm lg:px-3 xl:px-4 xl:text-base")}
+                aria-label={t("common.connectWallet")}
               >
-                <Wallet className="h-4 w-4" />
-                {t("common.connectWallet")}
+                <Wallet className="h-4 w-4 shrink-0" />
+                <span className={cn(compact && "hidden xl:inline")}>
+                  {t("common.connectWallet")}
+                </span>
               </Button>
             ) : chain.unsupported ? (
               <Button

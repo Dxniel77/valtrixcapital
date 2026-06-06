@@ -18,7 +18,8 @@
     "sellArrow": "VENDER ↓",
     "utc": "UTC",
     "user": "Usuario",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "language": "Idioma"
   },
   "theme": {
     "light": "Modo claro",

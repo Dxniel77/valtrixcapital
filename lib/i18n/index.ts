@@ -1,14 +1,36 @@
+import type { Locale } from "./config";
+import { defaultLocale, isLocale } from "./config";
 import es from "./locales/es.json";
+import en from "./locales/en.json";
+import de from "./locales/de.json";
+import ar from "./locales/ar.json";
+import zh from "./locales/zh.json";
+import fr from "./locales/fr.json";
+import hi from "./locales/hi.json";
+import it from "./locales/it.json";
+import ja from "./locales/ja.json";
+import pt from "./locales/pt.json";
 
-export type Locale = "es";
-export const defaultLocale: Locale = "es";
+export type { Locale } from "./config";
+export { defaultLocale, isLocale, locales, localeOptions, getLocaleOption, LOCALE_STORAGE_KEY } from "./config";
 
 export type Messages = typeof es;
 
-const messages: Messages = es;
+const messageMap: Record<Locale, Messages> = {
+  es,
+  en,
+  de,
+  ar,
+  zh,
+  fr,
+  hi,
+  it,
+  ja,
+  pt,
+};
 
-export function getMessages(_locale?: Locale): Messages {
-  return messages;
+export function getMessages(locale: Locale = defaultLocale): Messages {
+  return messageMap[locale] ?? messageMap[defaultLocale];
 }
 
 export function translate(
@@ -29,10 +51,11 @@ export function translate(
   );
 }
 
-/** Spanish copy for server components and non-React code */
+/** Server-side copy — defaults to Spanish */
 export function t(
   key: string,
   vars?: Record<string, string | number>,
+  locale: Locale = defaultLocale,
 ): string {
-  return translate(messages, key, vars);
+  return translate(getMessages(locale), key, vars);
 }
