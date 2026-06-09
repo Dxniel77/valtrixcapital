@@ -214,7 +214,8 @@ function PayoutCapCard({
   preview: ReturnType<typeof useTodayYieldPreview>;
 }) {
   const { t } = useI18n();
-  const pct = summary.capProgressPct;
+  const pct = summary.capProgressBarPct;
+  const roiPct = summary.capProgressPct;
   const totalEarnedDisplay = formatNumber(summary.totalEarned, { decimals: 2 });
   const capDisplay = formatNumber(summary.payoutCap, { decimals: 0 });
   return (
@@ -259,7 +260,7 @@ function PayoutCapCard({
           </div>
           <ProgressBar pct={pct} />
           <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
-            <span>{formatNumber(pct, { decimals: 1 })}%</span>
+            <span>{formatNumber(roiPct, { decimals: 1 })}%</span>
             <span>
               {t("staking.portfolio.capRemainingShort", {
                 amount: formatNumber(summary.remainingToCap, { decimals: 2 }),
@@ -270,17 +271,17 @@ function PayoutCapCard({
 
         <div className="grid grid-cols-3 gap-3 text-xs">
           <MiniStat
-            label={t("staking.portfolio.miniBase")}
-            value={`${(preview.baseRateBps / 100).toFixed(2)}%`}
+            label={t("staking.portfolio.earningsPassive")}
+            value={`$${formatNumber(summary.passiveEarned, { decimals: 2 })}`}
           />
           <MiniStat
-            label={t("staking.portfolio.miniBonus")}
-            value={`+${(preview.bonusRateBps / 100).toFixed(2)}%`}
+            label={t("staking.portfolio.earningsOps")}
+            value={`$${formatNumber(summary.operationalEarned, { decimals: 2 })}`}
             accent="gold"
           />
           <MiniStat
-            label={t("staking.portfolio.miniTotal")}
-            value={`${(preview.totalRateBps / 100).toFixed(2)}%`}
+            label={t("staking.portfolio.earningsNetwork")}
+            value={`$${formatNumber(summary.networkEarned, { decimals: 2 })}`}
             accent="success"
           />
         </div>

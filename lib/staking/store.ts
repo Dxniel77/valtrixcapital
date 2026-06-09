@@ -383,61 +383,17 @@ export function computeDailyRate(wins: number): {
   };
 }
 
-// --- Selectors / derived hooks ---
+// --- Selectors / derived hooks (see portfolio-summary.ts) ---
 
-export interface PortfolioSummary {
-  totalCapital: number;
-  activeStakes: number;
-  totalEarned: number;
-  earningsBalance: number;
-  payoutCap: number;
-  capProgressPct: number;
-  daysActive: number;
-  remainingToCap: number;
-  isCapReached: boolean;
-  firstStakeAt: number | null;
-}
-
-export function deriveSummary(state: {
-  stakes: Stake[];
-  totalEarned: number;
-  earningsBalance: number;
-}): PortfolioSummary {
-  const active = state.stakes.filter((s) => s.status === "ACTIVE");
-  const totalCapital = active.reduce((acc, s) => acc + s.amount, 0);
-  const payoutCap = totalCapital * PAYOUT_CAP_MULTIPLIER;
-  const capProgressPct =
-    payoutCap > 0 ? Math.min(100, (state.totalEarned / payoutCap) * 100) : 0;
-  const firstStakeAt = active.reduce<number | null>((acc, s) => {
-    const ts = s.confirmedAt ?? s.createdAt;
-    return acc === null || ts < acc ? ts : acc;
-  }, null);
-  const daysActive = firstStakeAt
-    ? Math.max(0, Math.floor((Date.now() - firstStakeAt) / 86_400_000))
-    : 0;
-  return {
-    totalCapital,
-    activeStakes: active.length,
-    totalEarned: state.totalEarned,
-    earningsBalance: state.earningsBalance,
-    payoutCap,
-    capProgressPct,
-    daysActive,
-    remainingToCap: Math.max(0, payoutCap - state.totalEarned),
-    isCapReached: payoutCap > 0 && state.totalEarned >= payoutCap,
-    firstStakeAt,
-  };
-}
-
-export function usePortfolioSummary(): PortfolioSummary {
-  const stakes = useStakingStore((s) => s.stakes);
-  const totalEarned = useStakingStore((s) => s.totalEarned);
-  const earningsBalance = useStakingStore((s) => s.earningsBalance);
-  return React.useMemo(
-    () => deriveSummary({ stakes, totalEarned, earningsBalance }),
-    [stakes, totalEarned, earningsBalance],
-  );
-}
+export {
+  deriveSummary,
+  reconcileCapEarnings,
+  usePortfolioSummary,
+  useTodayYieldPreview,
+  type CapEarningsBreakdown,
+  type PortfolioSummary,
+  type TodayYieldPreview,
+} from "@/lib/staking/portfolio-summary";
 
 export function useStakingStoreHydrated(): boolean {
   const [hydrated, setHydrated] = React.useState(false);
@@ -473,49 +429,3 @@ export function useYieldEngine(): void {
   }, [tradeHydrated, stakingHydrated, catchup, positions]);
 }
 
-/**
- * Preview: "today" UTC day is in progress. Compute the rate the user is
- * currently earning based on their wins so far + their active capital.
- */
-export interface TodayYieldPreview {
-  date: string;
-  capital: number;
-  baseRateBps: number;
-  bonusRateBps: number;
-  totalRateBps: number;
-  projectedAmount: number;
-  wins: number;
-  losses: number;
-}
-
-export function useTodayYieldPreview(): TodayYieldPreview {
-  const stakes = useStakingStore((s) => s.stakes);
-  const positions = useTradeStore((s) => s.positions);
-  return React.useMemo(() => {
-    const today = utcDayKey();
-    const capital = stakes
-      .filter(
-        (s) =>
-          s.status === "ACTIVE" &&
-          utcDayKey(s.confirmedAt ?? s.createdAt) < today,
-      )
-      .reduce((acc, s) => acc + s.amount, 0);
-    const todays = positions.filter(
-      (p) => utcDayKey(p.openedAt) === today && p.status !== "OPEN",
-    );
-    const wins = todays.filter((p) => p.status === "WIN").length;
-    const losses = todays.filter((p) => p.status === "LOSS").length;
-    const rate = computeDailyRate(wins);
-    const projectedAmount = (capital * rate.totalRateBps) / 10_000;
-    return {
-      date: today,
-      capital,
-      baseRateBps: rate.baseRateBps,
-      bonusRateBps: rate.bonusRateBps,
-      totalRateBps: rate.totalRateBps,
-      projectedAmount,
-      wins,
-      losses,
-    };
-  }, [stakes, positions]);
-}

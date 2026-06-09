@@ -78,7 +78,7 @@
       "activeCapital": "Active capital",
       "todayYield": "Performance today",
       "winsToday": "Victories today",
-      "toCap": "Up to 200%"
+      "toCap": "Up to the 200% limit"
     },
     "mockTrade": {
       "quickTrade": "Quick operation",
@@ -273,7 +273,7 @@
       "activeCapital": "Active capital",
       "todayYield": "Performance today",
       "winsToday": "Victories today",
-      "toCap": "Up to 200%",
+      "toCap": "Up to the 200% limit",
       "stakesHint": "2 active stakes",
       "stakesHintN": "{n} active asset(s)",
       "stakesHintEmpty": "Even without capital · start your",
@@ -483,7 +483,7 @@
       "activeStakes": "{n} active asset(s)",
       "totalEarned": "Total won",
       "earningsHint": "Credited to your balance",
-      "progressCap": "Progress to the top",
+      "progressCap": "Progress to 200%",
       "capRemaining": "${amount} remaining",
       "capRemainingShort": "${amount} for stop",
       "daysActive": "Active days",
@@ -495,6 +495,9 @@
       "miniBase": "Base",
       "miniBonus": "Bond",
       "miniTotal": "Total today",
+      "earningsPassive": "Passive",
+      "earningsOps": "Operations",
+      "earningsNetwork": "Network",
       "payoutNote": "Your capital is released when accumulated profits equal 100% of your deposits. Then you can open a new one.",
       "todayTitle": "Today's preview",
       "todayBadge": "In progress",

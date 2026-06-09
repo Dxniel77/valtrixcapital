@@ -296,7 +296,7 @@ function PayoutMiniCard({
   portfolio: ReturnType<typeof usePortfolioSummary>;
 }) {
   const { t } = useI18n();
-  const pct = Math.min(100, portfolio.capProgressPct);
+  const pct = portfolio.capProgressBarPct;
   return (
     <Card>
       <CardHeader>
@@ -341,7 +341,7 @@ function PayoutMiniCard({
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="font-mono text-text-primary">
-            {formatNumber(pct, { decimals: 1 })}%
+            {formatNumber(portfolio.capProgressPct, { decimals: 1 })}%
           </span>
           <Link
             href="/dashboard/portfolio"
