@@ -933,10 +933,36 @@
     "positionClosed": "Cerrada",
     "indicators": {
       "title": "Indicadores",
+      "overlays": "Superposiciones",
       "volume": "Volumen",
+      "ema9": "EMA 9",
       "ema20": "EMA 20",
       "ema50": "EMA 50",
+      "ema200": "EMA 200",
+      "bollinger": "Bollinger",
+      "rsi": "RSI 14",
       "resetZoom": "Reiniciar zoom"
+    },
+    "strategies": {
+      "title": "Estrategia",
+      "custom": "Personalizada",
+      "scalping": "Scalping",
+      "scalpingDesc": "EMA 9 + EMA 20 + volumen para movimientos cortos",
+      "trend": "Tendencia",
+      "trendDesc": "EMA 50 + EMA 200 para seguir la tendencia",
+      "volatility": "Volatilidad",
+      "volatilityDesc": "Bollinger + RSI para rangos",
+      "clean": "Gráfico limpio",
+      "cleanDesc": "Ocultar todos los indicadores"
+    },
+    "drawing": {
+      "cursor": "Navegar",
+      "hline": "Línea horizontal",
+      "trend": "Línea de tendencia",
+      "rect": "Rectángulo",
+      "fib": "Fibonacci",
+      "undo": "Deshacer último dibujo",
+      "clearAll": "Borrar todos los dibujos"
     },
     "yieldSummary": "Rendimiento diario"
   }

@@ -14,7 +14,11 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "@/lib/market/types";
-import { emaSeriesFromCandles } from "@/lib/market/indicators";
+import {
+  bollingerSeriesFromCandles,
+  emaSeriesFromCandles,
+  rsiSeriesFromCandles,
+} from "@/lib/market/indicators";
 import type { ChartIndicatorState } from "@/components/trade/chart-indicators";
 import { formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -24,6 +28,14 @@ interface PriceMarker {
   color: string;
   title: string;
   lineStyle?: LineStyle;
+}
+
+export interface ChartCoordsApi {
+  timeToX: (time: number) => number | null;
+  priceToY: (price: number) => number | null;
+  xToTime: (x: number) => number | null;
+  yToPrice: (y: number) => number | null;
+  subscribeChange: (cb: () => void) => () => void;
 }
 
 interface TradingChartProps {
@@ -36,6 +48,8 @@ interface TradingChartProps {
   timeframeLabel?: string;
   priceLines?: PriceMarker[];
   indicators?: ChartIndicatorState;
+  drawingMode?: boolean;
+  onCoordsApi?: (api: ChartCoordsApi | null) => void;
   className?: string;
   height?: number;
 }
@@ -97,7 +111,6 @@ function formatVolume(v: number): string {
   return v.toFixed(0);
 }
 
-/** Initial zoom: show a short recent window (large candles), not all 300 bars. */
 const INITIAL_VISIBLE_BARS: Record<string, number> = {
   "1m": 78,
   "5m": 72,
@@ -110,6 +123,16 @@ const INITIAL_VISIBLE_BARS: Record<string, number> = {
 function getInitialVisibleBars(timeframe: string, totalBars: number): number {
   const target = INITIAL_VISIBLE_BARS[timeframe] ?? 72;
   return Math.min(target, Math.max(totalBars - 1, 24));
+}
+
+function lineSeriesDefaults(visible: boolean) {
+  return {
+    lineWidth: 2 as const,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false,
+    visible,
+  };
 }
 
 function OhlcvBar({
@@ -138,7 +161,7 @@ function OhlcvBar({
     ];
 
   return (
-    <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-bg-base/70 px-2.5 py-1.5 font-mono text-[11px] backdrop-blur-sm">
+    <div className="pointer-events-none absolute left-12 top-3 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-bg-base/70 px-2.5 py-1.5 font-mono text-[11px] backdrop-blur-sm">
       {(pairLabel || timeframeLabel) && (
         <span className="text-text-secondary">
           {pairLabel}
@@ -173,7 +196,17 @@ export const TradingChart = React.forwardRef<
     pairLabel,
     timeframeLabel,
     priceLines,
-    indicators = { volume: true, ema20: true, ema50: false },
+    indicators = {
+      volume: true,
+      ema9: false,
+      ema20: true,
+      ema50: false,
+      ema200: false,
+      bollinger: false,
+      rsi: false,
+    },
+    drawingMode = false,
+    onCoordsApi,
     className,
     height,
   },
@@ -186,11 +219,18 @@ export const TradingChart = React.forwardRef<
   const chartRef = React.useRef<IChartApi | null>(null);
   const seriesRef = React.useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = React.useRef<ISeriesApi<"Histogram"> | null>(null);
+  const ema9Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
   const ema20Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const ema200Ref = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const bbUpperRef = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const bbMiddleRef = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const bbLowerRef = React.useRef<ISeriesApi<"Line"> | null>(null);
+  const rsiRef = React.useRef<ISeriesApi<"Line"> | null>(null);
   const linesRef = React.useRef<IPriceLine[]>([]);
   const paletteRef = React.useRef<ChartPalette>(getPalette(isDark));
   const candlesRef = React.useRef<Candle[]>(candles);
+  const changeListenersRef = React.useRef(new Set<() => void>());
 
   const dataEpochRef = React.useRef(0);
   const viewEpochRef = React.useRef(0);
@@ -202,6 +242,38 @@ export const TradingChart = React.forwardRef<
   const loadedSymbolRef = React.useRef<string | null>(null);
 
   const [ohlcv, setOhlcv] = React.useState<OhlcvDisplay | null>(null);
+
+  const notifyChange = React.useCallback(() => {
+    for (const cb of changeListenersRef.current) cb();
+  }, []);
+
+  const buildCoordsApi = React.useCallback((): ChartCoordsApi => ({
+    timeToX: (time: number) => {
+      const chart = chartRef.current;
+      if (!chart) return null;
+      return chart.timeScale().timeToCoordinate(time as Time);
+    },
+    priceToY: (price: number) => {
+      const series = seriesRef.current;
+      if (!series) return null;
+      return series.priceToCoordinate(price);
+    },
+    xToTime: (x: number) => {
+      const chart = chartRef.current;
+      if (!chart) return null;
+      const t = chart.timeScale().coordinateToTime(x);
+      return t != null ? (t as number) : null;
+    },
+    yToPrice: (y: number) => {
+      const series = seriesRef.current;
+      if (!series) return null;
+      return series.coordinateToPrice(y);
+    },
+    subscribeChange: (cb: () => void) => {
+      changeListenersRef.current.add(cb);
+      return () => changeListenersRef.current.delete(cb);
+    },
+  }), []);
 
   const lastCandle = candles[candles.length - 1];
   const displayOhlcv = React.useMemo((): OhlcvDisplay | null => {
@@ -230,7 +302,8 @@ export const TradingChart = React.forwardRef<
     });
     programmaticViewRef.current = false;
     pendingFitRef.current = false;
-  }, [timeframe]);
+    notifyChange();
+  }, [timeframe, notifyChange]);
 
   React.useImperativeHandle(ref, () => ({
     resetZoom: () => {
@@ -254,7 +327,6 @@ export const TradingChart = React.forwardRef<
   const applyInitialChartViewRef = React.useRef(applyInitialChartView);
   applyInitialChartViewRef.current = applyInitialChartView;
 
-  // Reset when pair / dataset identity changes
   React.useEffect(() => {
     dataEpochRef.current += 1;
     viewEpochRef.current = 0;
@@ -272,7 +344,6 @@ export const TradingChart = React.forwardRef<
     }
   }, [symbol, timeframe]);
 
-  // Init chart (once per mount)
   React.useEffect(() => {
     if (!containerRef.current) return;
     const palette = getPalette(isDark);
@@ -359,28 +430,70 @@ export const TradingChart = React.forwardRef<
       scaleMargins: { top: 0.88, bottom: 0 },
     });
 
+    const ema9 = chart.addLineSeries({
+      color: "#22C55E",
+      ...lineSeriesDefaults(indicators.ema9),
+    });
     const ema20 = chart.addLineSeries({
       color: "#F97316",
-      lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-      visible: indicators.ema20,
+      ...lineSeriesDefaults(indicators.ema20),
     });
-
     const ema50 = chart.addLineSeries({
       color: "#A855F7",
+      ...lineSeriesDefaults(indicators.ema50),
+    });
+    const ema200 = chart.addLineSeries({
+      color: "#26C6DA",
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
-      visible: indicators.ema50,
+      visible: indicators.ema200,
+    });
+    const bbUpper = chart.addLineSeries({
+      color: "rgba(212,175,55,0.9)",
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.bollinger,
+    });
+    const bbMiddle = chart.addLineSeries({
+      color: "rgba(212,175,55,0.5)",
+      lineWidth: 1,
+      lineStyle: LineStyle.Dotted,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.bollinger,
+    });
+    const bbLower = chart.addLineSeries({
+      color: "rgba(212,175,55,0.9)",
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.bollinger,
+    });
+    const rsi = chart.addLineSeries({
+      color: "#EC4899",
+      lineWidth: 2,
+      priceScaleId: "rsi",
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+      visible: indicators.rsi,
+    });
+    chart.priceScale("rsi").applyOptions({
+      scaleMargins: { top: 0.82, bottom: 0.02 },
+      borderVisible: false,
     });
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       if (!programmaticViewRef.current) {
         viewEpochRef.current = dataEpochRef.current;
       }
+      notifyChange();
     });
 
     chart.subscribeCrosshairMove((param) => {
@@ -402,10 +515,19 @@ export const TradingChart = React.forwardRef<
     chartRef.current = chart;
     seriesRef.current = series;
     volumeRef.current = volume;
+    ema9Ref.current = ema9;
     ema20Ref.current = ema20;
     ema50Ref.current = ema50;
+    ema200Ref.current = ema200;
+    bbUpperRef.current = bbUpper;
+    bbMiddleRef.current = bbMiddle;
+    bbLowerRef.current = bbLower;
+    rsiRef.current = rsi;
+
+    onCoordsApi?.(buildCoordsApi());
 
     const ro = new ResizeObserver(() => {
+      notifyChange();
       if (!pendingFitRef.current) return;
       applyInitialChartViewRef.current();
     });
@@ -413,16 +535,41 @@ export const TradingChart = React.forwardRef<
 
     return () => {
       ro.disconnect();
+      onCoordsApi?.(null);
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
       volumeRef.current = null;
+      ema9Ref.current = null;
       ema20Ref.current = null;
       ema50Ref.current = null;
+      ema200Ref.current = null;
+      bbUpperRef.current = null;
+      bbMiddleRef.current = null;
+      bbLowerRef.current = null;
+      rsiRef.current = null;
       linesRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.applyOptions({
+      handleScroll: {
+        mouseWheel: !drawingMode,
+        pressedMouseMove: !drawingMode,
+        horzTouchDrag: !drawingMode,
+        vertTouchDrag: !drawingMode,
+      },
+      handleScale: {
+        axisPressedMouseMove: !drawingMode,
+        mouseWheel: !drawingMode,
+        pinch: !drawingMode,
+      },
+    });
+  }, [drawingMode]);
 
   React.useEffect(() => {
     const chart = chartRef.current;
@@ -479,7 +626,6 @@ export const TradingChart = React.forwardRef<
     });
   }, [precision]);
 
-  // Sync candles — preserve zoom only within the same symbol dataset
   React.useEffect(() => {
     candlesRef.current = candles;
     const series = seriesRef.current;
@@ -574,42 +720,108 @@ export const TradingChart = React.forwardRef<
     prevLastTimeRef.current = last.time;
 
     syncIndicatorSeries(candles, indicators);
-  }, [candles, symbol, scheduleInitialChartView, indicators]);
+    notifyChange();
+  }, [candles, symbol, scheduleInitialChartView, indicators, notifyChange]);
 
   React.useEffect(() => {
     syncIndicatorSeries(candlesRef.current, indicators);
   }, [indicators]);
 
-  function syncIndicatorSeries(
-    data: Candle[],
-    ind: ChartIndicatorState,
-  ) {
-    const volume = volumeRef.current;
-    const ema20 = ema20Ref.current;
-    const ema50 = ema50Ref.current;
+  function applyScaleMargins(ind: ChartIndicatorState) {
     const chart = chartRef.current;
-    if (!volume || !ema20 || !ema50 || !chart) return;
+    if (!chart) return;
 
-    volume.applyOptions({ visible: ind.volume });
-    ema20.applyOptions({ visible: ind.ema20 });
-    ema50.applyOptions({ visible: ind.ema50 });
+    const hasVolume = ind.volume;
+    const hasRsi = ind.rsi;
+
+    let mainBottom = 0.08;
+    if (hasVolume && hasRsi) mainBottom = 0.42;
+    else if (hasVolume) mainBottom = 0.28;
+    else if (hasRsi) mainBottom = 0.22;
+
+    chart.priceScale("right").applyOptions({
+      scaleMargins: { top: 0.1, bottom: mainBottom },
+    });
 
     chart.priceScale("volume").applyOptions({
-      scaleMargins: ind.volume ? { top: 0.88, bottom: 0 } : { top: 0.98, bottom: 0 },
-    });
-    chart.priceScale("right").applyOptions({
-      scaleMargins: { top: 0.12, bottom: ind.volume ? 0.28 : 0.08 },
+      visible: hasVolume,
+      scaleMargins: hasVolume
+        ? hasRsi
+          ? { top: 0.6, bottom: 0.22 }
+          : { top: 0.88, bottom: 0 }
+        : { top: 0.98, bottom: 0 },
     });
 
+    chart.priceScale("rsi").applyOptions({
+      visible: hasRsi,
+      scaleMargins: hasRsi
+        ? { top: 0.82, bottom: 0.02 }
+        : { top: 0.98, bottom: 0 },
+    });
+  }
+
+  function syncIndicatorSeries(data: Candle[], ind: ChartIndicatorState) {
+    const volume = volumeRef.current;
+    const ema9 = ema9Ref.current;
+    const ema20 = ema20Ref.current;
+    const ema50 = ema50Ref.current;
+    const ema200 = ema200Ref.current;
+    const bbUpper = bbUpperRef.current;
+    const bbMiddle = bbMiddleRef.current;
+    const bbLower = bbLowerRef.current;
+    const rsi = rsiRef.current;
+    if (
+      !volume ||
+      !ema9 ||
+      !ema20 ||
+      !ema50 ||
+      !ema200 ||
+      !bbUpper ||
+      !bbMiddle ||
+      !bbLower ||
+      !rsi
+    ) {
+      return;
+    }
+
+    volume.applyOptions({ visible: ind.volume });
+    ema9.applyOptions({ visible: ind.ema9 });
+    ema20.applyOptions({ visible: ind.ema20 });
+    ema50.applyOptions({ visible: ind.ema50 });
+    ema200.applyOptions({ visible: ind.ema200 });
+    bbUpper.applyOptions({ visible: ind.bollinger });
+    bbMiddle.applyOptions({ visible: ind.bollinger });
+    bbLower.applyOptions({ visible: ind.bollinger });
+    rsi.applyOptions({ visible: ind.rsi });
+
+    applyScaleMargins(ind);
+
+    ema9.setData(
+      ind.ema9 && data.length >= 9 ? emaSeriesFromCandles(data, 9) : [],
+    );
     ema20.setData(
-      ind.ema20 && data.length >= 20
-        ? emaSeriesFromCandles(data, 20)
-        : [],
+      ind.ema20 && data.length >= 20 ? emaSeriesFromCandles(data, 20) : [],
     );
     ema50.setData(
-      ind.ema50 && data.length >= 50
-        ? emaSeriesFromCandles(data, 50)
-        : [],
+      ind.ema50 && data.length >= 50 ? emaSeriesFromCandles(data, 50) : [],
+    );
+    ema200.setData(
+      ind.ema200 && data.length >= 200 ? emaSeriesFromCandles(data, 200) : [],
+    );
+
+    if (ind.bollinger && data.length >= 20) {
+      const bb = bollingerSeriesFromCandles(data);
+      bbUpper.setData(bb.upper);
+      bbMiddle.setData(bb.middle);
+      bbLower.setData(bb.lower);
+    } else {
+      bbUpper.setData([]);
+      bbMiddle.setData([]);
+      bbLower.setData([]);
+    }
+
+    rsi.setData(
+      ind.rsi && data.length >= 15 ? rsiSeriesFromCandles(data) : [],
     );
   }
 

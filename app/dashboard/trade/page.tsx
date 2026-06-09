@@ -9,8 +9,19 @@ import {
 } from "@/components/trade/trading-chart";
 import {
   ChartIndicators,
-  DEFAULT_CHART_INDICATORS,
+  loadStoredIndicators,
+  saveStoredIndicators,
+  type ChartIndicatorState,
 } from "@/components/trade/chart-indicators";
+import { ChartDrawingToolbar } from "@/components/trade/chart-drawing-toolbar";
+import { ChartDrawingOverlay } from "@/components/trade/chart-drawing-overlay";
+import type { ChartCoordsApi } from "@/components/trade/trading-chart";
+import {
+  loadDrawings,
+  saveDrawings,
+  type ChartDrawing,
+  type DrawingTool,
+} from "@/lib/trade/chart-drawings";
 import { PairSelector } from "@/components/trade/pair-selector";
 import { TimeframeSelector } from "@/components/trade/timeframe-selector";
 import { TradeQuickBar } from "@/components/trade/trade-quick-bar";
@@ -41,7 +52,25 @@ export default function TradePage() {
   const [pair, setPair] = React.useState<PairMeta>(DEFAULT_PAIR);
   const [timeframe, setTimeframe] = React.useState<Timeframe>(DEFAULT_TIMEFRAME);
   const [duration, setDuration] = React.useState(60);
-  const [indicators, setIndicators] = React.useState(DEFAULT_CHART_INDICATORS);
+  const [indicators, setIndicators] = React.useState<ChartIndicatorState>(() =>
+    loadStoredIndicators(),
+  );
+  const [drawingTool, setDrawingTool] = React.useState<DrawingTool>("cursor");
+  const [drawings, setDrawings] = React.useState<ChartDrawing[]>([]);
+  const [coordsApi, setCoordsApi] = React.useState<ChartCoordsApi | null>(null);
+
+  React.useEffect(() => {
+    saveStoredIndicators(indicators);
+  }, [indicators]);
+
+  React.useEffect(() => {
+    setDrawings(loadDrawings(pair.binance, timeframe));
+    setDrawingTool("cursor");
+  }, [pair.binance, timeframe]);
+
+  React.useEffect(() => {
+    saveDrawings(pair.binance, timeframe, drawings);
+  }, [drawings, pair.binance, timeframe]);
 
   const stream = useMarketStream(pair.binance, timeframe);
   const tickers = useTickers(PAIRS.map((p) => p.binance));
@@ -139,6 +168,14 @@ export default function TradePage() {
             />
 
             <div className="relative h-[min(52vh,380px)] min-h-[260px] bg-bg-base/40 sm:min-h-[300px] lg:h-[420px]">
+              <ChartDrawingToolbar
+                tool={drawingTool}
+                onToolChange={setDrawingTool}
+                drawingCount={drawings.length}
+                onUndo={() => setDrawings((prev) => prev.slice(0, -1))}
+                onClearAll={() => setDrawings([])}
+                className="absolute left-2 top-2 z-20"
+              />
               <TradingChart
                 ref={chartRef}
                 symbol={pair.binance}
@@ -152,7 +189,16 @@ export default function TradePage() {
                 timeframeLabel={timeframeLabel}
                 priceLines={priceLines}
                 indicators={indicators}
+                drawingMode={drawingTool !== "cursor"}
+                onCoordsApi={setCoordsApi}
                 className="h-full"
+              />
+              <ChartDrawingOverlay
+                tool={drawingTool}
+                drawings={drawings}
+                onDrawingsChange={setDrawings}
+                coordsApi={coordsApi}
+                className="absolute inset-0 z-10 h-full w-full"
               />
               <PositionCloseCountdown
                 pairSymbol={pair.binance}
