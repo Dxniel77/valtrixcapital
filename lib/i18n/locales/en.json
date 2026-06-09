@@ -36,7 +36,9 @@
   "api": {
     "invalidBody": "Invalid request body",
     "invalidNonce": "Invalid or expired nonce",
-    "verifyFailed": "Signature verification failed"
+    "verifyFailed": "Signature verification failed",
+    "rateLimited": "Too many requests. Try again later.",
+    "validationFailed": "Invalid form data"
   },
   "errors": {
     "connectFirst": "Connect a wallet first.",
@@ -957,6 +959,23 @@
       "withdrawals": "Withdrawals",
       "yieldPaid": "Yield paid",
       "commissionPaid": "Commissions paid"
+    },
+    "mobileNav": {
+      "open": "Open admin menu",
+      "close": "Close menu"
+    },
+    "twoFactor": {
+      "setupTitle": "Set up admin 2FA",
+      "setupDesc": "Create a 6-digit PIN to protect the admin panel.",
+      "verifyTitle": "2FA verification",
+      "verifyDesc": "Enter your admin PIN to continue.",
+      "pinLabel": "6-digit PIN",
+      "confirmLabel": "Confirm PIN",
+      "enable": "Enable 2FA",
+      "unlock": "Unlock panel",
+      "invalidPin": "PIN must be 6 numeric digits",
+      "pinMismatch": "PINs do not match",
+      "wrongPin": "Incorrect PIN"
     }
   },
   "trade": {
@@ -1050,6 +1069,51 @@
       "alert": "Alert",
       "promo": "Promotion",
       "system": "System"
+    },
+    "events": {
+      "depositTitle": "Deposit confirmed",
+      "depositBody": "{amount} USDT was added to your active capital.",
+      "yieldTitle": "Daily yield",
+      "yieldBody": "{amount} USDT was credited to your balance.",
+      "withdrawRequestedTitle": "Withdrawal requested",
+      "withdrawRequestedBody": "Your {amount} USDT withdrawal is processing.",
+      "withdrawDoneTitle": "Withdrawal completed",
+      "withdrawDoneBody": "You received {net} USDT in your wallet.",
+      "referralTitle": "Network milestone",
+      "referralBody": "You passed {total} USDT in referral commissions."
+    }
+  },
+  "supportPage": {
+    "subtitle": "Open a ticket or reach us on Telegram or WhatsApp. Response within 24h.",
+    "ticketTitle": "Open support ticket",
+    "ticketDesc": "Describe your issue and our team will reply by email.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "walletLabel": "Wallet (optional)",
+    "categoryLabel": "Category",
+    "subjectLabel": "Subject",
+    "messageLabel": "Message",
+    "submitTicket": "Submit ticket",
+    "ticketSuccess": "Ticket submitted successfully",
+    "ticketError": "Could not submit ticket",
+    "ticketCreated": "Ticket registered",
+    "ticketCreatedHint": "Save this ID for follow-up.",
+    "newTicket": "New ticket",
+    "telegram": "Telegram",
+    "telegramDesc": "Direct chat with support. Best for quick questions.",
+    "openTelegram": "Open Telegram",
+    "whatsapp": "WhatsApp",
+    "whatsappDesc": "Message us at {phone}",
+    "openWhatsapp": "Open WhatsApp",
+    "hoursTitle": "Support hours",
+    "hoursDesc": "Mon–Fri · 09:00–18:00 UTC. Urgent tickets answered on weekends.",
+    "categories": {
+      "deposit": "Deposit",
+      "withdrawal": "Withdrawal",
+      "trading": "Trading",
+      "referrals": "Referrals",
+      "account": "Account",
+      "other": "Other"
     }
   }
 }

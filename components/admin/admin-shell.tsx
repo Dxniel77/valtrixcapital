@@ -22,9 +22,10 @@ import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { useAdminSeed } from "@/lib/admin/store";
 
-const navItems = [
+export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
   { href: "/admin/lookup", key: "lookup", icon: Search },
@@ -59,7 +60,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 overflow-y-auto p-2">
           <ul className="space-y-0.5">
-            {navItems.map((it) => {
+            {adminNavItems.map((it) => {
               const active =
                 pathname === it.href ||
                 (it.href !== "/admin" && pathname.startsWith(it.href));
@@ -109,29 +110,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm text-text-muted">{t("admin.headerNote")}</span>
           </div>
           <div className="flex items-center gap-2">
-            <LanguageSelector className="hidden md:inline-flex" />
-            <ThemeToggle className="hidden md:inline-flex" />
-            <nav className="flex items-center gap-1 md:hidden">
-            {navItems.map((it) => {
-              const active =
-                pathname === it.href ||
-                (it.href !== "/admin" && pathname.startsWith(it.href));
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className={cn(
-                    "rounded-md p-2",
-                    active ? "text-gold" : "text-text-muted",
-                  )}
-                  aria-label={t(`admin.nav.${it.key}`)}
-                >
-                  <it.icon className="h-4 w-4" />
-                </Link>
-              );
-            })}
-            </nav>
-            <ThemeToggle className="md:hidden" />
+            <LanguageSelector className="hidden sm:inline-flex" />
+            <ThemeToggle />
+            <AdminMobileNav items={adminNavItems} />
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

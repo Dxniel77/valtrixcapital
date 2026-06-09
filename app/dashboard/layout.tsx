@@ -6,11 +6,17 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UsernameGate } from "@/components/user/username-gate";
 import { EarningsEngines } from "@/components/earnings/earnings-engines";
+import { NotificationBridge } from "@/components/notifications/notification-bridge";
 import { useAdminUserSync } from "@/lib/hooks/use-admin-user-sync";
 
 function DashboardRuntime() {
   useAdminUserSync();
-  return <EarningsEngines />;
+  return (
+    <>
+      <EarningsEngines />
+      <NotificationBridge />
+    </>
+  );
 }
 
 export default function DashboardLayout({

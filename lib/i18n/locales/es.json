@@ -36,7 +36,9 @@
   "api": {
     "invalidBody": "Cuerpo de solicitud no válido",
     "invalidNonce": "Nonce no válido o expirado",
-    "verifyFailed": "Falló la verificación de la firma"
+    "verifyFailed": "Falló la verificación de la firma",
+    "rateLimited": "Demasiadas solicitudes. Intenta más tarde.",
+    "validationFailed": "Datos del formulario no válidos"
   },
   "errors": {
     "connectFirst": "Conecta una billetera primero.",
@@ -406,7 +408,7 @@
       },
       "support": {
         "title": "Soporte",
-        "subtitle": "Contacta al equipo de Valtrix Capital. Centro de ayuda en la Semana 6.",
+        "subtitle": "Centro de ayuda Valtrix Capital.",
         "liveChat": "Chat en vivo",
         "liveChatDesc": "Habla con un miembro del equipo Valtrix. Respuesta media < 10 minutos.",
         "openChat": "Abrir chat",
@@ -711,6 +713,39 @@
     "downloadNetwork": "Red",
     "downloadOperational": "Operativa"
   },
+  "supportPage": {
+    "subtitle": "Abre un ticket, escríbenos por Telegram o WhatsApp. Respuesta en menos de 24 h.",
+    "ticketTitle": "Abrir ticket de soporte",
+    "ticketDesc": "Describe tu consulta y el equipo te responderá por correo.",
+    "nameLabel": "Nombre",
+    "emailLabel": "Correo",
+    "walletLabel": "Billetera (opcional)",
+    "categoryLabel": "Categoría",
+    "subjectLabel": "Asunto",
+    "messageLabel": "Mensaje",
+    "submitTicket": "Enviar ticket",
+    "ticketSuccess": "Ticket enviado correctamente",
+    "ticketError": "No se pudo enviar el ticket",
+    "ticketCreated": "Ticket registrado",
+    "ticketCreatedHint": "Guarda este ID para hacer seguimiento.",
+    "newTicket": "Nuevo ticket",
+    "telegram": "Telegram",
+    "telegramDesc": "Chat directo con soporte. Ideal para consultas rápidas.",
+    "openTelegram": "Abrir Telegram",
+    "whatsapp": "WhatsApp",
+    "whatsappDesc": "Escríbenos al {phone}",
+    "openWhatsapp": "Abrir WhatsApp",
+    "hoursTitle": "Horario de atención",
+    "hoursDesc": "Lunes a viernes · 09:00–18:00 UTC. Fines de semana respondemos tickets urgentes.",
+    "categories": {
+      "deposit": "Depósito",
+      "withdrawal": "Retiro",
+      "trading": "Operaciones",
+      "referrals": "Referidos",
+      "account": "Cuenta",
+      "other": "Otro"
+    }
+  },
   "admin": {
     "backToApp": "Volver a la app",
     "headerNote": "Panel de administración · datos de demostración",
@@ -943,6 +978,23 @@
       "noCommissions": "Sin comisiones de red.",
       "noWithdrawals": "Sin retiros."
     },
+    "mobileNav": {
+      "open": "Abrir menú admin",
+      "close": "Cerrar menú"
+    },
+    "twoFactor": {
+      "setupTitle": "Configurar 2FA de admin",
+      "setupDesc": "Crea un PIN de 6 dígitos para proteger el panel de administración.",
+      "verifyTitle": "Verificación 2FA",
+      "verifyDesc": "Ingresa tu PIN de administrador para continuar.",
+      "pinLabel": "PIN de 6 dígitos",
+      "confirmLabel": "Confirmar PIN",
+      "enable": "Activar 2FA",
+      "unlock": "Desbloquear panel",
+      "invalidPin": "El PIN debe tener 6 dígitos numéricos",
+      "pinMismatch": "Los PIN no coinciden",
+      "wrongPin": "PIN incorrecto"
+    },
     "cashflow": {
       "title": "Flujo de caja",
       "subtitle": "Entradas y salidas reales en el periodo seleccionado.",
@@ -968,6 +1020,18 @@
       "alert": "Alerta",
       "promo": "Promoción",
       "system": "Sistema"
+    },
+    "events": {
+      "depositTitle": "Depósito confirmado",
+      "depositBody": "Se acreditaron {amount} USDT a tu capital activo.",
+      "yieldTitle": "Rendimiento diario",
+      "yieldBody": "Se acreditaron {amount} USDT a tu saldo.",
+      "withdrawRequestedTitle": "Retiro solicitado",
+      "withdrawRequestedBody": "Tu retiro de {amount} USDT está en proceso.",
+      "withdrawDoneTitle": "Retiro completado",
+      "withdrawDoneBody": "Recibiste {net} USDT en tu billetera.",
+      "referralTitle": "Hito de red",
+      "referralBody": "Has superado {total} USDT en comisiones de referidos."
     }
   },
   "trade": {

@@ -1,10 +1,22 @@
 "use client";
 
 import { PageHeader } from "@/components/dashboard/page-header";
+import { SupportTicketForm } from "@/components/support/ticket-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LifeBuoy, MessagesSquare, Mail, Telescope } from "lucide-react";
+import {
+  LifeBuoy,
+  Mail,
+  MessageCircle,
+  Send,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  SUPPORT_EMAIL,
+  SUPPORT_TELEGRAM_URL,
+  SUPPORT_WHATSAPP_DISPLAY,
+  SUPPORT_WHATSAPP_URL,
+} from "@/lib/support/constants";
 
 export default function SupportPage() {
   const { t } = useI18n();
@@ -13,81 +25,94 @@ export default function SupportPage() {
     <div className="space-y-6">
       <PageHeader
         title={t("dashboard.pages.support.title")}
-        subtitle={t("dashboard.pages.support.subtitle")}
+        subtitle={t("supportPage.subtitle")}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SupportCard
-          icon={MessagesSquare}
-          title={t("dashboard.pages.support.liveChat")}
-          desc={t("dashboard.pages.support.liveChatDesc")}
-          cta={t("dashboard.pages.support.openChat")}
-          coming
-        />
-        <SupportCard
-          icon={Mail}
-          title={t("dashboard.pages.support.email")}
-          desc={t("dashboard.pages.support.emailDesc")}
-          cta="support@valtrix.capital"
-          href="mailto:support@valtrix.capital"
-        />
-        <SupportCard
-          icon={Telescope}
-          title={t("dashboard.pages.support.docs")}
-          desc={t("dashboard.pages.support.docsDesc")}
-          cta={t("dashboard.pages.support.browseDocs")}
-          coming
-        />
-        <SupportCard
-          icon={LifeBuoy}
-          title={t("dashboard.pages.support.status")}
-          desc={t("dashboard.pages.support.statusDesc")}
-          cta={t("dashboard.pages.support.viewStatus")}
-          coming
-        />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <SupportTicketForm />
+        </div>
+
+        <div className="space-y-4">
+          <QuickChannel
+            icon={Send}
+            title={t("supportPage.telegram")}
+            desc={t("supportPage.telegramDesc")}
+            cta={t("supportPage.openTelegram")}
+            href={SUPPORT_TELEGRAM_URL}
+            accent="info"
+          />
+          <QuickChannel
+            icon={MessageCircle}
+            title={t("supportPage.whatsapp")}
+            desc={t("supportPage.whatsappDesc", { phone: SUPPORT_WHATSAPP_DISPLAY })}
+            cta={t("supportPage.openWhatsapp")}
+            href={SUPPORT_WHATSAPP_URL}
+            accent="success"
+          />
+          <QuickChannel
+            icon={Mail}
+            title={t("dashboard.pages.support.email")}
+            desc={t("dashboard.pages.support.emailDesc")}
+            cta={SUPPORT_EMAIL}
+            href={`mailto:${SUPPORT_EMAIL}`}
+          />
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <LifeBuoy className="h-4 w-4 text-gold" />
+                <CardTitle className="text-sm">
+                  {t("supportPage.hoursTitle")}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="text-xs leading-relaxed text-text-secondary">
+              {t("supportPage.hoursDesc")}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
 }
 
-function SupportCard({
+function QuickChannel({
   icon: Icon,
   title,
   desc,
   cta,
   href,
-  coming,
+  accent,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   desc: string;
   cta: string;
-  href?: string;
-  coming?: boolean;
+  href: string;
+  accent?: "info" | "success";
 }) {
-  const { t } = useI18n();
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold">
-            <Icon className="h-5 w-5" />
-          </span>
-          <CardTitle className="text-base">{title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-text-secondary">{desc}</p>
-        <div className="mt-4">
-          {href ? (
-            <Button asChild variant="outline" size="sm">
-              <a href={href}>{cta}</a>
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" disabled={coming}>
-              {coming ? t("common.comingSoon") : cta}
-            </Button>
-          )}
+    <Card className="transition-colors hover:border-border-strong">
+      <CardContent className="flex items-start gap-3 p-4">
+        <span
+          className={
+            accent === "success"
+              ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-success/30 bg-success/10 text-success"
+              : accent === "info"
+                ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-info/30 bg-info/10 text-info"
+                : "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold"
+          }
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-text-primary">{title}</p>
+          <p className="mt-0.5 text-xs text-text-secondary">{desc}</p>
+          <Button asChild variant="outline" size="sm" className="mt-3">
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {cta}
+            </a>
+          </Button>
         </div>
       </CardContent>
     </Card>
