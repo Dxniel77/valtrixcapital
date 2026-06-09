@@ -2,17 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
-import { toast } from "sonner";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Check,
   Clock,
-  Copy,
   ExternalLink,
   Wallet as WalletIcon,
 } from "lucide-react";
+import { useAccount } from "wagmi";
 import { bsc, polygon } from "wagmi/chains";
 
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -28,7 +25,6 @@ import {
   usePortfolioSummary,
   useStakingStore,
   useStakingStoreHydrated,
-  type StakingNetwork,
 } from "@/lib/staking/store";
 import {
   WITHDRAWAL_FLOW,
@@ -36,7 +32,6 @@ import {
   type Withdrawal,
   type WithdrawalStatus,
 } from "@/lib/wallet/store";
-import { DEPOSIT_ADDRESSES, USDT_CONTRACTS } from "@/lib/wallet/constants";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { useLedger } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
@@ -131,7 +126,7 @@ export default function WalletPage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <DepositCard />
+        <AddCapitalCard />
         <RecentTransactionsCard />
       </div>
 
@@ -140,24 +135,9 @@ export default function WalletPage() {
   );
 }
 
-function DepositCard() {
+function AddCapitalCard() {
   const { t } = useI18n();
-  const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
-  const [copied, setCopied] = React.useState<string | null>(null);
-  const address = DEPOSIT_ADDRESSES[network];
-  const contract = USDT_CONTRACTS[network];
-  const meta = CHAIN_META[network === "POLYGON" ? polygon.id : bsc.id];
-
-  async function copy(value: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(key);
-      toast.success(t("walletPage.deposit.copied"));
-      window.setTimeout(() => setCopied(null), 1800);
-    } catch {
-      toast.error(t("walletPage.deposit.copyFailed"));
-    }
-  }
+  const { address, isConnected } = useAccount();
 
   return (
     <Card>
@@ -165,102 +145,30 @@ function DepositCard() {
         <CardTitle>{t("walletPage.deposit.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-2">
-          {(["BSC", "POLYGON"] as StakingNetwork[]).map((n) => {
-            const m = CHAIN_META[n === "POLYGON" ? polygon.id : bsc.id];
-            const active = network === n;
-            return (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setNetwork(n)}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-md border bg-bg-base/60 px-3 py-2.5 text-left transition-colors",
-                  active
-                    ? "border-gold/50 bg-gold/10"
-                    : "border-border-subtle hover:border-border-strong",
-                )}
-              >
-                <span
-                  className="h-6 w-6 shrink-0 rounded-full"
-                  style={{ background: m.color, opacity: 0.9 }}
-                  aria-hidden
-                />
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    active ? "text-gold" : "text-text-primary",
-                  )}
-                >
-                  {m.short}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <p className="text-sm leading-relaxed text-text-secondary">
+          {t("walletPage.deposit.description")}
+        </p>
 
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-          <div className="shrink-0 rounded-xl border border-border-subtle bg-white p-3">
-            <QRCodeSVG
-              value={address}
-              size={128}
-              bgColor="#ffffff"
-              fgColor="#0A0A0F"
-              level="M"
-            />
+        {isConnected && address ? (
+          <div className="flex items-center gap-2.5 rounded-md border border-gold/30 bg-gold/5 px-3 py-2.5">
+            <WalletIcon className="h-4 w-4 shrink-0 text-gold" />
+            <p className="text-sm text-text-secondary">
+              {t("walletPage.deposit.walletConnected", {
+                address: shortenAddress(address),
+              })}
+            </p>
           </div>
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <label className="mb-1 block text-xs uppercase tracking-wider text-text-muted">
-                {t("walletPage.deposit.addressLabel", { network: meta.short })}
-              </label>
-              <div className="flex items-center gap-2 rounded-md border border-border-subtle bg-bg-base px-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-text-secondary">
-                  {address}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => copy(address, "addr")}
-                  className="shrink-0 rounded p-1 text-text-muted hover:text-gold"
-                  aria-label={t("walletPage.deposit.copy")}
-                >
-                  {copied === "addr" ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs uppercase tracking-wider text-text-muted">
-                {t("walletPage.deposit.contractLabel")}
-              </label>
-              <div className="flex items-center gap-2 rounded-md border border-border-subtle bg-bg-base px-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-muted">
-                  {contract}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => copy(contract, "contract")}
-                  className="shrink-0 rounded p-1 text-text-muted hover:text-gold"
-                  aria-label={t("walletPage.deposit.copy")}
-                >
-                  {copied === "contract" ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm text-warning">
+            {t("walletPage.deposit.walletDisconnected")}
+          </p>
+        )}
 
-        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
-          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t("walletPage.deposit.warning", { network: meta.short })}</span>
-        </div>
+        <ul className="space-y-2 text-xs text-text-muted">
+          <li>{t("walletPage.deposit.stepAmount")}</li>
+          <li>{t("walletPage.deposit.stepNetwork")}</li>
+          <li>{t("walletPage.deposit.stepConfirm")}</li>
+        </ul>
 
         <StartStakingCTA
           className="w-full"
