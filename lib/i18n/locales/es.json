@@ -631,7 +631,7 @@
     },
     "withdraw": {
       "title": "Retirar ganancias",
-      "subtitle": "Se aplica una comisión fija del 3% sobre el monto retirado.",
+      "subtitle": "Se aplica una comisión fija del 4% sobre el monto retirado.",
       "successTitle": "Retiro solicitado",
       "successSubtitle": "Sigue el estado en tu billetera.",
       "amountLabel": "Monto a retirar",
