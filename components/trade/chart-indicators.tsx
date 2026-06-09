@@ -1,11 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import {
+  Activity,
+  Check,
+  ChevronDown,
+  Minimize2,
+  RotateCcw,
+  SlidersHorizontal,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import {
   CHART_STRATEGIES,
   detectStrategyId,
+  type ChartStrategy,
   type ChartStrategyId,
 } from "@/lib/trade/chart-strategies";
 import { cn } from "@/lib/utils";
@@ -59,6 +70,133 @@ type ChartIndicatorsProps = {
   onResetZoom?: () => void;
   className?: string;
 };
+
+const STRATEGY_ICONS: Record<
+  ChartStrategyId,
+  React.ComponentType<{ className?: string }>
+> = {
+  custom: SlidersHorizontal,
+  scalping: Zap,
+  trend: TrendingUp,
+  volatility: Activity,
+  clean: Minimize2,
+};
+
+function StrategySelector({
+  activeId,
+  onSelect,
+}: {
+  activeId: ChartStrategyId;
+  onSelect: (id: ChartStrategyId) => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = React.useState(false);
+
+  const activeLabel =
+    activeId === "custom"
+      ? t("trade.strategies.custom")
+      : t(
+          CHART_STRATEGIES.find((s) => s.id === activeId)?.labelKey ??
+            "trade.strategies.custom",
+        );
+
+  const ActiveIcon = STRATEGY_ICONS[activeId];
+
+  function renderOption(
+    id: ChartStrategyId,
+    labelKey: string,
+    descriptionKey?: string,
+  ) {
+    const selected = activeId === id;
+    const Icon = STRATEGY_ICONS[id];
+    return (
+      <DropdownMenu.Item
+        key={id}
+        className={cn(
+          "flex cursor-pointer select-none items-start gap-2.5 rounded-md px-2.5 py-2 outline-none",
+          "focus:bg-bg-hover data-[highlighted]:bg-bg-hover",
+          selected &&
+            "bg-gold/10 focus:bg-gold/15 data-[highlighted]:bg-gold/15",
+        )}
+        onSelect={() => onSelect(id)}
+      >
+        <Icon
+          className={cn(
+            "mt-0.5 h-3.5 w-3.5 shrink-0",
+            selected ? "text-gold" : "text-text-muted",
+          )}
+        />
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "block text-xs font-medium leading-tight",
+              selected ? "text-gold" : "text-text-primary",
+            )}
+          >
+            {t(labelKey)}
+          </span>
+          {descriptionKey ? (
+            <span className="mt-0.5 block text-[10px] leading-snug text-text-muted">
+              {t(descriptionKey)}
+            </span>
+          ) : null}
+        </span>
+        {selected ? (
+          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+        ) : (
+          <span className="w-3.5 shrink-0" />
+        )}
+      </DropdownMenu.Item>
+    );
+  }
+
+  return (
+    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex max-w-[160px] items-center gap-1.5 truncate rounded-md border px-2.5 py-1 text-xs font-medium transition-colors sm:max-w-none",
+            open
+              ? "border-gold/40 bg-gold/10 text-text-primary"
+              : "border-border-subtle bg-bg-base/50 text-text-secondary hover:border-border-strong hover:text-text-primary",
+          )}
+          title={t("trade.strategies.title")}
+        >
+          <ActiveIcon className="h-3 w-3 shrink-0 text-gold/80" />
+          <span className="truncate">{activeLabel}</span>
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 shrink-0 opacity-60 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={6}
+          className={cn(
+            "z-50 w-64 overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated/95 p-1.5 shadow-xl backdrop-blur-md",
+            "border-r-2 border-r-gold/50",
+            "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+          )}
+        >
+          <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            {t("trade.strategies.title")}
+          </p>
+          {renderOption("custom", "trade.strategies.custom")}
+          <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+          {CHART_STRATEGIES.map((strategy: ChartStrategy) =>
+            renderOption(strategy.id, strategy.labelKey, strategy.descriptionKey),
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
 
 export function ChartIndicators({
   value,
@@ -187,19 +325,10 @@ export function ChartIndicators({
         <span className="hidden text-[10px] font-semibold uppercase tracking-wider text-text-muted sm:inline">
           {t("trade.strategies.title")}
         </span>
-        <select
-          value={activeStrategyId}
-          onChange={(e) => applyStrategy(e.target.value as ChartStrategyId)}
-          className="max-w-[140px] truncate rounded-md border border-border-subtle bg-bg-base/50 px-2 py-1 text-xs text-text-secondary outline-none focus:border-gold/40 sm:max-w-none"
-          title={t("trade.strategies.title")}
-        >
-          <option value="custom">{t("trade.strategies.custom")}</option>
-          {CHART_STRATEGIES.map((s) => (
-            <option key={s.id} value={s.id}>
-              {t(s.labelKey)}
-            </option>
-          ))}
-        </select>
+        <StrategySelector
+          activeId={activeStrategyId}
+          onSelect={applyStrategy}
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none">
