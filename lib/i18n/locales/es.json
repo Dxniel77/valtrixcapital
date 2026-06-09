@@ -685,10 +685,24 @@
   "share": {
     "title": "Compartir ganancias",
     "subtitle": "Descarga una imagen por periodo (día, semana, mes o 3 meses) con el diseño oficial de Valtrix.",
+    "posterSection": "Imágenes para compartir",
+    "breakdownTitle": "Desglose del periodo",
     "download": "Descargar imagen",
     "downloadPeriod": "Descargar {period}",
     "downloadAll": "Descargar las 4 imágenes",
     "reportsTitle": "Descargar reportes",
+    "exportsSubtitle": "Exporta tu historial financiero en formato CSV.",
+    "exportCsv": "Descargar CSV",
+    "exportEarningsHint": "Rendimiento, comisiones y acumulaciones diarias",
+    "exportWithdrawalsHint": "Historial de retiros solicitados y procesados",
+    "exportNetworkHint": "Comisiones de referidos por nivel",
+    "exportOperationalHint": "Créditos instantáneos por operaciones ganadoras",
+    "periodHint": {
+      "daily": "Incluye proyección de hoy",
+      "weekly": "Últimos 7 días",
+      "monthly": "Últimos 30 días",
+      "threeMonths": "Últimos 90 días"
+    },
     "poster": {
       "networkUser": "Red + ganancia pasiva + operativa",
       "soloUser": "Ganancia diaria + operativa",

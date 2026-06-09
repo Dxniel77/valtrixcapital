@@ -1082,7 +1082,21 @@
       "operational": "Reporte operativo"
     },
     "downloadPeriod": "Descargar {period}",
-    "downloadAll": "Descargar las 4 imágenes"
+    "downloadAll": "Descargar las 4 imágenes",
+    "posterSection": "Imágenes para compartir",
+    "breakdownTitle": "Desglose del periodo",
+    "exportsSubtitle": "Exporta tu historial financiero en formato CSV.",
+    "exportCsv": "Descargar CSV",
+    "exportEarningsHint": "Rendimiento, comisiones y acumulaciones diarias",
+    "exportWithdrawalsHint": "Historial de retiros solicitados y procesados",
+    "exportNetworkHint": "Comisiones de referidos por nivel",
+    "exportOperationalHint": "Créditos instantáneos por operaciones ganadoras",
+    "periodHint": {
+      "daily": "Incluye proyección de hoy",
+      "weekly": "Últimos 7 días",
+      "monthly": "Últimos 30 días",
+      "threeMonths": "Últimos 90 días"
+    }
   },
   "notifications": {
     "title": "Notificaciones",

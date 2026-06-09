@@ -683,17 +683,33 @@
     }
   },
   "share": {
-    "title": "Compartir ganancias",
+    "title": "Share earnings",
     "subtitle": "Download one image per period (day, week, month or 3 months) with the official Valtrix design.",
-    "download": "Descargar imagen",
-    "reportsTitle": "Descargar reportes",
+    "posterSection": "Shareable images",
+    "breakdownTitle": "Period breakdown",
+    "download": "Download image",
+    "downloadPeriod": "Download {period}",
+    "downloadAll": "Download all 4 images",
+    "reportsTitle": "Download reports",
+    "exportsSubtitle": "Export your financial history as CSV files.",
+    "exportCsv": "Download CSV",
+    "exportEarningsHint": "Yield, commissions and daily accruals",
+    "exportWithdrawalsHint": "Requested and processed withdrawal history",
+    "exportNetworkHint": "Referral commissions by level",
+    "exportOperationalHint": "Instant credits from winning trades",
+    "periodHint": {
+      "daily": "Includes today's projection",
+      "weekly": "Last 7 days",
+      "monthly": "Last 30 days",
+      "threeMonths": "Last 90 days"
+    },
     "poster": {
-      "networkUser": "Red + ganancia pasiva + operativa",
-      "soloUser": "Ganancia diaria + operativa",
-      "daily": "Hoy",
-      "weekly": "Esta semana",
-      "monthly": "Este mes",
-      "threeMonths": "Últimos 3 meses",
+      "networkUser": "Network + passive + operational profit",
+      "soloUser": "Daily + operational profit",
+      "daily": "Today",
+      "weekly": "This week",
+      "monthly": "This month",
+      "threeMonths": "Last 3 months",
       "base": "Base profit",
       "operational": "Trading profit",
       "network": "Network profit",
@@ -701,16 +717,14 @@
       "breakdownNote": "Breakdown is shown here; the downloaded image includes only the total in USD.",
       "totalHint": "Period total on image",
       "userLabel": "User",
-      "footer": "valtrix.capital · Resultados individuales"
+      "footer": "valtrix.capital · Individual results"
     },
     "exports": {
-      "earnings": "Reporte de ganancias",
-      "withdrawals": "Reporte de retiros",
-      "network": "Reporte de red",
-      "operational": "Reporte operativo"
-    },
-    "downloadPeriod": "Download {period}",
-    "downloadAll": "Download all 4 images"
+      "earnings": "Earnings report",
+      "withdrawals": "Withdrawals report",
+      "network": "Network report",
+      "operational": "Operational report"
+    }
   },
   "historyPage": {
     "subtitle": "Deposits, withdrawals, performance, commissions and operations in a single book.",
