@@ -684,7 +684,11 @@
     "colAmount": "Monto",
     "colRef": "Referencia",
     "feeLabel": "comisión",
-    "dailyCredit": "Crédito diario"
+    "dailyCredit": "Crédito diario",
+    "downloadEarnings": "Ganancias",
+    "downloadWithdrawals": "Retiros",
+    "downloadNetwork": "Red",
+    "downloadOperational": "Operativa"
   },
   "admin": {
     "backToApp": "Volver a la app",
@@ -752,7 +756,11 @@
       "noteLabel": "Nota",
       "notePlaceholder": "Motivo del ajuste",
       "cancel": "Cancelar",
-      "applyAdjust": "Aplicar ajuste"
+      "applyAdjust": "Aplicar ajuste",
+      "subtitleBilling": "Facturación por periodo, red por nivel y detalle exclusivo por usuario.",
+      "colDirectRefs": "Directos",
+      "sponsoredBadge": "Patrocinada",
+      "sponsoredOnly": "Solo patrocinadas"
     },
     "movements": {
       "title": "Movimientos",
@@ -815,14 +823,35 @@
       "modeDirect": "Ventas directas",
       "modeNetwork": "Niveles 1 y 2",
       "modeEither": "Cualquiera (OR)",
-      "directMinLabel": "Mín. ventas directas (USDT)",
+      "directMinLabel": "Mín. ventas directas",
       "l1MinLabel": "Mín. volumen N1",
       "l2MinLabel": "Mín. volumen N2",
       "hint": "El usuario puede operar con normalidad. Los retiros se habilitan automáticamente al cumplir la condición.",
       "submit": "Conceder cuenta",
       "invalidWallet": "Billetera inválida",
       "invalidAlias": "Ingresa un nombre de usuario",
-      "success": "Cuenta concedida"
+      "success": "Cuenta concedida",
+      "formSubtitle": "Cuenta patrocinada con retiros bloqueados hasta cumplir la meta.",
+      "identitySection": "Datos del usuario",
+      "rulesSection": "Reglas de retiro",
+      "uplineLabel": "Patrocinador (opcional)",
+      "uplinePlaceholder": "0x… billetera del upline",
+      "uplineHint": "Vincula la cuenta a un patrocinador en la red.",
+      "modeDirectDesc": "Habilita retiros cuando las ventas directas alcancen el mínimo en USDT.",
+      "modeNetworkDesc": "Habilita retiros cuando el volumen en N1 y N2 cumpla los mínimos.",
+      "modeEitherDesc": "Habilita retiros si se cumple ventas directas o niveles 1 y 2.",
+      "selected": "Activo",
+      "reset": "Limpiar",
+      "invalidUpline": "Billetera de patrocinador inválida",
+      "previewTitle": "Vista previa",
+      "previewAlias": "Usuario",
+      "previewWallet": "Billetera",
+      "previewRule": "Condición",
+      "previewDirect": "Ventas directas ≥ ${amount} USDT",
+      "previewNetwork": "N1 ≥ ${l1} y N2 ≥ ${l2} USDT",
+      "previewEither": "Ventas ≥ ${direct} USDT o N1 ≥ ${l1} + N2 ≥ ${l2}",
+      "recentTitle": "Patrocinadas recientes",
+      "recentEmpty": "Aún no hay cuentas patrocinadas."
     },
     "lookup": {
       "title": "Buscar usuario",
@@ -870,6 +899,43 @@
       "auditDesc": "Acciones administrativas registradas.",
       "myLedger": "Mi libro mayor",
       "myLedgerDesc": "Movimientos de la sesión conectada."
+    },
+    "userDetail": {
+      "title": "Ficha de usuario",
+      "notFound": "Usuario no encontrado.",
+      "back": "Volver a usuarios",
+      "openFull": "Abrir ficha completa",
+      "exportCsv": "Descargar reporte",
+      "totalEarned": "Ganancias totales",
+      "totalDeposits": "Inversiones (depósitos)",
+      "totalWithdrawals": "Retiros completados",
+      "pendingWithdrawals": "Retiros pendientes",
+      "directReferrals": "Referidos directos",
+      "noDirectRefs": "Sin referidos directos.",
+      "investments": "Inversiones",
+      "earnings": "Ganancias (rendimiento)",
+      "networkCommissions": "Comisiones de red",
+      "withdrawals": "Retiros",
+      "pending": "Pendientes",
+      "noInvestments": "Sin inversiones registradas.",
+      "noEarnings": "Sin ganancias de rendimiento.",
+      "noCommissions": "Sin comisiones de red.",
+      "noWithdrawals": "Sin retiros."
+    },
+    "cashflow": {
+      "title": "Flujo de caja",
+      "subtitle": "Entradas y salidas reales en el periodo seleccionado.",
+      "from": "Desde",
+      "to": "Hasta",
+      "inflow": "Entradas",
+      "outflow": "Salidas",
+      "net": "Balance",
+      "summaryLine": "Ingresan ${in} · Salen ${out} · Quedan ${net}",
+      "pending": "Pendiente por salir: ${amount} USDT",
+      "deposits": "Depósitos",
+      "withdrawals": "Retiros",
+      "yieldPaid": "Rendimiento pagado",
+      "commissionPaid": "Comisiones pagadas"
     }
   },
   "trade": {
@@ -973,6 +1039,17 @@
       "withdrawals": "Reporte de retiros",
       "network": "Reporte de red",
       "operational": "Reporte operativo"
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "subtitle": "Alertas, promociones y avisos del sistema.",
+    "empty": "No tienes notificaciones.",
+    "markAllRead": "Marcar todo como leído",
+    "kind": {
+      "alert": "Alerta",
+      "promo": "Promoción",
+      "system": "Sistema"
     }
   }
 }

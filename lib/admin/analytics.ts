@@ -1,4 +1,8 @@
 import type { AdminMovement, AdminUser } from "@/lib/admin/store";
+import {
+  computeNetworkLevels,
+  countNetworkSize,
+} from "@/lib/admin/network-tree";
 
 export type LeaderPeriod = "week" | "month" | "3months";
 
@@ -36,6 +40,10 @@ export interface UserDetailSnapshot {
     passive: number;
     directReferrals: number;
     networkSize: number;
+    totalDeposits: number;
+    totalWithdrawals: number;
+    pendingWithdrawals: number;
+    pendingCount: number;
   };
 }
 
@@ -56,6 +64,72 @@ export function findAdminUser(
   );
 }
 
+export function findAdminUserById(
+  users: AdminUser[],
+  id: string,
+): AdminUser | null {
+  return users.find((u) => u.id === id) ?? null;
+}
+
+function round(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+export function computeUserBilling(
+  user: AdminUser,
+  allUsers: AdminUser[],
+  movements: AdminMovement[],
+  period: LeaderPeriod,
+): UserLeaderRow {
+  const since = Date.now() - PERIOD_MS[period];
+  const wallet = user.wallet.toLowerCase();
+  const periodMovements = movements.filter((m) => m.timestamp >= since);
+
+  const userPeriod = periodMovements.filter(
+    (m) => m.wallet.toLowerCase() === wallet,
+  );
+
+  const operational = userPeriod
+    .filter((m) => m.type === "YIELD" && m.amount < 50)
+    .reduce((a, m) => a + m.amount, 0);
+
+  const passive = userPeriod
+    .filter((m) => m.type === "YIELD" && m.amount >= 50)
+    .reduce((a, m) => a + m.amount, 0);
+
+  const network = userPeriod
+    .filter((m) => m.type === "COMMISSION")
+    .reduce((a, m) => a + m.amount, 0);
+
+  const networkLevels = computeNetworkLevels(user.wallet, allUsers);
+  const byLevel: LevelRevenue[] = networkLevels.map(({ level, members }) => {
+    const memberWallets = new Set(
+      members.map((m) => m.wallet.toLowerCase()),
+    );
+    const amount = periodMovements
+      .filter(
+        (m) =>
+          m.type === "DEPOSIT" && memberWallets.has(m.wallet.toLowerCase()),
+      )
+      .reduce((a, m) => a + m.amount, 0);
+    return { level, amount: round(amount) };
+  });
+
+  const levelSum = byLevel.reduce((a, l) => a + l.amount, 0);
+  const total = round(
+    operational + network + passive + levelSum * 0.01,
+  );
+
+  return {
+    user,
+    total,
+    byLevel,
+    operational: round(operational),
+    network: round(network),
+    passive: round(passive),
+  };
+}
+
 export function buildUserDetail(
   user: AdminUser,
   allUsers: AdminUser[],
@@ -66,16 +140,22 @@ export function buildUserDetail(
     (u) => u.uplineWallet?.toLowerCase() === wallet,
   );
 
-  const networkByLevel = Array.from({ length: 8 }, (_, i) => {
-    const level = i + 1;
-    const count = level === 1 ? directReferrals.length : 0;
-    const volume = user.levelVolumes[i] ?? 0;
-    return { level, count: level === 1 ? count : Math.max(0, Math.floor(user.referrals / level)), volume };
-  });
+  const levelRows = computeNetworkLevels(user.wallet, allUsers);
+  const networkByLevel = levelRows.map(({ level, count, volume }) => ({
+    level,
+    count,
+    volume,
+  }));
 
   const userMovements = movements
     .filter((m) => m.wallet.toLowerCase() === wallet)
     .sort((a, b) => b.timestamp - a.timestamp);
+
+  const deposits = userMovements.filter((m) => m.type === "DEPOSIT");
+  const withdrawals = userMovements.filter((m) => m.type === "WITHDRAWAL");
+  const pending = withdrawals.filter(
+    (m) => m.status === "PROCESSING" || m.status === "REVIEW",
+  );
 
   return {
     user,
@@ -90,7 +170,15 @@ export function buildUserDetail(
       network: user.networkEarned,
       passive: user.passiveEarned,
       directReferrals: directReferrals.length,
-      networkSize: user.referrals,
+      networkSize: countNetworkSize(levelRows),
+      totalDeposits: round(deposits.reduce((a, m) => a + m.amount, 0)),
+      totalWithdrawals: round(
+        withdrawals
+          .filter((m) => m.status === "COMPLETED")
+          .reduce((a, m) => a + m.amount, 0),
+      ),
+      pendingWithdrawals: round(pending.reduce((a, m) => a + m.amount, 0)),
+      pendingCount: pending.length,
     },
   };
 }
@@ -100,45 +188,13 @@ export function computeTopPerformers(
   movements: AdminMovement[],
   period: LeaderPeriod,
 ): UserLeaderRow[] {
-  const since = Date.now() - PERIOD_MS[period];
   const rows: UserLeaderRow[] = [];
 
   for (const user of users) {
     if (user.status !== "ACTIVE") continue;
-    const wallet = user.wallet.toLowerCase();
-    const periodMovements = movements.filter(
-      (m) => m.wallet.toLowerCase() === wallet && m.timestamp >= since,
-    );
-
-    const operational = periodMovements
-      .filter((m) => m.type === "YIELD")
-      .reduce((a, m) => a + m.amount, 0);
-    const network = periodMovements
-      .filter((m) => m.type === "COMMISSION")
-      .reduce((a, m) => a + m.amount, 0);
-    const passive = user.passiveEarned * (period === "week" ? 0.08 : period === "month" ? 0.25 : 0.6);
-
-    const byLevel: LevelRevenue[] = user.levelVolumes.map((amount, i) => ({
-      level: i + 1,
-      amount: amount * (period === "week" ? 0.1 : period === "month" ? 0.3 : 0.7),
-    }));
-
-    const total =
-      operational +
-      network +
-      passive +
-      byLevel.reduce((a, l) => a + l.amount, 0);
-
-    if (total <= 0 && user.totalEarned <= 0) continue;
-
-    rows.push({
-      user,
-      total: Math.round(total * 100) / 100,
-      byLevel,
-      operational: Math.round(operational * 100) / 100,
-      network: Math.round(network * 100) / 100,
-      passive: Math.round(passive * 100) / 100,
-    });
+    const row = computeUserBilling(user, users, movements, period);
+    if (row.total <= 0 && user.totalEarned <= 0) continue;
+    rows.push(row);
   }
 
   return rows.sort((a, b) => b.total - a.total);
@@ -175,13 +231,13 @@ export function computeShareEarnings(user: AdminUser): EarningsBreakdown {
 
   return {
     hasNetwork,
-    daily: Math.round(daily * 100) / 100,
-    weekly: Math.round(weekly * 100) / 100,
-    monthly: Math.round(monthly * 100) / 100,
-    threeMonths: Math.round(threeMonths * 100) / 100,
+    daily: round(daily),
+    weekly: round(weekly),
+    monthly: round(monthly),
+    threeMonths: round(threeMonths),
     operational,
     network,
     passive,
-    displayTotal: Math.round(displayTotal * 100) / 100,
+    displayTotal: round(displayTotal),
   };
 }

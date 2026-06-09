@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowUpDown, Pencil, Search } from "lucide-react";
+import { Download, Eye, Pencil, Search } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -23,172 +24,230 @@ import {
   useAdminStore,
   type AdminUser,
 } from "@/lib/admin/store";
+import {
+  computeUserBilling,
+  type LeaderPeriod,
+} from "@/lib/admin/analytics";
+import { exportUsersBillingCsv } from "@/lib/admin/exports";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
-type SortKey = "alias" | "capital" | "balance" | "joinedAt";
+const PERIODS: LeaderPeriod[] = ["week", "month", "3months"];
 
 export default function AdminUsersPage() {
   const { t } = useI18n();
   const users = useAdminStore((s) => s.users);
+  const movements = useAdminStore((s) => s.movements);
   const setUserStatus = useAdminStore((s) => s.setUserStatus);
 
   const [query, setQuery] = React.useState("");
-  const [sort, setSort] = React.useState<SortKey>("capital");
-  const [dir, setDir] = React.useState<"asc" | "desc">("desc");
+  const [period, setPeriod] = React.useState<LeaderPeriod>("week");
+  const [sponsoredOnly, setSponsoredOnly] = React.useState(false);
   const [editing, setEditing] = React.useState<AdminUser | null>(null);
 
-  const rows = React.useMemo(() => {
+  const billingRows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = users.filter(
-      (u) =>
-        !q ||
-        u.alias.toLowerCase().includes(q) ||
-        u.wallet.toLowerCase().includes(q),
+    let list = users.map((u) =>
+      computeUserBilling(u, users, movements, period),
     );
-    const sorted = [...filtered].sort((a, b) => {
-      let cmp = 0;
-      if (sort === "alias") cmp = a.alias.localeCompare(b.alias);
-      else cmp = a[sort] - b[sort];
-      return dir === "asc" ? cmp : -cmp;
-    });
-    return sorted;
-  }, [users, query, sort, dir]);
 
-  function toggleSort(key: SortKey) {
-    if (sort === key) setDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSort(key);
-      setDir("desc");
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.user.alias.toLowerCase().includes(q) ||
+          r.user.wallet.toLowerCase().includes(q),
+      );
     }
-  }
+
+    if (sponsoredOnly) {
+      list = list.filter((r) => r.user.accountGranted);
+    }
+
+    return list.sort((a, b) => b.total - a.total);
+  }, [users, movements, period, query, sponsoredOnly]);
+
+  const periodLabel = (p: LeaderPeriod) => {
+    if (p === "week") return t("admin.leaders.week");
+    if (p === "month") return t("admin.leaders.month");
+    return t("admin.leaders.threeMonths");
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={t("admin.users.title")}
-        subtitle={t("admin.users.subtitle")}
+        subtitle={t("admin.users.subtitleBilling")}
         actions={
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("admin.users.searchPlaceholder")}
-              className="w-full pl-8 sm:w-72"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportUsersBillingCsv(billingRows, period)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </Button>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("admin.users.searchPlaceholder")}
+                className="w-full pl-8 sm:w-64"
+              />
+            </div>
           </div>
         }
       />
 
-      <Table>
-        <thead>
-          <THeadRow>
-            <TH>
-              <SortBtn label={t("admin.users.colUser")} onClick={() => toggleSort("alias")} />
-            </TH>
-            <TH>{t("admin.users.colNetwork")}</TH>
-            <TH className="text-right">
-              <SortBtn label={t("admin.users.colCapital")} onClick={() => toggleSort("capital")} align="right" />
-            </TH>
-            <TH className="text-right">
-              <SortBtn label={t("admin.users.colBalance")} onClick={() => toggleSort("balance")} align="right" />
-            </TH>
-            <TH className="text-right">{t("admin.users.colReferrals")}</TH>
-            <TH>{t("admin.users.colStatus")}</TH>
-            <TH className="text-right">{t("admin.users.colActions")}</TH>
-          </THeadRow>
-        </thead>
-        <TBody>
-          {rows.map((u) => (
-            <TR key={u.id}>
-              <TD>
-                <p className="font-medium text-text-primary">
-                  {u.alias}
-                  {u.role === "ADMIN" ? (
-                    <Badge variant="gold" className="ml-2">
-                      {t("admin.users.adminBadge")}
-                    </Badge>
-                  ) : null}
-                </p>
-                <p className="font-mono text-xs text-text-muted">
-                  {shortenAddress(u.wallet)}
-                </p>
-              </TD>
-              <TD>
-                <Badge variant="outline">{u.network}</Badge>
-              </TD>
-              <TD className="text-right font-mono text-text-secondary">
-                ${formatNumber(u.capital, { decimals: 0 })}
-              </TD>
-              <TD className="text-right font-mono text-gold">
-                ${formatNumber(u.balance, { decimals: 2 })}
-              </TD>
-              <TD className="text-right font-mono text-text-muted">{u.referrals}</TD>
-              <TD>
-                <Badge variant={u.status === "ACTIVE" ? "success" : "default"}>
-                  {u.status === "ACTIVE"
-                    ? t("admin.users.active")
-                    : t("admin.users.inactive")}
-                </Badge>
-              </TD>
-              <TD>
-                <div className="flex items-center justify-end gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditing(u)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    {t("admin.users.adjust")}
-                  </Button>
-                  <Button
-                    variant={u.status === "ACTIVE" ? "outline" : "primary"}
-                    size="sm"
-                    onClick={() => {
-                      setUserStatus(
-                        u.id,
-                        u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                      );
-                      toast.success(t("admin.users.statusUpdated"));
-                    }}
-                  >
-                    {u.status === "ACTIVE"
-                      ? t("admin.users.deactivate")
-                      : t("admin.users.activate")}
-                  </Button>
-                </div>
-              </TD>
-            </TR>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
+          {PERIODS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={cn(
+                "rounded-sm px-3 py-1.5 text-xs transition-colors",
+                period === p
+                  ? "bg-gold/15 text-gold"
+                  : "text-text-secondary hover:bg-bg-hover",
+              )}
+            >
+              {periodLabel(p)}
+            </button>
           ))}
-        </TBody>
-      </Table>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSponsoredOnly((v) => !v)}
+          className={cn(
+            "rounded-md border px-3 py-1.5 text-xs transition-colors",
+            sponsoredOnly
+              ? "border-warning/50 bg-warning/10 text-warning"
+              : "border-border-subtle text-text-secondary hover:bg-bg-hover",
+          )}
+        >
+          {t("admin.users.sponsoredOnly")}
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <Table>
+          <thead>
+            <THeadRow>
+              <TH>#</TH>
+              <TH>{t("admin.users.colUser")}</TH>
+              <TH className="text-right">{t("admin.users.colDirectRefs")}</TH>
+              <TH className="text-right">{t("admin.leaders.colOperational")}</TH>
+              <TH className="text-right">{t("admin.leaders.colNetwork")}</TH>
+              <TH className="text-right">{t("admin.leaders.colPassive")}</TH>
+              {Array.from({ length: 8 }, (_, i) => (
+                <TH key={i} className="text-right">
+                  L{i + 1}
+                </TH>
+              ))}
+              <TH className="text-right">
+                <span className="text-gold">{t("admin.leaders.colTotal")}</span>
+              </TH>
+              <TH>{t("admin.users.colStatus")}</TH>
+              <TH className="text-right">{t("admin.users.colActions")}</TH>
+            </THeadRow>
+          </thead>
+          <TBody>
+            {billingRows.map((row, idx) => {
+              const u = row.user;
+              const sponsored = u.accountGranted;
+              return (
+                <TR
+                  key={u.id}
+                  className={cn(
+                    sponsored && "bg-warning/[0.06] hover:bg-warning/[0.09]",
+                  )}
+                >
+                  <TD className="font-mono text-xs text-text-muted">{idx + 1}</TD>
+                  <TD>
+                    <p className="font-medium text-text-primary">
+                      {u.alias}
+                      {u.role === "ADMIN" ? (
+                        <Badge variant="gold" className="ml-2">
+                          {t("admin.users.adminBadge")}
+                        </Badge>
+                      ) : null}
+                      {sponsored ? (
+                        <Badge variant="warning" className="ml-2">
+                          {t("admin.users.sponsoredBadge")}
+                        </Badge>
+                      ) : null}
+                    </p>
+                    <p className="font-mono text-xs text-text-muted">
+                      {shortenAddress(u.wallet)}
+                    </p>
+                  </TD>
+                  <TD className="text-right font-mono">{u.referrals}</TD>
+                  <TD className="text-right font-mono text-xs">
+                    ${formatNumber(row.operational, { decimals: 0 })}
+                  </TD>
+                  <TD className="text-right font-mono text-xs">
+                    ${formatNumber(row.network, { decimals: 0 })}
+                  </TD>
+                  <TD className="text-right font-mono text-xs">
+                    ${formatNumber(row.passive, { decimals: 0 })}
+                  </TD>
+                  {row.byLevel.map((l) => (
+                    <TD key={l.level} className="text-right font-mono text-xs text-text-muted">
+                      ${formatNumber(l.amount, { decimals: 0 })}
+                    </TD>
+                  ))}
+                  <TD className="text-right font-mono font-medium text-gold">
+                    ${formatNumber(row.total, { decimals: 0 })}
+                  </TD>
+                  <TD>
+                    <Badge variant={u.status === "ACTIVE" ? "success" : "default"}>
+                      {u.status === "ACTIVE"
+                        ? t("admin.users.active")
+                        : t("admin.users.inactive")}
+                    </Badge>
+                  </TD>
+                  <TD>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/admin/users/${u.id}`}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditing(u)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant={u.status === "ACTIVE" ? "outline" : "primary"}
+                        size="sm"
+                        onClick={() => {
+                          setUserStatus(
+                            u.id,
+                            u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+                          );
+                          toast.success(t("admin.users.statusUpdated"));
+                        }}
+                      >
+                        {u.status === "ACTIVE"
+                          ? t("admin.users.deactivate")
+                          : t("admin.users.activate")}
+                      </Button>
+                    </div>
+                  </TD>
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
+      </div>
 
       <AdjustBalanceModal user={editing} onClose={() => setEditing(null)} />
     </div>
-  );
-}
-
-function SortBtn({
-  label,
-  onClick,
-  align = "left",
-}: {
-  label: string;
-  onClick: () => void;
-  align?: "left" | "right";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1 hover:text-text-primary",
-        align === "right" && "flex-row-reverse",
-      )}
-    >
-      {label}
-      <ArrowUpDown className="h-3 w-3" />
-    </button>
   );
 }
 

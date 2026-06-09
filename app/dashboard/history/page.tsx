@@ -80,6 +80,12 @@ export default function HistoryPage() {
     });
   }, [ledger, filter, query]);
 
+  function exportSubset(categories: LedgerCategory[], prefix: string) {
+    const subset = ledger.filter((e) => categories.includes(e.category));
+    if (subset.length === 0) return;
+    downloadCsv(`valtrix-${prefix}-${Date.now()}.csv`, ledgerToCsv(subset));
+  }
+
   function handleExport() {
     const csv = ledgerToCsv(filtered);
     downloadCsv(`valtrix-historial-${Date.now()}.csv`, csv);
@@ -91,14 +97,52 @@ export default function HistoryPage() {
         title={t("dashboard.pages.history.title")}
         subtitle={t("historyPage.subtitle")}
         actions={
-          <Button
-            variant="outline"
-            size="md"
-            onClick={handleExport}
-            disabled={filtered.length === 0}
-          >
-            <Download className="h-4 w-4" /> {t("dashboard.pages.history.exportCsv")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => exportSubset(["YIELD"], "ganancias")}
+              disabled={counts.YIELD === 0}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("historyPage.downloadEarnings")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => exportSubset(["WITHDRAWAL"], "retiros")}
+              disabled={counts.WITHDRAWAL === 0}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("historyPage.downloadWithdrawals")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => exportSubset(["COMMISSION"], "red")}
+              disabled={counts.COMMISSION === 0}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("historyPage.downloadNetwork")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => exportSubset(["TRADE"], "operativa")}
+              disabled={counts.TRADE === 0}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("historyPage.downloadOperational")}
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleExport}
+              disabled={filtered.length === 0}
+            >
+              <Download className="h-4 w-4" /> {t("dashboard.pages.history.exportCsv")}
+            </Button>
+          </div>
         }
       />
 

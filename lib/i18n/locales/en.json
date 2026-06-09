@@ -705,7 +705,11 @@
     "colAmount": "Amount",
     "colRef": "Reference",
     "feeLabel": "commission",
-    "dailyCredit": "daily credit"
+    "dailyCredit": "daily credit",
+    "downloadEarnings": "Earnings",
+    "downloadWithdrawals": "Withdrawals",
+    "downloadNetwork": "Network",
+    "downloadOperational": "Operations"
   },
   "admin": {
     "backToApp": "Return to the app",
@@ -773,7 +777,11 @@
       "noteLabel": "Note",
       "notePlaceholder": "Reason for adjustment",
       "cancel": "Cancel",
-      "applyAdjust": "Apply setting"
+      "applyAdjust": "Apply setting",
+      "subtitleBilling": "Billing by period, network per level and exclusive user detail.",
+      "colDirectRefs": "Direct",
+      "sponsoredBadge": "Sponsored",
+      "sponsoredOnly": "Sponsored only"
     },
     "movements": {
       "title": "Movements",
@@ -826,24 +834,45 @@
       "colActor": "Author"
     },
     "grant": {
-      "title": "Grant account",
-      "subtitle": "Give a user access with custom withdrawal conditions.",
-      "formTitle": "New account",
-      "walletLabel": "Wallet",
-      "aliasLabel": "Username",
-      "aliasPlaceholder": "username",
-      "modeLabel": "Withdrawal condition",
-      "modeDirect": "Direct sales",
-      "modeNetwork": "Levels 1 & 2",
-      "modeEither": "Either (OR)",
-      "directMinLabel": "Min. direct sales (USDT)",
-      "l1MinLabel": "Min. L1 volume",
-      "l2MinLabel": "Min. L2 volume",
-      "hint": "User can trade normally. Withdrawals unlock automatically when conditions are met.",
-      "submit": "Grant account",
-      "invalidWallet": "Invalid wallet",
-      "invalidAlias": "Enter a username",
-      "success": "Account granted"
+      "title": "Dar cuenta",
+      "subtitle": "Concede acceso a un usuario con condiciones de retiro personalizadas.",
+      "formTitle": "Nueva cuenta",
+      "walletLabel": "Billetera",
+      "aliasLabel": "Usuario",
+      "aliasPlaceholder": "nombre.usuario",
+      "modeLabel": "Condición para retirar",
+      "modeDirect": "Ventas directas",
+      "modeNetwork": "Niveles 1 y 2",
+      "modeEither": "Cualquiera (OR)",
+      "directMinLabel": "Min. direct sales",
+      "l1MinLabel": "Mín. volumen N1",
+      "l2MinLabel": "Mín. volumen N2",
+      "hint": "El usuario puede operar con normalidad. Los retiros se habilitan automáticamente al cumplir la condición.",
+      "submit": "Conceder cuenta",
+      "invalidWallet": "Billetera inválida",
+      "invalidAlias": "Ingresa un nombre de usuario",
+      "success": "Cuenta concedida",
+      "formSubtitle": "Sponsored account with withdrawals locked until the goal is met.",
+      "identitySection": "User details",
+      "rulesSection": "Withdrawal rules",
+      "uplineLabel": "Sponsor (optional)",
+      "uplinePlaceholder": "0x… upline wallet",
+      "uplineHint": "Link the account to a sponsor in the network.",
+      "modeDirectDesc": "Unlocks withdrawals when direct sales reach the USDT minimum.",
+      "modeNetworkDesc": "Unlocks when L1 and L2 volume meet the minimums.",
+      "modeEitherDesc": "Unlocks if direct sales OR levels 1 and 2 are met.",
+      "selected": "Active",
+      "reset": "Clear",
+      "invalidUpline": "Invalid sponsor wallet",
+      "previewTitle": "Preview",
+      "previewAlias": "User",
+      "previewWallet": "Wallet",
+      "previewRule": "Condition",
+      "previewDirect": "Direct sales ≥ ${amount} USDT",
+      "previewNetwork": "L1 ≥ ${l1} and L2 ≥ ${l2} USDT",
+      "previewEither": "Sales ≥ ${direct} USDT or L1 ≥ ${l1} + L2 ≥ ${l2}",
+      "recentTitle": "Recent sponsored",
+      "recentEmpty": "No sponsored accounts yet."
     },
     "lookup": {
       "title": "User lookup",
@@ -891,6 +920,43 @@
       "auditDesc": "Recorded admin actions.",
       "myLedger": "My ledger",
       "myLedgerDesc": "Connected session movements."
+    },
+    "userDetail": {
+      "title": "User profile",
+      "notFound": "User not found.",
+      "back": "Back to users",
+      "openFull": "Open full profile",
+      "exportCsv": "Download report",
+      "totalEarned": "Total earnings",
+      "totalDeposits": "Investments (deposits)",
+      "totalWithdrawals": "Completed withdrawals",
+      "pendingWithdrawals": "Pending withdrawals",
+      "directReferrals": "Direct referrals",
+      "noDirectRefs": "No direct referrals.",
+      "investments": "Investments",
+      "earnings": "Earnings (yield)",
+      "networkCommissions": "Network commissions",
+      "withdrawals": "Withdrawals",
+      "pending": "Pending",
+      "noInvestments": "No investments recorded.",
+      "noEarnings": "No yield earnings.",
+      "noCommissions": "No network commissions.",
+      "noWithdrawals": "No withdrawals."
+    },
+    "cashflow": {
+      "title": "Cash flow",
+      "subtitle": "Real inflows and outflows for the selected period.",
+      "from": "From",
+      "to": "To",
+      "inflow": "Inflows",
+      "outflow": "Outflows",
+      "net": "Balance",
+      "summaryLine": "In: ${in} · Out: ${out} · Net: ${net}",
+      "pending": "Pending outflow: ${amount} USDT",
+      "deposits": "Deposits",
+      "withdrawals": "Withdrawals",
+      "yieldPaid": "Yield paid",
+      "commissionPaid": "Commissions paid"
     }
   },
   "trade": {
@@ -974,5 +1040,16 @@
       "clearAll": "Clear all drawings"
     },
     "yieldSummary": "Daily yield"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Alerts, promotions and system notices.",
+    "empty": "You have no notifications.",
+    "markAllRead": "Mark all as read",
+    "kind": {
+      "alert": "Alert",
+      "promo": "Promotion",
+      "system": "System"
+    }
   }
 }

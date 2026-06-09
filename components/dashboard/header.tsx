@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { Logo } from "@/components/brand/logo";
@@ -74,19 +75,7 @@ export function DashboardHeader({
 
         <BalancePill label={t("dashboard.header.balance")} compact={compact} />
 
-        <button
-          type="button"
-          aria-label={t("dashboard.header.notifications")}
-          className="relative rounded-md border border-border-subtle bg-bg-base p-2 text-text-secondary hover:border-border-strong hover:text-text-primary"
-        >
-          <Bell className="h-4 w-4" />
-          <span
-            className={cn(
-              "absolute top-1.5 h-1.5 w-1.5 rounded-full bg-gold",
-              dir === "rtl" ? "left-1.5" : "right-1.5",
-            )}
-          />
-        </button>
+        <NotificationsPanel />
 
         <ConnectWalletButton size="md" compact={compact} />
       </div>

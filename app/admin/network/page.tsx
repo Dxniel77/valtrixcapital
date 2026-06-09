@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStore } from "@/lib/admin/store";
-import { formatNumber, shortenAddress } from "@/lib/utils";
+import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { Network, UserCheck, Users } from "lucide-react";
 
 export default function AdminNetworkPage() {
@@ -116,10 +116,20 @@ export default function AdminNetworkPage() {
                     {kids.map((k) => (
                       <li
                         key={k.id}
-                        className="flex items-center justify-between gap-3 rounded-md border border-border-subtle bg-bg-base/40 px-3 py-2 text-sm"
+                        className={cn(
+                          "flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm",
+                          k.accountGranted
+                            ? "border-warning/30 bg-warning/[0.06]"
+                            : "border-border-subtle bg-bg-base/40",
+                        )}
                       >
                         <span className="flex items-center gap-2">
                           <span className="text-text-primary">{k.alias}</span>
+                          {k.accountGranted ? (
+                            <Badge variant="warning" className="text-[10px]">
+                              {t("admin.users.sponsoredBadge")}
+                            </Badge>
+                          ) : null}
                           <span className="font-mono text-xs text-text-muted">
                             {shortenAddress(k.wallet)}
                           </span>

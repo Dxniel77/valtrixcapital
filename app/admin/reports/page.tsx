@@ -2,6 +2,7 @@
 
 import { Download, FileSpreadsheet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { CashFlowReport } from "@/components/admin/cashflow-report";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
@@ -53,6 +54,8 @@ export default function AdminReportsPage() {
         title={t("admin.reports.title")}
         subtitle={t("admin.reports.subtitle")}
       />
+
+      <CashFlowReport movements={movements} />
 
       <div className="grid gap-4 md:grid-cols-2">
         {reports.map((r) => (
