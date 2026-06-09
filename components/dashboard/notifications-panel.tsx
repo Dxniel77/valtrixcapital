@@ -89,7 +89,7 @@ export function NotificationsPanel() {
             )}
           </DialogBody>
           {items.some((n) => !n.read) ? (
-            <div className="border-t border-border-subtle px-4 py-3">
+            <div className="shrink-0 border-t border-border-subtle px-4 py-3">
               <Button variant="ghost" size="sm" onClick={markAllRead} className="w-full">
                 {t("notifications.markAllRead")}
               </Button>

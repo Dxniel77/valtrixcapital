@@ -38,7 +38,7 @@ export const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated p-0 shadow-elevated",
+        "fixed left-1/2 top-1/2 z-50 flex w-[calc(100vw-2rem)] max-h-[min(85vh,720px)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated p-0 shadow-elevated",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
         "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
@@ -65,7 +65,7 @@ export function DialogHeader({
   return (
     <div
       className={cn(
-        "border-b border-border-subtle px-6 pb-4 pt-5",
+        "shrink-0 border-b border-border-subtle px-6 pb-4 pt-5",
         className,
       )}
       {...props}
@@ -77,7 +77,15 @@ export function DialogBody({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-5", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-5",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function DialogFooter({
@@ -87,7 +95,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "flex flex-col-reverse gap-2 border-t border-border-subtle bg-bg-base/30 px-6 py-4 sm:flex-row sm:justify-end",
+        "flex shrink-0 flex-col-reverse gap-2 border-t border-border-subtle bg-bg-base/30 px-6 py-4 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}
