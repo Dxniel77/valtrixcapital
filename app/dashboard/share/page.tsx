@@ -7,14 +7,14 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
-import { useAdminStore } from "@/lib/admin/store";
-import { computeShareEarnings } from "@/lib/admin/analytics";
-import { useUserRegistry } from "@/lib/user/store";
-import { usePortfolioSummary, useStakingStore } from "@/lib/staking/store";
+import { useStakingStore } from "@/lib/staking/store";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useLedger } from "@/lib/ledger";
+import { useUserRegistry } from "@/lib/user/store";
 import { EarningsPoster } from "@/components/share/earnings-poster";
+import { computePeriodEarnings } from "@/lib/share/earnings-periods";
+import { useTodayYieldPreview } from "@/lib/staking/portfolio-summary";
 import {
   exportEarningsCsv,
   exportNetworkCsv,
@@ -26,42 +26,23 @@ export default function SharePage() {
   const { t } = useI18n();
   const { address } = useAccount();
   const profile = useUserRegistry((s) => s.getProfile(address));
-  const users = useAdminStore((s) => s.users);
-  const summary = usePortfolioSummary();
-  const totalCommissions = useReferralsStore((s) => s.totalCommissions);
-  const downline = useReferralsStore((s) => s.downline);
-  const instantCredits = useStakingStore((s) => s.instantCredits);
   const dailyYields = useStakingStore((s) => s.dailyYields);
+  const instantCredits = useStakingStore((s) => s.instantCredits);
+  const commissions = useReferralsStore((s) => s.commissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
   const ledger = useLedger();
+  const preview = useTodayYieldPreview();
 
-  const earnings = React.useMemo(() => {
-    const adminUser = address
-      ? users.find((u) => u.wallet.toLowerCase() === address.toLowerCase())
-      : null;
-
-    if (adminUser) return computeShareEarnings(adminUser);
-
-    const operationalEarned = instantCredits.reduce((a, c) => a + c.amount, 0);
-    const passiveEarned = dailyYields.reduce((a, y) => a + y.creditedAmount, 0);
-    const networkEarned = totalCommissions;
-
-    return computeShareEarnings({
-      referrals: downline.length,
-      networkEarned,
-      passiveEarned,
-      operationalEarned,
-      totalEarned: summary.totalEarned,
-    } as Parameters<typeof computeShareEarnings>[0]);
-  }, [
-    address,
-    users,
-    summary.totalEarned,
-    totalCommissions,
-    downline.length,
-    instantCredits,
-    dailyYields,
-  ]);
+  const earnings = React.useMemo(
+    () =>
+      computePeriodEarnings({
+        dailyYields,
+        instantCredits,
+        commissions,
+        todayProjectedYield: preview.projectedAmount,
+      }),
+    [dailyYields, instantCredits, commissions, preview.projectedAmount],
+  );
 
   const username = profile?.username ?? "user";
 
@@ -88,13 +69,13 @@ export default function SharePage() {
     <div className="space-y-6">
       <PageHeader title={t("share.title")} subtitle={t("share.subtitle")} />
 
-      <Card className="max-w-xl">
+      <Card className="max-w-2xl">
         <CardContent className="p-6">
           <EarningsPoster username={username} earnings={earnings} />
         </CardContent>
       </Card>
 
-      <div className="max-w-xl space-y-3">
+      <div className="max-w-2xl space-y-3">
         <h2 className="font-display text-lg font-semibold text-text-primary">
           {t("share.reportsTitle")}
         </h2>

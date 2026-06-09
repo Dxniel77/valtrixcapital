@@ -670,8 +670,10 @@
   },
   "share": {
     "title": "Compartir ganancias",
-    "subtitle": "Descarga una imagen para marketing con tus ganancias diarias, semanales, mensuales y de los últimos 3 meses.",
+    "subtitle": "Descarga una imagen por periodo (día, semana, mes o 3 meses) con el diseño oficial de Valtrix.",
     "download": "Descargar imagen",
+    "downloadPeriod": "Descargar {period}",
+    "downloadAll": "Descargar las 4 imágenes",
     "reportsTitle": "Descargar reportes",
     "poster": {
       "networkUser": "Red + ganancia pasiva + operativa",
@@ -680,6 +682,11 @@
       "weekly": "Esta semana",
       "monthly": "Este mes",
       "threeMonths": "Últimos 3 meses",
+      "base": "Base (pasiva)",
+      "operational": "Operativa",
+      "network": "Red",
+      "totalHint": "Total del periodo en la imagen",
+      "userLabel": "Usuario",
       "footer": "valtrix.capital · Resultados individuales"
     },
     "exports": {
@@ -1054,6 +1061,7 @@
     "bonusWins": "Bono por victorias",
     "totalDaily": "Total diario",
     "noAttemptsLeft": "Has usado las {max} operaciones de hoy. Los intentos se reinician a las 00:00 UTC.",
+    "noCapital": "Necesitas capital invertido para operar. Deposita USDT en tu billetera primero.",
     "dailyAttempts": "Intentos diarios",
     "resetsIn": "Reinicio en",
     "wins": "Victorias",

@@ -1,148 +1,172 @@
 "use client";
 
 import * as React from "react";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
-import type { EarningsBreakdown } from "@/lib/admin/analytics";
-import { formatNumber } from "@/lib/utils";
+import {
+  getPosterPeriodMeta,
+  type PeriodEarningsDetailed,
+  type PosterPeriod,
+} from "@/lib/share/earnings-periods";
+import {
+  downloadDataUrl,
+  renderEarningsPoster,
+} from "@/lib/share/poster-canvas";
+import { cn, formatNumber } from "@/lib/utils";
+
+const PERIODS: PosterPeriod[] = ["daily", "weekly", "monthly", "threeMonths"];
 
 interface EarningsPosterProps {
   username: string;
-  earnings: EarningsBreakdown;
+  earnings: PeriodEarningsDetailed;
 }
 
 export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
   const { t } = useI18n();
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [active, setActive] = React.useState<PosterPeriod>("daily");
+  const [preview, setPreview] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
-  function draw() {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+  const meta = React.useMemo(
+    () => getPosterPeriodMeta(active, earnings),
+    [active, earnings],
+  );
 
-    const w = 1080;
-    const h = 1080;
-    canvas.width = w;
-    canvas.height = h;
+  const labels = React.useMemo(
+    () => ({
+      userLabel: t("share.poster.userLabel"),
+    }),
+    [t],
+  );
 
-    const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, "#0A0A0F");
-    grad.addColorStop(1, "#1A1510");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    renderEarningsPoster(meta, username, labels)
+      .then((url) => {
+        if (!cancelled) setPreview(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPreview(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meta, username, labels]);
 
-    ctx.strokeStyle = "rgba(212,175,55,0.35)";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(48, 48, w - 96, h - 96);
-
-    ctx.fillStyle = "#D4AF37";
-    ctx.font = "bold 56px system-ui, sans-serif";
-    ctx.fillText("VALTRIX CAPITAL", 80, 130);
-
-    ctx.fillStyle = "#F5F5F7";
-    ctx.font = "36px system-ui, sans-serif";
-    ctx.fillText(`@${username}`, 80, 200);
-
-    ctx.fillStyle = "#9CA0AB";
-    ctx.font="28px system-ui, sans-serif";
-    ctx.fillText(
-      earnings.hasNetwork
-        ? t("share.poster.networkUser")
-        : t("share.poster.soloUser"),
-      80,
-      250,
+  async function downloadOne(period: PosterPeriod) {
+    const periodMeta = getPosterPeriodMeta(period, earnings);
+    const url = await renderEarningsPoster(periodMeta, username, labels);
+    downloadDataUrl(
+      url,
+      `valtrix-ganancia-${periodMeta.filenameSuffix}-${username}.png`,
     );
+  }
 
-    ctx.fillStyle = "#D4AF37";
-    ctx.font = "bold 120px system-ui, sans-serif";
-    ctx.fillText(
-      `$${formatNumber(earnings.displayTotal, { decimals: 0 })}`,
-      80,
-      420,
-    );
-
-    ctx.fillStyle = "#F5F5F7";
-    ctx.font="32px system-ui, sans-serif";
-    const rows = [
-      [t("share.poster.daily"), earnings.daily],
-      [t("share.poster.weekly"), earnings.weekly],
-      [t("share.poster.monthly"), earnings.monthly],
-      [t("share.poster.threeMonths"), earnings.threeMonths],
-    ] as const;
-
-    let y = 520;
-    for (const [label, amount] of rows) {
-      ctx.fillStyle = "#9CA0AB";
-      ctx.fillText(label, 80, y);
-      ctx.fillStyle = "#F5F5F7";
-      ctx.font = "bold 40px system-ui, sans-serif";
-      ctx.fillText(`$${formatNumber(amount, { decimals: 2 })}`, 80, y + 44);
-      ctx.font = "32px system-ui, sans-serif";
-      y += 110;
+  async function downloadAll() {
+    for (const period of PERIODS) {
+      await downloadOne(period);
     }
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "22px system-ui, sans-serif";
-    ctx.fillText(t("share.poster.footer"), 80, h - 80);
-
-    return canvas.toDataURL("image/png");
   }
 
-  function download() {
-    const dataUrl = draw();
-    if (!dataUrl) return;
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `valtrix-earnings-${username}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
+  const periodLabel = (p: PosterPeriod) => {
+    if (p === "daily") return t("share.poster.daily");
+    if (p === "weekly") return t("share.poster.weekly");
+    if (p === "monthly") return t("share.poster.monthly");
+    return t("share.poster.threeMonths");
+  };
+
+  const slice = earnings[active];
 
   return (
-    <div className="space-y-4">
-      <canvas
-        ref={canvasRef}
-        className="hidden"
-        width={1080}
-        height={1080}
-        aria-hidden
-      />
-      <div className="rounded-xl border border-gold/30 bg-gradient-to-br from-bg-elevated to-bg-base p-8">
-        <p className="text-xs uppercase tracking-wider text-gold">Valtrix Capital</p>
-        <p className="mt-2 font-display text-2xl font-semibold">@{username}</p>
-        <p className="mt-1 text-sm text-text-muted">
-          {earnings.hasNetwork
-            ? t("share.poster.networkUser")
-            : t("share.poster.soloUser")}
-        </p>
-        <p className="mt-6 font-mono text-5xl text-gold">
-          ${formatNumber(earnings.displayTotal, { decimals: 0 })}
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-          <PosterStat label={t("share.poster.daily")} value={earnings.daily} />
-          <PosterStat label={t("share.poster.weekly")} value={earnings.weekly} />
-          <PosterStat label={t("share.poster.monthly")} value={earnings.monthly} />
-          <PosterStat label={t("share.poster.threeMonths")} value={earnings.threeMonths} />
-        </div>
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        {PERIODS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setActive(p)}
+            className={cn(
+              "rounded-md border px-3 py-1.5 text-xs transition-colors",
+              active === p
+                ? "border-gold/50 bg-gold/10 text-gold"
+                : "border-border-subtle text-text-secondary hover:bg-bg-hover",
+            )}
+          >
+            {periodLabel(p)}
+          </button>
+        ))}
       </div>
-      <Button variant="primary" size="md" onClick={download}>
-        <Download className="h-4 w-4" />
-        {t("share.download")}
-      </Button>
+
+      <div className="overflow-hidden rounded-xl border border-gold/25 bg-bg-base">
+        {loading || !preview ? (
+          <div className="flex aspect-square items-center justify-center bg-bg-elevated">
+            <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview}
+            alt={periodLabel(active)}
+            className="w-full object-contain"
+          />
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-sm">
+        <BreakdownStat
+          label={t("share.poster.base")}
+          value={slice.base}
+        />
+        <BreakdownStat
+          label={t("share.poster.operational")}
+          value={slice.operational}
+        />
+        <BreakdownStat
+          label={t("share.poster.network")}
+          value={slice.network}
+        />
+      </div>
+      <p className="text-center font-mono text-2xl text-gold">
+        ${formatNumber(slice.total, { decimals: 2 })}
+      </p>
+      <p className="text-center text-xs text-text-muted">
+        {t("share.poster.totalHint")}
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => downloadOne(active)}
+          disabled={loading}
+        >
+          <Download className="h-4 w-4" />
+          {t("share.downloadPeriod", { period: periodLabel(active) })}
+        </Button>
+        <Button variant="outline" size="md" onClick={downloadAll} disabled={loading}>
+          <Download className="h-4 w-4" />
+          {t("share.downloadAll")}
+        </Button>
+      </div>
     </div>
   );
 }
 
-function PosterStat({ label, value }: { label: string; value: number }) {
+function BreakdownStat({ label, value }: { label: string; value: number }) {
   return (
-    <div>
-      <p className="text-xs text-text-muted">{label}</p>
-      <p className="font-mono text-lg text-text-primary">
+    <div className="rounded-lg border border-border-subtle bg-bg-base/50 p-3 text-center">
+      <p className="text-[10px] uppercase tracking-wider text-text-muted">
+        {label}
+      </p>
+      <p className="mt-1 font-mono text-base text-text-primary">
         ${formatNumber(value, { decimals: 2 })}
       </p>
     </div>
   );
 }
+

@@ -669,25 +669,32 @@
     }
   },
   "share": {
-    "title": "Share earnings",
-    "subtitle": "Download a marketing image with daily, weekly, monthly and 3-month earnings.",
-    "download": "Download image",
-    "reportsTitle": "Download reports",
+    "title": "Compartir ganancias",
+    "subtitle": "Download one image per period (day, week, month or 3 months) with the official Valtrix design.",
+    "download": "Descargar imagen",
+    "reportsTitle": "Descargar reportes",
     "poster": {
-      "networkUser": "Network + passive + operational",
-      "soloUser": "Daily yield + operational",
-      "daily": "Today",
-      "weekly": "This week",
-      "monthly": "This month",
-      "threeMonths": "Last 3 months",
-      "footer": "valtrix.capital · Individual results"
+      "networkUser": "Red + ganancia pasiva + operativa",
+      "soloUser": "Ganancia diaria + operativa",
+      "daily": "Hoy",
+      "weekly": "Esta semana",
+      "monthly": "Este mes",
+      "threeMonths": "Últimos 3 meses",
+      "base": "Base (passive)",
+      "operational": "Operations",
+      "network": "Network",
+      "totalHint": "Period total on image",
+      "userLabel": "User",
+      "footer": "valtrix.capital · Resultados individuales"
     },
     "exports": {
-      "earnings": "Earnings report",
-      "withdrawals": "Withdrawals report",
-      "network": "Network report",
-      "operational": "Operational report"
-    }
+      "earnings": "Reporte de ganancias",
+      "withdrawals": "Reporte de retiros",
+      "network": "Reporte de red",
+      "operational": "Reporte operativo"
+    },
+    "downloadPeriod": "Download {period}",
+    "downloadAll": "Download all 4 images"
   },
   "historyPage": {
     "subtitle": "Deposits, withdrawals, performance, commissions and operations in a single book.",
@@ -1058,7 +1065,8 @@
       "undo": "Undo last drawing",
       "clearAll": "Clear all drawings"
     },
-    "yieldSummary": "Daily yield"
+    "yieldSummary": "Daily yield",
+    "noCapital": "You need invested capital to trade. Deposit USDT in your wallet first."
   },
   "notifications": {
     "title": "Notifications",

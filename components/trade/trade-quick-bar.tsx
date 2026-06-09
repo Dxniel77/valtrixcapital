@@ -22,7 +22,7 @@ export function TradeQuickBar({
   onDurationChange,
 }: TradeQuickBarProps) {
   const { t } = useI18n();
-  const { canTrade, execute, summary, maxTrades } = useTradeExecution(
+  const { canTrade, hasCapital, execute, summary, maxTrades } = useTradeExecution(
     pair,
     livePrice,
     duration,
@@ -30,6 +30,11 @@ export function TradeQuickBar({
 
   return (
     <div className="border-t border-border-subtle bg-bg-elevated/40 px-3 py-3 sm:px-4">
+      {!hasCapital ? (
+        <p className="mb-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          {t("trade.noCapital")}
+        </p>
+      ) : null}
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           {t("trade.quickTrade")}

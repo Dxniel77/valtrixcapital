@@ -11,6 +11,7 @@ import {
   activeCapital,
   computeDailyRate,
   PAYOUT_CAP_MULTIPLIER,
+  stakeEligibleForPassiveYieldNow,
   useStakingStore,
   type DailyYield,
   type InstantCredit,
@@ -200,11 +201,7 @@ export function useTodayYieldPreview(): TodayYieldPreview {
   return React.useMemo(() => {
     const today = utcDayKey();
     const capital = stakes
-      .filter(
-        (s) =>
-          s.status === "ACTIVE" &&
-          utcDayKey(s.confirmedAt ?? s.createdAt) < today,
-      )
+      .filter((s) => stakeEligibleForPassiveYieldNow(s))
       .reduce((acc, s) => acc + s.amount, 0);
     const todays = positions.filter(
       (p) => utcDayKey(p.openedAt) === today && p.status !== "OPEN",

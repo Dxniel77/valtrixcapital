@@ -62,6 +62,8 @@ export const STAKE_MIN_USDT = 15;
 export const STAKE_MAX_USDT = 100_000;
 export const PAYOUT_CAP_MULTIPLIER = 2; // 200%
 export const REQUIRED_CONFIRMATIONS = 12;
+/** Base passive yield starts 24h after deposit confirmation. */
+export const PASSIVE_YIELD_DELAY_MS = 24 * 60 * 60 * 1000;
 
 interface StakingState {
   stakes: Stake[];
@@ -334,23 +336,38 @@ function sumStakes(stakes: Stake[]): number {
   return activeCapital(stakes);
 }
 
+function endOfUtcDayMs(dayKey: string): number {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return Date.UTC(y, m - 1, d, 23, 59, 59, 999);
+}
+
+export function stakeEligibleForPassiveYield(
+  stake: Stake,
+  dayKey: string,
+): boolean {
+  if (stake.status !== "ACTIVE") return false;
+  const confirmed = stake.confirmedAt ?? stake.createdAt;
+  return confirmed + PASSIVE_YIELD_DELAY_MS <= endOfUtcDayMs(dayKey);
+}
+
+export function stakeEligibleForPassiveYieldNow(stake: Stake): boolean {
+  if (stake.status !== "ACTIVE") return false;
+  const confirmed = stake.confirmedAt ?? stake.createdAt;
+  return confirmed + PASSIVE_YIELD_DELAY_MS <= Date.now();
+}
+
 function enumerateAccrualDays(stakes: Stake[], today: string): string[] {
-  // Only accrue past UTC days where at least one stake was active.
-  // The "today" UTC day is intentionally excluded — accrues at 00:00 UTC.
-  const first = stakes.reduce<number | null>((acc, s) => {
-    const ts = s.confirmedAt ?? s.createdAt;
-    return acc === null || ts < acc ? ts : acc;
-  }, null);
-  if (first === null) return [];
+  if (stakes.length === 0) return [];
+  const firstEligibleMs = Math.min(
+    ...stakes.map(
+      (s) => (s.confirmedAt ?? s.createdAt) + PASSIVE_YIELD_DELAY_MS,
+    ),
+  );
   const out: string[] = [];
-  const cursor = new Date(first);
+  const cursor = new Date(firstEligibleMs);
   cursor.setUTCHours(0, 0, 0, 0);
-  // Start from the day AFTER the day a stake was made — yield accrues for full UTC days only.
-  cursor.setUTCDate(cursor.getUTCDate() + 1);
-  while (utcDayKey(cursor.getTime()) <= today) {
-    const key = utcDayKey(cursor.getTime());
-    if (key === today) break;
-    out.push(key);
+  while (utcDayKey(cursor.getTime()) < today) {
+    out.push(utcDayKey(cursor.getTime()));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return out;
@@ -359,8 +376,7 @@ function enumerateAccrualDays(stakes: Stake[], today: string): string[] {
 function capitalActiveOn(stakes: Stake[], dayKey: string): number {
   let total = 0;
   for (const s of stakes) {
-    const startDay = utcDayKey(s.confirmedAt ?? s.createdAt);
-    if (startDay < dayKey) total += s.amount;
+    if (stakeEligibleForPassiveYield(s, dayKey)) total += s.amount;
   }
   return total;
 }
