@@ -20,6 +20,7 @@ export interface DownlineMember {
   id: string;
   level: number;
   wallet: string;
+  displayName: string;
   isActive: boolean;
   capital: number;
   joinedAt: number;
@@ -111,6 +112,7 @@ function buildDemoDownline(): DownlineMember[] {
         id: makeId("ref"),
         level,
         wallet: randomWallet(),
+        displayName: `Investor${seed}`,
         isActive,
         capital: isActive ? capital : 0,
         joinedAt: Date.now() - seed * 86_400_000 * 3,
@@ -127,8 +129,7 @@ export const useReferralsStore = create<ReferralsState>()(
       ...initial,
 
       ensureCode: (walletAddress) => {
-        // Always make sure the demo network exists, even on returning sessions.
-        if (get().downline.length === 0) get().seedDemoNetwork();
+        get().seedDemoNetwork();
         const existing = get().referralCode;
         if (existing) return existing;
         const code = walletAddress
@@ -139,8 +140,19 @@ export const useReferralsStore = create<ReferralsState>()(
       },
 
       seedDemoNetwork: () => {
-        if (get().downline.length > 0) return;
-        set({ downline: buildDemoDownline() });
+        const current = get().downline;
+        if (current.length === 0) {
+          set({ downline: buildDemoDownline() });
+          return;
+        }
+        if (current.some((m) => !m.displayName)) {
+          set({
+            downline: current.map((m, i) => ({
+              ...m,
+              displayName: m.displayName ?? `Investor${i + 1}`,
+            })),
+          });
+        }
       },
 
       processCommissionsForYields: (yields) => {

@@ -117,7 +117,12 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <BreakdownStat
+          label={t("share.poster.periodTotal")}
+          value={slice.total}
+          accent
+        />
         <BreakdownStat
           label={t("share.poster.base")}
           value={slice.base}
@@ -131,11 +136,8 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
           value={slice.network}
         />
       </div>
-      <p className="text-center font-mono text-2xl text-gold">
-        ${formatNumber(slice.total, { decimals: 2 })}
-      </p>
       <p className="text-center text-xs text-text-muted">
-        {t("share.poster.totalHint")}
+        {t("share.poster.breakdownNote")}
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -157,13 +159,26 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
   );
 }
 
-function BreakdownStat({ label, value }: { label: string; value: number }) {
+function BreakdownStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-base/50 p-3 text-center">
       <p className="text-[10px] uppercase tracking-wider text-text-muted">
         {label}
       </p>
-      <p className="mt-1 font-mono text-base text-text-primary">
+      <p
+        className={cn(
+          "mt-1 font-mono text-base",
+          accent ? "text-gold" : "text-text-primary",
+        )}
+      >
         ${formatNumber(value, { decimals: 2 })}
       </p>
     </div>

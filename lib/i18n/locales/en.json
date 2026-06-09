@@ -508,7 +508,7 @@
       "todayRate": "Rate today",
       "wins": "Victories",
       "todayCreditNote": "It will be credited at 00:00 UTC. Win more trades today to raise the rate to 1%.",
-      "todayPreviewHint": "Performance is accumulated from the first full UTC day.",
+      "todayPreviewHint": "Base profit starts 24 hours after your deposit is confirmed. Trading and network earnings have no waiting period.",
       "yieldsTitle": "Daily accumulations",
       "yieldsBadge": "{n} record(s)",
       "yieldsEmpty": "Daily accumulations will appear here after the first UTC close.",
@@ -552,7 +552,19 @@
     "copyFailed": "Could not copy link",
     "shareText": "Join Valtrix Capital and grow your capital on-chain",
     "active": "Asset",
-    "inactive": "Idle"
+    "inactive": "Idle",
+    "directReferrals": "Direct referrals",
+    "directHint": "Level 1 · invited by you",
+    "networkReferrals": "Extended network",
+    "networkHint": "Levels 2–8",
+    "membersTitle": "Your network members",
+    "directLevel": "Direct",
+    "membersEmpty": "No members at this level.",
+    "colMember": "Member",
+    "colCapital": "Capital",
+    "colStatus": "Status",
+    "colJoined": "Since",
+    "colCommissions": "Commissions"
   },
   "botPage": {
     "title": "Bot Trading",
@@ -584,6 +596,8 @@
     "secondsAgo": "{n}s ago",
     "minutesAgo": "{n}m ago",
     "hoursAgo": "{n}h ago",
+    "profitResetHint": "Daily metrics reset at 00:00 UTC. Weekly profit covers the last 7 days; all-time profit accumulates without limit.",
+    "priceContinuityHint": "Trade chart prices come from live markets (Binance/Bybit) and continue 24/7—they do not reset at end of day.",
     "disclaimer": "The Bot Trading feed reflects institutional operations for transparency purposes. The on-chain references are illustrative in this demo."
   },
   "walletPage": {
@@ -680,9 +694,11 @@
       "weekly": "Esta semana",
       "monthly": "Este mes",
       "threeMonths": "Últimos 3 meses",
-      "base": "Base (passive)",
-      "operational": "Operations",
-      "network": "Network",
+      "base": "Base profit",
+      "operational": "Trading profit",
+      "network": "Network profit",
+      "periodTotal": "Period profit",
+      "breakdownNote": "Breakdown is shown here; the downloaded image includes only the total in USD.",
       "totalHint": "Period total on image",
       "userLabel": "User",
       "footer": "valtrix.capital · Resultados individuales"

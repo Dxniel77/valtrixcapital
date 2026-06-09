@@ -508,7 +508,7 @@
       "todayRate": "Tasa hoy",
       "wins": "Victorias",
       "todayCreditNote": "Se acreditará a las 00:00 UTC. Gana más operaciones hoy para subir la tasa hasta el 1%.",
-      "todayPreviewHint": "Rendimiento se acumula desde el primer día UTC completo.",
+      "todayPreviewHint": "La ganancia base comienza 24 h después de confirmar tu depósito. Operaciones y comisiones de red no tienen espera.",
       "yieldsTitle": "Acumulaciones diarias",
       "yieldsBadge": "{n} registro(s)",
       "yieldsEmpty": "Las acumulaciones diarias aparecerán aquí tras el primer cierre UTC.",
@@ -552,7 +552,19 @@
     "copyFailed": "No se pudo copiar el enlace",
     "shareText": "Únete a Valtrix Capital y haz crecer tu capital on-chain",
     "active": "Activo",
-    "inactive": "Inactivo"
+    "inactive": "Inactivo",
+    "directReferrals": "Referidos directos",
+    "directHint": "Nivel 1 · invitados por ti",
+    "networkReferrals": "Red extendida",
+    "networkHint": "Niveles 2–8",
+    "membersTitle": "Miembros de tu red",
+    "directLevel": "Directo",
+    "membersEmpty": "Sin miembros en este nivel.",
+    "colMember": "Miembro",
+    "colCapital": "Capital",
+    "colStatus": "Estado",
+    "colJoined": "Desde",
+    "colCommissions": "Comisiones"
   },
   "botPage": {
     "title": "Bot Trading",
@@ -584,6 +596,8 @@
     "secondsAgo": "hace {n}s",
     "minutesAgo": "hace {n}m",
     "hoursAgo": "hace {n}h",
+    "profitResetHint": "Las métricas diarias se reinician a las 00:00 UTC. La ganancia semanal usa los últimos 7 días y la histórica se acumula sin límite.",
+    "priceContinuityHint": "El precio del gráfico de trading proviene del mercado en vivo (Binance/Bybit) y continúa las 24 h; no se reinicia al cierre del día.",
     "disclaimer": "El feed del Bot Trading refleja operaciones institucionales con fines de transparencia. Las referencias on-chain son ilustrativas en esta demo."
   },
   "walletPage": {
@@ -682,9 +696,11 @@
       "weekly": "Esta semana",
       "monthly": "Este mes",
       "threeMonths": "Últimos 3 meses",
-      "base": "Base (pasiva)",
-      "operational": "Operativa",
-      "network": "Red",
+      "base": "Ganancia base",
+      "operational": "Ganancia trading",
+      "network": "Ganancia de red",
+      "periodTotal": "Ganancia del periodo",
+      "breakdownNote": "El desglose se muestra aquí; la imagen descargada incluye solo el total en USD.",
       "totalHint": "Total del periodo en la imagen",
       "userLabel": "Usuario",
       "footer": "valtrix.capital · Resultados individuales"

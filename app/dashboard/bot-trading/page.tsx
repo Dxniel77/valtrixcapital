@@ -144,6 +144,11 @@ export default function BotTradingPage() {
         </CardContent>
       </Card>
 
+      <div className="space-y-2 rounded-lg border border-border-subtle bg-bg-base/40 px-4 py-3 text-xs text-text-muted">
+        <p>{t("botPage.profitResetHint")}</p>
+        <p>{t("botPage.priceContinuityHint")}</p>
+      </div>
+
       <p className="text-xs text-text-muted">{t("botPage.disclaimer")}</p>
     </div>
   );

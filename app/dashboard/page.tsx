@@ -202,8 +202,6 @@ export default function DashboardOverviewPage() {
           <QuickLinksCard />
         </div>
       </div>
-
-      <RoadmapBanner />
     </div>
   );
 }
@@ -557,26 +555,5 @@ function QuickLinksCard() {
         ))}
       </CardContent>
     </Card>
-  );
-}
-
-function RoadmapBanner() {
-  const { t } = useI18n();
-  return (
-    <div className="rounded-lg border border-gold/30 bg-gradient-to-r from-gold/5 via-transparent to-info/5 p-5">
-      <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-center">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gold">
-            <Sparkles className="h-3.5 w-3.5" /> {t("dashboard.overview.roadmapBadge")}
-          </div>
-          <p className="mt-2 text-sm text-text-secondary">
-            {t("dashboard.overview.roadmapText")}
-          </p>
-        </div>
-        <Button asChild variant="outline" size="md">
-          <Link href="/dashboard/portfolio">{t("dashboard.overview.seeRoadmap")}</Link>
-        </Button>
-      </div>
-    </div>
   );
 }

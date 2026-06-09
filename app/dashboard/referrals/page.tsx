@@ -10,6 +10,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareButtons } from "@/components/referrals/share-buttons";
+import { NetworkMembersPanel } from "@/components/referrals/network-members-panel";
 import { useI18n } from "@/lib/i18n/context";
 import {
   referralLink,
@@ -38,6 +39,8 @@ export default function ReferralsPage() {
   const link = code ? referralLink(code) : "";
   const totalMembers = downline.length;
   const activeMembers = downline.filter((m) => m.isActive).length;
+  const directReferrals = downline.filter((m) => m.level === 1).length;
+  const networkReferrals = totalMembers - directReferrals;
 
   return (
     <div className="space-y-6">
@@ -46,13 +49,27 @@ export default function ReferralsPage() {
         subtitle={t("referralsPage.subtitle")}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatTile
           label={t("referralsPage.totalNetwork")}
           value={String(totalMembers)}
           icon={Network}
           accent="gold"
           hint={t("referralsPage.acrossLevels")}
+        />
+        <StatTile
+          label={t("referralsPage.directReferrals")}
+          value={String(directReferrals)}
+          icon={Link2}
+          accent="info"
+          hint={t("referralsPage.directHint")}
+        />
+        <StatTile
+          label={t("referralsPage.networkReferrals")}
+          value={String(networkReferrals)}
+          icon={Users}
+          accent="silver"
+          hint={t("referralsPage.networkHint")}
         />
         <StatTile
           label={t("referralsPage.activeMembers")}
@@ -68,13 +85,6 @@ export default function ReferralsPage() {
           accent="info"
           hint={t("referralsPage.creditedToBalance")}
         />
-        <StatTile
-          label={t("referralsPage.levels")}
-          value="8"
-          icon={Link2}
-          accent="silver"
-          hint={t("referralsPage.levelsHint")}
-        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -86,6 +96,8 @@ export default function ReferralsPage() {
         <DownlineTreeCard levelStats={levelStats} />
         <CommissionLedgerCard commissions={commissions} />
       </div>
+
+      <NetworkMembersPanel members={downline} levelStats={levelStats} />
     </div>
   );
 }
