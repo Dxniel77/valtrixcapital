@@ -1,10 +1,10 @@
 import type { PosterPeriod, PosterPeriodMeta } from "@/lib/share/earnings-periods";
 
 export const POSTER_TEMPLATES: Record<PosterPeriod, string> = {
-  daily: "/images/poster-daily.png",
-  weekly: "/images/poster-weekly-blank.png",
-  monthly: "/images/poster-monthly-blank.png",
-  threeMonths: "/images/poster-3months-blank.png",
+  daily: "/images/1.png",
+  weekly: "/images/2.png",
+  monthly: "/images/3.png",
+  threeMonths: "/images/4.png",
 };
 
 const GOLD = "#D4AF37";
@@ -35,31 +35,31 @@ interface PeriodLayout {
 const PERIOD_LAYOUT: Record<PosterPeriod, PeriodLayout> = {
   daily: {
     amountMode: "digitsOnly",
-    amount: { x: 0.225, y: 0.400, maxW: 0.6, size: 0.190 },
-    suffix: { gap: 0.008, size: 0.03 },
+    amount: { x: 0.160, y: 0.400, maxW: 0.7, size: 0.200 },
+    suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.170, y: 0.538, maxW: 0.52, size: 0.0240 },
     username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
   },
   weekly: {
     amountMode: "digitsOnly",
-    amount: { x: 0.225, y: 0.400, maxW: 0.6, size: 0.190 },
-    suffix: { gap: 0.008, size: 0.03 },
-    date: { x: 0.170, y: 0.538, maxW: 0.52, size: 0.0240 },
-    username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    suffix: { gap: 0.008, size: 0.04 },
+    date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
+    username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },
   },
   monthly: {
     amountMode: "digitsOnly",
-    amount: { x: 0.225, y: 0.400, maxW: 0.6, size: 0.190 },
-    suffix: { gap: 0.008, size: 0.03 },
-    date: { x: 0.170, y: 0.538, maxW: 0.52, size: 0.0240 },
-    username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    suffix: { gap: 0.008, size: 0.04 },
+    date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
+    username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },
   },
   threeMonths: {
     amountMode: "digitsOnly",
-    amount: { x: 0.225, y: 0.400, maxW: 0.6, size: 0.190 },
-    suffix: { gap: 0.008, size: 0.03 },
-    date: { x: 0.170, y: 0.538, maxW: 0.52, size: 0.0240 },
-    username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    suffix: { gap: 0.008, size: 0.04 },
+    date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
+    username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },
   },
 };
 
@@ -103,7 +103,7 @@ function formatAmount(
     maximumFractionDigits: 2,
   });
   if (mode === "digitsOnly") {
-    return { main: abs, suffix: "USD" };
+    return { main: `$${abs}`, suffix: "USD" };
   }
   const sign = amount >= 0 ? "+" : "-";
   return { main: `${sign} $${abs}`, suffix: "USD" };
@@ -171,7 +171,7 @@ function drawDynamicText(
     11,
   );
   ctx.fillStyle = WHITE;
-  ctx.font = `700 ${userSize}px ${FONT}`;
+  ctx.font = `500 ${userSize}px ${FONT}`;
   ctx.fillText(username, layout.username.x * width, layout.username.y * height);
 }
 

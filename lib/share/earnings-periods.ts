@@ -136,22 +136,8 @@ const MONTHS_ES = [
   "DICIEMBRE",
 ] as const;
 
-const WEEKDAYS_ES = [
-  "DOMINGO",
-  "LUNES",
-  "MARTES",
-  "MIÉRCOLES",
-  "JUEVES",
-  "VIERNES",
-  "SÁBADO",
-] as const;
-
 function formatDayEs(d: Date): string {
   return `${d.getUTCDate()} DE ${MONTHS_ES[d.getUTCMonth()]}, ${d.getUTCFullYear()}`;
-}
-
-function formatTodayEs(d: Date): string {
-  return `${WEEKDAYS_ES[d.getUTCDay()]}, ${d.getUTCDate()} DE ${MONTHS_ES[d.getUTCMonth()]}`;
 }
 
 function formatRangeEs(from: Date, to: Date): string {
@@ -178,7 +164,7 @@ export function getPosterPeriodMeta(
       return {
         period,
         amount: sliceFor.total,
-        rangeLabel: formatTodayEs(now),
+        rangeLabel: formatDayEs(now),
         filenameSuffix: "hoy",
         breakdown: {
           base: sliceFor.base,
