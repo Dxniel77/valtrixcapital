@@ -147,7 +147,7 @@ export default function DashboardOverviewPage() {
         />
         <StatTile
           label={t("dashboard.overview.toCap")}
-          value={`${formatNumber(portfolio.capProgressPct, { decimals: 0 })}%`}
+          value={`${formatNumber(portfolio.capProgressPct, { decimals: 1 })}%`}
           icon={portfolio.isCapReached ? Unlock : Lock}
           accent="silver"
           hint={
