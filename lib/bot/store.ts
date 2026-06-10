@@ -20,6 +20,8 @@ export interface BotOperation {
   executedAt: number;
   entryPrice: number;
   exitPrice: number;
+  /** UTC day key when profit was credited — survives tx rebinding. */
+  profitDay?: string;
 }
 
 export interface RecentChainTx {
@@ -49,7 +51,7 @@ interface BotState {
   recentTxPool: Record<BotNetwork, RecentChainTx[]>;
   recentTxPoolUpdatedAt: number;
   txPoolCursor: Record<BotNetwork, number>;
-  profitsMigrated: boolean;
+  creditedOpIds: string[];
   /** Last exit price per pair — keeps the feed continuous across UTC days. */
   pairLastPrice: Record<string, number>;
   /** Latest live market anchors from Binance tickers. */
@@ -74,7 +76,7 @@ const initial = {
   recentTxPool: { BSC: [], POLYGON: [] } as Record<BotNetwork, RecentChainTx[]>,
   recentTxPoolUpdatedAt: 0,
   txPoolCursor: { BSC: 0, POLYGON: 0 },
-  profitsMigrated: false,
+  creditedOpIds: [] as string[],
   pairLastPrice: {} as Record<string, number>,
   marketAnchors: {} as Record<string, number>,
 };
@@ -140,24 +142,96 @@ function isFreshOperation(op: BotOperation): boolean {
   return age <= FEED_STALE_MS && !isLegacyReferenceTx(op.fakeTxHash);
 }
 
-function buildDailyProfitsFromOps(ops: BotOperation[]): Record<string, number> {
-  const daily: Record<string, number> = {};
-  for (const op of ops) {
-    const day = utcDateKey(op.executedAt);
-    daily[day] = (daily[day] ?? 0) + botProfitUsd(op);
+function creditOperationProfit(
+  dailyProfits: Record<string, number>,
+  creditedOpIds: string[],
+  op: BotOperation,
+  profitDay: string,
+): {
+  dailyProfits: Record<string, number>;
+  creditedOpIds: string[];
+  op: BotOperation;
+} | null {
+  if (creditedOpIds.includes(op.id)) return null;
+  const profit = botProfitUsd(op);
+  if (profit <= 0) {
+    return {
+      dailyProfits,
+      creditedOpIds: [...creditedOpIds, op.id],
+      op: { ...op, profitDay },
+    };
   }
-  return daily;
+  return {
+    dailyProfits: {
+      ...dailyProfits,
+      [profitDay]: (dailyProfits[profitDay] ?? 0) + profit,
+    },
+    creditedOpIds: [...creditedOpIds, op.id],
+    op: { ...op, profitDay },
+  };
 }
 
-function mergeDailyProfits(
-  existing: Record<string, number>,
-  fromOps: Record<string, number>,
-): Record<string, number> {
-  const merged = { ...existing };
-  for (const [day, amount] of Object.entries(fromOps)) {
-    merged[day] = Math.max(merged[day] ?? 0, amount);
-  }
-  return merged;
+/** Spread seed timestamps across the last 7 UTC days for realistic profit buckets. */
+function seedExecutedAt(index: number, total: number): number {
+  const daysBack = total > 1 ? Math.floor((index / (total - 1)) * 6) : 0;
+  const jitterMs = Math.floor(Math.random() * 3_600_000);
+  return Date.now() - daysBack * 86_400_000 - jitterMs;
+}
+
+function rebuildProfitLedger(ops: BotOperation[]): {
+  dailyProfits: Record<string, number>;
+  creditedOpIds: string[];
+  operations: BotOperation[];
+} {
+  const sorted = [...ops].sort((a, b) => b.executedAt - a.executedAt);
+  let dailyProfits: Record<string, number> = {};
+  let creditedOpIds: string[] = [];
+  const operations = sorted.map((op, index) => {
+    const profitDay =
+      op.profitDay ??
+      utcDateKey(seedExecutedAt(index, sorted.length));
+    const credited = creditOperationProfit(
+      dailyProfits,
+      creditedOpIds,
+      op,
+      profitDay,
+    );
+    if (!credited) return op;
+    dailyProfits = credited.dailyProfits;
+    creditedOpIds = credited.creditedOpIds;
+    return credited.op;
+  });
+  return { dailyProfits, creditedOpIds, operations };
+}
+
+function reconcileUncreditedOps(state: {
+  operations: BotOperation[];
+  dailyProfits: Record<string, number>;
+  creditedOpIds: string[];
+}): Pick<BotState, "operations" | "dailyProfits" | "creditedOpIds"> | null {
+  let dailyProfits = { ...state.dailyProfits };
+  let creditedOpIds = [...state.creditedOpIds];
+  let operations = state.operations;
+  let changed = false;
+
+  const nextOps = operations.map((op) => {
+    if (creditedOpIds.includes(op.id)) return op;
+    const profitDay = op.profitDay ?? utcDateKey(op.executedAt);
+    const credited = creditOperationProfit(
+      dailyProfits,
+      creditedOpIds,
+      op,
+      profitDay,
+    );
+    if (!credited) return op;
+    dailyProfits = credited.dailyProfits;
+    creditedOpIds = credited.creditedOpIds;
+    changed = true;
+    return credited.op;
+  });
+
+  if (!changed) return null;
+  return { operations: nextOps, dailyProfits, creditedOpIds };
 }
 
 function pickChainTx(
@@ -263,6 +337,7 @@ function rebindOp(
       ...op,
       fakeTxHash: tx.hash,
       executedAt: tx.executedAt,
+      profitDay: op.profitDay,
     },
     nextCursor,
   };
@@ -298,35 +373,28 @@ export const useBotStore = create<BotState>()(
         const { op, txPoolCursor, pairLastPrice } = createOperation(state, true);
         if (!op) return null;
 
-        const day = utcDateKey(op.executedAt);
-        const profit = botProfitUsd(op);
+        const profitDay = utcDateKey(op.executedAt);
+        const credited = creditOperationProfit(
+          state.dailyProfits,
+          state.creditedOpIds,
+          op,
+          profitDay,
+        );
+        if (!credited) return op;
 
         set((s) => ({
           txPoolCursor,
           pairLastPrice,
-          operations: [op, ...s.operations].slice(0, FEED_MAX_OPS),
-          dailyProfits: {
-            ...s.dailyProfits,
-            [day]: (s.dailyProfits[day] ?? 0) + profit,
-          },
+          dailyProfits: credited.dailyProfits,
+          creditedOpIds: credited.creditedOpIds,
+          operations: [credited.op, ...s.operations].slice(0, FEED_MAX_OPS),
         }));
-        return op;
+        return credited.op;
       },
 
       seedInitial: (n = FEED_SEED_COUNT) => {
         const state = get();
         if (!hasUsableTxPool(state.recentTxPool)) return;
-
-        const prev = state.operations;
-        const now = Date.now();
-
-        if (!state.profitsMigrated) {
-          const fromOps = buildDailyProfitsFromOps(prev);
-          set({
-            dailyProfits: mergeDailyProfits(state.dailyProfits, fromOps),
-            profitsMigrated: true,
-          });
-        }
 
         const current = get();
         const freshEnough =
@@ -335,16 +403,22 @@ export const useBotStore = create<BotState>()(
         if (freshEnough) return;
 
         const freshExisting = current.operations.filter(isFreshOperation);
-        const ops: BotOperation[] = [];
+        const seededOps: BotOperation[] = [];
         let txPoolCursor = { ...current.txPoolCursor };
         let pairLastPrice = { ...current.pairLastPrice };
+        let dailyProfits = { ...current.dailyProfits };
+        let creditedOpIds = [...current.creditedOpIds];
         const needed = Math.max(0, n - freshExisting.length);
         for (let i = 0; i < needed; i += 1) {
           const created = createOperation(
             {
               ...current,
               pairLastPrice,
-              operations: [...ops, ...freshExisting, ...current.operations],
+              operations: [
+                ...seededOps,
+                ...freshExisting,
+                ...current.operations,
+              ],
               txPoolCursor,
             },
             false,
@@ -352,26 +426,28 @@ export const useBotStore = create<BotState>()(
           if (!created.op) break;
           txPoolCursor = created.txPoolCursor;
           pairLastPrice = created.pairLastPrice;
-          ops.push(created.op);
+          const executedAt = seedExecutedAt(i, needed);
+          const profitDay = utcDateKey(executedAt);
+          const credited = creditOperationProfit(
+            dailyProfits,
+            creditedOpIds,
+            { ...created.op, executedAt },
+            profitDay,
+          );
+          if (!credited) continue;
+          dailyProfits = credited.dailyProfits;
+          creditedOpIds = credited.creditedOpIds;
+          seededOps.push(credited.op);
         }
-        if (ops.length === 0 && freshExisting.length >= n) return;
-        if (ops.length === 0) return;
-
-        const shouldAccrueSeed = Object.keys(current.dailyProfits).length === 0;
-        const dailyProfits = { ...current.dailyProfits };
-        if (shouldAccrueSeed) {
-          for (const op of ops) {
-            const day = utcDateKey(op.executedAt);
-            dailyProfits[day] = (dailyProfits[day] ?? 0) + botProfitUsd(op);
-          }
-        }
+        if (seededOps.length === 0 && freshExisting.length >= n) return;
+        if (seededOps.length === 0) return;
 
         set({
-          operations: [...ops, ...freshExisting].slice(0, FEED_MAX_OPS),
+          operations: [...seededOps, ...freshExisting].slice(0, FEED_MAX_OPS),
           txPoolCursor,
           pairLastPrice,
           dailyProfits,
-          profitsMigrated: true,
+          creditedOpIds,
         });
       },
 
@@ -467,15 +543,16 @@ export const useBotStore = create<BotState>()(
         cadence: s.cadence,
         running: s.running,
         dailyProfits: s.dailyProfits,
+        creditedOpIds: s.creditedOpIds,
         recentTxPool: s.recentTxPool,
         recentTxPoolUpdatedAt: s.recentTxPoolUpdatedAt,
         txPoolCursor: s.txPoolCursor,
-        profitsMigrated: s.profitsMigrated,
         pairLastPrice: s.pairLastPrice,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (!state.dailyProfits) state.dailyProfits = {};
+        if (!state.creditedOpIds) state.creditedOpIds = [];
         if (!state.recentTxPool) {
           state.recentTxPool = { BSC: [], POLYGON: [] };
         }
@@ -492,9 +569,21 @@ export const useBotStore = create<BotState>()(
         if (state.operations?.some((op) => isLegacyReferenceTx(op.fakeTxHash))) {
           state.recentTxPoolUpdatedAt = 0;
         }
+        const reconciled = reconcileUncreditedOps({
+          operations: state.operations ?? [],
+          dailyProfits: state.dailyProfits,
+          creditedOpIds: state.creditedOpIds,
+        });
+        if (reconciled) {
+          state.operations = reconciled.operations;
+          state.dailyProfits = reconciled.dailyProfits;
+          state.creditedOpIds = reconciled.creditedOpIds;
+        }
       },
       migrate: (persisted, version) => {
-        const prev = persisted as Partial<BotState>;
+        const prev = persisted as Partial<BotState> & {
+          profitsMigrated?: boolean;
+        };
         const rawOps = (prev.operations ?? []).filter(
           (op) => !isLegacyReferenceTx(op.fakeTxHash),
         );
@@ -517,26 +606,30 @@ export const useBotStore = create<BotState>()(
           return { ...op, entryPrice, exitPrice };
         });
 
-        if (version < 5) {
+        const base = {
+          ...initial,
+          ...prev,
+          operations,
+          pairLastPrice,
+          recentTxPool: prev.recentTxPool ?? { BSC: [], POLYGON: [] },
+          recentTxPoolUpdatedAt: prev.recentTxPoolUpdatedAt ?? 0,
+          txPoolCursor: prev.txPoolCursor ?? { BSC: 0, POLYGON: 0 },
+          marketAnchors: {},
+          creditedOpIds: prev.creditedOpIds ?? [],
+        };
+
+        if (version < 6) {
+          const ledger = rebuildProfitLedger(operations);
           return {
-            ...initial,
-            ...prev,
-            operations,
-            pairLastPrice,
-            dailyProfits:
-              prev.dailyProfits && Object.keys(prev.dailyProfits).length > 0
-                ? prev.dailyProfits
-                : buildDailyProfitsFromOps(prev.operations ?? []),
-            profitsMigrated: true,
-            recentTxPool: prev.recentTxPool ?? { BSC: [], POLYGON: [] },
-            recentTxPoolUpdatedAt: prev.recentTxPoolUpdatedAt ?? 0,
-            txPoolCursor: prev.txPoolCursor ?? { BSC: 0, POLYGON: 0 },
-            marketAnchors: {},
+            ...base,
+            operations: ledger.operations,
+            dailyProfits: ledger.dailyProfits,
+            creditedOpIds: ledger.creditedOpIds,
           };
         }
         return persisted as BotState;
       },
-      version: 5,
+      version: 6,
     },
   ),
 );
