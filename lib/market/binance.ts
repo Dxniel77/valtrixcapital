@@ -1,19 +1,7 @@
 import type { Candle, Ticker } from "./types";
-import { BINANCE_INTERVAL, type Timeframe } from "./pairs";
+import { BINANCE_INTERVAL, type MarketSource, type Timeframe } from "./pairs";
 
-const REST_BASE = "https://api.binance.com";
 const WS_BASE = "wss://stream.binance.com:9443/stream";
-
-interface BinanceKline {
-  // [openTime, open, high, low, close, volume, closeTime, ...]
-  0: number;
-  1: string;
-  2: string;
-  3: string;
-  4: string;
-  5: string;
-  6: number;
-}
 
 interface BinanceWsKline {
   t: number; // start time ms
@@ -37,36 +25,30 @@ export async function fetchKlines(
   symbol: string,
   timeframe: Timeframe,
   limit = 300,
-): Promise<Candle[]> {
-  const interval = BINANCE_INTERVAL[timeframe];
-  const url = `${REST_BASE}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url, { cache: "no-store" });
+): Promise<{ candles: Candle[]; source: MarketSource }> {
+  const params = new URLSearchParams({
+    symbol,
+    timeframe,
+    limit: String(limit),
+  });
+  const res = await fetch(`/api/market/klines?${params}`, { cache: "no-store" });
   if (!res.ok) {
-    throw new Error(`Binance klines failed: ${res.status}`);
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Market klines failed: ${res.status}`);
   }
-  const data = (await res.json()) as BinanceKline[];
-  return data.map((k) => ({
-    time: Math.floor(k[0] / 1000),
-    open: parseFloat(k[1]),
-    high: parseFloat(k[2]),
-    low: parseFloat(k[3]),
-    close: parseFloat(k[4]),
-    volume: parseFloat(k[5]),
-  }));
+  return res.json() as Promise<{ candles: Candle[]; source: MarketSource }>;
 }
 
-export async function fetchTicker24h(symbol: string): Promise<Ticker> {
-  const url = `${REST_BASE}/api/v3/ticker/24hr?symbol=${symbol}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Binance 24hr ticker failed: ${res.status}`);
-  const j = await res.json();
-  return {
-    symbol,
-    price: parseFloat(j.lastPrice),
-    changePct: parseFloat(j.priceChangePercent),
-    volume: parseFloat(j.quoteVolume),
-    ts: Date.now(),
-  };
+export async function fetchTicker24h(
+  symbol: string,
+): Promise<{ ticker: Ticker; source: MarketSource }> {
+  const params = new URLSearchParams({ symbol });
+  const res = await fetch(`/api/market/ticker?${params}`, { cache: "no-store" });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Market ticker failed: ${res.status}`);
+  }
+  return res.json() as Promise<{ ticker: Ticker; source: MarketSource }>;
 }
 
 /**

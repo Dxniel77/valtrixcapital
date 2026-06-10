@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { Candle, Ticker } from "./types";
 import { fetchKlines, streamSymbol } from "./binance";
-import { fetchKlinesBybit, fetchTickerBybit } from "./bybit";
+import { fetchTickerBybit } from "./bybit";
 import type { Timeframe } from "./pairs";
 
 export interface MarketStreamState {
@@ -40,38 +40,33 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
       error: null,
     });
 
-    // Load historical candles. Prefer Binance, fallback to Bybit.
+    // Load historical candles via server proxy (Binance key, Bybit fallback).
     (async () => {
       try {
-        const candles = await fetchKlines(symbol, timeframe, 300);
+        const { candles, source } = await fetchKlines(symbol, timeframe, 300);
+        if (aborted) return;
+        const tickerResult =
+          source === "bybit"
+            ? await fetchTickerBybit(symbol).catch(() => null)
+            : null;
         if (aborted) return;
         setState((s) => ({
           ...s,
           candles,
-          livePrice: candles[candles.length - 1]?.close ?? null,
-          source: "binance",
+          livePrice:
+            candles[candles.length - 1]?.close ??
+            tickerResult?.ticker.price ??
+            null,
+          ticker: tickerResult?.ticker ?? null,
+          source,
         }));
-      } catch {
-        try {
-          const candles = await fetchKlinesBybit(symbol, timeframe, 300);
-          if (aborted) return;
-          const ticker = await fetchTickerBybit(symbol).catch(() => null);
-          if (aborted) return;
-          setState((s) => ({
-            ...s,
-            candles,
-            livePrice: candles[candles.length - 1]?.close ?? ticker?.price ?? null,
-            ticker,
-            source: "bybit",
-          }));
-        } catch (err) {
-          if (aborted) return;
-          setState((s) => ({
-            ...s,
-            status: "error",
-            error: err instanceof Error ? err.message : "Failed to load market data",
-          }));
-        }
+      } catch (err) {
+        if (aborted) return;
+        setState((s) => ({
+          ...s,
+          status: "error",
+          error: err instanceof Error ? err.message : "Failed to load market data",
+        }));
       }
     })();
 

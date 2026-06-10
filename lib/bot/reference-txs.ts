@@ -56,19 +56,7 @@ export function pickReferenceTxHash(network: BotNetwork, seed: string): string {
   return pool[hashSeed(seed) % pool.length]!;
 }
 
-/** Replace legacy random hashes with verified references. */
-export function normalizeBotTxHash(
-  network: BotNetwork,
-  seed: string,
-  current?: string,
-): string {
-  if (current && ALL_REFERENCE.has(current)) {
-    const pool = POOLS[network];
-    if (pool.includes(current)) return current;
-  }
-  return pickReferenceTxHash(network, seed);
-}
-
-export function isKnownReferenceTx(hash: string): boolean {
-  return ALL_REFERENCE.has(hash);
+/** True when the hash comes from the old static fallback pool (stale on explorers). */
+export function isLegacyReferenceTx(hash: string): boolean {
+  return ALL_REFERENCE.has(hash.toLowerCase());
 }

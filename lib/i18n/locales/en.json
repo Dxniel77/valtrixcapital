@@ -596,9 +596,9 @@
     "secondsAgo": "{n}s ago",
     "minutesAgo": "{n}m ago",
     "hoursAgo": "{n}h ago",
-    "profitResetHint": "Daily metrics reset at 00:00 UTC. Weekly profit covers the last 7 days; all-time profit accumulates without limit.",
+    "profitResetHint": "Daily profit is recorded at 00:00 UTC and kept in history. Today's total resets each day; weekly covers the last 7 days; all-time never decreases.",
     "priceContinuityHint": "Trade chart prices come from live markets (Binance/Bybit) and continue 24/7—they do not reset at end of day.",
-    "disclaimer": "The Bot Trading feed reflects institutional operations for transparency purposes. The on-chain references are illustrative in this demo."
+    "disclaimer": "The Bot Trading feed reflects institutional operations for transparency. On-chain links point to recent verified transfers on BscScan / PolygonScan."
   },
   "walletPage": {
     "title": "Wallet",
