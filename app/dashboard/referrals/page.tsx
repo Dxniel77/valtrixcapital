@@ -92,10 +92,7 @@ export default function ReferralsPage() {
         <LevelsCard levelStats={levelStats} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DownlineTreeCard levelStats={levelStats} />
-        <CommissionLedgerCard commissions={commissions} />
-      </div>
+      <CommissionLedgerCard commissions={commissions} />
 
       <NetworkMembersPanel members={downline} levelStats={levelStats} />
     </div>
@@ -202,47 +199,6 @@ function LevelsCard({
             </li>
           ))}
         </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DownlineTreeCard({
-  levelStats,
-}: {
-  levelStats: ReturnType<typeof useReferralLevelStats>;
-}) {
-  const { t } = useI18n();
-  const maxTotal = Math.max(1, ...levelStats.map((l) => l.total));
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("referralsPage.networkTree")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {levelStats.map((lvl) => (
-          <div key={lvl.level} className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary">
-                {t("referrals.level", { n: lvl.level })}
-              </span>
-              <span className="font-mono text-text-muted">
-                <span className="text-success">{lvl.active}</span> /{" "}
-                {lvl.total} · +${formatNumber(lvl.earned, { decimals: 2 })}
-              </span>
-            </div>
-            <div className="flex h-6 overflow-hidden rounded-md bg-bg-base">
-              <div
-                className="flex items-center bg-gradient-to-r from-gold/30 to-gold/70 transition-[width] duration-500"
-                style={{ width: `${(lvl.total / maxTotal) * 100}%` }}
-              >
-                <span className="px-2 font-mono text-[10px] text-text-inverse">
-                  {lvl.total > 0 ? lvl.total : ""}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
       </CardContent>
     </Card>
   );
