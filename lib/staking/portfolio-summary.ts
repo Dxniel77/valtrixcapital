@@ -45,6 +45,11 @@ export interface TodayYieldPreview {
   baseRateBps: number;
   bonusRateBps: number;
   totalRateBps: number;
+  /** Base passive only (0.3% of capital) — used for poster "ganancia base". */
+  projectedBaseAmount: number;
+  /** Win bonuses credited instantly as operational yield (0.1% × wins). */
+  projectedBonusAmount: number;
+  /** Total daily yield (base + bonuses) — dashboard headline. */
   projectedAmount: number;
   wins: number;
   losses: number;
@@ -165,9 +170,9 @@ export function usePortfolioSummary(): PortfolioSummary {
     });
     const today = utcDayKey();
     const todayAlreadyAccrued = dailyYields.some((y) => y.date === today);
-    const todayProjectedYield = todayAlreadyAccrued
+    const todayProjectedBase = todayAlreadyAccrued
       ? 0
-      : preview.projectedAmount;
+      : preview.projectedBaseAmount;
     const pendingOps = pendingOperationalCredit(
       stakes,
       creditedPositionIds,
@@ -178,7 +183,7 @@ export function usePortfolioSummary(): PortfolioSummary {
       stakes,
       earningsBalance,
       creditedTotalEarned,
-      todayProjectedYield: todayProjectedYield + pendingOps,
+      todayProjectedYield: todayProjectedBase + pendingOps,
       breakdown,
     });
   }, [
@@ -191,7 +196,7 @@ export function usePortfolioSummary(): PortfolioSummary {
     totalCommissions,
     pendingNetworkEarnings,
     positions,
-    preview.projectedAmount,
+    preview.projectedBaseAmount,
   ]);
 }
 
@@ -209,14 +214,17 @@ export function useTodayYieldPreview(): TodayYieldPreview {
     const wins = todays.filter((p) => p.status === "WIN").length;
     const losses = todays.filter((p) => p.status === "LOSS").length;
     const rate = computeDailyRate(wins);
-    const projectedAmount = (capital * rate.totalRateBps) / 10_000;
+    const projectedBaseAmount = (capital * rate.baseRateBps) / 10_000;
+    const projectedBonusAmount = (capital * rate.bonusRateBps) / 10_000;
     return {
       date: today,
       capital,
       baseRateBps: rate.baseRateBps,
       bonusRateBps: rate.bonusRateBps,
       totalRateBps: rate.totalRateBps,
-      projectedAmount,
+      projectedBaseAmount,
+      projectedBonusAmount,
+      projectedAmount: projectedBaseAmount + projectedBonusAmount,
       wins,
       losses,
     };

@@ -68,6 +68,7 @@ export function computePeriodEarnings(input: {
   dailyYields: DailyYield[];
   instantCredits: InstantCredit[];
   commissions: CommissionRecord[];
+  /** Today's not-yet-accrued base passive (0.3% only — win bonuses live in instantCredits). */
   todayProjectedYield?: number;
 }): PeriodEarningsDetailed {
   const now = Date.now();

@@ -38,9 +38,9 @@ export default function SharePage() {
         dailyYields,
         instantCredits,
         commissions,
-        todayProjectedYield: preview.projectedAmount,
+        todayProjectedYield: preview.projectedBaseAmount,
       }),
-    [dailyYields, instantCredits, commissions, preview.projectedAmount],
+    [dailyYields, instantCredits, commissions, preview.projectedBaseAmount],
   );
 
   const username = profile?.username ?? "user";
