@@ -55,6 +55,8 @@ export interface AdminMovement {
   type: "DEPOSIT" | "WITHDRAWAL" | "YIELD" | "COMMISSION";
   wallet: string;
   amount: number;
+  /** Passive daily accrual vs instant trade-win bonus (YIELD only). */
+  yieldKind?: "operational" | "passive";
   network: AdminNetwork | null;
   status: string;
   timestamp: number;
@@ -201,19 +203,27 @@ function buildDemoMovements(users: AdminUser[]): AdminMovement[] {
   for (let i = 0; i < 60; i += 1) {
     const u = users[Math.floor(Math.random() * users.length)];
     const type = types[Math.floor(Math.random() * types.length)];
-    const base =
-      type === "DEPOSIT"
-        ? 100 + Math.random() * 5000
-        : type === "WITHDRAWAL"
-          ? 50 + Math.random() * 2000
-          : type === "YIELD"
-            ? Math.random() * 60
-            : Math.random() * 25;
+    let yieldKind: AdminMovement["yieldKind"];
+    let amount: number;
+    if (type === "DEPOSIT") {
+      amount = 100 + Math.random() * 5000;
+    } else if (type === "WITHDRAWAL") {
+      amount = 50 + Math.random() * 2000;
+    } else if (type === "YIELD") {
+      yieldKind = Math.random() > 0.35 ? "passive" : "operational";
+      amount =
+        yieldKind === "operational"
+          ? 5 + Math.random() * 25
+          : 50 + Math.random() * 200;
+    } else {
+      amount = Math.random() * 25;
+    }
     movements.push({
       id: makeId("mov"),
       type,
       wallet: u.wallet,
-      amount: Math.round(base * 100) / 100,
+      amount: Math.round(amount * 100) / 100,
+      yieldKind,
       network: type === "YIELD" || type === "COMMISSION" ? null : u.network,
       status:
         type === "WITHDRAWAL"

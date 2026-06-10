@@ -1,5 +1,9 @@
 import type { AdminMovement, AdminUser, AuditEntry } from "@/lib/admin/store";
-import type { UserDetailSnapshot, UserLeaderRow } from "@/lib/admin/analytics";
+import {
+  billingPeriodTotal,
+  type UserDetailSnapshot,
+  type UserLeaderRow,
+} from "@/lib/admin/analytics";
 import { downloadCsv } from "@/lib/ledger";
 
 export function exportUsersCsv(users: AdminUser[]): void {
@@ -64,7 +68,7 @@ export function exportUsersBillingCsv(
       r.user.alias,
       r.user.wallet,
       r.user.accountGranted,
-      r.total,
+      billingPeriodTotal(r),
       r.operational,
       r.network,
       r.passive,

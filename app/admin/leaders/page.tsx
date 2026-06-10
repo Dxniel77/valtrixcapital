@@ -9,6 +9,7 @@ import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStore } from "@/lib/admin/store";
 import {
+  billingPeriodTotal,
   computeTopPerformers,
   type LeaderPeriod,
 } from "@/lib/admin/analytics";
@@ -96,7 +97,7 @@ export default function AdminLeadersPage() {
                 </p>
               </TD>
               <TD className="text-right font-mono text-gold">
-                ${formatNumber(row.total, { decimals: 0 })}
+                ${formatNumber(billingPeriodTotal(row), { decimals: 0 })}
               </TD>
               <TD className="text-right font-mono text-text-secondary">
                 ${formatNumber(row.operational, { decimals: 0 })}

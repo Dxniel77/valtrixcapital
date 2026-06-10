@@ -75,6 +75,19 @@ function round(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+/** Period total billed — always operativa + red + pasiva (L1–L8 is volume only). */
+export function billingPeriodTotal(
+  row: Pick<UserLeaderRow, "operational" | "network" | "passive">,
+): number {
+  return round(row.operational + row.network + row.passive);
+}
+
+function yieldKindFor(m: AdminMovement): "operational" | "passive" | null {
+  if (m.type !== "YIELD") return null;
+  if (m.yieldKind) return m.yieldKind;
+  return m.amount < 50 ? "operational" : "passive";
+}
+
 export function computeUserBilling(
   user: AdminUser,
   allUsers: AdminUser[],
@@ -90,11 +103,11 @@ export function computeUserBilling(
   );
 
   const operational = userPeriod
-    .filter((m) => m.type === "YIELD" && m.amount < 50)
+    .filter((m) => yieldKindFor(m) === "operational")
     .reduce((a, m) => a + m.amount, 0);
 
   const passive = userPeriod
-    .filter((m) => m.type === "YIELD" && m.amount >= 50)
+    .filter((m) => yieldKindFor(m) === "passive")
     .reduce((a, m) => a + m.amount, 0);
 
   const network = userPeriod
@@ -115,15 +128,22 @@ export function computeUserBilling(
     return { level, amount: round(amount) };
   });
 
-  const total = round(operational + network + passive);
+  const operationalR = round(operational);
+  const networkR = round(network);
+  const passiveR = round(passive);
+  const total = billingPeriodTotal({
+    operational: operationalR,
+    network: networkR,
+    passive: passiveR,
+  });
 
   return {
     user,
     total,
     byLevel,
-    operational: round(operational),
-    network: round(network),
-    passive: round(passive),
+    operational: operationalR,
+    network: networkR,
+    passive: passiveR,
   };
 }
 

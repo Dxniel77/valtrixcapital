@@ -25,6 +25,7 @@ import {
   type AdminUser,
 } from "@/lib/admin/store";
 import {
+  billingPeriodTotal,
   computeUserBilling,
   type LeaderPeriod,
 } from "@/lib/admin/analytics";
@@ -62,7 +63,9 @@ export default function AdminUsersPage() {
       list = list.filter((r) => r.user.accountGranted);
     }
 
-    return list.sort((a, b) => b.total - a.total);
+    return list.sort(
+      (a, b) => billingPeriodTotal(b) - billingPeriodTotal(a),
+    );
   }, [users, movements, period, query, sponsoredOnly]);
 
   const periodLabel = (p: LeaderPeriod) => {
@@ -199,7 +202,7 @@ export default function AdminUsersPage() {
                     </TD>
                   ))}
                   <TD className="text-right font-mono font-medium text-gold">
-                    ${formatNumber(row.total, { decimals: 0 })}
+                    ${formatNumber(billingPeriodTotal(row), { decimals: 0 })}
                   </TD>
                   <TD>
                     <Badge variant={u.status === "ACTIVE" ? "success" : "default"}>
