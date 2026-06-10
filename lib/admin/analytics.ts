@@ -115,10 +115,7 @@ export function computeUserBilling(
     return { level, amount: round(amount) };
   });
 
-  const levelSum = byLevel.reduce((a, l) => a + l.amount, 0);
-  const total = round(
-    operational + network + passive + levelSum * 0.01,
-  );
+  const total = round(operational + network + passive);
 
   return {
     user,
