@@ -268,7 +268,7 @@ model AppConfig {
   bonusPerWinBps     Int      @default(10)
   maxTradesPerDay    Int      @default(7)
   maxDailyYieldBps   Int      @default(100)
-  withdrawalFeeBps   Int      @default(300)
+  withdrawalFeeBps   Int      @default(400)
   commissionRatesBps Int[]    @default([700, 300, 200, 100, 100, 50, 50])
   minStake           BigInt   @default(15000000)
   maxStake           BigInt   @default(100000000000)

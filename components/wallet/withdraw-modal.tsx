@@ -24,6 +24,7 @@ import { useWalletStore } from "@/lib/wallet/store";
 import {
   MIN_WITHDRAWAL_USDT,
   WITHDRAWAL_FEE_BPS,
+  WITHDRAWAL_FEE_PCT,
   computeWithdrawal,
 } from "@/lib/wallet/constants";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
@@ -222,7 +223,11 @@ export function WithdrawModal({
 
               <div className="rounded-md border border-border-subtle bg-bg-base/60 p-3 text-xs">
                 <div className="flex justify-between py-0.5 text-text-secondary">
-                  <span>{t("walletPage.withdraw.feeRow", { pct: "3" })}</span>
+                  <span>
+                    {t("walletPage.withdraw.feeRow", {
+                      pct: String(WITHDRAWAL_FEE_PCT),
+                    })}
+                  </span>
                   <span className="font-mono text-danger">
                     −${formatNumber(breakdown.fee, { decimals: 2 })}
                   </span>

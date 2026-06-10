@@ -310,7 +310,7 @@
       "totalEarned": "Total won",
       "payoutCapLabel": "Limit",
       "roadmapBadge": "Week 5 of 6 — Money comes and goes",
-      "roadmapText": "Wallet with deposits and withdrawals (3% commission), complete financial history with CSV export and administration panel. Week 6 closes with mobile responsive, notifications and production QA.",
+      "roadmapText": "Wallet with deposits and withdrawals (4% commission), complete financial history with CSV export and administration panel. Week 6 closes with mobile responsive, notifications and production QA.",
       "seeRoadmap": "View roadmap",
       "adminPanel": "Administration panel",
       "companyProfits": "company profits",
@@ -333,7 +333,7 @@
         "title": "Wallet",
         "subtitle": "Deposit USDT, withdraw earnings at BSC or Polygon.",
         "comingTitle": "Wallet, deposits and withdrawals",
-        "comingDesc": "Detection of non-custodial deposits and payments reviewed by admin with a fixed 3% commission on withdrawals."
+        "comingDesc": "Detection of non-custodial deposits and payments reviewed by admin with a fixed 4% commission on withdrawals."
       },
       "portfolio": {
         "title": "Portfolio",
@@ -656,7 +656,7 @@
     },
     "withdraw": {
       "title": "Withdraw profits",
-      "subtitle": "A fixed commission of 3% is applied to the amount withdrawn.",
+      "subtitle": "A fixed commission of 4% is applied to the amount withdrawn.",
       "successTitle": "Withdrawal requested",
       "successSubtitle": "Track the status in your wallet.",
       "amountLabel": "Amount to withdraw",

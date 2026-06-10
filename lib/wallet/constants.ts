@@ -1,7 +1,9 @@
 import type { StakingNetwork } from "@/lib/staking/store";
 
-/** Flat 3% withdrawal fee (matches AppConfig.withdrawalFeeBps default). */
-export const WITHDRAWAL_FEE_BPS = 300;
+/** Flat 4% withdrawal fee (matches AppConfig.withdrawalFeeBps default). */
+export const WITHDRAWAL_FEE_BPS = 400;
+
+export const WITHDRAWAL_FEE_PCT = WITHDRAWAL_FEE_BPS / 100;
 
 /** Minimum withdrawal in USDT. */
 export const MIN_WITHDRAWAL_USDT = 10;
