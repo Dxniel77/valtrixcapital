@@ -1016,8 +1016,8 @@
     }
   },
   "trade": {
-    "title": "Operate",
-    "subtitle": "Live markets, 1–5 minute UP/DOWN trading. UTC Day · {day}",
+    "title": "Active Market Opportunities",
+    "subtitle": "Identify bullish and bearish movements instantly",
     "live": "Live · {source}",
     "connecting": "Connecting…",
     "offline": "Offline",

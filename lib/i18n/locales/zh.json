@@ -972,8 +972,8 @@
     }
   },
   "trade": {
-    "title": "Operar",
-    "subtitle": "Mercados en vivo, operaciones SUBE/BAJA de 1–5 minutos. Día UTC · {day}",
+    "title": "Oportunidades Activas del Mercado",
+    "subtitle": "Identifica movimientos alcistas y bajistas al instante",
     "live": "En vivo · {source}",
     "connecting": "Conectando…",
     "offline": "Sin conexión",
