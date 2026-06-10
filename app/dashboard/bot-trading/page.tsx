@@ -7,15 +7,12 @@ import {
   ArrowUp,
   Bot,
   ExternalLink,
-  Pause,
-  Play,
   TrendingUp,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import {
@@ -41,8 +38,6 @@ export default function BotTradingPage() {
   const { t } = useI18n();
   const hydrated = useBotStoreHydrated();
   const operations = useBotStore((s) => s.operations);
-  const running = useBotStore((s) => s.running);
-  const setRunning = useBotStore((s) => s.setRunning);
   const profits = useCompanyProfits();
 
   const syncMarketAnchors = useBotStore((s) => s.syncMarketAnchors);
@@ -70,14 +65,9 @@ export default function BotTradingPage() {
       <PageHeader
         title={t("botPage.title")}
         actions={
-          <Badge variant={running ? "success" : "warning"}>
-            <span
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                running ? "bg-success animate-pulse-soft" : "bg-warning",
-              )}
-            />
-            {running ? t("botPage.live") : t("botPage.paused")}
+          <Badge variant="success">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-soft" />
+            {t("botPage.live")}
           </Badge>
         }
       />
@@ -115,26 +105,7 @@ export default function BotTradingPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>{t("botPage.feedTitle")}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={running ? "outline" : "primary"}
-                size="sm"
-                onClick={() => setRunning(!running)}
-              >
-                {running ? (
-                  <>
-                    <Pause className="h-3.5 w-3.5" /> {t("botPage.pause")}
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-3.5 w-3.5" /> {t("botPage.resume")}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          <CardTitle>{t("botPage.feedTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="hidden grid-cols-[1fr_0.7fr_0.9fr_0.9fr_0.8fr_0.7fr_1fr] gap-3 border-b border-border-subtle px-3 py-2 text-[10px] uppercase tracking-wider text-text-muted md:grid">
@@ -151,7 +122,7 @@ export default function BotTradingPage() {
           ) : (
             <ul className="divide-y divide-border-subtle">
               {operations.map((op, idx) => (
-                <BotRow key={op.id} op={op} isNewest={idx === 0 && running} />
+                <BotRow key={op.id} op={op} isNewest={idx === 0} />
               ))}
             </ul>
           )}

@@ -551,6 +551,7 @@ export const useBotStore = create<BotState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        state.running = true;
         if (!state.dailyProfits) state.dailyProfits = {};
         if (!state.creditedOpIds) state.creditedOpIds = [];
         if (!state.recentTxPool) {
