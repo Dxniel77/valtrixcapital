@@ -561,10 +561,15 @@
     "directLevel": "Direct",
     "membersEmpty": "No members at this level.",
     "colMember": "Member",
+    "colLevel": "Level",
+    "colType": "Type",
     "colCapital": "Capital",
+    "colReferrals": "Direct / Network",
     "colStatus": "Status",
     "colJoined": "Since",
-    "colCommissions": "Commissions"
+    "colEarned": "Total earned",
+    "colCommissions": "Commissions",
+    "networkLevel": "Network"
   },
   "botPage": {
     "title": "Bot Trading",
@@ -587,6 +592,7 @@
     "cadenceSlow": "Slow",
     "colPair": "Pair",
     "colDirection": "Address",
+    "colPrice": "Price",
     "colVolume": "Volume",
     "colPnl": "P/L %",
     "colTime": "Hour",
@@ -597,7 +603,7 @@
     "minutesAgo": "{n}m ago",
     "hoursAgo": "{n}h ago",
     "profitResetHint": "Daily profit is recorded at 00:00 UTC and kept in history. Today's total resets each day; weekly covers the last 7 days; all-time never decreases.",
-    "priceContinuityHint": "Trade chart prices come from live markets (Binance/Bybit) and continue 24/7—they do not reset at end of day.",
+    "priceContinuityHint": "Bot feed prices chain from live markets (Binance) and the last exit price per pair—e.g. if BTC closes the day at 75,757, the next operation continues from that level across UTC midnight.",
     "disclaimer": "The Bot Trading feed reflects institutional operations for transparency. On-chain links point to recent verified transfers on BscScan / PolygonScan."
   },
   "walletPage": {
@@ -714,7 +720,7 @@
       "operational": "Trading profit",
       "network": "Network profit",
       "periodTotal": "Period profit",
-      "breakdownNote": "Breakdown is shown here; the downloaded image includes only the total in USD.",
+      "breakdownNote": "The downloaded image includes period total plus base, trading, and network profit breakdown.",
       "totalHint": "Period total on image",
       "userLabel": "User",
       "footer": "valtrix.capital · Individual results"

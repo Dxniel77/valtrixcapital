@@ -27,6 +27,7 @@ import {
   type BotOperation,
 } from "@/lib/bot/store";
 import { PAIRS } from "@/lib/market/pairs";
+import { useTickers } from "@/lib/market/use-tickers";
 import {
   cn,
   explorerName,
@@ -44,7 +45,19 @@ export default function BotTradingPage() {
   const setRunning = useBotStore((s) => s.setRunning);
   const profits = useCompanyProfits();
 
+  const syncMarketAnchors = useBotStore((s) => s.syncMarketAnchors);
+  const symbols = React.useMemo(() => PAIRS.map((p) => p.binance), []);
+  const tickers = useTickers(symbols);
+
   useBotFeedEngine();
+
+  React.useEffect(() => {
+    const prices: Record<string, number> = {};
+    for (const [symbol, ticker] of Object.entries(tickers)) {
+      if (ticker?.price) prices[symbol] = ticker.price;
+    }
+    if (Object.keys(prices).length > 0) syncMarketAnchors(prices);
+  }, [tickers, syncMarketAnchors]);
 
   const winRate = React.useMemo(() => {
     if (operations.length === 0) return 0;
@@ -124,9 +137,10 @@ export default function BotTradingPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="hidden grid-cols-[1.1fr_0.8fr_1fr_0.9fr_0.8fr_1fr] gap-3 border-b border-border-subtle px-3 py-2 text-[10px] uppercase tracking-wider text-text-muted md:grid">
+          <div className="hidden grid-cols-[1fr_0.7fr_0.9fr_0.9fr_0.8fr_0.7fr_1fr] gap-3 border-b border-border-subtle px-3 py-2 text-[10px] uppercase tracking-wider text-text-muted md:grid">
             <span>{t("botPage.colPair")}</span>
             <span>{t("botPage.colDirection")}</span>
+            <span className="text-right">{t("botPage.colPrice")}</span>
             <span className="text-right">{t("botPage.colVolume")}</span>
             <span className="text-right">{t("botPage.colPnl")}</span>
             <span className="text-right">{t("botPage.colTime")}</span>
@@ -164,7 +178,7 @@ function BotRow({ op, isNewest }: { op: BotOperation; isNewest: boolean }) {
   return (
     <li
       className={cn(
-        "grid grid-cols-2 items-center gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.1fr_0.8fr_1fr_0.9fr_0.8fr_1fr]",
+        "grid grid-cols-2 items-center gap-3 px-3 py-2.5 text-sm md:grid-cols-[1fr_0.7fr_0.9fr_0.9fr_0.8fr_0.7fr_1fr]",
         isNewest && "animate-fade-in bg-gold/[0.03]",
       )}
     >
@@ -187,6 +201,13 @@ function BotRow({ op, isNewest }: { op: BotOperation; isNewest: boolean }) {
       >
         {up ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
         {up ? t("botPage.long") : t("botPage.short")}
+      </span>
+
+      <span
+        className="col-span-2 font-mono text-xs text-text-secondary md:col-span-1 md:text-right"
+        title={`${formatNumber(op.entryPrice, { decimals: pair?.pricePrecision ?? 2 })} → ${formatNumber(op.exitPrice, { decimals: pair?.pricePrecision ?? 2 })}`}
+      >
+        {formatNumber(op.exitPrice, { decimals: pair?.pricePrecision ?? 2 })}
       </span>
 
       <span className="font-mono text-text-secondary md:text-right">

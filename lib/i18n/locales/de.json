@@ -561,10 +561,15 @@
     "directLevel": "Directo",
     "membersEmpty": "Sin miembros en este nivel.",
     "colMember": "Miembro",
+    "colLevel": "Nivel",
+    "colType": "Tipo",
     "colCapital": "Capital",
+    "colReferrals": "Directos / Red",
     "colStatus": "Estado",
     "colJoined": "Desde",
-    "colCommissions": "Comisiones"
+    "colEarned": "Ganancia total",
+    "colCommissions": "Comisiones",
+    "networkLevel": "Red"
   },
   "botPage": {
     "title": "Bot Trading",
@@ -587,6 +592,7 @@
     "cadenceSlow": "Lento",
     "colPair": "Par",
     "colDirection": "Dirección",
+    "colPrice": "Precio",
     "colVolume": "Volumen",
     "colPnl": "P/L %",
     "colTime": "Hora",
@@ -598,7 +604,7 @@
     "hoursAgo": "hace {n}h",
     "disclaimer": "El feed del Bot Trading refleja operaciones institucionales con fines de transparencia. Las referencias on-chain son ilustrativas en esta demo.",
     "profitResetHint": "Las métricas diarias se reinician a las 00:00 UTC. La ganancia semanal usa los últimos 7 días y la histórica se acumula sin límite.",
-    "priceContinuityHint": "El precio del gráfico de trading proviene del mercado en vivo (Binance/Bybit) y continúa las 24 h; no se reinicia al cierre del día."
+    "priceContinuityHint": "Los precios del bot encadenan el mercado en vivo (Binance) y el último precio de salida por par; si BTC cierra el día en 75.757, la siguiente operación continúa desde ese nivel al pasar medianoche UTC."
   },
   "walletPage": {
     "title": "Billetera",
@@ -1090,7 +1096,7 @@
       "userLabel": "Usuario",
       "footer": "valtrix.capital · Resultados individuales",
       "periodTotal": "Ganancia del periodo",
-      "breakdownNote": "El desglose se muestra aquí; la imagen descargada incluye solo el total en USD."
+      "breakdownNote": "La imagen descargada incluye el total del periodo más el desglose de ganancia base, trading y red."
     },
     "exports": {
       "earnings": "Reporte de ganancias",

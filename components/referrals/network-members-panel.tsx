@@ -30,10 +30,33 @@ export function NetworkMembersPanel({
     return map;
   }, [members]);
 
+  const directCount = members.filter((m) => m.level === 1).length;
+  const networkCount = members.length - directCount;
+  const activeCount = members.filter((m) => m.isActive).length;
+  const totalCapital = members.reduce((acc, m) => acc + m.capital, 0);
+
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
         <CardTitle>{t("referralsPage.membersTitle")}</CardTitle>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryChip
+            label={t("referralsPage.directReferrals")}
+            value={String(directCount)}
+          />
+          <SummaryChip
+            label={t("referralsPage.networkReferrals")}
+            value={String(networkCount)}
+          />
+          <SummaryChip
+            label={t("referralsPage.activeMembers")}
+            value={`${activeCount}/${members.length}`}
+          />
+          <SummaryChip
+            label={t("referralsPage.colCapital")}
+            value={`$${formatNumber(totalCapital, { decimals: 0 })}`}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {levelStats.map((lvl) => {
@@ -80,20 +103,32 @@ export function NetworkMembersPanel({
                     </p>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[520px] text-left text-xs">
+                      <table className="w-full min-w-[720px] text-left text-xs">
                         <thead>
                           <tr className="border-b border-border-subtle bg-bg-base/30 text-[10px] uppercase tracking-wider text-text-muted">
                             <th className="px-3 py-2 font-semibold">
                               {t("referralsPage.colMember")}
                             </th>
                             <th className="px-3 py-2 font-semibold">
+                              {t("referralsPage.colLevel")}
+                            </th>
+                            <th className="px-3 py-2 font-semibold">
+                              {t("referralsPage.colType")}
+                            </th>
+                            <th className="px-3 py-2 font-semibold">
                               {t("referralsPage.colCapital")}
+                            </th>
+                            <th className="px-3 py-2 font-semibold">
+                              {t("referralsPage.colReferrals")}
                             </th>
                             <th className="px-3 py-2 font-semibold">
                               {t("referralsPage.colStatus")}
                             </th>
                             <th className="px-3 py-2 font-semibold">
                               {t("referralsPage.colJoined")}
+                            </th>
+                            <th className="px-3 py-2 text-right font-semibold">
+                              {t("referralsPage.colEarned")}
                             </th>
                             <th className="px-3 py-2 text-right font-semibold">
                               {t("referralsPage.colCommissions")}
@@ -116,7 +151,29 @@ export function NetworkMembersPanel({
                                 </p>
                               </td>
                               <td className="px-3 py-2.5 font-mono text-text-secondary">
+                                L{m.level}
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <Badge
+                                  variant={m.level === 1 ? "gold" : "default"}
+                                  className="text-[10px]"
+                                >
+                                  {m.level === 1
+                                    ? t("referralsPage.directLevel")
+                                    : t("referralsPage.networkLevel")}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2.5 font-mono text-text-secondary">
                                 ${formatNumber(m.capital, { decimals: 0 })}
+                              </td>
+                              <td className="px-3 py-2.5 font-mono text-text-secondary">
+                                <span title={t("referralsPage.directReferrals")}>
+                                  {m.directReferrals}
+                                </span>
+                                <span className="text-text-muted"> / </span>
+                                <span title={t("referralsPage.networkReferrals")}>
+                                  {m.networkReferrals}
+                                </span>
                               </td>
                               <td className="px-3 py-2.5">
                                 <Badge
@@ -130,6 +187,9 @@ export function NetworkMembersPanel({
                               </td>
                               <td className="px-3 py-2.5 text-text-muted">
                                 {formatJoined(m.joinedAt)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-mono text-text-primary">
+                                ${formatNumber(m.totalEarned, { decimals: 2 })}
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono text-success">
                                 +$
@@ -150,6 +210,19 @@ export function NetworkMembersPanel({
         })}
       </CardContent>
     </Card>
+  );
+}
+
+function SummaryChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border-subtle bg-bg-base/40 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-text-muted">
+        {label}
+      </p>
+      <p className="mt-0.5 font-mono text-sm font-medium text-text-primary">
+        {value}
+      </p>
+    </div>
   );
 }
 

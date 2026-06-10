@@ -35,28 +35,28 @@ interface PeriodLayout {
 const PERIOD_LAYOUT: Record<PosterPeriod, PeriodLayout> = {
   daily: {
     amountMode: "digitsOnly",
-    amount: { x: 0.160, y: 0.400, maxW: 0.7, size: 0.200 },
+    amount: { x: 0.160, y: 0.400, maxW: 0.6, size: 0.200 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.170, y: 0.538, maxW: 0.52, size: 0.0240 },
     username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
   },
   weekly: {
     amountMode: "digitsOnly",
-    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.6, size: 0.200 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
     username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },
   },
   monthly: {
     amountMode: "digitsOnly",
-    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.6, size: 0.200 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
     username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },
   },
   threeMonths: {
     amountMode: "digitsOnly",
-    amount: { x: 0.140, y: 0.440, maxW: 0.7, size: 0.200 },
+    amount: { x: 0.140, y: 0.440, maxW: 0.6, size: 0.200 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
     username: { x: 0.17, y: 0.638, maxW: 0.36, size: 0.035 },

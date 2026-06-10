@@ -25,6 +25,9 @@ export interface DownlineMember {
   capital: number;
   joinedAt: number;
   commissionsPaidToYou: number;
+  directReferrals: number;
+  networkReferrals: number;
+  totalEarned: number;
 }
 
 export interface CommissionRecord {
@@ -108,15 +111,25 @@ function buildDemoDownline(): DownlineMember[] {
             ? 250 + seed * 40
             : 50 + seed * 15;
       const isActive = capital >= MIN_ACTIVE_CAPITAL_USDT && seed % 4 !== 0;
+      const directReferrals =
+        level < REFERRAL_LEVELS ? Math.max(0, (counts[level] ?? 1) - i) : 0;
+      const networkReferrals =
+        level < REFERRAL_LEVELS
+          ? Math.max(0, counts.slice(level).reduce((a, c) => a + c, 0) - directReferrals - 1)
+          : 0;
+      const invested = isActive ? capital : 0;
       members.push({
         id: makeId("ref"),
         level,
         wallet: randomWallet(),
         displayName: `Investor${seed}`,
         isActive,
-        capital: isActive ? capital : 0,
+        capital: invested,
         joinedAt: Date.now() - seed * 86_400_000 * 3,
         commissionsPaidToYou: 0,
+        directReferrals: isActive ? directReferrals : 0,
+        networkReferrals: isActive ? networkReferrals : 0,
+        totalEarned: isActive ? invested * 0.12 + seed * 8.5 : 0,
       });
     }
   }
@@ -145,11 +158,25 @@ export const useReferralsStore = create<ReferralsState>()(
           set({ downline: buildDemoDownline() });
           return;
         }
-        if (current.some((m) => !m.displayName)) {
+        if (
+          current.some(
+            (m) =>
+              !m.displayName ||
+              m.directReferrals === undefined ||
+              m.networkReferrals === undefined ||
+              m.totalEarned === undefined,
+          )
+        ) {
           set({
             downline: current.map((m, i) => ({
               ...m,
               displayName: m.displayName ?? `Investor${i + 1}`,
+              directReferrals: m.directReferrals ?? (m.level === 1 ? 1 : 0),
+              networkReferrals:
+                m.networkReferrals ?? Math.max(0, REFERRAL_LEVELS - m.level),
+              totalEarned:
+                m.totalEarned ??
+                (m.isActive ? m.capital * 0.12 + (i + 1) * 8.5 : 0),
             })),
           });
         }

@@ -67,6 +67,10 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
   const labels = React.useMemo(
     () => ({
       userLabel: t("share.poster.userLabel"),
+      periodTotalLabel: t("share.poster.periodTotal"),
+      baseLabel: t("share.poster.base"),
+      operationalLabel: t("share.poster.operational"),
+      networkLabel: t("share.poster.network"),
     }),
     [t],
   );
@@ -135,48 +139,79 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
         {periodCards.map(({ period, meta: cardMeta, slice: cardSlice }) => {
           const Icon = PERIOD_ICONS[period];
           const selected = active === period;
+          const isDownloading = downloading === period;
           return (
-            <button
+            <div
               key={period}
-              type="button"
-              onClick={() => setActive(period)}
               className={cn(
-                "relative overflow-hidden rounded-lg border p-4 text-left transition-all",
+                "relative overflow-hidden rounded-lg border transition-all",
                 selected
                   ? "border-gold/50 bg-gold/5 shadow-[0_0_24px_-6px_rgba(212,175,55,0.35)]"
-                  : "border-border-subtle bg-bg-base/40 hover:border-border-strong hover:bg-bg-hover",
+                  : "border-border-subtle bg-bg-base/40",
               )}
             >
               {selected ? (
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-gold/60 to-transparent" />
               ) : null}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <Icon
-                      className={cn(
-                        "h-3.5 w-3.5 shrink-0",
-                        selected ? "text-gold" : "text-text-muted",
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-xs font-semibold uppercase tracking-wider",
-                        selected ? "text-gold" : "text-text-secondary",
-                      )}
-                    >
-                      {periodLabel(period)}
-                    </span>
+              <button
+                type="button"
+                onClick={() => setActive(period)}
+                className="w-full p-4 text-left transition-colors hover:bg-bg-hover"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Icon
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0",
+                          selected ? "text-gold" : "text-text-muted",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs font-semibold uppercase tracking-wider",
+                          selected ? "text-gold" : "text-text-secondary",
+                        )}
+                      >
+                        {periodLabel(period)}
+                      </span>
+                    </div>
+                    <p className="mt-2 font-mono text-xl font-medium text-text-primary">
+                      ${formatNumber(cardSlice.total, { decimals: 2 })}
+                    </p>
+                    <p className="mt-1 truncate text-[10px] uppercase tracking-wide text-text-muted">
+                      {cardMeta.rangeLabel}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-muted">
+                      <span>
+                        {t("share.poster.base")}: $
+                        {formatNumber(cardSlice.base, { decimals: 0 })}
+                      </span>
+                      <span>
+                        {t("share.poster.operational")}: $
+                        {formatNumber(cardSlice.operational, { decimals: 0 })}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-2 font-mono text-xl font-medium text-text-primary">
-                    ${formatNumber(cardSlice.total, { decimals: 2 })}
-                  </p>
-                  <p className="mt-1 truncate text-[10px] uppercase tracking-wide text-text-muted">
-                    {cardMeta.rangeLabel}
-                  </p>
                 </div>
+              </button>
+              <div className="border-t border-border-subtle/60 px-3 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-full text-xs"
+                  onClick={() => downloadOne(period)}
+                  disabled={loading || downloading !== null}
+                >
+                  {isDownloading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  {t("share.downloadPeriod", { period: periodLabel(period) })}
+                </Button>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

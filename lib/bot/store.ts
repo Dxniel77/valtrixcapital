@@ -18,6 +18,8 @@ export interface BotOperation {
   network: BotNetwork;
   fakeTxHash: string;
   executedAt: number;
+  entryPrice: number;
+  exitPrice: number;
 }
 
 export interface RecentChainTx {
@@ -48,9 +50,14 @@ interface BotState {
   recentTxPoolUpdatedAt: number;
   txPoolCursor: Record<BotNetwork, number>;
   profitsMigrated: boolean;
+  /** Last exit price per pair — keeps the feed continuous across UTC days. */
+  pairLastPrice: Record<string, number>;
+  /** Latest live market anchors from Binance tickers. */
+  marketAnchors: Record<string, number>;
 
   setCadence: (c: BotCadence) => void;
   setRunning: (v: boolean) => void;
+  syncMarketAnchors: (prices: Record<string, number>) => void;
   pushOperation: () => BotOperation | null;
   seedInitial: (n?: number) => void;
   refreshRecentTxPool: () => Promise<void>;
@@ -68,7 +75,49 @@ const initial = {
   recentTxPoolUpdatedAt: 0,
   txPoolCursor: { BSC: 0, POLYGON: 0 },
   profitsMigrated: false,
+  pairLastPrice: {} as Record<string, number>,
+  marketAnchors: {} as Record<string, number>,
 };
+
+const FALLBACK_PAIR_PRICES: Record<string, number> = {
+  BTCUSDT: 75_757,
+  ETHUSDT: 3_450,
+  BNBUSDT: 620,
+  SOLUSDT: 185,
+  XRPUSDT: 0.62,
+  DOGEUSDT: 0.18,
+  ADAUSDT: 0.75,
+  AVAXUSDT: 38,
+};
+
+function priceDecimals(pair: string): number {
+  if (pair.startsWith("BTC") || pair.startsWith("ETH")) return 2;
+  if (pair.includes("DOGE") || pair.includes("XRP") || pair.includes("ADA")) return 4;
+  return 2;
+}
+
+function roundPairPrice(pair: string, price: number): number {
+  const decimals = priceDecimals(pair);
+  const factor = 10 ** decimals;
+  return Math.round(price * factor) / factor;
+}
+
+function deriveOperationPrices(
+  pair: string,
+  direction: BotDirection,
+  pnlBps: number,
+  pairLastPrice: Record<string, number>,
+  marketAnchors: Record<string, number>,
+): { entryPrice: number; exitPrice: number } {
+  const fallback = FALLBACK_PAIR_PRICES[pair] ?? 1_000;
+  const entry = pairLastPrice[pair] ?? marketAnchors[pair] ?? fallback;
+  const move = pnlBps / 10_000;
+  const rawExit = direction === "UP" ? entry * (1 + move) : entry * (1 - move);
+  return {
+    entryPrice: roundPairPrice(pair, entry),
+    exitPrice: roundPairPrice(pair, rawExit),
+  };
+}
 
 function makeId(): string {
   return `bot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -133,9 +182,20 @@ function pickChainTx(
 }
 
 function createOperation(
-  state: Pick<BotState, "recentTxPool" | "txPoolCursor" | "operations">,
+  state: Pick<
+    BotState,
+    | "recentTxPool"
+    | "txPoolCursor"
+    | "operations"
+    | "pairLastPrice"
+    | "marketAnchors"
+  >,
   preferLive = false,
-): { op: BotOperation | null; txPoolCursor: Record<BotNetwork, number> } {
+): {
+  op: BotOperation | null;
+  txPoolCursor: Record<BotNetwork, number>;
+  pairLastPrice: Record<string, number>;
+} {
   const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
   const direction: BotDirection = Math.random() > 0.48 ? "UP" : "DOWN";
   const volume = Math.round((5_000 + Math.random() * 95_000) / 100) * 100;
@@ -151,8 +211,20 @@ function createOperation(
   );
 
   if (!tx) {
-    return { op: null, txPoolCursor: state.txPoolCursor };
+    return {
+      op: null,
+      txPoolCursor: state.txPoolCursor,
+      pairLastPrice: state.pairLastPrice,
+    };
   }
+
+  const { entryPrice, exitPrice } = deriveOperationPrices(
+    pair.binance,
+    direction,
+    pnlBps,
+    state.pairLastPrice,
+    state.marketAnchors,
+  );
 
   const op: BotOperation = {
     id,
@@ -163,11 +235,17 @@ function createOperation(
     network,
     fakeTxHash: tx.hash,
     executedAt: preferLive ? Date.now() : tx.executedAt,
+    entryPrice,
+    exitPrice,
   };
 
   return {
     op,
     txPoolCursor: { ...state.txPoolCursor, [network]: nextCursor },
+    pairLastPrice: {
+      ...state.pairLastPrice,
+      [pair.binance]: exitPrice,
+    },
   };
 }
 
@@ -198,11 +276,26 @@ export const useBotStore = create<BotState>()(
       setCadence: (cadence) => set({ cadence }),
       setRunning: (running) => set({ running }),
 
+      syncMarketAnchors: (prices) =>
+        set((s) => {
+          const marketAnchors = { ...s.marketAnchors };
+          let changed = false;
+          for (const [symbol, price] of Object.entries(prices)) {
+            if (!Number.isFinite(price) || price <= 0) continue;
+            const rounded = roundPairPrice(symbol, price);
+            if (marketAnchors[symbol] !== rounded) {
+              marketAnchors[symbol] = rounded;
+              changed = true;
+            }
+          }
+          return changed ? { marketAnchors } : s;
+        }),
+
       pushOperation: () => {
         const state = get();
         if (!hasUsableTxPool(state.recentTxPool)) return null;
 
-        const { op, txPoolCursor } = createOperation(state, true);
+        const { op, txPoolCursor, pairLastPrice } = createOperation(state, true);
         if (!op) return null;
 
         const day = utcDateKey(op.executedAt);
@@ -210,6 +303,7 @@ export const useBotStore = create<BotState>()(
 
         set((s) => ({
           txPoolCursor,
+          pairLastPrice,
           operations: [op, ...s.operations].slice(0, FEED_MAX_OPS),
           dailyProfits: {
             ...s.dailyProfits,
@@ -240,18 +334,27 @@ export const useBotStore = create<BotState>()(
           current.operations.every(isFreshOperation);
         if (freshEnough) return;
 
+        const freshExisting = current.operations.filter(isFreshOperation);
         const ops: BotOperation[] = [];
         let txPoolCursor = { ...current.txPoolCursor };
-        for (let i = 0; i < n; i += 1) {
-          const created = createOperation({
-            ...current,
-            operations: [...ops, ...current.operations],
-            txPoolCursor,
-          });
+        let pairLastPrice = { ...current.pairLastPrice };
+        const needed = Math.max(0, n - freshExisting.length);
+        for (let i = 0; i < needed; i += 1) {
+          const created = createOperation(
+            {
+              ...current,
+              pairLastPrice,
+              operations: [...ops, ...freshExisting, ...current.operations],
+              txPoolCursor,
+            },
+            false,
+          );
           if (!created.op) break;
           txPoolCursor = created.txPoolCursor;
+          pairLastPrice = created.pairLastPrice;
           ops.push(created.op);
         }
+        if (ops.length === 0 && freshExisting.length >= n) return;
         if (ops.length === 0) return;
 
         const shouldAccrueSeed = Object.keys(current.dailyProfits).length === 0;
@@ -264,8 +367,9 @@ export const useBotStore = create<BotState>()(
         }
 
         set({
-          operations: ops,
+          operations: [...ops, ...freshExisting].slice(0, FEED_MAX_OPS),
           txPoolCursor,
+          pairLastPrice,
           dailyProfits,
           profitsMigrated: true,
         });
@@ -367,6 +471,7 @@ export const useBotStore = create<BotState>()(
         recentTxPoolUpdatedAt: s.recentTxPoolUpdatedAt,
         txPoolCursor: s.txPoolCursor,
         profitsMigrated: s.profitsMigrated,
+        pairLastPrice: s.pairLastPrice,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -377,34 +482,61 @@ export const useBotStore = create<BotState>()(
         if (!state.txPoolCursor) {
           state.txPoolCursor = { BSC: 0, POLYGON: 0 };
         }
+        if (!state.pairLastPrice) state.pairLastPrice = {};
+        if (!state.marketAnchors) state.marketAnchors = {};
+        for (const op of state.operations ?? []) {
+          if (op.exitPrice > 0) {
+            state.pairLastPrice[op.pair] = op.exitPrice;
+          }
+        }
         if (state.operations?.some((op) => isLegacyReferenceTx(op.fakeTxHash))) {
           state.recentTxPoolUpdatedAt = 0;
         }
       },
       migrate: (persisted, version) => {
         const prev = persisted as Partial<BotState>;
-        const ops = (prev.operations ?? []).filter(
+        const rawOps = (prev.operations ?? []).filter(
           (op) => !isLegacyReferenceTx(op.fakeTxHash),
         );
+        const pairLastPrice = { ...(prev.pairLastPrice ?? {}) };
+        const operations = rawOps.map((op) => {
+          if (op.entryPrice > 0 && op.exitPrice > 0) {
+            pairLastPrice[op.pair] = op.exitPrice;
+            return op;
+          }
+          const direction = op.direction;
+          const pnlBps = op.pnlBps;
+          const { entryPrice, exitPrice } = deriveOperationPrices(
+            op.pair,
+            direction,
+            pnlBps,
+            pairLastPrice,
+            prev.marketAnchors ?? {},
+          );
+          pairLastPrice[op.pair] = exitPrice;
+          return { ...op, entryPrice, exitPrice };
+        });
 
-        if (version < 4) {
+        if (version < 5) {
           return {
             ...initial,
             ...prev,
-            operations: ops,
+            operations,
+            pairLastPrice,
             dailyProfits:
               prev.dailyProfits && Object.keys(prev.dailyProfits).length > 0
                 ? prev.dailyProfits
                 : buildDailyProfitsFromOps(prev.operations ?? []),
             profitsMigrated: true,
-            recentTxPool: { BSC: [], POLYGON: [] },
-            recentTxPoolUpdatedAt: 0,
-            txPoolCursor: { BSC: 0, POLYGON: 0 },
+            recentTxPool: prev.recentTxPool ?? { BSC: [], POLYGON: [] },
+            recentTxPoolUpdatedAt: prev.recentTxPoolUpdatedAt ?? 0,
+            txPoolCursor: prev.txPoolCursor ?? { BSC: 0, POLYGON: 0 },
+            marketAnchors: {},
           };
         }
         return persisted as BotState;
       },
-      version: 4,
+      version: 5,
     },
   ),
 );
@@ -487,10 +619,10 @@ export function useBotFeedEngine(): void {
       const today = utcDateKey();
       if (today === lastDay) return;
       lastDay = today;
-      refreshStaleFeed();
+      rebind();
     }, 60_000);
     return () => window.clearInterval(id);
-  }, [hydrated, refreshStaleFeed]);
+  }, [hydrated, rebind]);
 
   React.useEffect(() => {
     if (!hydrated || !running) return;
