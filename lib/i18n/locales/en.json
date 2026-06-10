@@ -1150,7 +1150,7 @@
     }
   },
   "supportPage": {
-    "subtitle": "Open a ticket or reach us on Telegram or WhatsApp. Response within 24h.",
+    "subtitle": "Open a ticket or email us. Response within 24h.",
     "ticketTitle": "Open support ticket",
     "ticketDesc": "Describe your issue and our team will reply by email.",
     "nameLabel": "Name",
