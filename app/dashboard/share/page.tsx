@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, TrendingUp } from "lucide-react";
 import { useAccount } from "wagmi";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatTile } from "@/components/ui/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import { useStakingStore } from "@/lib/staking/store";
@@ -22,7 +20,6 @@ import {
   exportOperationalCsv,
   exportWithdrawalsCsv,
 } from "@/lib/user/exports";
-import { formatNumber } from "@/lib/utils";
 
 export default function SharePage() {
   const { t } = useI18n();
@@ -68,37 +65,6 @@ export default function SharePage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("share.title")} subtitle={t("share.subtitle")} />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          label={t("share.poster.daily")}
-          value={`$${formatNumber(earnings.daily.total, { decimals: 2 })}`}
-          icon={TrendingUp}
-          accent="gold"
-          hint={t("share.periodHint.daily")}
-        />
-        <StatTile
-          label={t("share.poster.weekly")}
-          value={`$${formatNumber(earnings.weekly.total, { decimals: 2 })}`}
-          icon={TrendingUp}
-          accent="success"
-          hint={t("share.periodHint.weekly")}
-        />
-        <StatTile
-          label={t("share.poster.monthly")}
-          value={`$${formatNumber(earnings.monthly.total, { decimals: 2 })}`}
-          icon={TrendingUp}
-          accent="info"
-          hint={t("share.periodHint.monthly")}
-        />
-        <StatTile
-          label={t("share.poster.threeMonths")}
-          value={`$${formatNumber(earnings.threeMonths.total, { decimals: 2 })}`}
-          icon={ImageIcon}
-          accent="silver"
-          hint={t("share.periodHint.threeMonths")}
-        />
-      </div>
 
       <Card>
         <CardHeader>
