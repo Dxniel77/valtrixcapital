@@ -17,19 +17,30 @@ import {
   type InstantCredit,
   type Stake,
 } from "@/lib/staking/store";
+import { useWalletStore } from "@/lib/wallet/store";
 
 export interface CapEarningsBreakdown {
+  /** Passive yield already credited (daily accruals). */
   passiveEarned: number;
+  /** Trade-win bonuses already credited. */
   operationalEarned: number;
+  /** Network commissions earned (lifetime). */
   networkEarned: number;
+  /** Today's base passive not yet booked at UTC midnight. */
+  passiveProjectedToday: number;
+  /** Resolved wins today not yet credited as operational. */
+  operationalPendingToday: number;
 }
 
 export interface PortfolioSummary extends CapEarningsBreakdown {
   totalCapital: number;
   activeStakes: number;
+  /** Gross credited + today's pending — toward 200% cap (not reduced by withdrawals). */
   totalEarned: number;
   creditedTotalEarned: number;
   earningsBalance: number;
+  /** Lifetime withdrawals reserved or completed (excludes rejected). */
+  totalWithdrawn: number;
   payoutCap: number;
   capProgressPct: number;
   capProgressBarPct: number;
@@ -37,6 +48,21 @@ export interface PortfolioSummary extends CapEarningsBreakdown {
   remainingToCap: number;
   isCapReached: boolean;
   firstStakeAt: number | null;
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+/** Sum of all earnings buckets shown in the portfolio breakdown. */
+export function grossEarnedTotal(breakdown: CapEarningsBreakdown): number {
+  return round2(
+    breakdown.passiveEarned +
+      breakdown.operationalEarned +
+      breakdown.networkEarned +
+      breakdown.passiveProjectedToday +
+      breakdown.operationalPendingToday,
+  );
 }
 
 export interface TodayYieldPreview {
@@ -59,9 +85,11 @@ export function reconcileCapEarnings(input: {
   dailyYields: DailyYield[];
   instantCredits: InstantCredit[];
   totalCommissions: number;
-  pendingNetworkEarnings: number;
   storedTotalEarned: number;
-}): CapEarningsBreakdown & { creditedTotalEarned: number } {
+}): Pick<
+  CapEarningsBreakdown,
+  "passiveEarned" | "operationalEarned" | "networkEarned"
+> & { creditedTotalEarned: number } {
   const passiveEarned = input.dailyYields.reduce(
     (acc, y) => acc + y.creditedAmount,
     0,
@@ -71,13 +99,15 @@ export function reconcileCapEarnings(input: {
     0,
   );
   const networkEarned = input.totalCommissions;
-  const fromParts = passiveEarned + operationalEarned + networkEarned;
+  const fromParts = round2(
+    passiveEarned + operationalEarned + networkEarned,
+  );
   const creditedTotalEarned = Math.max(input.storedTotalEarned, fromParts);
 
   return {
-    passiveEarned,
-    operationalEarned,
-    networkEarned,
+    passiveEarned: round2(passiveEarned),
+    operationalEarned: round2(operationalEarned),
+    networkEarned: round2(networkEarned),
     creditedTotalEarned,
   };
 }
@@ -86,16 +116,15 @@ export function deriveSummary(input: {
   stakes: Stake[];
   earningsBalance: number;
   creditedTotalEarned: number;
-  todayProjectedYield: number;
+  totalWithdrawn: number;
   breakdown: CapEarningsBreakdown;
 }): PortfolioSummary {
   const active = input.stakes.filter((s) => s.status === "ACTIVE");
   const totalCapital = active.reduce((acc, s) => acc + s.amount, 0);
   const payoutCap = totalCapital * PAYOUT_CAP_MULTIPLIER;
+  const grossEarned = grossEarnedTotal(input.breakdown);
   const totalEarned =
-    payoutCap > 0
-      ? Math.min(payoutCap, input.creditedTotalEarned + input.todayProjectedYield)
-      : input.creditedTotalEarned + input.todayProjectedYield;
+    payoutCap > 0 ? Math.min(payoutCap, grossEarned) : grossEarned;
   const capProgressPct =
     totalCapital > 0
       ? Math.min(
@@ -121,6 +150,7 @@ export function deriveSummary(input: {
     totalEarned,
     creditedTotalEarned: input.creditedTotalEarned,
     earningsBalance: input.earningsBalance,
+    totalWithdrawn: input.totalWithdrawn,
     payoutCap,
     capProgressPct,
     capProgressBarPct,
@@ -154,36 +184,43 @@ export function usePortfolioSummary(): PortfolioSummary {
   const instantCredits = useStakingStore((s) => s.instantCredits);
   const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
-  const pendingNetworkEarnings = useReferralsStore(
-    (s) => s.pendingNetworkEarnings,
-  );
+  const withdrawals = useWalletStore((s) => s.withdrawals);
   const positions = useTradeStore((s) => s.positions);
   const preview = useTodayYieldPreview();
 
   return React.useMemo(() => {
-    const { creditedTotalEarned, ...breakdown } = reconcileCapEarnings({
+    const reconciled = reconcileCapEarnings({
       dailyYields,
       instantCredits,
       totalCommissions,
-      pendingNetworkEarnings,
       storedTotalEarned,
     });
     const today = utcDayKey();
     const todayAlreadyAccrued = dailyYields.some((y) => y.date === today);
-    const todayProjectedBase = todayAlreadyAccrued
+    const passiveProjectedToday = todayAlreadyAccrued
       ? 0
       : preview.projectedBaseAmount;
-    const pendingOps = pendingOperationalCredit(
+    const operationalPendingToday = pendingOperationalCredit(
       stakes,
       creditedPositionIds,
       positions,
     );
+    const breakdown: CapEarningsBreakdown = {
+      passiveEarned: reconciled.passiveEarned,
+      operationalEarned: reconciled.operationalEarned,
+      networkEarned: reconciled.networkEarned,
+      passiveProjectedToday: round2(passiveProjectedToday),
+      operationalPendingToday: round2(operationalPendingToday),
+    };
+    const totalWithdrawn = withdrawals
+      .filter((w) => w.status !== "REJECTED")
+      .reduce((acc, w) => acc + w.amount, 0);
 
     return deriveSummary({
       stakes,
       earningsBalance,
-      creditedTotalEarned,
-      todayProjectedYield: todayProjectedBase + pendingOps,
+      creditedTotalEarned: reconciled.creditedTotalEarned,
+      totalWithdrawn: round2(totalWithdrawn),
       breakdown,
     });
   }, [
@@ -194,7 +231,7 @@ export function usePortfolioSummary(): PortfolioSummary {
     instantCredits,
     creditedPositionIds,
     totalCommissions,
-    pendingNetworkEarnings,
+    withdrawals,
     positions,
     preview.projectedBaseAmount,
   ]);

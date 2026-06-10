@@ -272,16 +272,34 @@ function PayoutCapCard({
         <div className="grid grid-cols-3 gap-3 text-xs">
           <MiniStat
             label={t("staking.portfolio.earningsPassive")}
-            value={`$${formatNumber(summary.passiveEarned, { decimals: 2 })}`}
+            value={`$${formatNumber(
+              summary.passiveEarned + summary.passiveProjectedToday,
+              { decimals: 2 },
+            )}`}
           />
           <MiniStat
             label={t("staking.portfolio.earningsOps")}
-            value={`$${formatNumber(summary.operationalEarned, { decimals: 2 })}`}
+            value={`$${formatNumber(
+              summary.operationalEarned + summary.operationalPendingToday,
+              { decimals: 2 },
+            )}`}
             accent="gold"
           />
           <MiniStat
             label={t("staking.portfolio.earningsNetwork")}
             value={`$${formatNumber(summary.networkEarned, { decimals: 2 })}`}
+            accent="success"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <MiniStat
+            label={t("staking.portfolio.earningsWithdrawn")}
+            value={`$${formatNumber(summary.totalWithdrawn, { decimals: 2 })}`}
+          />
+          <MiniStat
+            label={t("staking.portfolio.earningsAvailable")}
+            value={`$${formatNumber(summary.earningsBalance, { decimals: 2 })}`}
             accent="success"
           />
         </div>

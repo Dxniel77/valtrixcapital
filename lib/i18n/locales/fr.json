@@ -500,6 +500,8 @@
       "earningsPassive": "Pasivo",
       "earningsOps": "Operaciones",
       "earningsNetwork": "Red",
+      "earningsWithdrawn": "Retirado",
+      "earningsAvailable": "Saldo disponible",
       "payoutNote": "Tu capital se libera cuando las ganancias acumuladas igualan el 100% de tus depósitos. Después puedes abrir una nueva.",
       "todayTitle": "Vista previa de hoy",
       "todayBadge": "En curso",
