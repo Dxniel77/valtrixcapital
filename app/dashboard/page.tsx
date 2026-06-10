@@ -107,7 +107,7 @@ export default function DashboardOverviewPage() {
               ? t("dashboard.overview.stakesHintN", {
                   n: portfolio.activeStakes,
                 })
-              : t("dashboard.overview.stakesHintEmpty")
+              : undefined
           }
           delta={
             portfolio.totalCapital > 0
