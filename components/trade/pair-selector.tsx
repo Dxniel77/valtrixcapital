@@ -54,7 +54,9 @@ export function PairSelector({
   const exchangeLabel =
     source === "bybit"
       ? t("trade.exchangeBybit")
-      : t("trade.exchangeBinance");
+      : source === "gate"
+        ? t("trade.exchangeGate")
+        : t("trade.exchangeBinance");
 
   const filtered = React.useMemo(() => {
     let list = PAIRS;

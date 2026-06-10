@@ -18,7 +18,7 @@ export const BINANCE_INTERVAL: Record<Timeframe, string> = {
   "1D": "1d",
 };
 
-export type MarketSource = "binance" | "bybit";
+export type MarketSource = "binance" | "bybit" | "gate";
 
 export interface PairMeta {
   /** Display ticker, e.g. "BTC". */

@@ -13,7 +13,7 @@ export interface MarketStreamState {
   livePrice: number | null;
   ticker: Ticker | null;
   status: "idle" | "connecting" | "live" | "error";
-  source: "binance" | "bybit" | null;
+  source: "binance" | "bybit" | "gate" | null;
   error: string | null;
 }
 

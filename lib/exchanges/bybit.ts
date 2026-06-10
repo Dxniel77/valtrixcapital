@@ -1,6 +1,7 @@
 import type { Candle, Ticker } from "@/lib/market/types";
 import type { Timeframe } from "@/lib/market/pairs";
 import { getBybitCredentials } from "./credentials";
+import { exchangeFetch } from "./http";
 
 const REST_BASE = "https://api.bybit.com";
 
@@ -34,10 +35,7 @@ export async function fetchBybitKlines(
 ): Promise<Candle[]> {
   const interval = BYBIT_INTERVAL[timeframe];
   const url = `${REST_BASE}/v5/market/kline?category=spot&symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: bybitHeaders(),
-  });
+  const res = await exchangeFetch(url, bybitHeaders());
   if (!res.ok) throw new Error(`Bybit klines failed: ${res.status}`);
   const json = await res.json();
   const list = (json?.result?.list ?? []) as BybitKlineItem[];
@@ -55,10 +53,7 @@ export async function fetchBybitKlines(
 
 export async function fetchBybitTicker(symbol: string): Promise<Ticker> {
   const url = `${REST_BASE}/v5/market/tickers?category=spot&symbol=${symbol}`;
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: bybitHeaders(),
-  });
+  const res = await exchangeFetch(url, bybitHeaders());
   if (!res.ok) throw new Error(`Bybit ticker failed: ${res.status}`);
   const json = await res.json();
   const t = json?.result?.list?.[0];

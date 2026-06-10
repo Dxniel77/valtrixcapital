@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchBinanceKlines } from "@/lib/exchanges/binance";
-import { fetchBybitKlines } from "@/lib/exchanges/bybit";
+import { resolveKlines } from "@/lib/exchanges/resolve-market";
 import type { Timeframe } from "@/lib/market/pairs";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const TIMEFRAMES = new Set<Timeframe>(["1m", "5m", "15m", "1h", "4h", "1D"]);
 
@@ -24,36 +24,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (preferred === "bybit") {
-    try {
-      const candles = await fetchBybitKlines(symbol, timeframe, limit);
-      return NextResponse.json({ candles, source: "bybit" });
-    } catch (err) {
-      return NextResponse.json(
-        {
-          error:
-            err instanceof Error ? err.message : "Failed to load Bybit klines",
-        },
-        { status: 502 },
-      );
-    }
-  }
-
   try {
-    const candles = await fetchBinanceKlines(symbol, timeframe, limit);
-    return NextResponse.json({ candles, source: "binance" });
-  } catch {
-    try {
-      const candles = await fetchBybitKlines(symbol, timeframe, limit);
-      return NextResponse.json({ candles, source: "bybit" });
-    } catch (err) {
-      return NextResponse.json(
-        {
-          error:
-            err instanceof Error ? err.message : "Failed to load market klines",
-        },
-        { status: 502 },
-      );
-    }
+    const { data: candles, source } = await resolveKlines(
+      symbol,
+      timeframe,
+      limit,
+      preferred,
+    );
+    return NextResponse.json({ candles, source });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error:
+          err instanceof Error ? err.message : "Failed to load market klines",
+      },
+      { status: 502 },
+    );
   }
 }
