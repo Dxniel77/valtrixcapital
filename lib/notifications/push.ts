@@ -1,5 +1,6 @@
 import type { AppNotification, NotificationKind } from "@/lib/notifications/store";
 import { useNotificationsStore } from "@/lib/notifications/store";
+import { hasNotificationInList } from "@/lib/notifications/dedupe";
 
 export type NotificationEvent =
   | "deposit_confirmed"
@@ -8,19 +9,8 @@ export type NotificationEvent =
   | "daily_yield"
   | "referral_milestone";
 
-const DEDUPE_MS = 60_000;
-const recentKeys = new Map<string, number>();
-
 function makeId() {
   return `ntf_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-}
-
-function shouldDedupe(key: string): boolean {
-  const now = Date.now();
-  const last = recentKeys.get(key);
-  if (last && now - last < DEDUPE_MS) return true;
-  recentKeys.set(key, now);
-  return false;
 }
 
 export function pushNotification(
@@ -28,7 +18,7 @@ export function pushNotification(
     dedupeKey?: string;
   },
 ): void {
-  if (input.dedupeKey && shouldDedupe(input.dedupeKey)) return;
+  if (hasNotificationInList(useNotificationsStore.getState().items, input)) return;
 
   const item: AppNotification = {
     ...input,

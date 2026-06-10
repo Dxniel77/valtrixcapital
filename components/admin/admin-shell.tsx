@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
+  Bell,
   ClipboardList,
   FileSpreadsheet,
   LayoutDashboard,
@@ -32,6 +33,7 @@ export const adminNavItems = [
   { href: "/admin/leaders", key: "leaders", icon: Trophy },
   { href: "/admin/users", key: "users", icon: Users },
   { href: "/admin/movements", key: "movements", icon: Wallet },
+  { href: "/admin/notifications", key: "notifications", icon: Bell },
   { href: "/admin/network", key: "network", icon: Network },
   { href: "/admin/reports", key: "reports", icon: FileSpreadsheet },
   { href: "/admin/settings", key: "settings", icon: Settings },

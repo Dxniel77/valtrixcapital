@@ -763,7 +763,24 @@
       "network": "Grid",
       "reports": "Reports",
       "settings": "Settings",
+      "notifications": "Notifications",
       "audit": "Audit"
+    },
+    "notifications": {
+      "title": "Send notifications",
+      "subtitle": "Publish custom alerts, promotions and system messages to all users.",
+      "composeTitle": "Compose message",
+      "kindLabel": "Type",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Weekend bonus active",
+      "bodyLabel": "Message",
+      "bodyPlaceholder": "Write the notification text users will see…",
+      "linkLabel": "Link (optional)",
+      "send": "Send notification",
+      "sent": "Notification published",
+      "validation": "Title and message are required",
+      "recentTitle": "Recent broadcasts",
+      "recentEmpty": "No custom notifications sent yet."
     },
     "actions": {
       "USER_ACTIVATED": "Activated user",

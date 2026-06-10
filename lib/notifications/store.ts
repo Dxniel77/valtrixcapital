@@ -3,6 +3,7 @@
 import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { dedupeNotifications } from "@/lib/notifications/dedupe";
 
 export type NotificationKind = "alert" | "promo" | "system";
 
@@ -14,6 +15,7 @@ export interface AppNotification {
   createdAt: number;
   read: boolean;
   href?: string;
+  dedupeKey?: string;
 }
 
 interface NotificationsState {
@@ -31,6 +33,7 @@ const DEMO: Omit<AppNotification, "id">[] = [
     createdAt: Date.now() - 3_600_000,
     read: false,
     href: "/dashboard/trade",
+    dedupeKey: "demo_promo_active",
   },
   {
     kind: "promo",
@@ -39,6 +42,7 @@ const DEMO: Omit<AppNotification, "id">[] = [
     createdAt: Date.now() - 86_400_000,
     read: false,
     href: "/dashboard/share",
+    dedupeKey: "demo_share_earnings",
   },
   {
     kind: "system",
@@ -46,6 +50,7 @@ const DEMO: Omit<AppNotification, "id">[] = [
     body: "Tu rendimiento pasivo de ayer ya está en tu saldo.",
     createdAt: Date.now() - 172_800_000,
     read: true,
+    dedupeKey: "demo_yield_credited",
   },
 ];
 
@@ -76,7 +81,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       },
     }),
     {
-      name: "valtrix.notifications.v1",
+      name: "valtrix.notifications.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
           ? {
@@ -87,6 +92,12 @@ export const useNotificationsStore = create<NotificationsState>()(
           : window.localStorage,
       ),
       partialize: (s) => ({ items: s.items }),
+      migrate: (persisted) => {
+        const prev = persisted as { items?: AppNotification[] };
+        const items = dedupeNotifications(prev.items ?? []);
+        return { items };
+      },
+      version: 2,
     },
   ),
 );

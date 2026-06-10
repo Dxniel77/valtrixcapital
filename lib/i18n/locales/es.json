@@ -796,7 +796,24 @@
       "network": "Red",
       "reports": "Reportes",
       "settings": "Ajustes",
+      "notifications": "Notificaciones",
       "audit": "Auditoría"
+    },
+    "notifications": {
+      "title": "Enviar notificaciones",
+      "subtitle": "Publica alertas, promociones y avisos personalizados para todos los usuarios.",
+      "composeTitle": "Redactar mensaje",
+      "kindLabel": "Tipo",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej. Bono de fin de semana activo",
+      "bodyLabel": "Mensaje",
+      "bodyPlaceholder": "Escribe el texto que verán los usuarios…",
+      "linkLabel": "Enlace (opcional)",
+      "send": "Enviar notificación",
+      "sent": "Notificación publicada",
+      "validation": "El título y el mensaje son obligatorios",
+      "recentTitle": "Envíos recientes",
+      "recentEmpty": "Aún no hay notificaciones personalizadas."
     },
     "actions": {
       "USER_ACTIVATED": "Usuario activado",
