@@ -1075,7 +1075,9 @@
       "rect": "Rectángulo",
       "fib": "Fibonacci",
       "undo": "Deshacer último dibujo",
-      "clearAll": "Borrar todos los dibujos"
+      "clearAll": "Borrar todos los dibujos",
+      "hideToolbar": "Ocultar herramientas",
+      "showToolbar": "Mostrar herramientas de dibujo"
     },
     "yieldSummary": "Rendimiento diario",
     "noCapital": "Necesitas capital invertido para operar. Deposita USDT en tu billetera primero."

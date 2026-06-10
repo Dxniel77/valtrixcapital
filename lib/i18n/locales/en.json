@@ -1119,7 +1119,9 @@
       "rect": "Rectangle",
       "fib": "Fibonacci",
       "undo": "Undo last drawing",
-      "clearAll": "Clear all drawings"
+      "clearAll": "Clear all drawings",
+      "hideToolbar": "Hide drawing tools",
+      "showToolbar": "Show drawing tools"
     },
     "yieldSummary": "Daily yield",
     "noCapital": "You need invested capital to trade. Deposit USDT in your wallet first."

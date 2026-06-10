@@ -25,6 +25,27 @@ export const DRAWING_COLORS = [
 ] as const;
 
 const STORAGE_PREFIX = "valtrix-chart-drawings:";
+const TOOLBAR_VISIBLE_KEY = "valtrix-chart-drawing-toolbar-visible";
+
+export function loadDrawingToolbarVisible(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = localStorage.getItem(TOOLBAR_VISIBLE_KEY);
+    if (raw === null) return true;
+    return raw === "1";
+  } catch {
+    return true;
+  }
+}
+
+export function saveDrawingToolbarVisible(visible: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TOOLBAR_VISIBLE_KEY, visible ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
 
 function storageKey(symbol: string, timeframe: string) {
   return `${STORAGE_PREFIX}${symbol}:${timeframe}`;

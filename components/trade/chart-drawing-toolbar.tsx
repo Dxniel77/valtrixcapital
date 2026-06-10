@@ -9,6 +9,7 @@ import {
   GitBranch,
   Trash2,
   Eraser,
+  ChevronsLeft,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import type { DrawingTool } from "@/lib/trade/chart-drawings";
@@ -19,6 +20,7 @@ type ChartDrawingToolbarProps = {
   onToolChange: (tool: DrawingTool) => void;
   onClearAll: () => void;
   onUndo: () => void;
+  onHide: () => void;
   drawingCount: number;
   className?: string;
 };
@@ -40,6 +42,7 @@ export function ChartDrawingToolbar({
   onToolChange,
   onClearAll,
   onUndo,
+  onHide,
   drawingCount,
   className,
 }: ChartDrawingToolbarProps) {
@@ -92,6 +95,18 @@ export function ChartDrawingToolbar({
         className="flex h-8 w-8 items-center justify-center rounded text-text-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-30"
       >
         <Trash2 className="h-4 w-4" />
+      </button>
+
+      <div className="my-0.5 h-px bg-border-subtle" />
+
+      <button
+        type="button"
+        onClick={onHide}
+        title={t("trade.drawing.hideToolbar")}
+        aria-label={t("trade.drawing.hideToolbar")}
+        className="flex h-8 w-8 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-base/80 hover:text-text-primary"
+      >
+        <ChevronsLeft className="h-4 w-4" />
       </button>
     </div>
   );

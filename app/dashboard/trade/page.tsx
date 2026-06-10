@@ -18,7 +18,9 @@ import { ChartDrawingOverlay } from "@/components/trade/chart-drawing-overlay";
 import type { ChartCoordsApi } from "@/components/trade/trading-chart";
 import {
   loadDrawings,
+  loadDrawingToolbarVisible,
   saveDrawings,
+  saveDrawingToolbarVisible,
   type ChartDrawing,
   type DrawingTool,
 } from "@/lib/trade/chart-drawings";
@@ -43,7 +45,14 @@ import { useTickers } from "@/lib/market/use-tickers";
 import { useTradeStore, utcDayKey } from "@/lib/trade/store";
 import { formatNumber } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
-import { Activity, WifiOff, Loader2, History } from "lucide-react";
+import {
+  Activity,
+  WifiOff,
+  Loader2,
+  History,
+  ChevronsRight,
+  PencilLine,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function TradePage() {
@@ -57,7 +66,16 @@ export default function TradePage() {
   );
   const [drawingTool, setDrawingTool] = React.useState<DrawingTool>("cursor");
   const [drawings, setDrawings] = React.useState<ChartDrawing[]>([]);
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = React.useState(true);
   const [coordsApi, setCoordsApi] = React.useState<ChartCoordsApi | null>(null);
+
+  React.useEffect(() => {
+    setDrawingToolbarOpen(loadDrawingToolbarVisible());
+  }, []);
+
+  React.useEffect(() => {
+    saveDrawingToolbarVisible(drawingToolbarOpen);
+  }, [drawingToolbarOpen]);
 
   React.useEffect(() => {
     saveStoredIndicators(indicators);
@@ -168,14 +186,31 @@ export default function TradePage() {
             />
 
             <div className="relative h-[min(52vh,380px)] min-h-[260px] bg-bg-base/40 sm:min-h-[300px] lg:h-[420px]">
-              <ChartDrawingToolbar
-                tool={drawingTool}
-                onToolChange={setDrawingTool}
-                drawingCount={drawings.length}
-                onUndo={() => setDrawings((prev) => prev.slice(0, -1))}
-                onClearAll={() => setDrawings([])}
-                className="absolute left-2 top-2 z-20"
-              />
+              {drawingToolbarOpen ? (
+                <ChartDrawingToolbar
+                  tool={drawingTool}
+                  onToolChange={setDrawingTool}
+                  drawingCount={drawings.length}
+                  onUndo={() => setDrawings((prev) => prev.slice(0, -1))}
+                  onClearAll={() => setDrawings([])}
+                  onHide={() => {
+                    setDrawingTool("cursor");
+                    setDrawingToolbarOpen(false);
+                  }}
+                  className="absolute left-2 top-2 z-20"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDrawingToolbarOpen(true)}
+                  title={t("trade.drawing.showToolbar")}
+                  aria-label={t("trade.drawing.showToolbar")}
+                  className="absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-md border border-border-subtle bg-bg-elevated/90 text-text-muted backdrop-blur-sm transition-colors hover:bg-bg-base/80 hover:text-gold"
+                >
+                  <PencilLine className="h-4 w-4" />
+                  <ChevronsRight className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-gold/80" />
+                </button>
+              )}
               <TradingChart
                 ref={chartRef}
                 symbol={pair.binance}
