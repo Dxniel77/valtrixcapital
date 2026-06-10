@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { consumeNonce, verifySiwe } from "@/lib/auth/siwe";
+import { normalizeWallet } from "@/lib/auth/admins";
+import { resolveUserRole } from "@/lib/auth/resolve-role";
 import { createSession } from "@/lib/auth/session";
 import { randomBytes } from "crypto";
 import { t } from "@/lib/i18n";
@@ -43,16 +45,18 @@ export async function POST(req: Request) {
 
   // Week 1: skip DB write — issue a session keyed by wallet address.
   // Week 5+: upsert User in Prisma here and use real userId as sub.
-  const userId = `wallet:${result.address}:${randomBytes(4).toString("hex")}`;
+  const address = normalizeWallet(result.address);
+  const role = await resolveUserRole(address);
+  const userId = `wallet:${address}:${randomBytes(4).toString("hex")}`;
 
   await createSession({
     sub: userId,
-    address: result.address,
-    role: "USER",
+    address,
+    role,
   });
 
   return NextResponse.json({
     ok: true,
-    user: { id: userId, address: result.address, role: "USER" },
+    user: { id: userId, address, role },
   });
 }

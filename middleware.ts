@@ -1,7 +1,21 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { parseSessionToken, SESSION_COOKIE } from "@/lib/auth/session";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/admin")) {
+    const token = request.cookies.get(SESSION_COOKIE)?.value;
+    const session = await parseSessionToken(token);
+
+    if (!session || session.role !== "ADMIN") {
+      const signIn = new URL("/sign-in", request.url);
+      signIn.searchParams.set("next", pathname);
+      return NextResponse.redirect(signIn);
+    }
+  }
+
   const response = NextResponse.next();
 
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -14,7 +28,7 @@ export function middleware(request: NextRequest) {
 
   if (
     process.env.NODE_ENV === "production" &&
-    request.nextUrl.pathname.startsWith("/api/")
+    pathname.startsWith("/api/")
   ) {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");

@@ -12,9 +12,9 @@ test.describe("Valtrix smoke", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
-  test("admin grant page loads", async ({ page }) => {
+  test("admin routes redirect to sign-in without session", async ({ page }) => {
     await page.goto("/admin/grant");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 
   test("support page loads in dashboard shell", async ({ page }) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAccount } from "wagmi";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,17 @@ import { useUserRegistry } from "@/lib/user/store";
 import { ShieldCheck, Wallet, KeyRound, UserRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
+function safeNextPath(next: string | null): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "/dashboard";
+  }
+  return next;
+}
+
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const { t } = useI18n();
   const { isConnected, address } = useAccount();
   const { signIn, loading, error, user } = useSiwe();
@@ -31,8 +40,8 @@ export default function SignInPage() {
   }, [address, getProfile]);
 
   React.useEffect(() => {
-    if (user && profile) router.replace("/dashboard");
-  }, [user, profile, router]);
+    if (user && profile) router.replace(nextPath);
+  }, [user, profile, router, nextPath]);
 
   React.useEffect(() => {
     if (error) toast.error(error);
@@ -146,6 +155,7 @@ export default function SignInPage() {
           onComplete={(next) => {
             setProfile(next);
             setShowUsernameDialog(false);
+            if (user) router.replace(nextPath);
           }}
         />
       ) : null}

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 
-const SESSION_COOKIE = "valtrix.session";
+export const SESSION_COOKIE = "valtrix.session";
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
 function getSecret(): Uint8Array {
@@ -40,9 +40,9 @@ export async function destroySession() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function readSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+export async function parseSessionToken(
+  token: string | undefined | null,
+): Promise<SessionPayload | null> {
   if (!token) return null;
 
   try {
@@ -62,4 +62,10 @@ export async function readSession(): Promise<SessionPayload | null> {
   } catch {
     return null;
   }
+}
+
+export async function readSession(): Promise<SessionPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  return parseSessionToken(token);
 }

@@ -12,6 +12,7 @@ import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { CHAIN_META } from "@/lib/wagmi";
 import { shortenAddress } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useUserRegistry } from "@/lib/user/store";
 import { formatMemberSince } from "@/lib/user/format";
 
@@ -21,6 +22,8 @@ export default function ProfilePage() {
   const chainId = useChainId();
   const chain = chainId ? CHAIN_META[chainId] : null;
   const profile = useUserRegistry((s) => s.getProfile(address));
+  const { user } = useSiwe();
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -102,26 +105,28 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      <Card className="border-gold/30">
-        <CardContent className="flex flex-col items-start justify-between gap-3 p-5 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="font-display text-base font-semibold text-text-primary">
-                {t("dashboard.overview.adminPanel")}
-              </p>
-              <p className="text-xs text-text-secondary">
-                {t("admin.headerNote")}
-              </p>
+      {isAdmin ? (
+        <Card className="border-gold/30">
+          <CardContent className="flex flex-col items-start justify-between gap-3 p-5 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-display text-base font-semibold text-text-primary">
+                  {t("dashboard.overview.adminPanel")}
+                </p>
+                <p className="text-xs text-text-secondary">
+                  {t("admin.headerNote")}
+                </p>
+              </div>
             </div>
-          </div>
-          <Button asChild variant="primary" size="md">
-            <Link href="/admin">{t("dashboard.overview.adminPanel")}</Link>
-          </Button>
-        </CardContent>
-      </Card>
+            <Button asChild variant="primary" size="md">
+              <Link href="/admin">{t("dashboard.overview.adminPanel")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
