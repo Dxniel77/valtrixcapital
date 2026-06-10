@@ -82,6 +82,118 @@ const STRATEGY_ICONS: Record<
   clean: Minimize2,
 };
 
+function IndicatorSelector({
+  value,
+  onChange,
+  toggles,
+  activeCount,
+}: {
+  value: ChartIndicatorState;
+  onChange: (next: ChartIndicatorState) => void;
+  toggles: {
+    key: keyof ChartIndicatorState;
+    label: string;
+    color?: string;
+  }[];
+  activeCount: number;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = React.useState(false);
+
+  function toggle(key: keyof ChartIndicatorState) {
+    onChange({ ...value, [key]: !value[key] });
+  }
+
+  return (
+    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+            open
+              ? "border-gold/40 bg-gold/10 text-text-primary"
+              : "border-border-subtle bg-bg-base/50 text-text-secondary hover:border-border-strong hover:text-text-primary",
+          )}
+          title={t("trade.indicators.title")}
+        >
+          <SlidersHorizontal className="h-3 w-3 shrink-0 text-gold/80" />
+          <span>{t("trade.indicators.title")}</span>
+          {activeCount > 0 ? (
+            <span className="rounded bg-gold/20 px-1 text-[10px] text-gold">
+              {activeCount}
+            </span>
+          ) : null}
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 shrink-0 opacity-60 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={6}
+          className={cn(
+            "z-50 w-56 overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated/95 p-1.5 shadow-xl backdrop-blur-md",
+            "border-r-2 border-r-gold/50",
+            "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+          )}
+        >
+          <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            {t("trade.indicators.overlays")}
+          </p>
+          {toggles.map(({ key, label, color }) => {
+            const active = value[key];
+            return (
+              <DropdownMenu.Item
+                key={key}
+                className={cn(
+                  "flex cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-2 outline-none",
+                  "focus:bg-bg-hover data-[highlighted]:bg-bg-hover",
+                  active &&
+                    "bg-gold/10 focus:bg-gold/15 data-[highlighted]:bg-gold/15",
+                )}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  toggle(key);
+                }}
+              >
+                {color ? (
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: active ? color : "hsl(var(--text-muted))",
+                    }}
+                  />
+                ) : (
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-text-muted/40" />
+                )}
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 text-xs font-medium leading-tight",
+                    active ? "text-gold" : "text-text-primary",
+                  )}
+                >
+                  {label}
+                </span>
+                {active ? (
+                  <Check className="h-3.5 w-3.5 shrink-0 text-gold" />
+                ) : (
+                  <span className="w-3.5 shrink-0" />
+                )}
+              </DropdownMenu.Item>
+            );
+          })}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
 function StrategySelector({
   activeId,
   onSelect,
@@ -205,8 +317,6 @@ export function ChartIndicators({
   className,
 }: ChartIndicatorsProps) {
   const { t } = useI18n();
-  const [panelOpen, setPanelOpen] = React.useState(false);
-  const panelRef = React.useRef<HTMLDivElement>(null);
 
   const activeStrategyId = detectStrategyId(value);
 
@@ -236,17 +346,6 @@ export function ChartIndicators({
     if (strategy) onChange(strategy.indicators);
   }
 
-  React.useEffect(() => {
-    if (!panelOpen) return;
-    function onDocClick(e: MouseEvent) {
-      if (!panelRef.current?.contains(e.target as Node)) {
-        setPanelOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [panelOpen]);
-
   return (
     <div
       className={cn(
@@ -255,68 +354,13 @@ export function ChartIndicators({
         className,
       )}
     >
-      <div className="relative shrink-0" ref={panelRef}>
-        <button
-          type="button"
-          onClick={() => setPanelOpen((o) => !o)}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-            panelOpen
-              ? "border-gold/40 bg-gold/10 text-text-primary"
-              : "border-border-subtle bg-bg-base/50 text-text-muted hover:border-border-strong hover:text-text-secondary",
-          )}
-          aria-expanded={panelOpen}
-        >
-          <SlidersHorizontal className="h-3 w-3" />
-          {t("trade.indicators.title")}
-          {activeCount > 0 ? (
-            <span className="rounded bg-gold/20 px-1 text-[10px] text-gold">
-              {activeCount}
-            </span>
-          ) : null}
-          <ChevronDown
-            className={cn("h-3 w-3 transition-transform", panelOpen && "rotate-180")}
-          />
-        </button>
-
-        {panelOpen ? (
-          <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded-lg border border-border-subtle bg-bg-elevated p-2 shadow-xl">
-            <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              {t("trade.indicators.overlays")}
-            </p>
-            <div className="space-y-0.5">
-              {toggles.map(({ key, label, color }) => {
-                const active = value[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggle(key)}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                      active
-                        ? "bg-gold/10 text-text-primary"
-                        : "text-text-muted hover:bg-bg-base/80 hover:text-text-secondary",
-                    )}
-                    aria-pressed={active}
-                  >
-                    {color ? (
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{
-                          backgroundColor: active ? color : "hsl(var(--text-muted))",
-                        }}
-                      />
-                    ) : (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-text-muted/40" />
-                    )}
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
+      <div className="shrink-0">
+        <IndicatorSelector
+          value={value}
+          onChange={onChange}
+          toggles={toggles}
+          activeCount={activeCount}
+        />
       </div>
 
       <div className="hidden h-4 w-px shrink-0 bg-border-subtle sm:block" />
