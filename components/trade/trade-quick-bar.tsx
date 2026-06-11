@@ -22,11 +22,15 @@ export function TradeQuickBar({
   onDurationChange,
 }: TradeQuickBarProps) {
   const { t } = useI18n();
-  const { canTrade, hasCapital, execute, summary, maxTrades } = useTradeExecution(
-    pair,
-    livePrice,
-    duration,
-  );
+  const {
+    canTrade,
+    canBuy,
+    canSell,
+    hasCapital,
+    execute,
+    summary,
+    maxTrades,
+  } = useTradeExecution(pair, livePrice, duration);
 
   return (
     <div className="border-t border-border-subtle bg-bg-elevated/40 px-3 py-3 sm:px-4">
@@ -84,7 +88,8 @@ export function TradeQuickBar({
             variant="success"
             size="lg"
             className="h-12 text-sm font-semibold sm:h-11"
-            disabled={!canTrade}
+            disabled={!canBuy}
+            title={!canBuy && canTrade ? t("trade.hedgeBlockedBuy") : undefined}
             onClick={() => execute("UP")}
           >
             {t("common.buy")} <ArrowUp className="h-4 w-4" />
@@ -93,7 +98,8 @@ export function TradeQuickBar({
             variant="danger"
             size="lg"
             className="h-12 text-sm font-semibold sm:h-11"
-            disabled={!canTrade}
+            disabled={!canSell}
+            title={!canSell && canTrade ? t("trade.hedgeBlockedSell") : undefined}
             onClick={() => execute("DOWN")}
           >
             {t("common.sell")} <ArrowDown className="h-4 w-4" />

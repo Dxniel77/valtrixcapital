@@ -29,7 +29,7 @@ export interface TradeState {
     direction: TradeDirection;
     entryPrice: number;
     durationSec: number;
-  }) => Position;
+  }) => Position | null;
 
   resolvePosition: (id: string, exitPrice: number) => void;
 
@@ -46,6 +46,24 @@ export const MAX_DAILY_YIELD_BPS = 100;
 export function utcDayKey(ts = Date.now()): string {
   const d = new Date(ts);
   return d.toISOString().slice(0, 10);
+}
+
+export function oppositeDirection(
+  direction: TradeDirection,
+): TradeDirection {
+  return direction === "UP" ? "DOWN" : "UP";
+}
+
+/** True when an open position on `pair` faces the opposite way (hedge). */
+export function hasOppositeOpenPosition(
+  positions: Position[],
+  pair: string,
+  direction: TradeDirection,
+): boolean {
+  const opposite = oppositeDirection(direction);
+  return positions.some(
+    (p) => p.status === "OPEN" && p.pair === pair && p.direction === opposite,
+  );
 }
 
 export function resolveTradeOutcome(
@@ -72,6 +90,9 @@ export const useTradeStore = create<TradeState>()(
 
       openPosition: ({ pair, direction, entryPrice, durationSec }) => {
         get().rolloverIfNewDay();
+        if (hasOppositeOpenPosition(get().positions, pair, direction)) {
+          return null;
+        }
         const id =
           (globalThis.crypto?.randomUUID?.() as string | undefined) ??
           `pos_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

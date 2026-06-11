@@ -46,6 +46,7 @@
     "signInFailed": "Login error",
     "priceUnavailable": "Live price not available. Hang on a minute.",
     "noAttempts": "No daily attempts — restart at 00:00 UTC.",
+    "hedgeBlocked": "You cannot open the opposite direction while a position is active on this pair.",
     "tradeSuccess": "{side} {pair} · {price} · {duration}m"
   },
   "nav": {
@@ -1124,7 +1125,9 @@
       "showToolbar": "Show drawing tools"
     },
     "yieldSummary": "Daily yield",
-    "noCapital": "You need invested capital to trade. Deposit USDT in your wallet first."
+    "noCapital": "You need invested capital to trade. Deposit USDT in your wallet first.",
+    "hedgeBlockedBuy": "Buy blocked — you have an open sell on this pair.",
+    "hedgeBlockedSell": "Sell blocked — you have an open buy on this pair."
   },
   "notifications": {
     "title": "Notifications",

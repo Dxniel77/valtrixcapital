@@ -46,6 +46,7 @@
     "signInFailed": "Error al iniciar sesión",
     "priceUnavailable": "Precio en vivo no disponible. Espera un momento.",
     "noAttempts": "Sin intentos diarios — reinicio a las 00:00 UTC.",
+    "hedgeBlocked": "No puedes abrir la dirección contraria mientras tengas una posición activa en este par.",
     "tradeSuccess": "{side} {pair} · {price} · {duration}m"
   },
   "nav": {
@@ -1117,6 +1118,8 @@
     "totalDaily": "Total diario",
     "noAttemptsLeft": "Has usado las {max} operaciones de hoy. Los intentos se reinician a las 00:00 UTC.",
     "noCapital": "Necesitas capital invertido para operar. Deposita USDT en tu billetera primero.",
+    "hedgeBlockedBuy": "Compra bloqueada: tienes una venta abierta en este par.",
+    "hedgeBlockedSell": "Venta bloqueada: tienes una compra abierta en este par.",
     "dailyAttempts": "Intentos diarios",
     "resetsIn": "Reinicio en",
     "wins": "Victorias",
