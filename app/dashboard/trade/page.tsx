@@ -66,14 +66,17 @@ export default function TradePage() {
   );
   const [drawingTool, setDrawingTool] = React.useState<DrawingTool>("cursor");
   const [drawings, setDrawings] = React.useState<ChartDrawing[]>([]);
-  const [drawingToolbarOpen, setDrawingToolbarOpen] = React.useState(true);
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = React.useState(false);
   const [coordsApi, setCoordsApi] = React.useState<ChartCoordsApi | null>(null);
+  const skipToolbarSaveRef = React.useRef(true);
 
   React.useEffect(() => {
     setDrawingToolbarOpen(loadDrawingToolbarVisible());
+    skipToolbarSaveRef.current = false;
   }, []);
 
   React.useEffect(() => {
+    if (skipToolbarSaveRef.current) return;
     saveDrawingToolbarVisible(drawingToolbarOpen);
   }, [drawingToolbarOpen]);
 

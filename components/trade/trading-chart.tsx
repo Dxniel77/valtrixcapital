@@ -640,7 +640,12 @@ export const TradingChart = React.forwardRef<
     const prevCount = prevCandleCountRef.current;
     const prevLastTime = prevLastTimeRef.current;
     const symbolChanged = loadedSymbolRef.current !== symbol;
+    const countDelta =
+      prevCount > 0 ? Math.abs(candles.length - prevCount) : candles.length;
+    const isBulkReload =
+      symbolChanged || prevCount === 0 || countDelta > 1;
     const canRestoreView =
+      !isBulkReload &&
       !symbolChanged &&
       viewEpochRef.current === dataEpochRef.current &&
       viewEpochRef.current > 0;
@@ -686,6 +691,11 @@ export const TradingChart = React.forwardRef<
       });
       volume.update(volPoint(last));
     } else {
+      if (isBulkReload) {
+        viewEpochRef.current = 0;
+      }
+
+      programmaticViewRef.current = true;
       series.setData(
         candles.map((c) => ({
           time: c.time as UTCTimestamp,
@@ -706,7 +716,6 @@ export const TradingChart = React.forwardRef<
         volume: last.volume,
       });
 
-      programmaticViewRef.current = true;
       if (savedRange) {
         chart.timeScale().setVisibleLogicalRange(savedRange);
         pendingFitRef.current = false;

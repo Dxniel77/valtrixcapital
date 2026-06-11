@@ -30,6 +30,7 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
 
   React.useEffect(() => {
     let aborted = false;
+    let historyLoaded = false;
     setState({
       activeSymbol: symbol,
       candles: [],
@@ -50,6 +51,7 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
             ? await fetchTickerBybit(symbol).catch(() => null)
             : null;
         if (aborted) return;
+        historyLoaded = true;
         setState((s) => ({
           ...s,
           candles,
@@ -81,6 +83,7 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
           status: s.status === "live" ? "connecting" : s.status,
         }));
       } else if (e.type === "candle") {
+        if (!historyLoaded) return;
         setState((s) => {
           const last = s.candles[s.candles.length - 1];
           if (!last) return { ...s, candles: [e.candle], livePrice: e.candle.close };
