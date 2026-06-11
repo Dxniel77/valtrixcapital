@@ -3,6 +3,8 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 import { useTradeStore, type Position } from "@/lib/trade/store";
+import { deriveSimultaneousLimit } from "@/lib/trade/limits";
+import { activeCapital, useStakingStore } from "@/lib/staking/store";
 import { findPair } from "@/lib/market/pairs";
 import { cn, formatNumber } from "@/lib/utils";
 import { useClientNow } from "@/lib/hooks/use-client-now";
@@ -21,9 +23,15 @@ export function OpenPositions({
 }: OpenPositionsProps) {
   const { t } = useI18n();
   const positions = useTradeStore((s) => s.positions);
+  const stakes = useStakingStore((s) => s.stakes);
+  const capital = activeCapital(stakes);
   const open = React.useMemo(
     () => positions.filter((p) => p.status === "OPEN"),
     [positions],
+  );
+  const simultaneous = React.useMemo(
+    () => deriveSimultaneousLimit(open, capital),
+    [open, capital],
   );
   const resolvePosition = useTradeStore((s) => s.resolvePosition);
   const now = useClientNow(500);
@@ -60,7 +68,10 @@ export function OpenPositions({
           {t("trade.openPositions")}
         </h3>
         <span className="text-xs text-text-muted">
-          {t("trade.activeCount", { n: open.length })}
+          {t("trade.simultaneousOpenCount", {
+            open: simultaneous.open,
+            max: simultaneous.max,
+          })}
         </span>
       </header>
       <ul className="divide-y divide-border-subtle">

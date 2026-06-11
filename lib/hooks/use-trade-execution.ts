@@ -3,6 +3,10 @@
 import { toast } from "sonner";
 import { type PairMeta } from "@/lib/market/pairs";
 import {
+  deriveSimultaneousLimit,
+  hasReachedSimultaneousLimit,
+} from "@/lib/trade/limits";
+import {
   MAX_TRADES_PER_DAY,
   hasOppositeOpenPosition,
   useDailySummary,
@@ -25,10 +29,16 @@ export function useTradeExecution(
   const stakes = useStakingStore((s) => s.stakes);
   const investedCapital = activeCapital(stakes);
   const hasCapital = investedCapital > 0;
+  const simultaneous = deriveSimultaneousLimit(openPositions, investedCapital);
+  const atSimultaneousLimit = hasReachedSimultaneousLimit(
+    openPositions,
+    investedCapital,
+  );
 
   const canTrade =
     hasCapital &&
     summary.attemptsRemaining > 0 &&
+    !atSimultaneousLimit &&
     livePrice !== null &&
     livePrice > 0;
 
@@ -52,6 +62,15 @@ export function useTradeExecution(
       toast.error(t("errors.noAttempts"));
       return;
     }
+    if (atSimultaneousLimit) {
+      toast.error(
+        t("errors.simultaneousLimit", {
+          max: simultaneous.max,
+          open: simultaneous.open,
+        }),
+      );
+      return;
+    }
     if (hasOppositeOpenPosition(openPositions, pair.binance, direction)) {
       toast.error(t("errors.hedgeBlocked"));
       return;
@@ -63,7 +82,16 @@ export function useTradeExecution(
       durationSec,
     });
     if (!pos) {
-      toast.error(t("errors.hedgeBlocked"));
+      if (hasOppositeOpenPosition(openPositions, pair.binance, direction)) {
+        toast.error(t("errors.hedgeBlocked"));
+      } else {
+        toast.error(
+          t("errors.simultaneousLimit", {
+            max: simultaneous.max,
+            open: simultaneous.open,
+          }),
+        );
+      }
       return;
     }
     toast.success(
@@ -83,6 +111,8 @@ export function useTradeExecution(
     canSell,
     hasCapital,
     investedCapital,
+    simultaneous,
+    atSimultaneousLimit,
     execute,
     summary,
     maxTrades: MAX_TRADES_PER_DAY,

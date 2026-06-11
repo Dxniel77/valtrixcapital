@@ -47,6 +47,7 @@
     "priceUnavailable": "Live price not available. Hang on a minute.",
     "noAttempts": "No daily attempts — restart at 00:00 UTC.",
     "hedgeBlocked": "You cannot open the opposite direction while a position is active on this pair.",
+    "simultaneousLimit": "Simultaneous trade limit reached ({open}/{max}). Close an active position to open another.",
     "tradeSuccess": "{side} {pair} · {price} · {duration}m"
   },
   "nav": {
@@ -1127,7 +1128,12 @@
     "yieldSummary": "Daily yield",
     "noCapital": "You need invested capital to trade. Deposit USDT in your wallet first.",
     "hedgeBlockedBuy": "Buy blocked — you have an open sell on this pair.",
-    "hedgeBlockedSell": "Sell blocked — you have an open buy on this pair."
+    "hedgeBlockedSell": "Sell blocked — you have an open buy on this pair.",
+    "dailyAttemptsShort": "Today {left}/{max}",
+    "simultaneousShort": "Open {open}/{max}",
+    "simultaneousOpenCount": "{open} / {max} open",
+    "simultaneousLimitBlocked": "Maximum {max} simultaneous trades for your capital tier.",
+    "simultaneousTiersHint": "15–500 USDT: 3 · 501–1,000: 5 · 1,001+: 7 simultaneous trades."
   },
   "notifications": {
     "title": "Notifications",

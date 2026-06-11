@@ -29,8 +29,26 @@ export function TradeQuickBar({
     hasCapital,
     execute,
     summary,
+    simultaneous,
+    atSimultaneousLimit,
     maxTrades,
   } = useTradeExecution(pair, livePrice, duration);
+
+  function buyBlockTitle(): string | undefined {
+    if (!canBuy && hasCapital && atSimultaneousLimit) {
+      return t("trade.simultaneousLimitBlocked", { max: simultaneous.max });
+    }
+    if (!canBuy && canTrade) return t("trade.hedgeBlockedBuy");
+    return undefined;
+  }
+
+  function sellBlockTitle(): string | undefined {
+    if (!canSell && hasCapital && atSimultaneousLimit) {
+      return t("trade.simultaneousLimitBlocked", { max: simultaneous.max });
+    }
+    if (!canSell && canTrade) return t("trade.hedgeBlockedSell");
+    return undefined;
+  }
 
   return (
     <div className="border-t border-border-subtle bg-bg-elevated/40 px-3 py-3 sm:px-4">
@@ -39,14 +57,35 @@ export function TradeQuickBar({
           {t("trade.noCapital")}
         </p>
       ) : null}
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           {t("trade.quickTrade")}
         </span>
-        <Badge variant={canTrade ? "gold" : "warning"} className="shrink-0">
-          {summary.attemptsRemaining}/{maxTrades}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant={canTrade ? "gold" : "warning"} className="shrink-0">
+            {t("trade.dailyAttemptsShort", {
+              left: summary.attemptsRemaining,
+              max: maxTrades,
+            })}
+          </Badge>
+          {hasCapital ? (
+            <Badge
+              variant={atSimultaneousLimit ? "warning" : "default"}
+              className="shrink-0"
+            >
+              {t("trade.simultaneousShort", {
+                open: simultaneous.open,
+                max: simultaneous.max,
+              })}
+            </Badge>
+          ) : null}
+        </div>
       </div>
+      {hasCapital ? (
+        <p className="mb-2 text-[10px] leading-relaxed text-text-muted">
+          {t("trade.simultaneousTiersHint")}
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
         <div className="min-w-0 flex-1">
@@ -89,7 +128,7 @@ export function TradeQuickBar({
             size="lg"
             className="h-12 text-sm font-semibold sm:h-11"
             disabled={!canBuy}
-            title={!canBuy && canTrade ? t("trade.hedgeBlockedBuy") : undefined}
+            title={buyBlockTitle()}
             onClick={() => execute("UP")}
           >
             {t("common.buy")} <ArrowUp className="h-4 w-4" />
@@ -99,7 +138,7 @@ export function TradeQuickBar({
             size="lg"
             className="h-12 text-sm font-semibold sm:h-11"
             disabled={!canSell}
-            title={!canSell && canTrade ? t("trade.hedgeBlockedSell") : undefined}
+            title={sellBlockTitle()}
             onClick={() => execute("DOWN")}
           >
             {t("common.sell")} <ArrowDown className="h-4 w-4" />

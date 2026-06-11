@@ -47,6 +47,7 @@
     "priceUnavailable": "Precio en vivo no disponible. Espera un momento.",
     "noAttempts": "Sin intentos diarios — reinicio a las 00:00 UTC.",
     "hedgeBlocked": "No puedes abrir la dirección contraria mientras tengas una posición activa en este par.",
+    "simultaneousLimit": "Límite de operaciones simultáneas alcanzado ({open}/{max}). Cierra una posición activa para abrir otra.",
     "tradeSuccess": "{side} {pair} · {price} · {duration}m"
   },
   "nav": {
@@ -1120,6 +1121,11 @@
     "noCapital": "Necesitas capital invertido para operar. Deposita USDT en tu billetera primero.",
     "hedgeBlockedBuy": "Compra bloqueada: tienes una venta abierta en este par.",
     "hedgeBlockedSell": "Venta bloqueada: tienes una compra abierta en este par.",
+    "dailyAttemptsShort": "Hoy {left}/{max}",
+    "simultaneousShort": "Activas {open}/{max}",
+    "simultaneousOpenCount": "{open} / {max} activas",
+    "simultaneousLimitBlocked": "Máximo {max} operaciones simultáneas según tu capital.",
+    "simultaneousTiersHint": "15–500 USDT: 3 · 501–1.000: 5 · 1.001+: 7 operaciones simultáneas.",
     "dailyAttempts": "Intentos diarios",
     "resetsIn": "Reinicio en",
     "wins": "Victorias",

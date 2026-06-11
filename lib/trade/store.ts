@@ -3,6 +3,8 @@
 import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { activeCapital, useStakingStore } from "@/lib/staking/store";
+import { hasReachedSimultaneousLimit } from "@/lib/trade/limits";
 
 export type TradeDirection = "UP" | "DOWN";
 export type TradeStatus = "OPEN" | "WIN" | "LOSS";
@@ -91,6 +93,10 @@ export const useTradeStore = create<TradeState>()(
       openPosition: ({ pair, direction, entryPrice, durationSec }) => {
         get().rolloverIfNewDay();
         if (hasOppositeOpenPosition(get().positions, pair, direction)) {
+          return null;
+        }
+        const capital = activeCapital(useStakingStore.getState().stakes);
+        if (hasReachedSimultaneousLimit(get().positions, capital)) {
           return null;
         }
         const id =
