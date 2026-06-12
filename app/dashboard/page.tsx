@@ -537,7 +537,7 @@ function QuickLinksCard() {
   const links = [
     { href: "/dashboard/trade", icon: LineChart, label: t("dashboard.overview.quickTrade") },
     { href: "/dashboard/referrals", icon: Users, label: t("dashboard.overview.quickInvite") },
-    { href: "/dashboard/bot-trading", icon: Bot, label: t("dashboard.overview.quickBot") },
+    { href: "/dashboard/company-tools", icon: Bot, label: t("dashboard.overview.quickBot") },
     { href: "/dashboard/wallet", icon: Wallet, label: t("dashboard.overview.quickWallet") },
   ];
   return (

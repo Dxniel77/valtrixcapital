@@ -170,7 +170,7 @@ function HeroDashboardMock() {
 
   const navItems = [
     { key: "dashboard", active: true },
-    { key: "botTrading", active: false },
+    { key: "companyTools", active: false },
     { key: "trade", active: false },
     { key: "portfolio", active: false },
     { key: "history", active: false },

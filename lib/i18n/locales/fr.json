@@ -71,7 +71,7 @@
     "trustNetwork": "Red de 8 niveles",
     "mockNav": {
       "dashboard": "Panel",
-      "botTrading": "Bot Trading",
+      "companyTools": "Herramientas",
       "trade": "Operar",
       "portfolio": "Portafolio",
       "history": "Historial",
@@ -244,7 +244,7 @@
   "dashboard": {
     "nav": {
       "dashboard": "Panel",
-      "botTrading": "Bot Trading",
+      "companyTools": "Herramientas",
       "trade": "Operar",
       "portfolio": "Portafolio",
       "history": "Historial",
@@ -600,7 +600,7 @@
     "colVolume": "Volumen",
     "colPnl": "P/L %",
     "colTime": "Hora",
-    "colTx": "Tx",
+    "colNetwork": "Red",
     "long": "LARGO",
     "short": "CORTO",
     "secondsAgo": "hace {n}s",
@@ -609,6 +609,41 @@
     "disclaimer": "El feed del Bot Trading refleja operaciones institucionales con fines de transparencia. Las referencias on-chain son ilustrativas en esta demo.",
     "profitResetHint": "Las métricas diarias se reinician a las 00:00 UTC. La ganancia semanal usa los últimos 7 días y la histórica se acumula sin límite.",
     "priceContinuityHint": "Los precios del bot encadenan el mercado en vivo (Binance) y el último precio de salida por par; si BTC cierra el día en 75.757, la siguiente operación continúa desde ese nivel al pasar medianoche UTC."
+  },
+  "companyToolsPage": {
+    "title": "Herramientas tecnológicas",
+    "subtitle": "La empresa cuenta con 2 motores de generación de ingresos: trading algorítmico en vivo y liquidación on-chain verificable.",
+    "tabBot": "Bot Trading en vivo",
+    "tabLiquidation": "Motor de liquidación"
+  },
+  "liquidationPage": {
+    "title": "Motor de liquidación",
+    "subtitle": "Validación y liquidación de settlements USDT en BSC y Polygon con referencias verificables on-chain.",
+    "live": "En vivo",
+    "feesToday": "Comisiones hoy",
+    "feesTodayHint": "Fees acumulados del día (UTC)",
+    "feesWeek": "Comisiones semana",
+    "feesWeekHint": "Últimos 7 días",
+    "feesAllTime": "Comisiones históricas",
+    "feesAllTimeHint": "Total acumulado",
+    "processedToday": "Tx procesadas hoy",
+    "processedTodayHint": "Liquidaciones del día",
+    "feedTitle": "Liquidaciones en tiempo real",
+    "verifyHint": "Montos verificables en BscScan / PolygonScan",
+    "colPair": "Par",
+    "colAmount": "Monto USDT",
+    "colFee": "Fee empresa",
+    "colNetwork": "Red",
+    "colTime": "Hora",
+    "colTx": "Tx verificable",
+    "onChainAmount": "Monto on-chain del settlement USDT",
+    "secondsAgo": "hace {n}s",
+    "minutesAgo": "hace {n}m",
+    "hoursAgo": "hace {n}h",
+    "emptyFeed": "Conectando al motor de liquidación…",
+    "feeResetHint": "Las comisiones diarias se reinician a las 00:00 UTC. Algunos días procesan más volumen que otros según actividad de red.",
+    "amountMatchHint": "El monto USDT mostrado coincide con la transferencia real de cada hash. La comisión de la empresa se calcula sobre ese settlement.",
+    "disclaimer": "El motor de liquidación procesa settlements USDT reales en BSC y Polygon. Cada hash es verificable; el par mostrado indica el mercado liquidado."
   },
   "walletPage": {
     "title": "Billetera",

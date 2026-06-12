@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import {
   LayoutDashboard,
-  Bot,
   LineChart,
   Briefcase,
   History,
@@ -14,6 +13,7 @@ import {
   Wallet,
   User,
   Headphones,
+  Layers,
   Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -22,7 +22,7 @@ import { useI18n } from "@/lib/i18n/context";
 
 const navKeys = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/bot-trading", key: "botTrading", icon: Bot },
+  { href: "/dashboard/company-tools", key: "companyTools", icon: Layers },
   { href: "/dashboard/trade", key: "trade", icon: LineChart },
   { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },
   { href: "/dashboard/history", key: "history", icon: History },
