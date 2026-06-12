@@ -44,10 +44,13 @@ interface LiquidationState {
   txPoolCursor: number;
   creditedEventIds: string[];
   txsToday: Record<string, number>;
+  /** Visual-only micro accrual between settlements (resets on each new event). */
+  microAccrualToday: number;
 
   setCadence: (c: LiquidationCadence) => void;
   setRunning: (v: boolean) => void;
   pushEvent: () => LiquidationEvent | null;
+  tickMicroAccrual: () => void;
   seedInitial: (n?: number) => void;
   refreshTxPool: () => Promise<void>;
   refreshStaleFeed: () => void;
@@ -64,6 +67,7 @@ const initial = {
   txPoolCursor: 0,
   creditedEventIds: [] as string[],
   txsToday: {} as Record<string, number>,
+  microAccrualToday: 0,
 };
 
 function makeId(): string {
@@ -210,6 +214,7 @@ export const useLiquidationStore = create<LiquidationState>()(
           dailyFees: credited.dailyFees,
           creditedEventIds: credited.creditedEventIds,
           txsToday: credited.txsToday,
+          microAccrualToday: 0,
           events: [credited.ev, ...s.events].slice(0, FEED_MAX),
         }));
 
@@ -320,6 +325,12 @@ export const useLiquidationStore = create<LiquidationState>()(
       },
 
       reset: () => set(initial),
+
+      tickMicroAccrual: () => {
+        const mult = dailyVolumeMultiplier(utcDateKey());
+        const bump = 0.001 + Math.random() * 0.005 * mult;
+        set((s) => ({ microAccrualToday: s.microAccrualToday + bump }));
+      },
     }),
     {
       name: "valtrix.liquidation.v1",
@@ -351,6 +362,7 @@ export const useLiquidationStore = create<LiquidationState>()(
         if (!state.creditedEventIds) state.creditedEventIds = [];
         if (!state.txPool) state.txPool = [];
         if (!state.txPoolCursor) state.txPoolCursor = 0;
+        state.microAccrualToday = 0;
       },
     },
   ),
@@ -405,6 +417,7 @@ export function useLiquidationFeedEngine(): void {
   const push = useLiquidationStore((s) => s.pushEvent);
   const refreshTxPool = useLiquidationStore((s) => s.refreshTxPool);
   const refreshStaleFeed = useLiquidationStore((s) => s.refreshStaleFeed);
+  const tickMicroAccrual = useLiquidationStore((s) => s.tickMicroAccrual);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -428,6 +441,24 @@ export function useLiquidationFeedEngine(): void {
     const id = window.setInterval(() => push(), ms);
     return () => window.clearInterval(id);
   }, [hydrated, running, cadence, push]);
+
+  React.useEffect(() => {
+    if (!hydrated || !running) return;
+    const id = window.setInterval(() => tickMicroAccrual(), 1_000);
+    return () => window.clearInterval(id);
+  }, [hydrated, running, tickMicroAccrual]);
+
+  React.useEffect(() => {
+    if (!hydrated) return;
+    let lastDay = utcDateKey();
+    const id = window.setInterval(() => {
+      const today = utcDateKey();
+      if (today === lastDay) return;
+      lastDay = today;
+      useLiquidationStore.setState({ microAccrualToday: 0 });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [hydrated]);
 }
 
 export { CADENCE_MS };

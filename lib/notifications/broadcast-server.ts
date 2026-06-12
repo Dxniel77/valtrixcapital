@@ -7,6 +7,12 @@ import {
   listMemoryBroadcasts,
   rememberBroadcast,
 } from "@/lib/notifications/broadcast-events";
+import {
+  markBroadcastDatabaseAvailable,
+  markBroadcastDatabaseUnavailable,
+  mergeBroadcastSources,
+  shouldTryBroadcastDatabase,
+} from "@/lib/notifications/broadcast-db";
 
 function toBroadcast(row: {
   id: string;
@@ -32,15 +38,18 @@ async function loadFromDatabase(
   since = 0,
   limit = 50,
 ): Promise<NotificationBroadcast[] | null> {
-  if (!process.env.DATABASE_URL) return null;
+  if (!shouldTryBroadcastDatabase()) return null;
+
   try {
     const rows = await prisma.platformBroadcast.findMany({
       where: since > 0 ? { createdAt: { gt: new Date(since) } } : undefined,
       orderBy: { createdAt: "desc" },
       take: limit,
     });
+    markBroadcastDatabaseAvailable();
     return rows.map(toBroadcast);
   } catch {
+    markBroadcastDatabaseUnavailable();
     return null;
   }
 }
@@ -48,7 +57,8 @@ async function loadFromDatabase(
 async function saveToDatabase(
   broadcast: NotificationBroadcast,
 ): Promise<void> {
-  if (!process.env.DATABASE_URL) return;
+  if (!shouldTryBroadcastDatabase()) return;
+
   try {
     await prisma.platformBroadcast.create({
       data: {
@@ -61,8 +71,9 @@ async function saveToDatabase(
         createdAt: new Date(broadcast.createdAt),
       },
     });
+    markBroadcastDatabaseAvailable();
   } catch {
-    /* DB may be unavailable — in-memory delivery still works */
+    markBroadcastDatabaseUnavailable();
   }
 }
 
@@ -70,11 +81,9 @@ export async function listBroadcasts(
   since = 0,
   limit = 50,
 ): Promise<NotificationBroadcast[]> {
-  const fromDb = await loadFromDatabase(since, limit);
-  if (fromDb) return fromDb;
-
   const fromMemory = listMemoryBroadcasts(since);
-  return fromMemory.slice(0, limit);
+  const fromDb = await loadFromDatabase(since, limit);
+  return mergeBroadcastSources(fromMemory, fromDb).slice(0, limit);
 }
 
 export async function publishPlatformBroadcast(input: {

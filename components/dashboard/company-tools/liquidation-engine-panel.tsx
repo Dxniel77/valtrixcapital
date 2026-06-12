@@ -23,6 +23,10 @@ import {
 } from "@/lib/liquidation-engine/store";
 import { PAIRS } from "@/lib/market/pairs";
 import {
+  useActivePairsToday,
+  useLiveLiquidationToday,
+} from "@/lib/company-tools/combined-profits";
+import {
   cn,
   explorerName,
   explorerUrl,
@@ -36,8 +40,8 @@ export function LiquidationEnginePanel() {
   const hydrated = useLiquidationStoreHydrated();
   const events = useLiquidationStore((s) => s.events);
   const profits = useLiquidationProfits();
-
-  useLiquidationFeedEngine();
+  const liveToday = useLiveLiquidationToday();
+  const activePairsToday = useActivePairsToday();
 
   return (
     <div className="space-y-6">
@@ -51,7 +55,7 @@ export function LiquidationEnginePanel() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={t("liquidationPage.feesToday")}
-          value={`$${formatNumber(profits.today, { decimals: 2 })}`}
+          value={`$${formatNumber(liveToday, { decimals: 2 })}`}
           icon={TrendingUp}
           accent="success"
           hint={t("liquidationPage.feesTodayHint")}
@@ -77,6 +81,35 @@ export function LiquidationEnginePanel() {
           accent="silver"
           hint={t("liquidationPage.processedTodayHint")}
         />
+      </div>
+
+      <div className="rounded-lg border border-border-subtle bg-bg-base/40 px-4 py-3">
+        <p className="mb-2 text-[10px] uppercase tracking-wider text-text-muted">
+          {t("liquidationPage.pairsToday")}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {PAIRS.map((pair) => {
+            const active = activePairsToday.includes(pair.binance);
+            return (
+              <span
+                key={pair.binance}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-mono",
+                  active
+                    ? "border-gold/30 bg-gold/10 text-gold"
+                    : "border-border-subtle text-text-muted",
+                )}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: pair.color }}
+                  aria-hidden
+                />
+                {pair.base}/USDT
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       <Card>

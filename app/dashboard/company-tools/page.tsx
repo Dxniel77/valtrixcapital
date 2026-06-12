@@ -1,13 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bot, Cpu } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { BotTradingPanel } from "@/components/dashboard/company-tools/bot-trading-panel";
 import { LiquidationEnginePanel } from "@/components/dashboard/company-tools/liquidation-engine-panel";
+import { CompanyRevenueSummary } from "@/components/dashboard/company-tools/company-revenue-summary";
 import { useI18n } from "@/lib/i18n/context";
+import { useLiquidationFeedEngine } from "@/lib/liquidation-engine/store";
 import { cn } from "@/lib/utils";
 
 type CompanyToolsTab = "bot" | "liquidation";
@@ -16,11 +19,13 @@ function parseTab(value: string | null): CompanyToolsTab {
   return value === "liquidation" ? "liquidation" : "bot";
 }
 
-export default function CompanyToolsPage() {
+function CompanyToolsContent() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
+
+  useLiquidationFeedEngine();
 
   const tabs: {
     id: CompanyToolsTab;
@@ -55,6 +60,8 @@ export default function CompanyToolsPage() {
         title={t("companyToolsPage.title")}
         subtitle={t("companyToolsPage.subtitle")}
       />
+
+      <CompanyRevenueSummary />
 
       <div
         role="tablist"
@@ -95,5 +102,13 @@ export default function CompanyToolsPage() {
         <LiquidationEnginePanel />
       </div>
     </div>
+  );
+}
+
+export default function CompanyToolsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CompanyToolsContent />
+    </Suspense>
   );
 }

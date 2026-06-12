@@ -12,6 +12,7 @@ export function MarketingFooter() {
       title: t("footer.platform"),
       links: [
         { href: "/dashboard", label: t("dashboard.nav.dashboard") },
+        { href: "/dashboard/company-tools", label: t("dashboard.nav.companyTools") },
         { href: "/dashboard/trade", label: t("dashboard.nav.trade") },
         { href: "/dashboard/portfolio", label: t("dashboard.nav.portfolio") },
         { href: "/dashboard/referrals", label: t("dashboard.nav.referrals") },
