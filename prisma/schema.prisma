@@ -288,3 +288,15 @@ model AuthNonce {
   @@index([address])
   @@index([expiresAt])
 }
+
+model PlatformBroadcast {
+  id        String   @id @default(uuid())
+  kind      String
+  title     String
+  body      String
+  href      String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+}

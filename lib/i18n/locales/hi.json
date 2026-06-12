@@ -743,7 +743,9 @@
       "bodyPlaceholder": "Escribe el texto que verán los usuarios…",
       "linkLabel": "Enlace (opcional)",
       "send": "Enviar notificación",
+      "sending": "Enviando…",
       "sent": "Notificación publicada",
+      "sendFailed": "No se pudo publicar la notificación. Verifica tu sesión de administrador e inténtalo de nuevo.",
       "validation": "El título y el mensaje son obligatorios",
       "recentTitle": "Envíos recientes",
       "recentEmpty": "Aún no hay notificaciones personalizadas."

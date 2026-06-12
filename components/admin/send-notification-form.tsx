@@ -9,9 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/context";
 import {
-  loadBroadcasts,
-  publishBroadcast,
-  syncBroadcastNotifications,
+  loadRecentBroadcasts,
+  publishBroadcastToServer,
   type NotificationBroadcast,
 } from "@/lib/notifications/broadcast";
 import type { NotificationKind } from "@/lib/notifications/store";
@@ -42,12 +41,13 @@ export function SendNotificationForm() {
   const [body, setBody] = React.useState("");
   const [href, setHref] = React.useState("");
   const [recent, setRecent] = React.useState<NotificationBroadcast[]>([]);
+  const [sending, setSending] = React.useState(false);
 
   React.useEffect(() => {
-    setRecent(loadBroadcasts().slice(0, 8));
+    void loadRecentBroadcasts(8).then(setRecent);
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmedTitle = title.trim();
     const trimmedBody = body.trim();
@@ -56,20 +56,28 @@ export function SendNotificationForm() {
       return;
     }
 
-    publishBroadcast({
-      kind,
-      title: trimmedTitle,
-      body: trimmedBody,
-      href: href.trim() || undefined,
-      createdBy: "admin",
-    });
-    syncBroadcastNotifications();
+    setSending(true);
+    try {
+      const broadcast = await publishBroadcastToServer({
+        kind,
+        title: trimmedTitle,
+        body: trimmedBody,
+        href: href.trim() || undefined,
+      });
 
-    toast.success(t("admin.notifications.sent"));
-    setTitle("");
-    setBody("");
-    setHref("");
-    setRecent(loadBroadcasts().slice(0, 8));
+      if (!broadcast) {
+        toast.error(t("admin.notifications.sendFailed"));
+        return;
+      }
+
+      toast.success(t("admin.notifications.sent"));
+      setTitle("");
+      setBody("");
+      setHref("");
+      setRecent((prev) => [broadcast, ...prev.filter((b) => b.id !== broadcast.id)].slice(0, 8));
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -145,9 +153,9 @@ export function SendNotificationForm() {
               />
             </div>
 
-            <Button type="submit" className="gap-2">
+            <Button type="submit" className="gap-2" disabled={sending}>
               <Send className="h-4 w-4" />
-              {t("admin.notifications.send")}
+              {sending ? t("admin.notifications.sending") : t("admin.notifications.send")}
             </Button>
           </form>
         </CardContent>

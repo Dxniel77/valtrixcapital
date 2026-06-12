@@ -787,7 +787,9 @@
       "bodyPlaceholder": "Write the notification text users will see…",
       "linkLabel": "Link (optional)",
       "send": "Send notification",
+      "sending": "Sending…",
       "sent": "Notification published",
+      "sendFailed": "Could not publish notification. Check your admin session and try again.",
       "validation": "Title and message are required",
       "recentTitle": "Recent broadcasts",
       "recentEmpty": "No custom notifications sent yet."

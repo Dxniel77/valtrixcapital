@@ -5,7 +5,10 @@ import { useI18n } from "@/lib/i18n/context";
 import { useStakingStore } from "@/lib/staking/store";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useReferralsStore } from "@/lib/referrals/store";
-import { syncBroadcastNotifications } from "@/lib/notifications/broadcast";
+import {
+  deliverBroadcast,
+  syncBroadcastNotificationsFromServer,
+} from "@/lib/notifications/broadcast";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber } from "@/lib/utils";
 
@@ -33,7 +36,7 @@ export function NotificationBridge() {
       );
       prevCommissionMilestone.current = Math.floor(totalCommissions / 100) * 100;
       bootstrapped.current = true;
-      syncBroadcastNotifications();
+      void syncBroadcastNotificationsFromServer();
       return;
     }
 
@@ -121,10 +124,35 @@ export function NotificationBridge() {
 
   React.useEffect(() => {
     if (!bootstrapped.current) return;
-    const id = window.setInterval(() => {
-      syncBroadcastNotifications();
-    }, 30_000);
-    return () => window.clearInterval(id);
+
+    void syncBroadcastNotificationsFromServer();
+
+    const es = new EventSource("/api/notifications/broadcasts/stream");
+    es.onmessage = (event) => {
+      try {
+        const broadcast = JSON.parse(event.data) as {
+          id: string;
+          kind: "alert" | "promo" | "system";
+          title: string;
+          body: string;
+          href?: string;
+          createdAt: number;
+          createdBy: string;
+        };
+        deliverBroadcast(broadcast);
+      } catch {
+        /* ignore malformed SSE payloads */
+      }
+    };
+
+    const poll = window.setInterval(() => {
+      void syncBroadcastNotificationsFromServer();
+    }, 60_000);
+
+    return () => {
+      es.close();
+      window.clearInterval(poll);
+    };
   }, []);
 
   return null;

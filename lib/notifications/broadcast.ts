@@ -1,59 +1,72 @@
-import type { NotificationKind } from "@/lib/notifications/store";
+import type { NotificationBroadcast } from "@/lib/notifications/broadcast-types";
 import { pushNotification } from "@/lib/notifications/push";
 
-export interface NotificationBroadcast {
-  id: string;
-  kind: NotificationKind;
-  title: string;
-  body: string;
-  href?: string;
-  createdAt: number;
-  createdBy: string;
+export type { NotificationBroadcast } from "@/lib/notifications/broadcast-types";
+
+/** Push one server broadcast into the user's local notification inbox. */
+export function deliverBroadcast(broadcast: NotificationBroadcast): void {
+  pushNotification({
+    kind: broadcast.kind,
+    title: broadcast.title,
+    body: broadcast.body,
+    href: broadcast.href,
+    dedupeKey: `broadcast_${broadcast.id}`,
+  });
 }
 
-const BROADCAST_KEY = "valtrix.notification.broadcasts";
-
-function makeId(): string {
-  return `bc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+export function deliverBroadcasts(broadcasts: NotificationBroadcast[]): void {
+  for (const broadcast of broadcasts) {
+    deliverBroadcast(broadcast);
+  }
 }
 
-export function loadBroadcasts(): NotificationBroadcast[] {
+export async function fetchBroadcastsSince(
+  since = 0,
+): Promise<NotificationBroadcast[]> {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(BROADCAST_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as NotificationBroadcast[];
+    const res = await fetch(
+      `/api/notifications/broadcasts?since=${Math.max(0, since)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { broadcasts?: NotificationBroadcast[] };
+    return data.broadcasts ?? [];
   } catch {
     return [];
   }
 }
 
-function saveBroadcasts(items: NotificationBroadcast[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(BROADCAST_KEY, JSON.stringify(items));
+/** Fetch all server broadcasts and deliver any missing ones to the inbox. */
+export async function syncBroadcastNotificationsFromServer(): Promise<void> {
+  const broadcasts = await fetchBroadcastsSince(0);
+  deliverBroadcasts(broadcasts);
 }
 
-export function publishBroadcast(
-  input: Omit<NotificationBroadcast, "id" | "createdAt">,
-): NotificationBroadcast {
-  const broadcast: NotificationBroadcast = {
-    ...input,
-    id: makeId(),
-    createdAt: Date.now(),
-  };
-  saveBroadcasts([broadcast, ...loadBroadcasts()].slice(0, 50));
-  return broadcast;
-}
-
-/** Deliver platform-wide admin broadcasts into the user's notification inbox. */
-export function syncBroadcastNotifications(): void {
-  for (const broadcast of loadBroadcasts()) {
-    pushNotification({
-      kind: broadcast.kind,
-      title: broadcast.title,
-      body: broadcast.body,
-      href: broadcast.href,
-      dedupeKey: `broadcast_${broadcast.id}`,
+export async function publishBroadcastToServer(input: {
+  kind: NotificationBroadcast["kind"];
+  title: string;
+  body: string;
+  href?: string;
+}): Promise<NotificationBroadcast | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch("/api/notifications/broadcasts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
     });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { broadcast?: NotificationBroadcast };
+    return data.broadcast ?? null;
+  } catch {
+    return null;
   }
+}
+
+export async function loadRecentBroadcasts(
+  limit = 8,
+): Promise<NotificationBroadcast[]> {
+  const broadcasts = await fetchBroadcastsSince(0);
+  return broadcasts.slice(0, limit);
 }
