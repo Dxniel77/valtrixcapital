@@ -5,8 +5,8 @@ import { useReferralsStore } from "@/lib/referrals/store";
 import {
   BONUS_PER_WIN_BPS,
   utcDayKey,
-  useTradeStore,
-} from "@/lib/trade/store";
+} from "@/lib/trade/constants";
+import { useTradeStore } from "@/lib/trade/store";
 import {
   activeCapital,
   computeDailyRate,

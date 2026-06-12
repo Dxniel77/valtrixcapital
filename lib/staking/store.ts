@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -9,10 +8,15 @@ import {
   BONUS_PER_WIN_BPS,
   MAX_DAILY_YIELD_BPS,
   utcDayKey,
-  useTradeStore,
-  useTradeStoreHydrated,
   type Position,
-} from "@/lib/trade/store";
+} from "@/lib/trade/constants";
+import {
+  PASSIVE_YIELD_DELAY_MS,
+  PAYOUT_CAP_MULTIPLIER,
+  REQUIRED_CONFIRMATIONS,
+  STAKE_MAX_USDT,
+  STAKE_MIN_USDT,
+} from "@/lib/staking/constants";
 
 export type StakingNetwork = "BSC" | "POLYGON";
 export type StakeStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "FAILED";
@@ -58,12 +62,13 @@ export interface PendingDeposit {
   requiredConfirmations: number;
 }
 
-export const STAKE_MIN_USDT = 15;
-export const STAKE_MAX_USDT = 100_000;
-export const PAYOUT_CAP_MULTIPLIER = 2; // 200%
-export const REQUIRED_CONFIRMATIONS = 12;
-/** Base passive yield starts 24h after deposit confirmation. */
-export const PASSIVE_YIELD_DELAY_MS = 24 * 60 * 60 * 1000;
+export {
+  PASSIVE_YIELD_DELAY_MS,
+  PAYOUT_CAP_MULTIPLIER,
+  REQUIRED_CONFIRMATIONS,
+  STAKE_MAX_USDT,
+  STAKE_MIN_USDT,
+} from "@/lib/staking/constants";
 
 interface StakingState {
   stakes: Stake[];
@@ -411,37 +416,8 @@ export {
   type TodayYieldPreview,
 } from "@/lib/staking/portfolio-summary";
 
-export function useStakingStoreHydrated(): boolean {
-  const [hydrated, setHydrated] = React.useState(false);
-  React.useEffect(() => {
-    const unsub = useStakingStore.persist.onFinishHydration(() =>
-      setHydrated(true),
-    );
-    if (useStakingStore.persist.hasHydrated()) setHydrated(true);
-    return unsub;
-  }, []);
-  return hydrated;
-}
-
-/**
- * Wires the yield engine to the trade store. Runs on mount, every minute,
- * and whenever positions change (so a freshly resolved trade today still
- * applies retroactively if the user later refreshes after UTC midnight).
- */
-export function useYieldEngine(): void {
-  const tradeHydrated = useTradeStoreHydrated();
-  const stakingHydrated = useStakingStoreHydrated();
-  const catchup = useStakingStore((s) => s.catchupAccruals);
-  const positions = useTradeStore((s) => s.positions);
-
-  React.useEffect(() => {
-    if (!tradeHydrated || !stakingHydrated) return;
-    catchup(positions);
-    const id = setInterval(
-      () => catchup(useTradeStore.getState().positions),
-      60_000,
-    );
-    return () => clearInterval(id);
-  }, [tradeHydrated, stakingHydrated, catchup, positions]);
-}
+export {
+  useStakingStoreHydrated,
+  useYieldEngine,
+} from "@/lib/staking/yield-engine";
 

@@ -1,5 +1,5 @@
-import { STAKE_MIN_USDT } from "@/lib/staking/store";
-import type { Position } from "@/lib/trade/store";
+import { STAKE_MIN_USDT } from "@/lib/staking/constants";
+import type { Position } from "@/lib/trade/constants";
 
 /** Minimum capital (USDT) for the lowest simultaneous-trade tier. */
 export const SIMULTANEOUS_TIER_LOW_MIN = STAKE_MIN_USDT; // 15

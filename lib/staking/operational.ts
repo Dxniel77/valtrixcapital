@@ -7,10 +7,10 @@ import {
   useTradeStoreHydrated,
 } from "@/lib/trade/store";
 import {
-  useStakingStore,
-  useStakingStoreHydrated,
   activeCapital,
+  useStakingStore,
 } from "@/lib/staking/store";
+import { useStakingStoreHydrated } from "@/lib/staking/yield-engine";
 
 /**
  * Credits trade-win bonuses instantly when a position resolves as WIN
