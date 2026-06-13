@@ -23,36 +23,25 @@ const VIDEO_TOP_MASK =
   "linear-gradient(to bottom, #000 0px, #000 5rem, transparent 6.5rem)";
 
 const videoClass =
-  "pointer-events-none absolute inset-0 h-full w-full object-cover transform-gpu";
+  "pointer-events-none absolute inset-0 h-full w-full object-cover";
 
 function HeroVideoBackground() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const videoTopBlurRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const play = () => {
-      video.playbackRate = 1;
-      video.play().catch(() => {});
+    const play = (el: HTMLVideoElement | null) => {
+      el?.play().catch(() => {});
     };
-
-    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      play();
-      return;
-    }
-
-    video.addEventListener("canplay", play, { once: true });
-    video.addEventListener("loadeddata", play, { once: true });
-    return () => {
-      video.removeEventListener("canplay", play);
-      video.removeEventListener("loadeddata", play);
-    };
+    play(videoRef.current);
+    play(videoTopBlurRef.current);
   }, []);
+
+  const source = <source src={LANDING_VIDEO_SRC} type="video/mp4" />;
 
   return (
     <>
-      {/* Single decode — backdrop-blur overlay replaces a second <video> (was 2× bandwidth + CPU). */}
+      {/* Sharp video — full frame */}
       <video
         ref={videoRef}
         autoPlay
@@ -60,20 +49,28 @@ function HeroVideoBackground() {
         loop
         playsInline
         preload="auto"
-        disablePictureInPicture
         className={videoClass}
         aria-hidden
       >
-        <source src={LANDING_VIDEO_SRC} type="video/mp4" />
+        {source}
       </video>
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[6.5rem] backdrop-blur-[3px]"
+      {/* Blur applied on the video itself, masked to the header band */}
+      <video
+        ref={videoTopBlurRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className={`${videoClass} scale-[1.03] blur-[3px]`}
         style={{
           maskImage: VIDEO_TOP_MASK,
           WebkitMaskImage: VIDEO_TOP_MASK,
         }}
         aria-hidden
-      />
+      >
+        {source}
+      </video>
       {/* Fixed dark scrim — same as original dark theme; not tied to light bg-base */}
       <div
         className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[hsl(240_14%_5%_/0.75)] via-[hsl(240_14%_5%_/0.45)] to-[hsl(240_14%_5%_/0.85)]"
@@ -87,7 +84,7 @@ export function Hero() {
   const { t } = useI18n();
 
   return (
-    <section className="hero-over-video relative -mt-20 min-h-screen overflow-hidden bg-[hsl(240_14%_5%)] pt-20">
+    <section className="hero-over-video relative -mt-20 min-h-screen overflow-hidden pt-20">
       <div className="absolute inset-0 z-0">
         <HeroVideoBackground />
       </div>

@@ -8,12 +8,6 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
-      <link
-        rel="preload"
-        href="/videos/landing-video.mp4"
-        as="video"
-        type="video/mp4"
-      />
       <MarketingNav />
       <main className="flex-1">{children}</main>
       <MarketingFooter />
