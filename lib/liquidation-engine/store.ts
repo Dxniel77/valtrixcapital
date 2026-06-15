@@ -23,9 +23,9 @@ export type {
 } from "@/lib/liquidation-engine/types";
 
 const CADENCE_MS: Record<LiquidationCadence, number> = {
-  fast: 4_000,
-  normal: 7_000,
-  slow: 12_000,
+  fast: 2_000,
+  normal: 3_500,
+  slow: 6_000,
 };
 
 const FEED_MAX = 80;
@@ -59,7 +59,7 @@ interface LiquidationState {
 
 const initial = {
   events: [] as LiquidationEvent[],
-  cadence: "normal" as LiquidationCadence,
+  cadence: "fast" as LiquidationCadence,
   running: true,
   dailyFees: {} as Record<string, number>,
   txPool: [] as LiquidationChainTx[],
@@ -328,7 +328,7 @@ export const useLiquidationStore = create<LiquidationState>()(
 
       tickMicroAccrual: () => {
         const mult = dailyVolumeMultiplier(utcDateKey());
-        const bump = 0.001 + Math.random() * 0.005 * mult;
+        const bump = 0.002 + Math.random() * 0.008 * mult;
         set((s) => ({ microAccrualToday: s.microAccrualToday + bump }));
       },
     }),
@@ -357,12 +357,21 @@ export const useLiquidationStore = create<LiquidationState>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         state.running = true;
+        state.cadence = "fast";
         if (!state.dailyFees) state.dailyFees = {};
         if (!state.txsToday) state.txsToday = {};
         if (!state.creditedEventIds) state.creditedEventIds = [];
         if (!state.txPool) state.txPool = [];
         if (!state.txPoolCursor) state.txPoolCursor = 0;
         state.microAccrualToday = 0;
+      },
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<LiquidationState>;
+        return {
+          ...state,
+          cadence: version < 2 ? "fast" : (state.cadence ?? "fast"),
+        };
       },
     },
   ),
@@ -438,13 +447,14 @@ export function useLiquidationFeedEngine(): void {
   React.useEffect(() => {
     if (!hydrated || !running) return;
     const ms = CADENCE_MS[cadence];
+    push();
     const id = window.setInterval(() => push(), ms);
     return () => window.clearInterval(id);
   }, [hydrated, running, cadence, push]);
 
   React.useEffect(() => {
     if (!hydrated || !running) return;
-    const id = window.setInterval(() => tickMicroAccrual(), 1_000);
+    const id = window.setInterval(() => tickMicroAccrual(), 500);
     return () => window.clearInterval(id);
   }, [hydrated, running, tickMicroAccrual]);
 
