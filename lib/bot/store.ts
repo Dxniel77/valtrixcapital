@@ -5,6 +5,14 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { PAIRS } from "@/lib/market/pairs";
 import { isLegacyReferenceTx } from "@/lib/bot/reference-txs";
+import {
+  BOT_CADENCE_MS,
+  botProfitUsd,
+  buildGlobalBotFeed,
+  computeGlobalBotProfits,
+} from "@/lib/bot/global-simulation";
+
+export { botProfitUsd } from "@/lib/bot/global-simulation";
 
 export type BotNetwork = "BSC" | "POLYGON";
 export type BotDirection = "UP" | "DOWN";
@@ -72,6 +80,7 @@ interface BotState {
   refreshRecentTxPool: () => Promise<void>;
   rebindOperationsToRecentTxs: () => void;
   refreshStaleFeed: () => void;
+  syncGlobalFeed: () => void;
   reset: () => void;
 }
 
@@ -554,17 +563,20 @@ export const useBotStore = create<BotState>()(
       },
 
       refreshStaleFeed: () => {
+        get().syncGlobalFeed();
+      },
+
+      syncGlobalFeed: () => {
         const state = get();
-        const recentOps = state.operations.filter(isFreshOperation);
-
-        if (recentOps.length >= FEED_SEED_COUNT) {
-          if (recentOps.length !== state.operations.length) {
-            set({ operations: recentOps });
-          }
-          return;
-        }
-
-        get().seedInitial(FEED_SEED_COUNT);
+        const ms = BOT_CADENCE_MS[state.cadence];
+        const operations = buildGlobalBotFeed(
+          Date.now(),
+          ms,
+          FEED_MAX_OPS,
+          state.recentTxPool,
+          state.marketAnchors,
+        );
+        set({ operations });
       },
 
       reset: () => set(initial),
@@ -581,113 +593,42 @@ export const useBotStore = create<BotState>()(
           : window.localStorage,
       ),
       partialize: (s) => ({
-        operations: s.operations,
         cadence: s.cadence,
         running: s.running,
-        dailyProfits: s.dailyProfits,
-        creditedOpIds: s.creditedOpIds,
         recentTxPool: s.recentTxPool,
         recentTxPoolUpdatedAt: s.recentTxPoolUpdatedAt,
-        txPoolCursor: s.txPoolCursor,
-        pairLastPrice: s.pairLastPrice,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         state.running = true;
-        if (!state.dailyProfits) state.dailyProfits = {};
-        if (!state.creditedOpIds) state.creditedOpIds = [];
+        state.operations = [];
+        state.dailyProfits = {};
+        state.creditedOpIds = [];
+        state.txPoolCursor = { BSC: 0, POLYGON: 0 };
+        state.pairLastPrice = {};
+        if (!state.marketAnchors) state.marketAnchors = {};
         if (!state.recentTxPool) {
           state.recentTxPool = { BSC: [], POLYGON: [] };
-        }
-        if (!state.txPoolCursor) {
-          state.txPoolCursor = { BSC: 0, POLYGON: 0 };
-        }
-        if (!state.pairLastPrice) state.pairLastPrice = {};
-        if (!state.marketAnchors) state.marketAnchors = {};
-        for (const op of state.operations ?? []) {
-          if (op.exitPrice > 0) {
-            state.pairLastPrice[op.pair] = op.exitPrice;
-          }
         }
         if (state.operations?.some((op) => isLegacyReferenceTx(op.fakeTxHash))) {
           state.recentTxPoolUpdatedAt = 0;
         }
-        const reconciled = reconcileUncreditedOps({
-          operations: state.operations ?? [],
-          dailyProfits: state.dailyProfits,
-          creditedOpIds: state.creditedOpIds,
-        });
-        if (reconciled) {
-          state.operations = reconciled.operations;
-          state.dailyProfits = reconciled.dailyProfits;
-          state.creditedOpIds = reconciled.creditedOpIds;
-        }
       },
       migrate: (persisted, version) => {
-        const prev = persisted as Partial<BotState> & {
-          profitsMigrated?: boolean;
-        };
-        const rawOps = (prev.operations ?? []).filter(
-          (op) => !isLegacyReferenceTx(op.fakeTxHash),
-        );
-        const pairLastPrice = { ...(prev.pairLastPrice ?? {}) };
-        const operations = rawOps.map((op) => {
-          if (op.entryPrice > 0 && op.exitPrice > 0) {
-            pairLastPrice[op.pair] = op.exitPrice;
-            return op;
-          }
-          const direction = op.direction;
-          const pnlBps = op.pnlBps;
-          const { entryPrice, exitPrice } = deriveOperationPrices(
-            op.pair,
-            direction,
-            pnlBps,
-            pairLastPrice,
-            prev.marketAnchors ?? {},
-          );
-          pairLastPrice[op.pair] = exitPrice;
-          return { ...op, entryPrice, exitPrice };
-        });
-
-        const base = {
-          ...initial,
-          ...prev,
-          operations,
-          pairLastPrice,
-          recentTxPool: prev.recentTxPool ?? { BSC: [], POLYGON: [] },
-          recentTxPoolUpdatedAt: prev.recentTxPoolUpdatedAt ?? 0,
-          txPoolCursor: prev.txPoolCursor ?? { BSC: 0, POLYGON: 0 },
-          marketAnchors: {},
-          creditedOpIds: prev.creditedOpIds ?? [],
-        };
-
-        if (version < 7) {
-          const scaledPairLastPrice = { ...(base.pairLastPrice ?? {}) };
-          const scaledOps = operations.map((op) =>
-            rescaleLegacyOperation(op, scaledPairLastPrice),
-          );
-          const ledger = rebuildProfitLedger(scaledOps);
+        if (version < 8) {
+          const prev = persisted as Partial<BotState>;
           return {
-            ...base,
-            operations: ledger.operations,
-            dailyProfits: ledger.dailyProfits,
-            creditedOpIds: ledger.creditedOpIds,
-            pairLastPrice: scaledPairLastPrice,
-          };
-        }
-
-        if (version < 6) {
-          const ledger = rebuildProfitLedger(operations);
-          return {
-            ...base,
-            operations: ledger.operations,
-            dailyProfits: ledger.dailyProfits,
-            creditedOpIds: ledger.creditedOpIds,
+            ...initial,
+            cadence: prev.cadence ?? initial.cadence,
+            running: true,
+            recentTxPool: prev.recentTxPool ?? { BSC: [], POLYGON: [] },
+            recentTxPoolUpdatedAt: prev.recentTxPoolUpdatedAt ?? 0,
+            marketAnchors: {},
           };
         }
         return persisted as BotState;
       },
-      version: 7,
+      version: 8,
     },
   ),
 );
@@ -702,58 +643,35 @@ export function useBotStoreHydrated(): boolean {
   return hydrated;
 }
 
-/** Company profit = sum of positive notionals from bot P/L. */
-export function botProfitUsd(op: BotOperation): number {
-  return Math.max(0, (op.volume * op.pnlBps) / 10_000);
-}
-
-function sumDailyProfits(
-  dailyProfits: Record<string, number>,
-  fromDayInclusive: string,
-  toDayInclusive: string,
-): number {
-  let total = 0;
-  for (const [day, amount] of Object.entries(dailyProfits)) {
-    if (day >= fromDayInclusive && day <= toDayInclusive) {
-      total += amount;
-    }
-  }
-  return total;
-}
-
+/** Company profit — identical for every user (UTC slot ledger). */
 export function useCompanyProfits() {
-  const dailyProfits = useBotStore((s) => s.dailyProfits);
+  const cadence = useBotStore((s) => s.cadence);
+  const [now, setNow] = React.useState(() => Date.now());
 
-  return React.useMemo(() => {
-    const todayKey = utcDateKey();
-    const weekStartKey = utcDateKey(Date.now() - 6 * 86_400_000);
+  React.useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
-    const today = dailyProfits[todayKey] ?? 0;
-    const week = sumDailyProfits(dailyProfits, weekStartKey, todayKey);
-    const allTime = Object.values(dailyProfits).reduce((acc, n) => acc + n, 0);
-
-    return { today, week, allTime };
-  }, [dailyProfits]);
+  return React.useMemo(
+    () => computeGlobalBotProfits(now, BOT_CADENCE_MS[cadence]),
+    [now, cadence],
+  );
 }
 
 export function useBotFeedEngine(): void {
   const hydrated = useBotStoreHydrated();
   const running = useBotStore((s) => s.running);
   const cadence = useBotStore((s) => s.cadence);
-  const seedInitial = useBotStore((s) => s.seedInitial);
-  const push = useBotStore((s) => s.pushOperation);
+  const syncGlobalFeed = useBotStore((s) => s.syncGlobalFeed);
   const refreshRecentTxPool = useBotStore((s) => s.refreshRecentTxPool);
-  const refreshStaleFeed = useBotStore((s) => s.refreshStaleFeed);
-  const rebind = useBotStore((s) => s.rebindOperationsToRecentTxs);
 
   React.useEffect(() => {
     if (!hydrated) return;
     void refreshRecentTxPool().then(() => {
-      rebind();
-      refreshStaleFeed();
-      seedInitial(FEED_SEED_COUNT);
+      syncGlobalFeed();
     });
-  }, [hydrated, refreshRecentTxPool, rebind, refreshStaleFeed, seedInitial]);
+  }, [hydrated, refreshRecentTxPool, syncGlobalFeed]);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -764,23 +682,12 @@ export function useBotFeedEngine(): void {
   }, [hydrated, refreshRecentTxPool]);
 
   React.useEffect(() => {
-    if (!hydrated) return;
-    let lastDay = utcDateKey();
-    const id = window.setInterval(() => {
-      const today = utcDateKey();
-      if (today === lastDay) return;
-      lastDay = today;
-      rebind();
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [hydrated, rebind]);
-
-  React.useEffect(() => {
     if (!hydrated || !running) return;
-    const ms = CADENCE_MS[cadence];
-    const id = window.setInterval(() => push(), ms);
+    syncGlobalFeed();
+    const ms = BOT_CADENCE_MS[cadence];
+    const id = window.setInterval(() => syncGlobalFeed(), ms);
     return () => window.clearInterval(id);
-  }, [hydrated, running, cadence, push]);
+  }, [hydrated, running, cadence, syncGlobalFeed]);
 }
 
-export { CADENCE_MS };
+export { BOT_CADENCE_MS as CADENCE_MS };

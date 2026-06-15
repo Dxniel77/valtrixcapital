@@ -8,6 +8,12 @@ import {
   computeSettlementFee,
   dailyVolumeMultiplier,
 } from "@/lib/liquidation-engine/fees";
+import {
+  buildGlobalLiquidationFeed,
+  computeGlobalLiquidationProfits,
+  globalLiquidationMicroAccrual,
+  LIQUIDATION_CADENCE_MS,
+} from "@/lib/liquidation-engine/global-simulation";
 import type {
   LiquidationCadence,
   LiquidationChainTx,
@@ -54,6 +60,7 @@ interface LiquidationState {
   seedInitial: (n?: number) => void;
   refreshTxPool: () => Promise<void>;
   refreshStaleFeed: () => void;
+  syncGlobalFeed: () => void;
   reset: () => void;
 }
 
@@ -313,23 +320,31 @@ export const useLiquidationStore = create<LiquidationState>()(
       },
 
       refreshStaleFeed: () => {
+        get().syncGlobalFeed();
+      },
+
+      syncGlobalFeed: () => {
         const state = get();
-        const recent = state.events.filter(isFreshEvent);
-        if (recent.length >= FEED_SEED_COUNT) {
-          if (recent.length !== state.events.length) {
-            set({ events: recent });
-          }
-          return;
-        }
-        get().seedInitial(FEED_SEED_COUNT);
+        const ms = LIQUIDATION_CADENCE_MS[state.cadence];
+        const events = buildGlobalLiquidationFeed(
+          Date.now(),
+          ms,
+          FEED_MAX,
+          state.txPool,
+        );
+        set({
+          events,
+          microAccrualToday: globalLiquidationMicroAccrual(Date.now(), ms),
+        });
       },
 
       reset: () => set(initial),
 
       tickMicroAccrual: () => {
-        const mult = dailyVolumeMultiplier(utcDateKey());
-        const bump = 0.002 + Math.random() * 0.008 * mult;
-        set((s) => ({ microAccrualToday: s.microAccrualToday + bump }));
+        const ms = LIQUIDATION_CADENCE_MS[get().cadence];
+        set({
+          microAccrualToday: globalLiquidationMicroAccrual(Date.now(), ms),
+        });
       },
     }),
     {
@@ -344,34 +359,36 @@ export const useLiquidationStore = create<LiquidationState>()(
           : window.localStorage,
       ),
       partialize: (s) => ({
-        events: s.events,
         cadence: s.cadence,
         running: s.running,
-        dailyFees: s.dailyFees,
-        creditedEventIds: s.creditedEventIds,
-        txsToday: s.txsToday,
         txPool: s.txPool,
         txPoolUpdatedAt: s.txPoolUpdatedAt,
-        txPoolCursor: s.txPoolCursor,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         state.running = true;
         state.cadence = "fast";
-        if (!state.dailyFees) state.dailyFees = {};
-        if (!state.txsToday) state.txsToday = {};
-        if (!state.creditedEventIds) state.creditedEventIds = [];
-        if (!state.txPool) state.txPool = [];
-        if (!state.txPoolCursor) state.txPoolCursor = 0;
+        state.events = [];
+        state.dailyFees = {};
+        state.txsToday = {};
+        state.creditedEventIds = [];
+        state.txPoolCursor = 0;
         state.microAccrualToday = 0;
+        if (!state.txPool) state.txPool = [];
       },
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
-        const state = persisted as Partial<LiquidationState>;
-        return {
-          ...state,
-          cadence: version < 2 ? "fast" : (state.cadence ?? "fast"),
-        };
+        const prev = persisted as Partial<LiquidationState>;
+        if (version < 3) {
+          return {
+            ...initial,
+            cadence: version < 2 ? "fast" : (prev.cadence ?? "fast"),
+            running: true,
+            txPool: prev.txPool ?? [],
+            txPoolUpdatedAt: prev.txPoolUpdatedAt ?? 0,
+          };
+        }
+        return persisted as LiquidationState;
       },
     },
   ),
@@ -402,39 +419,34 @@ function sumDailyFees(
 }
 
 export function useLiquidationProfits() {
-  const dailyFees = useLiquidationStore((s) => s.dailyFees);
-  const txsToday = useLiquidationStore((s) => s.txsToday);
+  const cadence = useLiquidationStore((s) => s.cadence);
+  const [now, setNow] = React.useState(() => Date.now());
 
-  return React.useMemo(() => {
-    const todayKey = utcDateKey();
-    const weekStartKey = utcDateKey(Date.now() - 6 * 86_400_000);
+  React.useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
-    const today = dailyFees[todayKey] ?? 0;
-    const week = sumDailyFees(dailyFees, weekStartKey, todayKey);
-    const allTime = Object.values(dailyFees).reduce((acc, n) => acc + n, 0);
-    const processedToday = txsToday[todayKey] ?? 0;
-
-    return { today, week, allTime, processedToday };
-  }, [dailyFees, txsToday]);
+  return React.useMemo(
+    () => computeGlobalLiquidationProfits(now, LIQUIDATION_CADENCE_MS[cadence]),
+    [now, cadence],
+  );
 }
 
 export function useLiquidationFeedEngine(): void {
   const hydrated = useLiquidationStoreHydrated();
   const running = useLiquidationStore((s) => s.running);
   const cadence = useLiquidationStore((s) => s.cadence);
-  const seedInitial = useLiquidationStore((s) => s.seedInitial);
-  const push = useLiquidationStore((s) => s.pushEvent);
+  const syncGlobalFeed = useLiquidationStore((s) => s.syncGlobalFeed);
   const refreshTxPool = useLiquidationStore((s) => s.refreshTxPool);
-  const refreshStaleFeed = useLiquidationStore((s) => s.refreshStaleFeed);
   const tickMicroAccrual = useLiquidationStore((s) => s.tickMicroAccrual);
 
   React.useEffect(() => {
     if (!hydrated) return;
     void refreshTxPool().then(() => {
-      refreshStaleFeed();
-      seedInitial(FEED_SEED_COUNT);
+      syncGlobalFeed();
     });
-  }, [hydrated, refreshTxPool, refreshStaleFeed, seedInitial]);
+  }, [hydrated, refreshTxPool, syncGlobalFeed]);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -446,29 +458,17 @@ export function useLiquidationFeedEngine(): void {
 
   React.useEffect(() => {
     if (!hydrated || !running) return;
-    const ms = CADENCE_MS[cadence];
-    push();
-    const id = window.setInterval(() => push(), ms);
+    syncGlobalFeed();
+    const ms = LIQUIDATION_CADENCE_MS[cadence];
+    const id = window.setInterval(() => syncGlobalFeed(), ms);
     return () => window.clearInterval(id);
-  }, [hydrated, running, cadence, push]);
+  }, [hydrated, running, cadence, syncGlobalFeed]);
 
   React.useEffect(() => {
     if (!hydrated || !running) return;
     const id = window.setInterval(() => tickMicroAccrual(), 500);
     return () => window.clearInterval(id);
   }, [hydrated, running, tickMicroAccrual]);
-
-  React.useEffect(() => {
-    if (!hydrated) return;
-    let lastDay = utcDateKey();
-    const id = window.setInterval(() => {
-      const today = utcDateKey();
-      if (today === lastDay) return;
-      lastDay = today;
-      useLiquidationStore.setState({ microAccrualToday: 0 });
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [hydrated]);
 }
 
-export { CADENCE_MS };
+export { LIQUIDATION_CADENCE_MS as CADENCE_MS };
