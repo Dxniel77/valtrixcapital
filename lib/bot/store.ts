@@ -43,6 +43,13 @@ const FEED_STALE_MS = 6 * 60 * 60 * 1000;
 const TX_POOL_REFRESH_MS = 2 * 60 * 1000;
 const TX_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
+/** Simulated notionals — modest for an early-stage trading desk. */
+const BOT_VOLUME_MIN = 200;
+const BOT_VOLUME_MAX = 2_800;
+const BOT_VOLUME_STEP = 25;
+const BOT_PNL_BIAS = 0.44;
+const BOT_PNL_SPREAD_BPS = 95;
+
 interface BotState {
   operations: BotOperation[];
   cadence: BotCadence;
@@ -234,6 +241,41 @@ function reconcileUncreditedOps(state: {
   return { operations: nextOps, dailyProfits, creditedOpIds };
 }
 
+function sampleBotVolume(): number {
+  const span = BOT_VOLUME_MAX - BOT_VOLUME_MIN;
+  return (
+    Math.round((BOT_VOLUME_MIN + Math.random() * span) / BOT_VOLUME_STEP) *
+    BOT_VOLUME_STEP
+  );
+}
+
+function sampleBotPnlBps(): number {
+  return Math.round((Math.random() - BOT_PNL_BIAS) * BOT_PNL_SPREAD_BPS);
+}
+
+function rescaleLegacyOperation(
+  op: BotOperation,
+  pairLastPrice: Record<string, number>,
+): BotOperation {
+  const volume = Math.min(
+    BOT_VOLUME_MAX,
+    Math.max(
+      BOT_VOLUME_MIN,
+      Math.round((op.volume * 0.04) / BOT_VOLUME_STEP) * BOT_VOLUME_STEP,
+    ),
+  );
+  const pnlBps = Math.max(-50, Math.min(60, Math.round(op.pnlBps * 0.11)));
+  const { entryPrice, exitPrice } = deriveOperationPrices(
+    op.pair,
+    op.direction,
+    pnlBps,
+    pairLastPrice,
+    {},
+  );
+  pairLastPrice[op.pair] = exitPrice;
+  return { ...op, volume, pnlBps, entryPrice, exitPrice };
+}
+
 function pickChainTx(
   network: BotNetwork,
   pool: RecentChainTx[],
@@ -272,8 +314,8 @@ function createOperation(
 } {
   const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
   const direction: BotDirection = Math.random() > 0.48 ? "UP" : "DOWN";
-  const volume = Math.round((5_000 + Math.random() * 95_000) / 100) * 100;
-  const pnlBps = Math.round((Math.random() - 0.35) * 800);
+  const volume = sampleBotVolume();
+  const pnlBps = sampleBotPnlBps();
   const network: BotNetwork = Math.random() > 0.55 ? "BSC" : "POLYGON";
   const id = makeId();
   const usedHashes = new Set(state.operations.map((op) => op.fakeTxHash));
@@ -619,6 +661,21 @@ export const useBotStore = create<BotState>()(
           creditedOpIds: prev.creditedOpIds ?? [],
         };
 
+        if (version < 7) {
+          const scaledPairLastPrice = { ...(base.pairLastPrice ?? {}) };
+          const scaledOps = operations.map((op) =>
+            rescaleLegacyOperation(op, scaledPairLastPrice),
+          );
+          const ledger = rebuildProfitLedger(scaledOps);
+          return {
+            ...base,
+            operations: ledger.operations,
+            dailyProfits: ledger.dailyProfits,
+            creditedOpIds: ledger.creditedOpIds,
+            pairLastPrice: scaledPairLastPrice,
+          };
+        }
+
         if (version < 6) {
           const ledger = rebuildProfitLedger(operations);
           return {
@@ -630,7 +687,7 @@ export const useBotStore = create<BotState>()(
         }
         return persisted as BotState;
       },
-      version: 6,
+      version: 7,
     },
   ),
 );
