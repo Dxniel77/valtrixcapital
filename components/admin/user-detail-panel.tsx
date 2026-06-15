@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import type { UserDetailSnapshot } from "@/lib/admin/analytics";
+import { useAdminStore } from "@/lib/admin/store";
 import { exportUserDetailCsv } from "@/lib/admin/exports";
+import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
+import { findSponsorUser } from "@/lib/admin/sponsor";
 import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
@@ -24,8 +27,13 @@ export function UserDetailPanel({
   showBack?: boolean;
 }) {
   const { t } = useI18n();
+  const users = useAdminStore((s) => s.users);
   const { user, totals } = detail;
   const isSponsored = user.accountGranted;
+  const sponsor = React.useMemo(
+    () => findSponsorUser(users, user.uplineWallet),
+    [users, user.uplineWallet],
+  );
 
   const deposits = detail.movements.filter((m) => m.type === "DEPOSIT");
   const withdrawals = detail.movements.filter((m) => m.type === "WITHDRAWAL");
@@ -92,6 +100,10 @@ export function UserDetailPanel({
           <Stat label={t("admin.lookup.balance")} value={`$${formatNumber(totals.balance, { decimals: 2 })}`} />
           <Stat label={t("admin.userDetail.totalEarned")} value={`$${formatNumber(totals.totalEarned, { decimals: 2 })}`} />
           <Stat label={t("admin.lookup.directRefs")} value={String(totals.directReferrals)} />
+          <Stat
+            label={t("admin.userDetail.sponsorCurrent")}
+            value={sponsor ? sponsor.alias : t("admin.userDetail.sponsorNone")}
+          />
           <Stat label={t("admin.lookup.networkSize")} value={String(totals.networkSize)} />
           <Stat label={t("admin.userDetail.totalDeposits")} value={`$${formatNumber(totals.totalDeposits, { decimals: 2 })}`} />
           <Stat label={t("admin.userDetail.totalWithdrawals")} value={`$${formatNumber(totals.totalWithdrawals, { decimals: 2 })}`} />
@@ -102,6 +114,8 @@ export function UserDetailPanel({
           />
         </CardContent>
       </Card>
+
+      <ChangeSponsorCard user={user} />
 
       {isSponsored ? (
         <Card className="border-warning/30">

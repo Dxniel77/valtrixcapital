@@ -12,6 +12,7 @@ import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
 import { useUserRegistry } from "@/lib/user/store";
+import { setPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 import { ShieldCheck, Wallet, KeyRound, UserRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +27,12 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
+  const refCode = searchParams.get("ref");
+
+  React.useEffect(() => {
+    if (refCode) setPendingReferralCode(refCode);
+  }, [refCode]);
+
   const { t } = useI18n();
   const { isConnected, address } = useAccount();
   const { signIn, loading, error, user } = useSiwe();

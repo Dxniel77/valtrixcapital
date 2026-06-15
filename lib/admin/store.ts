@@ -21,6 +21,14 @@ import {
   type WithdrawalRule,
 } from "@/lib/admin/withdrawal-eligibility";
 import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
+import {
+  findUserByReferralCode,
+  recountDirectReferrals,
+  resolveSponsorQuery,
+  wouldCreateUplineCycle,
+  type SponsorUpdateError,
+} from "@/lib/admin/sponsor";
+import { clearPendingReferralCode, getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 
 export type { WithdrawalRule };
 export type AdminUserStatus = "ACTIVE" | "INACTIVE";
@@ -103,6 +111,10 @@ interface AdminState {
     rule: WithdrawalRule;
     uplineWallet?: string | null;
   }) => AdminUser | null;
+  updateUserSponsor: (
+    id: string,
+    sponsorQuery: string | null,
+  ) => { ok: true } | { ok: false; error: SponsorUpdateError };
   updateWithdrawalRule: (id: string, rule: WithdrawalRule) => void;
   syncLiveUserMetrics: (
     wallet: string,
@@ -259,18 +271,36 @@ export const useAdminStore = create<AdminState>()(
         const existing = get().users.find(
           (u) => u.wallet.toLowerCase() === wallet,
         );
+
+        const pendingRef = getPendingReferralCode();
+        let resolvedUpline: string | null = null;
+        if (pendingRef) {
+          const sponsor = findUserByReferralCode(get().users, pendingRef);
+          if (sponsor && sponsor.wallet.toLowerCase() !== wallet) {
+            resolvedUpline = sponsor.wallet;
+          }
+          clearPendingReferralCode();
+        }
+
         if (existing) {
           set((s) => ({
-            users: s.users.map((u) =>
-              u.wallet.toLowerCase() === wallet
-                ? { ...u, alias: profile.username, joinedAt: profile.joinedAt }
-                : u,
+            users: recountDirectReferrals(
+              s.users.map((u) =>
+                u.wallet.toLowerCase() === wallet
+                  ? {
+                      ...u,
+                      alias: profile.username,
+                      joinedAt: profile.joinedAt,
+                      uplineWallet: u.uplineWallet ?? resolvedUpline,
+                    }
+                  : u,
+              ),
             ),
           }));
           return;
         }
         set((s) => ({
-          users: [
+          users: recountDirectReferrals([
             recomputeWithdrawalUnlock({
               id: profile.id,
               alias: profile.username,
@@ -282,7 +312,7 @@ export const useAdminStore = create<AdminState>()(
               balance: 0,
               totalEarned: 0,
               referrals: 0,
-              uplineWallet: null,
+              uplineWallet: resolvedUpline,
               joinedAt: profile.joinedAt,
               accountGranted: true,
               withdrawalUnlocked: false,
@@ -294,7 +324,7 @@ export const useAdminStore = create<AdminState>()(
               passiveEarned: 0,
             }),
             ...s.users,
-          ],
+          ]),
         }));
       },
 
@@ -310,7 +340,9 @@ export const useAdminStore = create<AdminState>()(
             uplineWallet: uplineWallet ?? existing.uplineWallet,
           });
           set((s) => ({
-            users: s.users.map((u) => (u.id === existing.id ? updated : u)),
+            users: recountDirectReferrals(
+              s.users.map((u) => (u.id === existing.id ? updated : u)),
+            ),
             audit: [
               {
                 id: makeId("aud"),
@@ -350,7 +382,7 @@ export const useAdminStore = create<AdminState>()(
         });
 
         set((s) => ({
-          users: [user, ...s.users],
+          users: recountDirectReferrals([user, ...s.users]),
           audit: [
             {
               id: makeId("aud"),
@@ -364,6 +396,59 @@ export const useAdminStore = create<AdminState>()(
           ].slice(0, 200),
         }));
         return user;
+      },
+
+      updateUserSponsor: (id, sponsorQuery) => {
+        const user = get().users.find((u) => u.id === id);
+        if (!user) return { ok: false, error: "NOT_FOUND" };
+
+        let uplineWallet: string | null = null;
+        let sponsorAlias = "—";
+
+        if (sponsorQuery?.trim()) {
+          const sponsor = resolveSponsorQuery(get().users, sponsorQuery);
+          if (!sponsor) return { ok: false, error: "SPONSOR_NOT_FOUND" };
+          if (sponsor.wallet.toLowerCase() === user.wallet.toLowerCase()) {
+            return { ok: false, error: "SELF_SPONSOR" };
+          }
+          uplineWallet = sponsor.wallet;
+          sponsorAlias = sponsor.alias;
+        }
+
+        if (wouldCreateUplineCycle(user.wallet, uplineWallet, get().users)) {
+          return { ok: false, error: "CYCLE" };
+        }
+
+        const previous = user.uplineWallet
+          ? (get().users.find(
+              (u) =>
+                u.wallet.toLowerCase() === user.uplineWallet?.toLowerCase(),
+            )?.alias ?? user.uplineWallet)
+          : "—";
+
+        set((s) => ({
+          users: recountDirectReferrals(
+            s.users.map((u) =>
+              u.id === id ? { ...u, uplineWallet } : u,
+            ),
+          ),
+          audit: [
+            {
+              id: makeId("aud"),
+              action: "SPONSOR_CHANGED",
+              target: user.alias,
+              detail:
+                uplineWallet === null
+                  ? `Patrocinador removido (antes: ${previous})`
+                  : `Patrocinador: ${previous} → ${sponsorAlias}`,
+              actor: "admin",
+              timestamp: Date.now(),
+            },
+            ...s.audit,
+          ].slice(0, 200),
+        }));
+
+        return { ok: true };
       },
 
       updateWithdrawalRule: (id, rule) => {

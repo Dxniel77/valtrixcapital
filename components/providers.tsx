@@ -14,6 +14,7 @@ import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
 import { LocaleProvider, useRainbowKitLocale } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ReferralCapture } from "@/components/referrals/referral-capture";
 
 function buildRainbowTheme(mode: "light" | "dark"): Theme {
   const base =
@@ -97,7 +98,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <LocaleProvider>
-            <RainbowKitThemed>{children}</RainbowKitThemed>
+            <RainbowKitThemed>
+              <React.Suspense fallback={null}>
+                <ReferralCapture />
+              </React.Suspense>
+              {children}
+            </RainbowKitThemed>
           </LocaleProvider>
         </QueryClientProvider>
       </WagmiProvider>

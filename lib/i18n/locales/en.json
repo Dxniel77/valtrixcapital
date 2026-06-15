@@ -854,7 +854,8 @@
       "BALANCE_ADJUSTED": "Adjusted balance",
       "SETTINGS_UPDATED": "Updated settings",
       "ACCOUNT_GRANTED": "Account granted",
-      "WITHDRAWAL_UNLOCKED": "Withdrawal unlocked"
+      "WITHDRAWAL_UNLOCKED": "Withdrawal unlocked",
+      "SPONSOR_CHANGED": "Sponsor updated"
     },
     "overview": {
       "title": "Summary",
@@ -1068,7 +1069,26 @@
       "noInvestments": "No investments recorded.",
       "noEarnings": "No yield earnings.",
       "noCommissions": "No network commissions.",
-      "noWithdrawals": "No withdrawals."
+      "noWithdrawals": "No withdrawals.",
+      "sponsorTitle": "Sponsor (upline)",
+      "sponsorCurrent": "Current sponsor",
+      "sponsorNone": "No sponsor assigned",
+      "sponsorNewLabel": "Assign sponsor",
+      "sponsorPlaceholder": "Wallet, username or referral code (e.g. VX1A2B3C)",
+      "sponsorHint": "Use this when a user joined without a referral link and should be linked to their sponsor.",
+      "sponsorPreview": "Will assign:",
+      "sponsorPreviewMissing": "No user matches that wallet, username or code.",
+      "sponsorSave": "Save sponsor",
+      "sponsorClear": "Remove sponsor",
+      "sponsorView": "View sponsor",
+      "sponsorUpdated": "Sponsor updated successfully",
+      "sponsorErrors": {
+        "NOT_FOUND": "User not found",
+        "INVALID_WALLET": "Invalid wallet address",
+        "SELF_SPONSOR": "A user cannot sponsor themselves",
+        "SPONSOR_NOT_FOUND": "Sponsor not found — check wallet, username or code",
+        "CYCLE": "That assignment would create a circular upline"
+      }
     },
     "cashflow": {
       "title": "Cash flow",

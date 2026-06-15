@@ -887,7 +887,8 @@
       "BALANCE_ADJUSTED": "Saldo ajustado",
       "SETTINGS_UPDATED": "Ajustes actualizados",
       "ACCOUNT_GRANTED": "Cuenta concedida",
-      "WITHDRAWAL_UNLOCKED": "Retiro habilitado"
+      "WITHDRAWAL_UNLOCKED": "Retiro habilitado",
+      "SPONSOR_CHANGED": "Patrocinador actualizado"
     },
     "overview": {
       "title": "Resumen",
@@ -1101,7 +1102,26 @@
       "noInvestments": "Sin inversiones registradas.",
       "noEarnings": "Sin ganancias de rendimiento.",
       "noCommissions": "Sin comisiones de red.",
-      "noWithdrawals": "Sin retiros."
+      "noWithdrawals": "Sin retiros.",
+      "sponsorTitle": "Patrocinador",
+      "sponsorCurrent": "Patrocinador actual",
+      "sponsorNone": "Sin patrocinador",
+      "sponsorNewLabel": "Asignar patrocinador",
+      "sponsorPlaceholder": "Billetera, usuario o código (ej. VX1A2B3C)",
+      "sponsorHint": "Úsalo cuando alguien se registró sin enlace de referido y debe quedar bajo su patrocinador.",
+      "sponsorPreview": "Se asignará:",
+      "sponsorPreviewMissing": "No hay ningún usuario con esa billetera, usuario o código.",
+      "sponsorSave": "Guardar patrocinador",
+      "sponsorClear": "Quitar patrocinador",
+      "sponsorView": "Ver patrocinador",
+      "sponsorUpdated": "Patrocinador actualizado correctamente",
+      "sponsorErrors": {
+        "NOT_FOUND": "Usuario no encontrado",
+        "INVALID_WALLET": "Billetera inválida",
+        "SELF_SPONSOR": "Un usuario no puede ser su propio patrocinador",
+        "SPONSOR_NOT_FOUND": "Patrocinador no encontrado — revisa billetera, usuario o código",
+        "CYCLE": "Esa asignación crearía un ciclo en la red"
+      }
     },
     "mobileNav": {
       "open": "Abrir menú admin",
