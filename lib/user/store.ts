@@ -23,10 +23,13 @@ type RegisterResult =
 interface UserRegistryState {
   profilesByWallet: Record<string, UserProfile>;
   usernameIndex: Record<string, string>;
+  welcomeSeenWallets: Record<string, true>;
 
   getProfile: (wallet: string | undefined) => UserProfile | null;
   isUsernameTaken: (username: string, exceptWallet?: string) => boolean;
   registerUsername: (wallet: string, username: string) => RegisterResult;
+  markWelcomeSeen: (wallet: string) => void;
+  hasSeenWelcome: (wallet: string | undefined) => boolean;
 }
 
 function makeId(): string {
@@ -38,6 +41,7 @@ export const useUserRegistry = create<UserRegistryState>()(
     (set, get) => ({
       profilesByWallet: {},
       usernameIndex: {},
+      welcomeSeenWallets: {},
 
       getProfile: (wallet) => {
         if (!wallet) return null;
@@ -87,6 +91,21 @@ export const useUserRegistry = create<UserRegistryState>()(
 
         return { ok: true, profile };
       },
+
+      markWelcomeSeen: (wallet) => {
+        const walletKey = normalizeWallet(wallet);
+        set((state) => ({
+          welcomeSeenWallets: {
+            ...state.welcomeSeenWallets,
+            [walletKey]: true,
+          },
+        }));
+      },
+
+      hasSeenWelcome: (wallet) => {
+        if (!wallet) return true;
+        return !!get().welcomeSeenWallets[normalizeWallet(wallet)];
+      },
     }),
     {
       name: "valtrix.users.v1",
@@ -99,6 +118,31 @@ export const useUserRegistry = create<UserRegistryState>()(
             }
           : window.localStorage,
       ),
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as {
+          profilesByWallet?: Record<string, UserProfile>;
+          usernameIndex?: Record<string, string>;
+          welcomeSeenWallets?: Record<string, true>;
+        };
+        const profiles = state.profilesByWallet ?? {};
+        const welcomeSeenWallets =
+          version < 2
+            ? Object.fromEntries(
+                Object.keys(profiles).map((wallet) => [wallet, true] as const),
+              )
+            : (state.welcomeSeenWallets ?? {});
+        return {
+          profilesByWallet: profiles,
+          usernameIndex: state.usernameIndex ?? {},
+          welcomeSeenWallets,
+        };
+      },
+      partialize: (s) => ({
+        profilesByWallet: s.profilesByWallet,
+        usernameIndex: s.usernameIndex,
+        welcomeSeenWallets: s.welcomeSeenWallets,
+      }),
     },
   ),
 );
@@ -107,6 +151,10 @@ export function syncProfileToAdmin(profile: UserProfile): void {
   void import("@/lib/admin/store").then(({ useAdminStore }) => {
     useAdminStore.getState().upsertRegisteredUser(profile);
   });
+}
+
+export function markWelcomeSeen(wallet: string): void {
+  useUserRegistry.getState().markWelcomeSeen(wallet);
 }
 
 function isUsernameTakenInAdmin(usernameKey: string): boolean {

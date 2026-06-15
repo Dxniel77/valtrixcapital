@@ -406,7 +406,19 @@
         "setupConfirm": "Confirm username",
         "usernameTaken": "This username is already taken",
         "usernameInvalid": "Invalid username",
-        "usernameSaved": "Username registered successfully"
+        "usernameSaved": "Username registered successfully",
+        "welcomeModal": {
+          "title": "Welcome to Valtrix, {username}!",
+          "subtitle": "Your account is ready. Here's how to get started on the platform.",
+          "step1Title": "Explore your dashboard",
+          "step1Body": "Track your capital, daily performance and network activity in one place.",
+          "step2Title": "Make your first deposit",
+          "step2Body": "Activate your capital on BSC or Polygon to start earning.",
+          "step3Title": "Trade and grow",
+          "step3Body": "Use daily trading opportunities to boost your returns.",
+          "cta": "Get started",
+          "ctaDeposit": "Make my first deposit"
+        }
       },
       "support": {
         "title": "Medium",
@@ -1199,7 +1211,9 @@
       "withdrawDoneTitle": "Withdrawal completed",
       "withdrawDoneBody": "You received {net} USDT in your wallet.",
       "referralTitle": "Network milestone",
-      "referralBody": "You passed {total} USDT in referral commissions."
+      "referralBody": "You passed {total} USDT in referral commissions.",
+      "welcomeTitle": "Welcome to Valtrix!",
+      "welcomeBody": "Your account is ready. Explore the dashboard, make your first deposit, or check trading opportunities when you're ready."
     }
   },
   "supportPage": {

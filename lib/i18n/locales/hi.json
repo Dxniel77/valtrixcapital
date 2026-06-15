@@ -406,7 +406,19 @@
         "setupConfirm": "Confirmar usuario",
         "usernameTaken": "Este usuario ya está en uso",
         "usernameInvalid": "Usuario no válido",
-        "usernameSaved": "Usuario registrado correctamente"
+        "usernameSaved": "Usuario registrado correctamente",
+        "welcomeModal": {
+          "title": "¡Bienvenido a Valtrix, {username}!",
+          "subtitle": "Tu cuenta está lista. Así puedes empezar en la plataforma.",
+          "step1Title": "Explora tu panel",
+          "step1Body": "Consulta tu capital, rendimiento diario y actividad de red en un solo lugar.",
+          "step2Title": "Haz tu primer depósito",
+          "step2Body": "Activa tu capital en BSC o Polygon para empezar a generar rendimientos.",
+          "step3Title": "Opera y crece",
+          "step3Body": "Aprovecha las oportunidades diarias de trading para impulsar tus ganancias.",
+          "cta": "Comenzar",
+          "ctaDeposit": "Hacer mi primer depósito"
+        }
       },
       "support": {
         "title": "Soporte",
@@ -1199,7 +1211,9 @@
       "withdrawDoneTitle": "Retiro completado",
       "withdrawDoneBody": "Recibiste {net} USDT en tu billetera.",
       "referralTitle": "Hito de red",
-      "referralBody": "Has superado {total} USDT en comisiones de referidos."
+      "referralBody": "Has superado {total} USDT en comisiones de referidos.",
+      "welcomeTitle": "¡Bienvenido a Valtrix!",
+      "welcomeBody": "Tu cuenta está lista. Explora el panel, haz tu primer depósito o revisa las oportunidades de trading cuando quieras."
     }
   },
   "supportPage": {

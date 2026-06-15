@@ -34,13 +34,8 @@ export function NotificationsPanel() {
   const hydrated = useNotificationsHydrated();
   const unread = useUnreadNotificationCount();
   const items = useNotificationsStore((s) => s.items);
-  const seedIfEmpty = useNotificationsStore((s) => s.seedIfEmpty);
   const markRead = useNotificationsStore((s) => s.markRead);
   const markAllRead = useNotificationsStore((s) => s.markAllRead);
-
-  React.useEffect(() => {
-    if (hydrated) seedIfEmpty();
-  }, [hydrated, seedIfEmpty]);
 
   function handleOpen() {
     setOpen(true);
