@@ -11,7 +11,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "@/lib/wagmi";
+import { createWagmiConfig, isWalletConnectConfigured } from "@/lib/wagmi";
 import { LocaleProvider, useRainbowKitLocale } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ReferralCapture } from "@/components/referrals/referral-capture";
@@ -72,7 +72,7 @@ function RainbowKitThemed({ children }: { children: React.ReactNode }) {
   return (
     <RainbowKitProvider
       theme={theme}
-      modalSize="compact"
+      modalSize="wide"
       locale={rainbowLocale}
     >
       {children}
@@ -92,6 +92,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       }),
   );
+
+  const [wagmiConfig] = React.useState(() => createWagmiConfig());
+
+  React.useEffect(() => {
+    if (!isWalletConnectConfigured()) {
+      console.error(
+        "[Valtrix] NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is missing or invalid. " +
+          "Mobile wallet connections require a WalletConnect Cloud project id " +
+          "and your domain must be listed under Allowed Domains.",
+      );
+    }
+  }, []);
 
   return (
     <ThemeProvider>

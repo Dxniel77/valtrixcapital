@@ -40,30 +40,30 @@ export function ConnectWalletButton({
           !!chain &&
           (!authenticationStatus || authenticationStatus === "authenticated");
 
+        const openConnect = () => {
+          if (!ready) return;
+          openConnectModal();
+        };
+
         return (
-          <div
-            {...(!ready && {
-              "aria-hidden": true,
-              style: {
-                opacity: 0,
-                pointerEvents: "none",
-                userSelect: "none",
-              },
-            })}
-            className={cn("inline-flex items-center gap-2", className)}
-          >
+          <div className={cn("inline-flex items-center gap-2", className)}>
             {!connected ? (
               <Button
-                onClick={openConnectModal}
+                onClick={openConnect}
                 size={size}
                 variant={variant}
                 type="button"
-                className={cn(compact && "gap-1.5 px-3 text-sm lg:px-3 xl:px-4 xl:text-base")}
+                disabled={!ready}
+                aria-busy={!ready}
+                className={cn(
+                  compact && "gap-1.5 px-3 text-sm lg:px-3 xl:px-4 xl:text-base",
+                  !ready && "opacity-80",
+                )}
                 aria-label={t("common.connectWallet")}
               >
                 <Wallet className="h-4 w-4 shrink-0" />
                 <span className={cn(compact && "hidden xl:inline")}>
-                  {t("common.connectWallet")}
+                  {!ready ? t("common.loading") : t("common.connectWallet")}
                 </span>
               </Button>
             ) : chain.unsupported ? (

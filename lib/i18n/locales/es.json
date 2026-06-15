@@ -28,6 +28,11 @@
     "switchToLight": "Activar modo claro",
     "switchToDark": "Activar modo oscuro"
   },
+  "walletConnect": {
+    "mobileHint": "En móvil, elige WalletConnect, MetaMask o tu app de billetera. Si no abre, usa Chrome o Safari (no el navegador de Instagram).",
+    "notConfiguredTitle": "Conexión móvil no configurada en el servidor",
+    "notConfiguredBody": "El administrador debe añadir NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID y registrar el dominio en cloud.walletconnect.com (Allowed Domains)."
+  },
   "notFound": {
     "message": "La página que buscas se movió o nunca existió. Los mercados, en cambio, siguen muy activos.",
     "backHome": "Volver al inicio",

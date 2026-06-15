@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
+import { WalletConnectNotice } from "@/components/web3/wallet-connect-notice";
 import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
@@ -81,6 +82,8 @@ export default function SignInPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
+            <WalletConnectNotice />
+            <p className="text-xs text-text-muted">{t("walletConnect.mobileHint")}</p>
             <Step
               n={1}
               icon={Wallet}
