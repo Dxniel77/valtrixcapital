@@ -5,8 +5,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useStakingStore, useStakingStoreHydrated } from "@/lib/staking/store";
 import { utcDayKey } from "@/lib/trade/store";
+import { getPlatformSettings } from "@/lib/platform/settings-store";
 import {
-  COMMISSION_RATES_BPS,
   MIN_ACTIVE_CAPITAL_USDT,
   REFERRAL_LEVELS,
 } from "./constants";
@@ -211,7 +211,7 @@ export const useReferralsStore = create<ReferralsState>()(
               sourceWallet: member.wallet,
               sourceYieldId: y.id,
               yieldDate: y.date,
-              rateBps: COMMISSION_RATES_BPS[member.level - 1] ?? 0,
+              rateBps: getPlatformSettings().commissionRatesBps[member.level - 1] ?? 0,
               amount,
               createdAt: Date.now(),
             });

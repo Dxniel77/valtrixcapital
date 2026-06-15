@@ -3,13 +3,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import {
-  BASE_YIELD_BPS,
-  BONUS_PER_WIN_BPS,
-  MAX_DAILY_YIELD_BPS,
-  utcDayKey,
-  type Position,
-} from "@/lib/trade/constants";
+import { getPlatformSettings } from "@/lib/platform/settings-store";
+import { utcDayKey, type Position } from "@/lib/trade/constants";
 import {
   PASSIVE_YIELD_DELAY_MS,
   PAYOUT_CAP_MULTIPLIER,
@@ -202,7 +197,7 @@ export const useStakingStore = create<StakingState>()(
           const wins = dayPositions.filter((p) => p.status === "WIN").length;
           const losses = dayPositions.filter((p) => p.status === "LOSS").length;
           const rate = computeDailyRate(wins);
-          const rawCredit = (capital * BASE_YIELD_BPS) / 10_000;
+          const rawCredit = (capital * rate.totalRateBps) / 10_000;
           const applied = applyEarningsCredit(
             { stakes: state.stakes, totalEarned },
             rawCredit,
@@ -391,14 +386,12 @@ export function computeDailyRate(wins: number): {
   bonusRateBps: number;
   totalRateBps: number;
 } {
+  const { baseYieldBps, bonusPerWinBps, maxDailyYieldBps } = getPlatformSettings();
   const safeWins = Math.max(0, Math.min(wins, 7));
-  const bonusRateBps = safeWins * BONUS_PER_WIN_BPS;
-  const totalRateBps = Math.min(
-    BASE_YIELD_BPS + bonusRateBps,
-    MAX_DAILY_YIELD_BPS,
-  );
+  const bonusRateBps = safeWins * bonusPerWinBps;
+  const totalRateBps = Math.min(baseYieldBps + bonusRateBps, maxDailyYieldBps);
   return {
-    baseRateBps: BASE_YIELD_BPS,
+    baseRateBps: baseYieldBps,
     bonusRateBps,
     totalRateBps,
   };

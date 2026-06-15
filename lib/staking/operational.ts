@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import {
-  BONUS_PER_WIN_BPS,
-  useTradeStore,
-  useTradeStoreHydrated,
-} from "@/lib/trade/store";
+  usePlatformSettingsStore,
+} from "@/lib/platform/settings-store";
+import { useTradeStore, useTradeStoreHydrated } from "@/lib/trade/store";
 import {
   activeCapital,
   useStakingStore,
@@ -23,6 +22,7 @@ export function useOperationalCreditEngine(): void {
   const stakes = useStakingStore((s) => s.stakes);
   const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
   const creditTradeWin = useStakingStore((s) => s.creditTradeWin);
+  const bonusPerWinBps = usePlatformSettingsStore((s) => s.settings.bonusPerWinBps);
 
   React.useEffect(() => {
     if (!tradeHydrated || !stakingHydrated) return;
@@ -30,7 +30,7 @@ export function useOperationalCreditEngine(): void {
     const capital = activeCapital(stakes);
     if (capital <= 0) return;
 
-    const bonusPerWin = (capital * BONUS_PER_WIN_BPS) / 10_000;
+    const bonusPerWin = (capital * bonusPerWinBps) / 10_000;
     if (bonusPerWin <= 0) return;
 
     for (const p of positions) {
@@ -45,5 +45,6 @@ export function useOperationalCreditEngine(): void {
     stakes,
     creditedPositionIds,
     creditTradeWin,
+    bonusPerWinBps,
   ]);
 }

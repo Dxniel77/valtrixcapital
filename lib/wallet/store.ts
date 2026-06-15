@@ -4,10 +4,8 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useStakingStore, type StakingNetwork } from "@/lib/staking/store";
-import {
-  WITHDRAWAL_FEE_BPS,
-  computeWithdrawal,
-} from "./constants";
+import { getPlatformSettings } from "@/lib/platform/settings-store";
+import { computeWithdrawal } from "./constants";
 
 export type WithdrawalStatus =
   | "REQUESTED"
@@ -76,9 +74,11 @@ export const useWalletStore = create<WalletState>()(
       withdrawals: [],
 
       requestWithdrawal: ({ amount, network, destination }) => {
-        const breakdown = computeWithdrawal(amount, WITHDRAWAL_FEE_BPS);
+        const { withdrawalFeeBps, minWithdrawalUsdt } = getPlatformSettings();
+        const breakdown = computeWithdrawal(amount, withdrawalFeeBps);
         const available = useStakingStore.getState().earningsBalance;
         if (breakdown.amount <= 0) return { error: "INVALID_AMOUNT" };
+        if (breakdown.amount < minWithdrawalUsdt) return { error: "BELOW_MINIMUM" };
         if (breakdown.amount > available) return { error: "INSUFFICIENT_FUNDS" };
 
         const now = Date.now();

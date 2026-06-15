@@ -21,12 +21,8 @@ import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
 import { useStakingStore, type StakingNetwork } from "@/lib/staking/store";
 import { useWalletStore } from "@/lib/wallet/store";
-import {
-  MIN_WITHDRAWAL_USDT,
-  WITHDRAWAL_FEE_BPS,
-  WITHDRAWAL_FEE_PCT,
-  computeWithdrawal,
-} from "@/lib/wallet/constants";
+import { usePlatformSettings } from "@/lib/platform/settings-store";
+import { computeWithdrawal } from "@/lib/wallet/constants";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
@@ -50,6 +46,8 @@ export function WithdrawModal({
   const available = useStakingStore((s) => s.earningsBalance);
   const requestWithdrawal = useWalletStore((s) => s.requestWithdrawal);
   const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
+  const { minWithdrawalUsdt, withdrawalFeeBps } = usePlatformSettings();
+  const withdrawalFeePct = withdrawalFeeBps / 100;
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState("");
@@ -69,11 +67,11 @@ export function WithdrawModal({
   const amount = Number(amountStr.replace(/,/g, "."));
   const breakdown = computeWithdrawal(
     Number.isFinite(amount) ? amount : 0,
-    WITHDRAWAL_FEE_BPS,
+    withdrawalFeeBps,
   );
   const validAddress = /^0x[a-fA-F0-9]{40}$/.test(destination.trim());
   const amountValid =
-    breakdown.amount >= MIN_WITHDRAWAL_USDT && breakdown.amount <= available;
+    breakdown.amount >= minWithdrawalUsdt && breakdown.amount <= available;
   const canSubmit = isConnected && amountValid && validAddress && eligible;
 
   function handleSubmit() {
@@ -85,10 +83,10 @@ export function WithdrawModal({
       toast.error(t("walletPage.withdraw.connectFirst"));
       return;
     }
-    if (breakdown.amount < MIN_WITHDRAWAL_USDT) {
+    if (breakdown.amount < minWithdrawalUsdt) {
       toast.error(
         t("walletPage.withdraw.minError", {
-          min: formatNumber(MIN_WITHDRAWAL_USDT, { decimals: 0 }),
+          min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
         }),
       );
       return;
@@ -107,6 +105,14 @@ export function WithdrawModal({
       destination: destination.trim(),
     });
     if ("error" in res) {
+      if (res.error === "BELOW_MINIMUM") {
+        toast.error(
+          t("walletPage.withdraw.minError", {
+            min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
+          }),
+        );
+        return;
+      }
       toast.error(t("walletPage.withdraw.insufficient"));
       return;
     }
@@ -227,7 +233,7 @@ export function WithdrawModal({
                 <div className="flex justify-between py-0.5 text-text-secondary">
                   <span>
                     {t("walletPage.withdraw.feeRow", {
-                      pct: String(WITHDRAWAL_FEE_PCT),
+                      pct: String(withdrawalFeePct),
                     })}
                   </span>
                   <span className="font-mono text-danger">

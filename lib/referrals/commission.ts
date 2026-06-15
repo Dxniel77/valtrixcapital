@@ -1,10 +1,18 @@
-import { COMMISSION_RATES_BPS, REFERRAL_LEVELS } from "./constants";
+import { getPlatformSettings } from "@/lib/platform/settings-store";
+import { REFERRAL_LEVELS } from "./constants";
 import type { DownlineMember, ReferralLevelStats } from "./store";
+
+function rateBpsForLevel(level: number): number {
+  const rates = getPlatformSettings().commissionRatesBps;
+  const idx = level - 1;
+  if (idx < 0 || idx >= rates.length) return 0;
+  return rates[idx] ?? 0;
+}
 
 export function commissionFromYield(yieldAmount: number, level: number): number {
   const idx = level - 1;
-  if (idx < 0 || idx >= COMMISSION_RATES_BPS.length) return 0;
-  return (yieldAmount * COMMISSION_RATES_BPS[idx]) / 10_000;
+  if (idx < 0 || idx >= REFERRAL_LEVELS) return 0;
+  return (yieldAmount * rateBpsForLevel(level)) / 10_000;
 }
 
 /** Simulate each active downline member's daily yield (0.3%–1% of capital). */
@@ -22,7 +30,7 @@ export function buildLevelStats(
     const active = atLevel.filter((m) => m.isActive);
     stats.push({
       level,
-      rateBps: COMMISSION_RATES_BPS[level - 1] ?? 0,
+      rateBps: rateBpsForLevel(level),
       total: atLevel.length,
       active: active.length,
       earned: atLevel.reduce((s, m) => s + m.commissionsPaidToYou, 0),

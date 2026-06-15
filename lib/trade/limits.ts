@@ -1,8 +1,10 @@
-import { STAKE_MIN_USDT } from "@/lib/staking/constants";
+import { getPlatformSettings } from "@/lib/platform/settings-store";
 import { utcDayKey, type Position } from "@/lib/trade/constants";
 
 /** Minimum capital (USDT) for the lowest simultaneous-trade tier. */
-export const SIMULTANEOUS_TIER_LOW_MIN = STAKE_MIN_USDT; // 15
+export function simultaneousTierLowMin(): number {
+  return getPlatformSettings().minStakeUsdt;
+}
 
 export const SIMULTANEOUS_TIER_MID_MIN = 501;
 export const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -18,7 +20,7 @@ export interface SimultaneousLimit {
 
 /** Max open positions and daily trade attempts from invested capital (USDT). */
 export function maxSimultaneousTrades(capital: number): number {
-  if (capital < SIMULTANEOUS_TIER_LOW_MIN) return 0;
+  if (capital < simultaneousTierLowMin()) return 0;
   if (capital >= SIMULTANEOUS_TIER_HIGH_MIN) return 7;
   if (capital >= SIMULTANEOUS_TIER_MID_MIN) return 5;
   return 3;
@@ -40,7 +42,7 @@ export function hasReachedDailyTradeLimit(
 }
 
 export function simultaneousTier(capital: number): SimultaneousTier {
-  if (capital < SIMULTANEOUS_TIER_LOW_MIN) return "none";
+  if (capital < simultaneousTierLowMin()) return "none";
   if (capital >= SIMULTANEOUS_TIER_HIGH_MIN) return "pro";
   if (capital >= SIMULTANEOUS_TIER_MID_MIN) return "growth";
   return "starter";

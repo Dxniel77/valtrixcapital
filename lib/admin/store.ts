@@ -4,17 +4,10 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
-  BASE_YIELD_BPS,
-  BONUS_PER_WIN_BPS,
-  MAX_DAILY_YIELD_BPS,
-} from "@/lib/trade/store";
-import { COMMISSION_RATES_BPS } from "@/lib/referrals/constants";
-import {
-  MIN_WITHDRAWAL_USDT,
-  WITHDRAWAL_FEE_BPS,
-} from "@/lib/wallet/constants";
-import { STAKE_MAX_USDT, STAKE_MIN_USDT } from "@/lib/staking/store";
-import { PAIRS } from "@/lib/market/pairs";
+  DEFAULT_PLATFORM_SETTINGS,
+  type PlatformSettings,
+  usePlatformSettingsStore,
+} from "@/lib/platform/settings-store";
 import {
   DEFAULT_WITHDRAWAL_RULE,
   shouldUnlockWithdrawals,
@@ -70,17 +63,7 @@ export interface AdminMovement {
   timestamp: number;
 }
 
-export interface AdminSettings {
-  baseYieldBps: number;
-  bonusPerWinBps: number;
-  maxDailyYieldBps: number;
-  commissionRatesBps: number[];
-  withdrawalFeeBps: number;
-  minWithdrawalUsdt: number;
-  minStakeUsdt: number;
-  maxStakeUsdt: number;
-  allowedPairs: string[];
-}
+export type AdminSettings = PlatformSettings;
 
 export interface AuditEntry {
   id: string;
@@ -94,7 +77,6 @@ export interface AuditEntry {
 interface AdminState {
   users: AdminUser[];
   movements: AdminMovement[];
-  settings: AdminSettings;
   audit: AuditEntry[];
   seeded: boolean;
 
@@ -136,17 +118,7 @@ interface AdminState {
   reset: () => void;
 }
 
-const DEFAULT_SETTINGS: AdminSettings = {
-  baseYieldBps: BASE_YIELD_BPS,
-  bonusPerWinBps: BONUS_PER_WIN_BPS,
-  maxDailyYieldBps: MAX_DAILY_YIELD_BPS,
-  commissionRatesBps: [...COMMISSION_RATES_BPS],
-  withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
-  minWithdrawalUsdt: MIN_WITHDRAWAL_USDT,
-  minStakeUsdt: STAKE_MIN_USDT,
-  maxStakeUsdt: STAKE_MAX_USDT,
-  allowedPairs: PAIRS.map((p) => p.binance),
-};
+const DEFAULT_SETTINGS = DEFAULT_PLATFORM_SETTINGS;
 
 const ALIASES = [
   "carlos.m", "luna_fx", "andres88", "marisol", "deeptrader", "valeria.r",
@@ -252,7 +224,6 @@ export const useAdminStore = create<AdminState>()(
     (set, get) => ({
       users: [],
       movements: [],
-      settings: DEFAULT_SETTINGS,
       audit: [],
       seeded: false,
 
@@ -549,9 +520,9 @@ export const useAdminStore = create<AdminState>()(
       },
 
       updateSettings: (patch) => {
+        usePlatformSettingsStore.getState().updateSettings(patch);
         const changes = Object.keys(patch).join(", ");
         set((s) => ({
-          settings: { ...s.settings, ...patch },
           audit: [
             {
               id: makeId("aud"),
@@ -566,14 +537,15 @@ export const useAdminStore = create<AdminState>()(
         }));
       },
 
-      reset: () =>
+      reset: () => {
+        usePlatformSettingsStore.getState().resetSettings();
         set({
           users: [],
           movements: [],
-          settings: DEFAULT_SETTINGS,
           audit: [],
           seeded: false,
-        }),
+        });
+      },
     }),
     {
       name: "valtrix.admin.v2",
@@ -586,6 +558,23 @@ export const useAdminStore = create<AdminState>()(
             }
           : window.localStorage,
       ),
+      partialize: (s) => ({
+        users: s.users,
+        movements: s.movements,
+        audit: s.audit,
+        seeded: s.seeded,
+      }),
+      migrate: (persisted) => {
+        const prev = persisted as { settings?: Partial<PlatformSettings> } & Record<string, unknown>;
+        if (prev.settings && typeof window !== "undefined") {
+          usePlatformSettingsStore
+            .getState()
+            .updateSettings({ ...DEFAULT_PLATFORM_SETTINGS, ...prev.settings });
+        }
+        const { settings: _settings, ...rest } = prev;
+        return rest;
+      },
+      version: 3,
     },
   ),
 );

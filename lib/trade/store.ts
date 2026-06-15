@@ -10,9 +10,11 @@ import {
   maxDailyTrades,
 } from "@/lib/trade/limits";
 import {
-  BASE_YIELD_BPS,
-  BONUS_PER_WIN_BPS,
-  MAX_DAILY_YIELD_BPS,
+  getPlatformSettings,
+  usePlatformSettingsStore,
+  type PlatformSettings,
+} from "@/lib/platform/settings-store";
+import {
   MAX_TRADES_PER_DAY,
   utcDayKey,
   type Position,
@@ -175,9 +177,10 @@ export function useDailySummary(): DailySummary {
   const positions = useTradeStore((s) => s.positions);
   const stakes = useStakingStore((s) => s.stakes);
   const capital = activeCapital(stakes);
+  const settings = usePlatformSettingsStore((s) => s.settings);
   return React.useMemo(
-    () => deriveDailySummary(positions, capital),
-    [positions, capital],
+    () => deriveDailySummary(positions, capital, settings),
+    [positions, capital, settings],
   );
 }
 
@@ -205,6 +208,7 @@ export function useOpenPositions(): Position[] {
 export function deriveDailySummary(
   positions: Position[],
   capital: number,
+  settings: PlatformSettings = getPlatformSettings(),
 ): DailySummary {
   const today = utcDayKey();
   const todays = positions.filter((p) => utcDayKey(p.openedAt) === today);
@@ -213,10 +217,10 @@ export function deriveDailySummary(
   const attemptsUsed = todays.length;
   const maxAttempts = maxDailyTrades(capital);
   const attemptsRemaining = Math.max(maxAttempts - attemptsUsed, 0);
-  const bonusRateBps = wins * BONUS_PER_WIN_BPS;
+  const bonusRateBps = wins * settings.bonusPerWinBps;
   const totalRateBps = Math.min(
-    BASE_YIELD_BPS + bonusRateBps,
-    MAX_DAILY_YIELD_BPS,
+    settings.baseYieldBps + bonusRateBps,
+    settings.maxDailyYieldBps,
   );
   return {
     attemptsUsed,
@@ -224,7 +228,7 @@ export function deriveDailySummary(
     maxAttempts,
     wins,
     losses,
-    baseRateBps: BASE_YIELD_BPS,
+    baseRateBps: settings.baseYieldBps,
     bonusRateBps,
     totalRateBps,
   };

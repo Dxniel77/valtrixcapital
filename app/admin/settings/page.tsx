@@ -10,16 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
-import { useAdminStore, type AdminSettings } from "@/lib/admin/store";
+import { useAdminStore } from "@/lib/admin/store";
+import { usePlatformSettings } from "@/lib/platform/settings-store";
 import { PAIRS } from "@/lib/market/pairs";
 import { cn } from "@/lib/utils";
 
 export default function AdminSettingsPage() {
   const { t } = useI18n();
-  const settings = useAdminStore((s) => s.settings);
+  const settings = usePlatformSettings();
   const updateSettings = useAdminStore((s) => s.updateSettings);
 
-  const [draft, setDraft] = React.useState<AdminSettings>(settings);
+  const [draft, setDraft] = React.useState(settings);
   const [dirty, setDirty] = React.useState(false);
 
   React.useEffect(() => {
@@ -27,7 +28,7 @@ export default function AdminSettingsPage() {
     setDirty(false);
   }, [settings]);
 
-  function patch(p: Partial<AdminSettings>) {
+  function patch(p: Partial<typeof draft>) {
     setDraft((d) => ({ ...d, ...p }));
     setDirty(true);
   }

@@ -27,10 +27,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
+import { usePlatformSettings } from "@/lib/platform/settings-store";
 import {
   REQUIRED_CONFIRMATIONS,
-  STAKE_MAX_USDT,
-  STAKE_MIN_USDT,
   useStakingStore,
   type StakingNetwork,
 } from "@/lib/staking/store";
@@ -70,6 +69,7 @@ export function StakeDepositModal({
   const finalize = useStakingStore((s) => s.finalizePendingDeposit);
   const cancel = useStakingStore((s) => s.cancelPendingDeposit);
   const pending = useStakingStore((s) => s.pendingDeposit);
+  const { minStakeUsdt, maxStakeUsdt } = usePlatformSettings();
 
   React.useEffect(() => {
     if (chainId === polygon.id) setNetwork("POLYGON");
@@ -84,8 +84,8 @@ export function StakeDepositModal({
   const amount = Number(amountStr.replace(/,/g, "."));
   const amountValid =
     Number.isFinite(amount) &&
-    amount >= STAKE_MIN_USDT &&
-    amount <= STAKE_MAX_USDT;
+    amount >= minStakeUsdt &&
+    amount <= maxStakeUsdt;
   const targetChainId = network === "POLYGON" ? polygon.id : bsc.id;
   const needsSwitch = isConnected && chainId !== targetChainId;
 
@@ -99,7 +99,7 @@ export function StakeDepositModal({
     }
     if (!amountValid) {
       toast.error(
-        amount < STAKE_MIN_USDT
+        amount < minStakeUsdt
           ? t("staking.deposit.amountTooLow")
           : t("staking.deposit.amountTooHigh"),
       );
@@ -251,6 +251,7 @@ function FormStep({
   onCancel: () => void;
 }) {
   const { t } = useI18n();
+  const { minStakeUsdt, maxStakeUsdt } = usePlatformSettings();
   return (
     <>
       <DialogBody className="space-y-5">
@@ -261,8 +262,8 @@ function FormStep({
             </label>
             <span className="text-xs text-text-muted">
               {t("staking.deposit.range", {
-                min: formatNumber(STAKE_MIN_USDT, { decimals: 0 }),
-                max: formatNumber(STAKE_MAX_USDT, { decimals: 0 }),
+                min: formatNumber(minStakeUsdt, { decimals: 0 }),
+                max: formatNumber(maxStakeUsdt, { decimals: 0 }),
               })}
             </span>
           </div>
@@ -301,7 +302,7 @@ function FormStep({
             ))}
             <button
               type="button"
-              onClick={() => onAmountChange(String(STAKE_MAX_USDT))}
+              onClick={() => onAmountChange(String(maxStakeUsdt))}
               className="rounded-md border border-border-subtle bg-bg-base/60 px-2.5 py-1 text-xs font-mono text-text-secondary transition-colors hover:border-gold/40 hover:text-text-primary"
             >
               {t("staking.deposit.maxBtn")}

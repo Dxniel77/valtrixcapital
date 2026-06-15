@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import { useReferralsStore } from "@/lib/referrals/store";
-import {
-  BONUS_PER_WIN_BPS,
-  utcDayKey,
-} from "@/lib/trade/constants";
+import { usePlatformSettings } from "@/lib/platform/settings-store";
+import { utcDayKey } from "@/lib/trade/constants";
 import { useTradeStore } from "@/lib/trade/store";
 import {
   activeCapital,
@@ -166,10 +164,11 @@ function pendingOperationalCredit(
   stakes: Stake[],
   creditedPositionIds: string[],
   positions: { id: string; status: string }[],
+  bonusPerWinBps: number,
 ): number {
   const capital = activeCapital(stakes);
   if (capital <= 0) return 0;
-  const bonusPerWin = (capital * BONUS_PER_WIN_BPS) / 10_000;
+  const bonusPerWin = (capital * bonusPerWinBps) / 10_000;
   const pendingWins = positions.filter(
     (p) => p.status === "WIN" && !creditedPositionIds.includes(p.id),
   ).length;
@@ -187,6 +186,7 @@ export function usePortfolioSummary(): PortfolioSummary {
   const withdrawals = useWalletStore((s) => s.withdrawals);
   const positions = useTradeStore((s) => s.positions);
   const preview = useTodayYieldPreview();
+  const { bonusPerWinBps } = usePlatformSettings();
 
   return React.useMemo(() => {
     const reconciled = reconcileCapEarnings({
@@ -204,6 +204,7 @@ export function usePortfolioSummary(): PortfolioSummary {
       stakes,
       creditedPositionIds,
       positions,
+      bonusPerWinBps,
     );
     const breakdown: CapEarningsBreakdown = {
       passiveEarned: reconciled.passiveEarned,
@@ -234,12 +235,14 @@ export function usePortfolioSummary(): PortfolioSummary {
     withdrawals,
     positions,
     preview.projectedBaseAmount,
+    bonusPerWinBps,
   ]);
 }
 
 export function useTodayYieldPreview(): TodayYieldPreview {
   const stakes = useStakingStore((s) => s.stakes);
   const positions = useTradeStore((s) => s.positions);
+  const { baseYieldBps, bonusPerWinBps, maxDailyYieldBps } = usePlatformSettings();
   return React.useMemo(() => {
     const today = utcDayKey();
     const capital = stakes
@@ -265,5 +268,5 @@ export function useTodayYieldPreview(): TodayYieldPreview {
       wins,
       losses,
     };
-  }, [stakes, positions]);
+  }, [stakes, positions, baseYieldBps, bonusPerWinBps, maxDailyYieldBps]);
 }
