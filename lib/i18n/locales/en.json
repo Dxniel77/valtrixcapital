@@ -994,7 +994,12 @@
       "previewNetwork": "L1 ≥ ${l1} and L2 ≥ ${l2} USDT",
       "previewEither": "Sales ≥ ${direct} USDT or L1 ≥ ${l1} + L2 ≥ ${l2}",
       "recentTitle": "Recent sponsored",
-      "recentEmpty": "No sponsored accounts yet."
+      "recentEmpty": "No sponsored accounts yet.",
+      "progressTitle": "Investment progress",
+      "progressDirect": "Direct sales",
+      "progressL1": "Level 1 volume",
+      "progressL2": "Level 2 volume",
+      "progressUnlocked": "Goal met — withdrawals enabled"
     },
     "lookup": {
       "title": "User lookup",

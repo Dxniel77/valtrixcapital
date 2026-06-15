@@ -10,6 +10,8 @@ import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import type { UserDetailSnapshot } from "@/lib/admin/analytics";
 import { exportUserDetailCsv } from "@/lib/admin/exports";
+import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
+import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
 export function UserDetailPanel({
@@ -100,6 +102,22 @@ export function UserDetailPanel({
           />
         </CardContent>
       </Card>
+
+      {isSponsored ? (
+        <Card className="border-warning/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              {t("admin.grant.progressTitle")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WithdrawalVolumeProgress
+              items={progressItemsForUser(user)}
+              unlocked={user.withdrawalUnlocked}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <EarningsCard

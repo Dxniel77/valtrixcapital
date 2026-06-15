@@ -30,6 +30,8 @@ import {
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
+import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { Lock } from "lucide-react";
 
 type Step = "form" | "success";
@@ -252,21 +254,14 @@ export function WithdrawModal({
               {isConnected && !eligible && adminUser?.accountGranted ? (
                 <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
                   <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <div>
+                  <div className="min-w-0 flex-1 space-y-2">
                     <p className="font-medium">{t("walletPage.withdraw.eligibilityTitle")}</p>
-                    <p className="mt-1 text-warning/90">{t(messageKey)}</p>
-                    {adminUser.withdrawalRule ? (
-                      <p className="mt-1 text-text-muted">
-                        {t("walletPage.withdraw.eligibilityProgress", {
-                          direct: formatNumber(adminUser.directSalesVolume, { decimals: 0 }),
-                          directMin: formatNumber(adminUser.withdrawalRule.directSalesMin, { decimals: 0 }),
-                          l1: formatNumber(adminUser.levelVolumes[0] ?? 0, { decimals: 0 }),
-                          l1Min: formatNumber(adminUser.withdrawalRule.level1VolumeMin, { decimals: 0 }),
-                          l2: formatNumber(adminUser.levelVolumes[1] ?? 0, { decimals: 0 }),
-                          l2Min: formatNumber(adminUser.withdrawalRule.level2VolumeMin, { decimals: 0 }),
-                        })}
-                      </p>
-                    ) : null}
+                    <p className="text-warning/90">{t(messageKey)}</p>
+                    <WithdrawalVolumeProgress
+                      items={progressItemsForUser(adminUser)}
+                      unlocked={adminUser.withdrawalUnlocked}
+                      compact
+                    />
                   </div>
                 </div>
               ) : null}

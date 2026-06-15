@@ -950,7 +950,12 @@
       "previewNetwork": "N1 ≥ ${l1} y N2 ≥ ${l2} USDT",
       "previewEither": "Ventas ≥ ${direct} USDT o N1 ≥ ${l1} + N2 ≥ ${l2}",
       "recentTitle": "Patrocinadas recientes",
-      "recentEmpty": "Aún no hay cuentas patrocinadas."
+      "recentEmpty": "Aún no hay cuentas patrocinadas.",
+      "progressTitle": "Progreso de inversión",
+      "progressDirect": "Ventas directas",
+      "progressL1": "Volumen N1",
+      "progressL2": "Volumen N2",
+      "progressUnlocked": "Meta cumplida — retiro habilitado"
     },
     "lookup": {
       "title": "Buscar usuario",

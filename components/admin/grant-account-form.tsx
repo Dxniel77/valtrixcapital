@@ -24,6 +24,12 @@ import {
   type WithdrawalRule,
   type WithdrawalRuleMode,
 } from "@/lib/admin/withdrawal-eligibility";
+import {
+  buildVolumeProgressItems,
+  progressItemsForUser,
+  volumesFromAdminUser,
+} from "@/lib/admin/withdrawal-progress";
+import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
 const MODES: {
@@ -117,6 +123,25 @@ export function GrantAccountForm() {
         .slice(0, 6),
     [users],
   );
+
+  const existingWalletUser = React.useMemo(() => {
+    if (!walletOk) return null;
+    const key = wallet.trim().toLowerCase();
+    return users.find((u) => u.wallet.toLowerCase() === key) ?? null;
+  }, [users, wallet, walletOk]);
+
+  const previewProgressItems = React.useMemo(() => {
+    const previewRule =
+      existingWalletUser?.accountGranted
+        ? existingWalletUser.withdrawalRule
+        : rule;
+    const volumes = existingWalletUser
+      ? volumesFromAdminUser(existingWalletUser)
+      : { direct: 0, l1: 0, l2: 0 };
+    return buildVolumeProgressItems(volumes, previewRule);
+  }, [existingWalletUser, rule]);
+
+  const previewUnlocked = existingWalletUser?.withdrawalUnlocked ?? false;
 
   function reset() {
     setWallet("");
@@ -353,6 +378,13 @@ export function GrantAccountForm() {
               label={t("admin.grant.previewRule")}
               value={ruleSummary(rule, t)}
             />
+            <div className="border-t border-border-subtle pt-3">
+              <WithdrawalVolumeProgress
+                title={t("admin.grant.progressTitle")}
+                items={previewProgressItems}
+                unlocked={previewUnlocked}
+              />
+            </div>
             <div className="flex items-center gap-2 pt-1">
               <Badge variant="warning">{t("admin.users.sponsoredBadge")}</Badge>
               <Badge variant="outline">{t("admin.lookup.withdrawLocked")}</Badge>
@@ -373,24 +405,33 @@ export function GrantAccountForm() {
                   <li key={u.id}>
                     <Link
                       href={`/admin/users/${u.id}`}
-                      className="flex items-center justify-between gap-2 rounded-md border border-border-subtle bg-bg-base/40 px-3 py-2 transition-colors hover:border-gold/30 hover:bg-gold/5"
+                      className="block rounded-md border border-border-subtle bg-bg-base/40 px-3 py-2.5 transition-colors hover:border-gold/30 hover:bg-gold/5"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-text-primary">
-                          {u.alias}
-                        </p>
-                        <p className="font-mono text-[10px] text-text-muted">
-                          {shortenAddress(u.wallet)}
-                        </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-text-primary">
+                            {u.alias}
+                          </p>
+                          <p className="font-mono text-[10px] text-text-muted">
+                            {shortenAddress(u.wallet)}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={u.withdrawalUnlocked ? "success" : "warning"}
+                          className="shrink-0 text-[10px]"
+                        >
+                          {u.withdrawalUnlocked
+                            ? t("admin.lookup.withdrawOk")
+                            : t("admin.lookup.withdrawLocked")}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant={u.withdrawalUnlocked ? "success" : "warning"}
-                        className="shrink-0 text-[10px]"
-                      >
-                        {u.withdrawalUnlocked
-                          ? t("admin.lookup.withdrawOk")
-                          : t("admin.lookup.withdrawLocked")}
-                      </Badge>
+                      <div className="mt-2.5">
+                        <WithdrawalVolumeProgress
+                          items={progressItemsForUser(u)}
+                          unlocked={u.withdrawalUnlocked}
+                          compact
+                        />
+                      </div>
                     </Link>
                   </li>
                 ))}
