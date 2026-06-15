@@ -93,34 +93,57 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     };
   }, [meta, username, labels]);
 
-  async function downloadOne(period: PosterPeriod) {
-    setDownloading(period);
-    try {
-      const periodMeta = getPosterPeriodMeta(period, earnings);
-      const url = await renderEarningsPoster(periodMeta, username, labels);
-      downloadDataUrl(
-        url,
-        `valtrix-ganancia-${periodMeta.filenameSuffix}-${username}.png`,
-      );
-    } finally {
-      setDownloading(null);
-    }
-  }
+  const [posterCache, setPosterCache] = React.useState<
+    Partial<Record<PosterPeriod, string>>
+  >({});
 
-  async function downloadAll() {
-    setDownloading("all");
-    try {
-      for (const period of PERIODS) {
+  React.useEffect(() => {
+    let cancelled = false;
+    void Promise.all(
+      PERIODS.map(async (period) => {
         const periodMeta = getPosterPeriodMeta(period, earnings);
         const url = await renderEarningsPoster(periodMeta, username, labels);
+        return [period, url] as const;
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setPosterCache(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [earnings, username, labels]);
+
+  function downloadOne(period: PosterPeriod) {
+    const periodMeta = getPosterPeriodMeta(period, earnings);
+    const filename = `valtrix-ganancia-${periodMeta.filenameSuffix}-${username}.png`;
+    const cached = posterCache[period];
+
+    if (cached) {
+      downloadDataUrl(cached, filename);
+      return;
+    }
+
+    setDownloading(period);
+    void renderEarningsPoster(periodMeta, username, labels)
+      .then((url) => downloadDataUrl(url, filename))
+      .finally(() => setDownloading(null));
+  }
+
+  function downloadAll() {
+    setDownloading("all");
+    PERIODS.forEach((period, index) => {
+      const cached = posterCache[period];
+      if (!cached) return;
+      const periodMeta = getPosterPeriodMeta(period, earnings);
+      window.setTimeout(() => {
         downloadDataUrl(
-          url,
+          cached,
           `valtrix-ganancia-${periodMeta.filenameSuffix}-${username}.png`,
         );
-      }
-    } finally {
-      setDownloading(null);
-    }
+        if (index === PERIODS.length - 1) setDownloading(null);
+      }, index * 400);
+    });
   }
 
   const periodLabel = (p: PosterPeriod) => {
@@ -201,7 +224,7 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
                   size="sm"
                   className="h-8 w-full text-xs"
                   onClick={() => downloadOne(period)}
-                  disabled={loading || downloading !== null}
+                  disabled={downloading !== null || !posterCache[period]}
                 >
                   {isDownloading ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -293,7 +316,7 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
               size="md"
               className="w-full"
               onClick={() => downloadOne(active)}
-              disabled={loading || downloading !== null}
+              disabled={downloading !== null || !posterCache[active]}
             >
               {downloading === active ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -307,7 +330,10 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
               size="md"
               className="w-full"
               onClick={downloadAll}
-              disabled={loading || downloading !== null}
+              disabled={
+                downloading !== null ||
+                PERIODS.some((period) => !posterCache[period])
+              }
             >
               {downloading === "all" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { downloadText } from "@/lib/download";
 import { useStakingStore, type StakingNetwork } from "@/lib/staking/store";
 import { useTradeStore } from "@/lib/trade/store";
 import { useReferralsStore } from "@/lib/referrals/store";
@@ -172,13 +173,5 @@ export function ledgerToCsv(entries: LedgerEntry[]): string {
 
 export function downloadCsv(filename: string, csv: string): void {
   if (typeof window === "undefined") return;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadText(filename, csv);
 }
