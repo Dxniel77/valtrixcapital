@@ -1194,7 +1194,8 @@
     "simultaneousShort": "Open {open}/{max}",
     "simultaneousOpenCount": "{open} / {max} open",
     "simultaneousLimitBlocked": "Maximum {max} simultaneous trades for your capital tier.",
-    "simultaneousTiersHint": "15–500 USDT: 3 · 501–1,000: 5 · 1,001+: 7 simultaneous trades."
+    "dailyLimitBlocked": "Daily limit reached ({max} trades for your capital tier).",
+    "simultaneousTiersHint": "15–500 USDT: 3 · 501–1,000: 5 · 1,001+: 7 simultaneous trades and daily attempts."
   },
   "notifications": {
     "title": "Notifications",

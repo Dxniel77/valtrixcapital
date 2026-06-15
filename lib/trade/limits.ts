@@ -1,5 +1,5 @@
 import { STAKE_MIN_USDT } from "@/lib/staking/constants";
-import type { Position } from "@/lib/trade/constants";
+import { utcDayKey, type Position } from "@/lib/trade/constants";
 
 /** Minimum capital (USDT) for the lowest simultaneous-trade tier. */
 export const SIMULTANEOUS_TIER_LOW_MIN = STAKE_MIN_USDT; // 15
@@ -16,12 +16,27 @@ export interface SimultaneousLimit {
   remaining: number;
 }
 
-/** Max concurrent open trades from invested capital (USDT). */
+/** Max open positions and daily trade attempts from invested capital (USDT). */
 export function maxSimultaneousTrades(capital: number): number {
   if (capital < SIMULTANEOUS_TIER_LOW_MIN) return 0;
   if (capital >= SIMULTANEOUS_TIER_HIGH_MIN) return 7;
   if (capital >= SIMULTANEOUS_TIER_MID_MIN) return 5;
   return 3;
+}
+
+export function maxDailyTrades(capital: number): number {
+  return maxSimultaneousTrades(capital);
+}
+
+export function hasReachedDailyTradeLimit(
+  positions: Position[],
+  capital: number,
+): boolean {
+  const today = utcDayKey();
+  const attemptsUsed = positions.filter(
+    (p) => utcDayKey(p.openedAt) === today,
+  ).length;
+  return attemptsUsed >= maxDailyTrades(capital);
 }
 
 export function simultaneousTier(capital: number): SimultaneousTier {

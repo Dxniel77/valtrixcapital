@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Info } from "lucide-react";
-import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
+import { useDailySummary } from "@/lib/trade/store";
 import {
   COUNTDOWN_PLACEHOLDER,
   formatCountdown,
@@ -15,7 +15,10 @@ export function DailyAttempts() {
   const summary = useDailySummary();
   const countdown = useUtcMidnightCountdown();
 
-  const pct = (summary.attemptsUsed / MAX_TRADES_PER_DAY) * 100;
+  const pct =
+    summary.maxAttempts > 0
+      ? (summary.attemptsUsed / summary.maxAttempts) * 100
+      : 0;
 
   return (
     <div className="surface-card p-5">
@@ -37,7 +40,7 @@ export function DailyAttempts() {
       <div className="flex items-center gap-4">
         <Ring
           percent={pct}
-          big={`${summary.attemptsUsed}/${MAX_TRADES_PER_DAY}`}
+          big={`${summary.attemptsUsed}/${summary.maxAttempts}`}
           small={`${summary.attemptsRemaining} ${t("trade.leftCount")}`}
         />
         <ul className="space-y-1.5 text-xs">
@@ -71,7 +74,7 @@ export function DailyAttempts() {
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-1">
-        {Array.from({ length: MAX_TRADES_PER_DAY }).map((_, i) => {
+        {Array.from({ length: summary.maxAttempts }).map((_, i) => {
           const used = i < summary.attemptsUsed;
           const isWin = i < summary.wins;
           return (

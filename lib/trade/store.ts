@@ -4,7 +4,11 @@ import * as React from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
-import { hasReachedSimultaneousLimit } from "@/lib/trade/limits";
+import {
+  hasReachedDailyTradeLimit,
+  hasReachedSimultaneousLimit,
+  maxDailyTrades,
+} from "@/lib/trade/limits";
 import {
   BASE_YIELD_BPS,
   BONUS_PER_WIN_BPS,
@@ -90,6 +94,9 @@ export const useTradeStore = create<TradeState>()(
           return null;
         }
         const capital = activeCapital(useStakingStore.getState().stakes);
+        if (hasReachedDailyTradeLimit(get().positions, capital)) {
+          return null;
+        }
         if (hasReachedSimultaneousLimit(get().positions, capital)) {
           return null;
         }
@@ -155,6 +162,7 @@ export const useTradeStore = create<TradeState>()(
 export interface DailySummary {
   attemptsUsed: number;
   attemptsRemaining: number;
+  maxAttempts: number;
   wins: number;
   losses: number;
   baseRateBps: number;
@@ -165,7 +173,12 @@ export interface DailySummary {
 /** React hook that returns a memoized daily summary derived from the store. */
 export function useDailySummary(): DailySummary {
   const positions = useTradeStore((s) => s.positions);
-  return React.useMemo(() => deriveDailySummary(positions), [positions]);
+  const stakes = useStakingStore((s) => s.stakes);
+  const capital = activeCapital(stakes);
+  return React.useMemo(
+    () => deriveDailySummary(positions, capital),
+    [positions, capital],
+  );
 }
 
 /** Returns `true` once Zustand has loaded persisted state from localStorage. */
@@ -189,13 +202,17 @@ export function useOpenPositions(): Position[] {
 }
 
 /** Pure derivation — call with a stable positions array. */
-export function deriveDailySummary(positions: Position[]): DailySummary {
+export function deriveDailySummary(
+  positions: Position[],
+  capital: number,
+): DailySummary {
   const today = utcDayKey();
   const todays = positions.filter((p) => utcDayKey(p.openedAt) === today);
   const wins = todays.filter((p) => p.status === "WIN").length;
   const losses = todays.filter((p) => p.status === "LOSS").length;
   const attemptsUsed = todays.length;
-  const attemptsRemaining = Math.max(MAX_TRADES_PER_DAY - attemptsUsed, 0);
+  const maxAttempts = maxDailyTrades(capital);
+  const attemptsRemaining = Math.max(maxAttempts - attemptsUsed, 0);
   const bonusRateBps = wins * BONUS_PER_WIN_BPS;
   const totalRateBps = Math.min(
     BASE_YIELD_BPS + bonusRateBps,
@@ -204,6 +221,7 @@ export function deriveDailySummary(positions: Position[]): DailySummary {
   return {
     attemptsUsed,
     attemptsRemaining,
+    maxAttempts,
     wins,
     losses,
     baseRateBps: BASE_YIELD_BPS,

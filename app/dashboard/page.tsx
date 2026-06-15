@@ -32,7 +32,7 @@ import {
   shortenAddress,
 } from "@/lib/utils";
 import { useUtcMidnightCountdown } from "@/lib/hooks/use-utc-midnight-countdown";
-import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
+import { useDailySummary } from "@/lib/trade/store";
 import {
   PAYOUT_CAP_MULTIPLIER,
   usePortfolioSummary,
@@ -140,7 +140,7 @@ export default function DashboardOverviewPage() {
         />
         <StatTile
           label={t("dashboard.overview.winsToday")}
-          value={`${summary.wins} / ${MAX_TRADES_PER_DAY}`}
+          value={`${summary.wins} / ${summary.maxAttempts}`}
           delta={{ value: summary.bonusRateBps / 100 }}
           icon={Trophy}
           accent="info"
@@ -203,7 +203,7 @@ export default function DashboardOverviewPage() {
             remainingMs={countdown}
             wins={summary.wins}
             losses={summary.losses}
-            total={MAX_TRADES_PER_DAY}
+            total={summary.maxAttempts}
           />
           <QuickLinksCard />
         </div>

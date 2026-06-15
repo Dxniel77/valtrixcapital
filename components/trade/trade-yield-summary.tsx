@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { MAX_TRADES_PER_DAY, useDailySummary } from "@/lib/trade/store";
+import { useDailySummary } from "@/lib/trade/store";
 import { useI18n } from "@/lib/i18n/context";
 
 export function TradeYieldSummary() {
@@ -37,7 +37,7 @@ export function TradeYieldSummary() {
       {summary.attemptsRemaining === 0 ? (
         <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t("trade.noAttemptsLeft", { max: MAX_TRADES_PER_DAY })}</span>
+          <span>{t("trade.noAttemptsLeft", { max: summary.maxAttempts })}</span>
         </div>
       ) : null}
     </div>

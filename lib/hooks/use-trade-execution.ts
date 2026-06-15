@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import { type PairMeta } from "@/lib/market/pairs";
 import {
   deriveSimultaneousLimit,
+  hasReachedDailyTradeLimit,
   hasReachedSimultaneousLimit,
 } from "@/lib/trade/limits";
 import {
-  MAX_TRADES_PER_DAY,
   hasOppositeOpenPosition,
   useDailySummary,
   useOpenPositions,
@@ -34,11 +34,16 @@ export function useTradeExecution(
     openPositions,
     investedCapital,
   );
+  const atDailyLimit = hasReachedDailyTradeLimit(
+    useTradeStore.getState().positions,
+    investedCapital,
+  );
 
   const canTrade =
     hasCapital &&
     summary.attemptsRemaining > 0 &&
     !atSimultaneousLimit &&
+    !atDailyLimit &&
     livePrice !== null &&
     livePrice > 0;
 
@@ -58,7 +63,7 @@ export function useTradeExecution(
       toast.error(t("errors.priceUnavailable"));
       return;
     }
-    if (summary.attemptsRemaining <= 0) {
+    if (summary.attemptsRemaining <= 0 || atDailyLimit) {
       toast.error(t("errors.noAttempts"));
       return;
     }
@@ -113,8 +118,9 @@ export function useTradeExecution(
     investedCapital,
     simultaneous,
     atSimultaneousLimit,
+    atDailyLimit,
     execute,
     summary,
-    maxTrades: MAX_TRADES_PER_DAY,
+    maxTrades: summary.maxAttempts,
   };
 }

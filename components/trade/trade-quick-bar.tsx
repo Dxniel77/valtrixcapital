@@ -35,6 +35,9 @@ export function TradeQuickBar({
   } = useTradeExecution(pair, livePrice, duration);
 
   function buyBlockTitle(): string | undefined {
+    if (!canBuy && hasCapital && summary.attemptsRemaining <= 0) {
+      return t("trade.dailyLimitBlocked", { max: maxTrades });
+    }
     if (!canBuy && hasCapital && atSimultaneousLimit) {
       return t("trade.simultaneousLimitBlocked", { max: simultaneous.max });
     }
@@ -43,6 +46,9 @@ export function TradeQuickBar({
   }
 
   function sellBlockTitle(): string | undefined {
+    if (!canSell && hasCapital && summary.attemptsRemaining <= 0) {
+      return t("trade.dailyLimitBlocked", { max: maxTrades });
+    }
     if (!canSell && hasCapital && atSimultaneousLimit) {
       return t("trade.simultaneousLimitBlocked", { max: simultaneous.max });
     }
