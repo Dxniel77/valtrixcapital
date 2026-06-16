@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ReferralCapture } from "@/components/referrals/referral-capture";
 import { AdminBalanceSync } from "@/components/admin/admin-balance-sync";
 import { BackendUserSync } from "@/components/backend/backend-user-sync";
+import { NavigationProgress } from "@/components/navigation/navigation-progress";
 
 function buildRainbowTheme(mode: "light" | "dark"): Theme {
   const base =
@@ -113,6 +114,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <LocaleProvider>
             <RainbowKitThemed>
+              <NavigationProgress />
               <React.Suspense fallback={null}>
                 <ReferralCapture />
                 <AdminBalanceSync />

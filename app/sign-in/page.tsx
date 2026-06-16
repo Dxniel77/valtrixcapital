@@ -14,6 +14,7 @@ import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
 import { useUserRegistry } from "@/lib/user/store";
 import { setPendingReferralCode } from "@/lib/referrals/pending-sponsor";
+import { startNavigationProgress } from "@/lib/navigation/progress-events";
 import { ShieldCheck, Wallet, KeyRound, UserRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,7 +49,10 @@ export default function SignInPage() {
   }, [address, getProfile]);
 
   React.useEffect(() => {
-    if (user && profile) router.replace(nextPath);
+    if (user && profile) {
+      startNavigationProgress();
+      router.replace(nextPath);
+    }
   }, [user, profile, router, nextPath]);
 
   React.useEffect(() => {
@@ -165,7 +169,10 @@ export default function SignInPage() {
           onComplete={(next) => {
             setProfile(next);
             setShowUsernameDialog(false);
-            if (user) router.replace(nextPath);
+            if (user) {
+              startNavigationProgress();
+              router.replace(nextPath);
+            }
           }}
         />
       ) : null}

@@ -10,6 +10,7 @@ import { BotTradingPanel } from "@/components/dashboard/company-tools/bot-tradin
 import { LiquidationEnginePanel } from "@/components/dashboard/company-tools/liquidation-engine-panel";
 import { CompanyRevenueSummary } from "@/components/dashboard/company-tools/company-revenue-summary";
 import { useI18n } from "@/lib/i18n/context";
+import { startNavigationProgress } from "@/lib/navigation/progress-events";
 import { cn } from "@/lib/utils";
 
 type CompanyToolsTab = "bot" | "liquidation";
@@ -45,6 +46,7 @@ function CompanyToolsContent() {
       params.set("tab", next);
     }
     const query = params.toString();
+    startNavigationProgress();
     router.replace(
       query ? `/dashboard/company-tools?${query}` : "/dashboard/company-tools",
       { scroll: false },
