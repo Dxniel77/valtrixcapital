@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getLocaleOption } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/context";
 import {
   getPosterPeriodMeta,
@@ -23,6 +24,7 @@ import {
 import {
   downloadDataUrl,
   renderEarningsPoster,
+  type PosterLabels,
 } from "@/lib/share/poster-canvas";
 import { cn, formatNumber } from "@/lib/utils";
 
@@ -40,8 +42,15 @@ interface EarningsPosterProps {
   earnings: PeriodEarningsDetailed;
 }
 
+const POSTER_HEADING_KEYS: Record<PosterPeriod, string> = {
+  daily: "share.poster.imageHeadingDaily",
+  weekly: "share.poster.imageHeadingWeekly",
+  monthly: "share.poster.imageHeadingMonthly",
+  threeMonths: "share.poster.imageHeadingThreeMonths",
+};
+
 export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [active, setActive] = React.useState<PosterPeriod>("daily");
   const [preview, setPreview] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -49,36 +58,45 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     PosterPeriod | "all" | null
   >(null);
 
+  const localeTag = React.useMemo(
+    () => getLocaleOption(locale).htmlLang,
+    [locale],
+  );
+
+  const posterLabels = React.useCallback(
+    (period: PosterPeriod): PosterLabels => ({
+      heading: t(POSTER_HEADING_KEYS[period]),
+      todayTag: period === "daily" ? t("share.poster.todayTag") : undefined,
+      userLabel: t("share.poster.userLabel"),
+      feature1: t("share.poster.featureGrowth"),
+      feature2: t("share.poster.featureStrategies"),
+      feature3: t("share.poster.featureDiscipline"),
+      disclaimerLine1: t("share.poster.disclaimerLine1"),
+      disclaimerLine2: t("share.poster.disclaimerLine2"),
+      localeTag,
+    }),
+    [t, localeTag],
+  );
+
   const meta = React.useMemo(
-    () => getPosterPeriodMeta(active, earnings),
-    [active, earnings],
+    () => getPosterPeriodMeta(active, earnings, locale),
+    [active, earnings, locale],
   );
 
   const periodCards = React.useMemo(
     () =>
       PERIODS.map((period) => ({
         period,
-        meta: getPosterPeriodMeta(period, earnings),
+        meta: getPosterPeriodMeta(period, earnings, locale),
         slice: earnings[period],
       })),
-    [earnings],
-  );
-
-  const labels = React.useMemo(
-    () => ({
-      userLabel: t("share.poster.userLabel"),
-      periodTotalLabel: t("share.poster.periodTotal"),
-      baseLabel: t("share.poster.base"),
-      operationalLabel: t("share.poster.operational"),
-      networkLabel: t("share.poster.network"),
-    }),
-    [t],
+    [earnings, locale],
   );
 
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    renderEarningsPoster(meta, username, labels)
+    renderEarningsPoster(meta, username, posterLabels(active))
       .then((url) => {
         if (!cancelled) setPreview(url);
       })
@@ -91,7 +109,7 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     return () => {
       cancelled = true;
     };
-  }, [meta, username, labels]);
+  }, [meta, username, posterLabels, active]);
 
   const [posterCache, setPosterCache] = React.useState<
     Partial<Record<PosterPeriod, string>>
@@ -101,8 +119,12 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     let cancelled = false;
     void Promise.all(
       PERIODS.map(async (period) => {
-        const periodMeta = getPosterPeriodMeta(period, earnings);
-        const url = await renderEarningsPoster(periodMeta, username, labels);
+        const periodMeta = getPosterPeriodMeta(period, earnings, locale);
+        const url = await renderEarningsPoster(
+          periodMeta,
+          username,
+          posterLabels(period),
+        );
         return [period, url] as const;
       }),
     ).then((entries) => {
@@ -112,10 +134,10 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     return () => {
       cancelled = true;
     };
-  }, [earnings, username, labels]);
+  }, [earnings, username, locale, posterLabels]);
 
   function downloadOne(period: PosterPeriod) {
-    const periodMeta = getPosterPeriodMeta(period, earnings);
+    const periodMeta = getPosterPeriodMeta(period, earnings, locale);
     const filename = `valtrix-ganancia-${periodMeta.filenameSuffix}-${username}.png`;
     const cached = posterCache[period];
 
@@ -125,7 +147,7 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     }
 
     setDownloading(period);
-    void renderEarningsPoster(periodMeta, username, labels)
+    void renderEarningsPoster(periodMeta, username, posterLabels(period))
       .then((url) => downloadDataUrl(url, filename))
       .finally(() => setDownloading(null));
   }
@@ -135,7 +157,7 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     PERIODS.forEach((period, index) => {
       const cached = posterCache[period];
       if (!cached) return;
-      const periodMeta = getPosterPeriodMeta(period, earnings);
+      const periodMeta = getPosterPeriodMeta(period, earnings, locale);
       window.setTimeout(() => {
         downloadDataUrl(
           cached,

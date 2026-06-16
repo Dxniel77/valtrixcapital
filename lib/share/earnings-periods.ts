@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/config";
+import { getLocaleOption } from "@/lib/i18n/config";
 import type { DailyYield, InstantCredit } from "@/lib/staking/store";
 import type { CommissionRecord } from "@/lib/referrals/store";
 import { utcDayKey } from "@/lib/trade/store";
@@ -122,40 +124,37 @@ export function computePeriodEarnings(input: {
   };
 }
 
-const MONTHS_ES = [
-  "ENERO",
-  "FEBRERO",
-  "MARZO",
-  "ABRIL",
-  "MAYO",
-  "JUNIO",
-  "JULIO",
-  "AGOSTO",
-  "SEPTIEMBRE",
-  "OCTUBRE",
-  "NOVIEMBRE",
-  "DICIEMBRE",
-] as const;
-
-function formatDayEs(d: Date): string {
-  return `${d.getUTCDate()} DE ${MONTHS_ES[d.getUTCMonth()]}, ${d.getUTCFullYear()}`;
+function posterIntlLocale(locale: Locale): string {
+  return getLocaleOption(locale).htmlLang;
 }
 
-function formatRangeEs(from: Date, to: Date): string {
-  const sameYear = from.getUTCFullYear() === to.getUTCFullYear();
-  const sameMonth = sameYear && from.getUTCMonth() === to.getUTCMonth();
-  if (sameMonth) {
-    return `${from.getUTCDate()} AL ${to.getUTCDate()} DE ${MONTHS_ES[to.getUTCMonth()]}, ${to.getUTCFullYear()}`;
+function formatPosterDay(locale: Locale, d: Date): string {
+  return new Intl.DateTimeFormat(posterIntlLocale(locale), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+}
+
+function formatPosterRange(locale: Locale, from: Date, to: Date): string {
+  const tag = posterIntlLocale(locale);
+  const opts: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  };
+  if (typeof Intl.DateTimeFormat.prototype.formatRange === "function") {
+    return new Intl.DateTimeFormat(tag, opts).formatRange(from, to);
   }
-  if (sameYear) {
-    return `${from.getUTCDate()} DE ${MONTHS_ES[from.getUTCMonth()]} AL ${formatDayEs(to)}`;
-  }
-  return `${formatDayEs(from)} AL ${formatDayEs(to)}`;
+  return `${formatPosterDay(locale, from)} – ${formatPosterDay(locale, to)}`;
 }
 
 export function getPosterPeriodMeta(
   period: PosterPeriod,
   earnings: PeriodEarningsDetailed,
+  locale: Locale,
 ): PosterPeriodMeta {
   const now = new Date();
   const sliceFor = earnings[period];
@@ -165,7 +164,7 @@ export function getPosterPeriodMeta(
       return {
         period,
         amount: sliceFor.total,
-        rangeLabel: formatDayEs(now),
+        rangeLabel: formatPosterDay(locale, now),
         filenameSuffix: "hoy",
         breakdown: {
           base: sliceFor.base,
@@ -179,7 +178,7 @@ export function getPosterPeriodMeta(
       return {
         period,
         amount: sliceFor.total,
-        rangeLabel: formatRangeEs(from, now),
+        rangeLabel: formatPosterRange(locale, from, now),
         filenameSuffix: "semana",
         breakdown: {
           base: sliceFor.base,
@@ -194,7 +193,7 @@ export function getPosterPeriodMeta(
       return {
         period,
         amount: sliceFor.total,
-        rangeLabel: formatRangeEs(from, now),
+        rangeLabel: formatPosterRange(locale, from, now),
         filenameSuffix: "mes",
         breakdown: {
           base: sliceFor.base,
@@ -209,7 +208,7 @@ export function getPosterPeriodMeta(
       return {
         period,
         amount: sliceFor.total,
-        rangeLabel: formatRangeEs(from, now),
+        rangeLabel: formatPosterRange(locale, from, now),
         filenameSuffix: "3-meses",
         breakdown: {
           base: sliceFor.base,

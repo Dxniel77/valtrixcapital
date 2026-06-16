@@ -802,7 +802,17 @@
       "breakdownNote": "Das heruntergeladene Bild enthält die Gesamtsumme des Zeitraums sowie eine Aufschlüsselung der Basis-, Handels- und Netzwerkgewinne.",
       "totalHint": "Periodensumme auf dem Bild",
       "userLabel": "Benutzer",
-      "footer": "valtrix.capital · Einzelergebnisse"
+      "footer": "valtrix.capital · Einzelergebnisse",
+      "imageHeadingDaily": "Tagesgewinn",
+      "imageHeadingWeekly": "Wochengewinn",
+      "imageHeadingMonthly": "Monatsgewinn",
+      "imageHeadingThreeMonths": "3-Monats-Gewinn",
+      "todayTag": "Heute",
+      "featureGrowth": "Konstantes Wachstum",
+      "featureStrategies": "Intelligente Strategien",
+      "featureDiscipline": "Disziplin heute, Freiheit morgen",
+      "disclaimerLine1": "Vergangene Ergebnisse garantieren keine zukünftigen Ergebnisse.",
+      "disclaimerLine2": "Trading birgt Risiken."
     },
     "exports": {
       "earnings": "Ergebnisbericht",

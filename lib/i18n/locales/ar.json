@@ -802,7 +802,17 @@
       "breakdownNote": "تتضمن الصورة التي تم تنزيلها إجمالي الفترة بالإضافة إلى القاعدة والتداول وتفاصيل أرباح الشبكة.",
       "totalHint": "إجمالي الفترة على الصورة",
       "userLabel": "مستخدم",
-      "footer": "valtrix.capital · النتائج الفردية"
+      "footer": "valtrix.capital · النتائج الفردية",
+      "imageHeadingDaily": "أرباح اليوم",
+      "imageHeadingWeekly": "أرباح الأسبوع",
+      "imageHeadingMonthly": "أرباح الشهر",
+      "imageHeadingThreeMonths": "أرباح 3 أشهر",
+      "todayTag": "اليوم",
+      "featureGrowth": "نمو مستمر",
+      "featureStrategies": "استراتيجيات ذكية",
+      "featureDiscipline": "انضباط اليوم، حرية الغد",
+      "disclaimerLine1": "النتائج السابقة لا تضمن النتائج المستقبلية.",
+      "disclaimerLine2": "التداول ينطوي على مخاطر."
     },
     "exports": {
       "earnings": "تقرير الأرباح",

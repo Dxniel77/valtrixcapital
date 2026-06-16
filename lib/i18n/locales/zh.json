@@ -794,7 +794,17 @@
       "breakdownNote": "下载的图像包括该期间的总额以及基础利润、交易利润和网络利润的细目。",
       "totalHint": "图像中的总周期",
       "userLabel": "用户",
-      "footer": "valtrix.capital · 个人结果"
+      "footer": "valtrix.capital · 个人结果",
+      "imageHeadingDaily": "今日收益",
+      "imageHeadingWeekly": "本周收益",
+      "imageHeadingMonthly": "本月收益",
+      "imageHeadingThreeMonths": "三个月收益",
+      "todayTag": "今天",
+      "featureGrowth": "持续增长",
+      "featureStrategies": "智能策略",
+      "featureDiscipline": "今日自律，明日自由",
+      "disclaimerLine1": "过往业绩不代表未来表现。",
+      "disclaimerLine2": "交易涉及风险。"
     },
     "exports": {
       "earnings": "盈利报告",

@@ -793,7 +793,17 @@
       "breakdownNote": "A imagem baixada inclui o total do período mais base, negociação e detalhamento do lucro da rede.",
       "totalHint": "Total do período na imagem",
       "userLabel": "Usuária",
-      "footer": "valtrix.capital · Resultados individuais"
+      "footer": "valtrix.capital · Resultados individuais",
+      "imageHeadingDaily": "Ganho do dia",
+      "imageHeadingWeekly": "Ganho da semana",
+      "imageHeadingMonthly": "Ganho do mês",
+      "imageHeadingThreeMonths": "Ganho de 3 meses",
+      "todayTag": "Hoje",
+      "featureGrowth": "Crescimento consistente",
+      "featureStrategies": "Estratégias inteligentes",
+      "featureDiscipline": "Disciplina hoje, liberdade amanhã",
+      "disclaimerLine1": "Resultados passados não garantem resultados futuros.",
+      "disclaimerLine2": "O trading envolve riscos."
     },
     "exports": {
       "earnings": "Relatório de ganhos",

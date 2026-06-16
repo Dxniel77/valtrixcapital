@@ -794,7 +794,17 @@
       "breakdownNote": "L'image téléchargée comprend le total de la période ainsi que la répartition des bénéfices de base, commerciaux et du réseau.",
       "totalHint": "Total de la période sur l'image",
       "userLabel": "Utilisatrice",
-      "footer": "valtrix.capital · Résultats individuels"
+      "footer": "valtrix.capital · Résultats individuels",
+      "imageHeadingDaily": "Gain du jour",
+      "imageHeadingWeekly": "Gain de la semaine",
+      "imageHeadingMonthly": "Gain du mois",
+      "imageHeadingThreeMonths": "Gain sur 3 mois",
+      "todayTag": "Aujourd'hui",
+      "featureGrowth": "Croissance constante",
+      "featureStrategies": "Stratégies intelligentes",
+      "featureDiscipline": "Discipline aujourd'hui, liberté demain",
+      "disclaimerLine1": "Les résultats passés ne garantissent pas les résultats futurs.",
+      "disclaimerLine2": "Le trading comporte des risques."
     },
     "exports": {
       "earnings": "Rapport sur les revenus",

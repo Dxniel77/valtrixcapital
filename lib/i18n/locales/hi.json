@@ -794,7 +794,17 @@
       "breakdownNote": "डाउनलोड की गई छवि में अवधि का कुल प्लस आधार, ट्रेडिंग और नेटवर्क लाभ का विवरण शामिल है।",
       "totalHint": "छवि पर कुल अवधि",
       "userLabel": "उपयोगकर्ता",
-      "footer": "valtrix.capital · व्यक्तिगत परिणाम"
+      "footer": "valtrix.capital · व्यक्तिगत परिणाम",
+      "imageHeadingDaily": "दैनिक लाभ",
+      "imageHeadingWeekly": "साप्ताहिक लाभ",
+      "imageHeadingMonthly": "मासिक लाभ",
+      "imageHeadingThreeMonths": "3 महीने का लाभ",
+      "todayTag": "आज",
+      "featureGrowth": "निरंतर वृद्धि",
+      "featureStrategies": "स्मार्ट रणनीतियाँ",
+      "featureDiscipline": "आज अनुशासन, कल स्वतंत्रता",
+      "disclaimerLine1": "पिछले परिणाम भविष्य के परिणामों की गारंटी नहीं देते।",
+      "disclaimerLine2": "ट्रेडिंग में जोखिम शामिल है।"
     },
     "exports": {
       "earnings": "कमाई की रिपोर्ट",

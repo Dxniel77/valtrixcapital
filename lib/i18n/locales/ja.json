@@ -794,7 +794,17 @@
       "breakdownNote": "ダウンロードされたイメージには、期間合計とベース、取引、およびネットワーク利益の内訳が含まれています。",
       "totalHint": "画像上の期間合計",
       "userLabel": "ユーザー",
-      "footer": "valtrix.capital · 個人の結果"
+      "footer": "valtrix.capital · 個人の結果",
+      "imageHeadingDaily": "本日の収益",
+      "imageHeadingWeekly": "今週の収益",
+      "imageHeadingMonthly": "今月の収益",
+      "imageHeadingThreeMonths": "3ヶ月の収益",
+      "todayTag": "今日",
+      "featureGrowth": "着実な成長",
+      "featureStrategies": "スマートな戦略",
+      "featureDiscipline": "今日の規律、明日の自由",
+      "disclaimerLine1": "過去の実績は将来の成果を保証するものではありません。",
+      "disclaimerLine2": "取引にはリスクが伴います。"
     },
     "exports": {
       "earnings": "収益報告書",

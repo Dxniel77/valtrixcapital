@@ -793,7 +793,17 @@
       "breakdownNote": "The downloaded image includes period total plus base, trading, and network profit breakdown.",
       "totalHint": "Period total on image",
       "userLabel": "User",
-      "footer": "valtrix.capital · Individual results"
+      "footer": "valtrix.capital · Individual results",
+      "imageHeadingDaily": "Daily earnings",
+      "imageHeadingWeekly": "Weekly earnings",
+      "imageHeadingMonthly": "Monthly earnings",
+      "imageHeadingThreeMonths": "3-month earnings",
+      "todayTag": "Today",
+      "featureGrowth": "Consistent growth",
+      "featureStrategies": "Smart strategies",
+      "featureDiscipline": "Discipline today, freedom tomorrow",
+      "disclaimerLine1": "Past results do not guarantee future results.",
+      "disclaimerLine2": "Trading involves risks."
     },
     "exports": {
       "earnings": "Earnings report",
