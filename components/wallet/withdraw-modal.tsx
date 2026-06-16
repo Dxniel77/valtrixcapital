@@ -26,6 +26,8 @@ import { computeWithdrawal } from "@/lib/wallet/constants";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { createWithdrawalRequest } from "@/lib/api/client";
 import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { Lock } from "lucide-react";
@@ -45,6 +47,7 @@ export function WithdrawModal({
 
   const available = useStakingStore((s) => s.earningsBalance);
   const requestWithdrawal = useWalletStore((s) => s.requestWithdrawal);
+  const backend = useBackendAvailable();
   const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
   const { minWithdrawalUsdt, withdrawalFeeBps } = usePlatformSettings();
   const withdrawalFeePct = withdrawalFeeBps / 100;
@@ -74,7 +77,9 @@ export function WithdrawModal({
     breakdown.amount >= minWithdrawalUsdt && breakdown.amount <= available;
   const canSubmit = isConnected && amountValid && validAddress && eligible;
 
-  function handleSubmit() {
+  const [submitting, setSubmitting] = React.useState(false);
+
+  async function handleSubmit() {
     if (!eligible) {
       toast.error(t(messageKey));
       return;
@@ -99,25 +104,45 @@ export function WithdrawModal({
       toast.error(t("walletPage.withdraw.invalidAddress"));
       return;
     }
-    const res = requestWithdrawal({
-      amount: breakdown.amount,
-      network,
-      destination: destination.trim(),
-    });
-    if ("error" in res) {
-      if (res.error === "BELOW_MINIMUM") {
-        toast.error(
-          t("walletPage.withdraw.minError", {
-            min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
-          }),
-        );
-        return;
+
+    setSubmitting(true);
+    try {
+      if (backend) {
+        await createWithdrawalRequest({
+          amount: breakdown.amount,
+          network,
+          toAddress: destination.trim(),
+        });
+        useStakingStore.setState((s) => ({
+          earningsBalance: Math.max(0, s.earningsBalance - breakdown.amount),
+        }));
+      } else {
+        const res = requestWithdrawal({
+          amount: breakdown.amount,
+          network,
+          destination: destination.trim(),
+        });
+        if ("error" in res) {
+          if (res.error === "BELOW_MINIMUM") {
+            toast.error(
+              t("walletPage.withdraw.minError", {
+                min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
+              }),
+            );
+            return;
+          }
+          toast.error(t("walletPage.withdraw.insufficient"));
+          return;
+        }
       }
-      toast.error(t("walletPage.withdraw.insufficient"));
-      return;
+
+      setStep("success");
+      toast.success(t("walletPage.withdraw.submitted"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setSubmitting(false);
     }
-    setStep("success");
-    toast.success(t("walletPage.withdraw.submitted"));
   }
 
   return (
@@ -283,8 +308,8 @@ export function WithdrawModal({
               <Button
                 variant="primary"
                 size="md"
-                onClick={handleSubmit}
-                disabled={!canSubmit}
+                onClick={() => void handleSubmit()}
+                disabled={!canSubmit || submitting}
               >
                 {t("walletPage.withdraw.submit")} <ArrowRight className="h-4 w-4" />
               </Button>

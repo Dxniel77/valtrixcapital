@@ -53,7 +53,7 @@ export interface AdminUser {
 
 export interface AdminMovement {
   id: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "YIELD" | "COMMISSION";
+  type: "DEPOSIT" | "WITHDRAWAL" | "YIELD" | "COMMISSION" | "ADJUSTMENT";
   wallet: string;
   amount: number;
   /** Passive daily accrual vs instant trade-win bonus (YIELD only). */
@@ -61,6 +61,15 @@ export interface AdminMovement {
   network: AdminNetwork | null;
   status: string;
   timestamp: number;
+}
+
+export interface AdminBalanceAdjustment {
+  id: string;
+  wallet: string;
+  delta: number;
+  note: string;
+  createdAt: number;
+  appliedAt: number | null;
 }
 
 export type AdminSettings = PlatformSettings;
@@ -77,6 +86,7 @@ export interface AuditEntry {
 interface AdminState {
   users: AdminUser[];
   movements: AdminMovement[];
+  balanceAdjustments: AdminBalanceAdjustment[];
   audit: AuditEntry[];
   seeded: boolean;
 
@@ -114,6 +124,7 @@ interface AdminState {
   ) => void;
   setUserStatus: (id: string, status: AdminUserStatus) => void;
   adjustBalance: (id: string, delta: number, note: string) => void;
+  markBalanceAdjustmentsApplied: (ids: string[]) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
   recordMovement: (movement: AdminMovement) => void;
   reset: () => void;
@@ -233,6 +244,7 @@ export const useAdminStore = create<AdminState>()(
     (set, get) => ({
       users: [],
       movements: [],
+      balanceAdjustments: [],
       audit: [],
       seeded: false,
 
@@ -507,13 +519,38 @@ export const useAdminStore = create<AdminState>()(
 
       adjustBalance: (id, delta, note) => {
         const user = get().users.find((u) => u.id === id);
-        if (!user) return;
+        if (!user || delta === 0) return;
+        const adjId = makeId("adj");
+        const now = Date.now();
         set((s) => ({
           users: s.users.map((u) =>
             u.id === id
               ? { ...u, balance: Math.max(0, u.balance + delta) }
               : u,
           ),
+          balanceAdjustments: [
+            {
+              id: adjId,
+              wallet: user.wallet.toLowerCase(),
+              delta,
+              note: note.trim(),
+              createdAt: now,
+              appliedAt: null,
+            },
+            ...s.balanceAdjustments,
+          ].slice(0, 200),
+          movements: [
+            {
+              id: `adj_${adjId}`,
+              type: "ADJUSTMENT" as const,
+              wallet: user.wallet,
+              amount: delta,
+              network: null,
+              status: "COMPLETED",
+              timestamp: now,
+            },
+            ...s.movements,
+          ].slice(0, 500),
           audit: [
             {
               id: makeId("aud"),
@@ -521,10 +558,21 @@ export const useAdminStore = create<AdminState>()(
               target: user.alias,
               detail: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} USDT — ${note || "sin nota"}`,
               actor: "admin",
-              timestamp: Date.now(),
+              timestamp: now,
             },
             ...s.audit,
           ].slice(0, 200),
+        }));
+      },
+
+      markBalanceAdjustmentsApplied: (ids) => {
+        if (ids.length === 0) return;
+        const idSet = new Set(ids);
+        const now = Date.now();
+        set((s) => ({
+          balanceAdjustments: s.balanceAdjustments.map((a) =>
+            idSet.has(a.id) ? { ...a, appliedAt: now } : a,
+          ),
         }));
       },
 
@@ -566,6 +614,7 @@ export const useAdminStore = create<AdminState>()(
         set({
           users: [],
           movements: [],
+          balanceAdjustments: [],
           audit: [],
           seeded: false,
         });
@@ -585,6 +634,7 @@ export const useAdminStore = create<AdminState>()(
       partialize: (s) => ({
         users: s.users,
         movements: s.movements,
+        balanceAdjustments: s.balanceAdjustments,
         audit: s.audit,
         seeded: s.seeded,
       }),
@@ -598,7 +648,7 @@ export const useAdminStore = create<AdminState>()(
         const { settings: _settings, ...rest } = prev;
         return rest;
       },
-      version: 3,
+      version: 4,
     },
   ),
 );

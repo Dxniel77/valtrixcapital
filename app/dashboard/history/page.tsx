@@ -10,6 +10,7 @@ import {
   Coins,
   Download,
   ExternalLink,
+  Gift,
   LineChart,
   Search,
   Users,
@@ -38,6 +39,7 @@ const CATEGORY_ICON: Record<LedgerCategory, React.ElementType> = {
   YIELD: Coins,
   COMMISSION: Users,
   TRADE: LineChart,
+  ADJUSTMENT: Gift,
 };
 
 export default function HistoryPage() {
@@ -54,6 +56,7 @@ export default function HistoryPage() {
       YIELD: 0,
       COMMISSION: 0,
       TRADE: 0,
+      ADJUSTMENT: 0,
     };
     for (const e of ledger) c[e.category] += 1;
     return c;
@@ -184,6 +187,7 @@ function FilterTabs({
     { key: "WITHDRAWAL", label: t("historyPage.filterWithdrawals") },
     { key: "YIELD", label: t("historyPage.filterYield") },
     { key: "COMMISSION", label: t("historyPage.filterCommissions") },
+    { key: "ADJUSTMENT", label: t("historyPage.filterAdjustments") },
     { key: "TRADE", label: t("historyPage.filterTrades") },
   ];
   return (
@@ -375,6 +379,13 @@ function LedgerDetail({ e }: { e: LedgerEntry }) {
     return (
       <span className="text-xs text-text-muted">
         {t("walletPage.status." + (e.status ?? "ACTIVE"))}
+      </span>
+    );
+  }
+  if (e.category === "ADJUSTMENT") {
+    return (
+      <span className="text-xs text-text-muted">
+        {e.note?.trim() || t("historyPage.adjustmentNoNote")}
       </span>
     );
   }

@@ -49,6 +49,8 @@ export interface InstantCredit {
 
 export interface PendingDeposit {
   id: string;
+  /** Server-side deposit id when backend is active. */
+  serverDepositId?: string;
   amount: number;
   network: StakingNetwork;
   txHash: string;
@@ -65,10 +67,18 @@ export {
   STAKE_MIN_USDT,
 } from "@/lib/staking/constants";
 
+export interface BalanceAdjustment {
+  id: string;
+  amount: number;
+  note: string;
+  createdAt: number;
+}
+
 interface StakingState {
   stakes: Stake[];
   dailyYields: DailyYield[];
   instantCredits: InstantCredit[];
+  balanceAdjustments: BalanceAdjustment[];
   creditedPositionIds: string[];
   earningsBalance: number;
   totalEarned: number;
@@ -79,6 +89,7 @@ interface StakingState {
     amount: number;
     network: StakingNetwork;
     txHash?: string;
+    serverDepositId?: string;
   }) => PendingDeposit;
   advanceDepositConfirmation: () => void;
   finalizePendingDeposit: () => Stake | null;
@@ -87,6 +98,11 @@ interface StakingState {
   catchupAccruals: (positions: Position[]) => void;
   creditTradeWin: (positionId: string, amount: number) => boolean;
   creditNetworkPayout: (amount: number) => number;
+  applyBalanceAdjustment: (input: {
+    id: string;
+    amount: number;
+    note: string;
+  }) => void;
   reset: () => void;
 }
 
@@ -94,6 +110,7 @@ const initial = {
   stakes: [] as Stake[],
   dailyYields: [] as DailyYield[],
   instantCredits: [] as InstantCredit[],
+  balanceAdjustments: [] as BalanceAdjustment[],
   creditedPositionIds: [] as string[],
   earningsBalance: 0,
   totalEarned: 0,
@@ -122,10 +139,11 @@ export const useStakingStore = create<StakingState>()(
     (set, get) => ({
       ...initial,
 
-      beginDeposit: ({ amount, network, txHash }) => {
+      beginDeposit: ({ amount, network, txHash, serverDepositId }) => {
         const normalizedHash = txHash?.trim();
         const pending: PendingDeposit = {
-          id: makeId("dep"),
+          id: serverDepositId ?? makeId("dep"),
+          serverDepositId,
           amount,
           network,
           txHash:
@@ -283,6 +301,30 @@ export const useStakingStore = create<StakingState>()(
         return applied;
       },
 
+      applyBalanceAdjustment: ({ id, amount, note }) => {
+        const state = get();
+        if (state.balanceAdjustments.some((a) => a.id === id)) return;
+
+        let applied = amount;
+        if (amount < 0) {
+          applied = -Math.min(Math.abs(amount), state.earningsBalance);
+        }
+        if (applied === 0) return;
+
+        set((s) => ({
+          balanceAdjustments: [
+            {
+              id,
+              amount: applied,
+              note: note.trim(),
+              createdAt: Date.now(),
+            },
+            ...s.balanceAdjustments,
+          ].slice(0, 200),
+          earningsBalance: Math.max(0, s.earningsBalance + applied),
+        }));
+      },
+
       reset: () => set(initial),
     }),
     {
@@ -300,6 +342,7 @@ export const useStakingStore = create<StakingState>()(
         stakes: s.stakes,
         dailyYields: s.dailyYields,
         instantCredits: s.instantCredits,
+        balanceAdjustments: s.balanceAdjustments,
         creditedPositionIds: s.creditedPositionIds,
         earningsBalance: s.earningsBalance,
         totalEarned: s.totalEarned,

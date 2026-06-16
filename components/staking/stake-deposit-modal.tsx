@@ -25,7 +25,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { useI18n } from "@/lib/i18n/context";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import {
+  advanceDepositOnServer,
+  confirmDepositOnServer,
+  registerDepositRequest,
+} from "@/lib/api/client";
 import { CHAIN_META } from "@/lib/wagmi";
+import { getDepositAddress } from "@/lib/wallet/deposit-addresses";
 import { usePlatformSettings } from "@/lib/platform/settings-store";
 import {
   useStakingStore,
@@ -59,6 +66,7 @@ export function StakeDepositModal({
 }: StakeDepositModalProps) {
   const { t } = useI18n();
   const { address, isConnected } = useAccount();
+  const backend = useBackendAvailable();
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState<string>("250");
@@ -99,13 +107,45 @@ export function StakeDepositModal({
     setStep("transfer");
   }
 
-  function handleConfirmSent() {
+  async function handleConfirmSent() {
     if (!isConnected || !address) {
       toast.error(t("staking.deposit.connectForCredit"));
       return;
     }
-    beginDeposit({ amount, network, txHash: txHashInput });
-    setStep("confirming");
+
+    try {
+      let serverDepositId: string | undefined;
+      const trimmedHash = txHashInput.trim();
+      const toAddress = getDepositAddress(network);
+
+      if (backend) {
+        const hash =
+          trimmedHash && /^0x[a-fA-F0-9]{64}$/.test(trimmedHash)
+            ? trimmedHash
+            : `0x${Date.now().toString(16).padStart(64, "0").slice(0, 64)}`;
+
+        const res = await registerDepositRequest({
+          network,
+          amount,
+          fromAddress: address,
+          toAddress,
+          txHash: hash,
+        });
+        serverDepositId = res.deposit.id;
+        beginDeposit({
+          amount,
+          network,
+          txHash: hash,
+          serverDepositId,
+        });
+      } else {
+        beginDeposit({ amount, network, txHash: txHashInput });
+      }
+
+      setStep("confirming");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    }
   }
 
   React.useEffect(() => {
@@ -114,20 +154,43 @@ export function StakeDepositModal({
     if (pending.confirmations >= pending.requiredConfirmations) return;
     const id = window.setInterval(() => {
       advance();
+      const depositId = pending.serverDepositId ?? pending.id;
+      if (backend && depositId) {
+        void advanceDepositOnServer(depositId).catch(() => undefined);
+      }
     }, 450);
     return () => window.clearInterval(id);
-  }, [step, pending, advance]);
+  }, [step, pending, advance, backend]);
 
   React.useEffect(() => {
     if (step !== "confirming") return;
     if (!pending) return;
     if (pending.confirmations < pending.requiredConfirmations) return;
-    const stake = finalize();
-    if (stake) {
-      setStep("success");
-      toast.success(t("staking.deposit.toastConfirmed"));
+
+    async function complete() {
+      const depositId = pending?.serverDepositId ?? pending?.id;
+      if (backend && depositId) {
+        try {
+          await confirmDepositOnServer(depositId);
+          cancel();
+          setStep("success");
+          toast.success(t("staking.deposit.toastConfirmed"));
+          return;
+        } catch {
+          toast.error(t("errors.signInFailed"));
+          return;
+        }
+      }
+
+      const stake = finalize();
+      if (stake) {
+        setStep("success");
+        toast.success(t("staking.deposit.toastConfirmed"));
+      }
     }
-  }, [step, pending, finalize, t]);
+
+    void complete();
+  }, [step, pending, finalize, cancel, backend, t]);
 
   function handleClose(next: boolean) {
     if (!next) {

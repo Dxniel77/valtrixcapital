@@ -13,7 +13,13 @@ import {
   useOpenPositions,
   useTradeStore,
 } from "@/lib/trade/store";
+import {
+  openTradeWithBackend,
+  tradeErrorMessage,
+} from "@/lib/trade/backend-trades";
+import { mapServerTradeToPosition } from "@/lib/trade/hydrate-trades";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { formatNumber } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -23,6 +29,7 @@ export function useTradeExecution(
   durationSec: number,
 ) {
   const { t } = useI18n();
+  const backend = useBackendAvailable();
   const openPosition = useTradeStore((s) => s.openPosition);
   const openPositions = useOpenPositions();
   const summary = useDailySummary();
@@ -54,7 +61,7 @@ export function useTradeExecution(
     canTrade &&
     !hasOppositeOpenPosition(openPositions, pair.binance, "DOWN");
 
-  function execute(direction: "UP" | "DOWN") {
+  async function execute(direction: "UP" | "DOWN") {
     if (!hasCapital) {
       toast.error(t("trade.noCapital"));
       return;
@@ -80,6 +87,42 @@ export function useTradeExecution(
       toast.error(t("errors.hedgeBlocked"));
       return;
     }
+
+    if (backend) {
+      try {
+        const trade = await openTradeWithBackend({
+          pair: pair.binance,
+          direction,
+          entryPrice: livePrice,
+          durationSec,
+        });
+        const pos = mapServerTradeToPosition(trade);
+        toast.success(
+          t("errors.tradeSuccess", {
+            side:
+              direction === "UP" ? t("common.buyArrow") : t("common.sellArrow"),
+            pair: `${pair.base}/${pair.quote}`,
+            price: formatNumber(pos.entryPrice, { decimals: pair.pricePrecision }),
+            duration: durationSec / 60,
+          }),
+        );
+      } catch (err) {
+        const code = tradeErrorMessage(err);
+        if (code === "NO_CAPITAL") toast.error(t("trade.noCapital"));
+        else if (code === "DAILY_LIMIT") toast.error(t("errors.noAttempts"));
+        else if (code === "SIMULTANEOUS_LIMIT") {
+          toast.error(
+            t("errors.simultaneousLimit", {
+              max: simultaneous.max,
+              open: simultaneous.open,
+            }),
+          );
+        } else if (code === "HEDGE_BLOCKED") toast.error(t("errors.hedgeBlocked"));
+        else toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+      }
+      return;
+    }
+
     const pos = openPosition({
       pair: pair.binance,
       direction,

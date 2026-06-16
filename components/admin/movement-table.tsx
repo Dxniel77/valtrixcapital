@@ -37,7 +37,10 @@ export function MovementTable({
       </thead>
       <TBody>
         {rows.map((m) => {
-          const negative = m.type === "WITHDRAWAL";
+          const negative =
+            m.type === "WITHDRAWAL" ||
+            (m.type === "ADJUSTMENT" && m.amount < 0);
+          const displayAmount = Math.abs(m.amount);
           return (
             <TR key={m.id}>
               <TD className="font-mono text-xs text-text-secondary">
@@ -74,7 +77,7 @@ export function MovementTable({
                   negative ? "text-danger" : "text-success",
                 )}
               >
-                {negative ? "−" : "+"}${formatNumber(m.amount, { decimals: 2 })}
+                {negative ? "−" : "+"}${formatNumber(displayAmount, { decimals: 2 })}
               </TD>
             </TR>
           );

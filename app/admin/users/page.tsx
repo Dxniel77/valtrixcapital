@@ -31,6 +31,11 @@ import {
 } from "@/lib/admin/analytics";
 import { exportUsersBillingCsv } from "@/lib/admin/exports";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
+import {
+  adminAdjustBalance,
+  fetchAdminUsers,
+  fetchBackendHealth,
+} from "@/lib/api/client";
 
 const PERIODS: LeaderPeriod[] = ["week", "month", "3months"];
 
@@ -275,12 +280,42 @@ function AdjustBalanceModal({
 
   const delta = Number(deltaStr.replace(/,/g, "."));
   const valid = Number.isFinite(delta) && delta !== 0;
+  const [submitting, setSubmitting] = React.useState(false);
 
-  function apply() {
-    if (!user || !valid) return;
-    adjustBalance(user.id, delta, note);
-    toast.success(t("admin.users.balanceAdjusted"));
-    onClose();
+  async function apply() {
+    if (!user || !valid || submitting) return;
+    setSubmitting(true);
+    try {
+      const health = await fetchBackendHealth();
+      if (health.database) {
+        const { users: dbUsers } = await fetchAdminUsers();
+        const dbUser = dbUsers.find(
+          (u) => u.walletAddress.toLowerCase() === user.wallet.toLowerCase(),
+        );
+        if (dbUser) {
+          const result = await adminAdjustBalance(dbUser.id, delta, note);
+          const nextBalance = (result.user as { earningsBalance: number }).earningsBalance;
+          useAdminStore.setState((s) => ({
+            users: s.users.map((u) =>
+              u.wallet.toLowerCase() === user.wallet.toLowerCase()
+                ? { ...u, balance: nextBalance }
+                : u,
+            ),
+          }));
+          toast.success(t("admin.users.balanceAdjusted"));
+          onClose();
+          return;
+        }
+      }
+
+      adjustBalance(user.id, delta, note);
+      toast.success(t("admin.users.balanceAdjusted"));
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -326,7 +361,7 @@ function AdjustBalanceModal({
           <Button variant="ghost" size="md" onClick={onClose}>
             {t("admin.users.cancel")}
           </Button>
-          <Button variant="primary" size="md" onClick={apply} disabled={!valid}>
+          <Button variant="primary" size="md" onClick={() => void apply()} disabled={!valid || submitting}>
             {t("admin.users.applyAdjust")}
           </Button>
         </DialogFooter>

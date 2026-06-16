@@ -55,6 +55,7 @@ function AdminMovementsContent() {
     { key: "WITHDRAWAL", label: t("walletPage.category.WITHDRAWAL") },
     { key: "YIELD", label: t("walletPage.category.YIELD") },
     { key: "COMMISSION", label: t("walletPage.category.COMMISSION") },
+    { key: "ADJUSTMENT", label: t("walletPage.category.ADJUSTMENT") },
   ];
 
   return (

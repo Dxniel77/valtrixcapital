@@ -730,7 +730,8 @@
       "WITHDRAWAL": "Rückzug",
       "YIELD": "Leistung",
       "COMMISSION": "Kommission",
-      "TRADE": "Betrieb"
+      "TRADE": "Betrieb",
+      "ADJUSTMENT": "Saldoanpassung"
     },
     "recent": {
       "title": "Aktuelle Bewegungen",
@@ -831,7 +832,9 @@
     "downloadEarnings": "Ergebnis",
     "downloadWithdrawals": "Auszahlungen",
     "downloadNetwork": "Netzwerk",
-    "downloadOperational": "Operationen"
+    "downloadOperational": "Operationen",
+    "filterAdjustments": "Anpassungen",
+    "adjustmentNoNote": "Manuelle Anpassung durch Administrator"
   },
   "admin": {
     "backToApp": "Kehren Sie zur App zurück",
@@ -1273,7 +1276,12 @@
       "referralTitle": "Netzwerk-Meilenstein",
       "referralBody": "Sie haben {total} USDT an Empfehlungsprovisionen überwiesen.",
       "welcomeTitle": "Willkommen bei Valtrix!",
-      "welcomeBody": "Ihr Konto ist fertig. Erkunden Sie das Dashboard, tätigen Sie Ihre erste Einzahlung oder prüfen Sie Handelsmöglichkeiten, wenn Sie bereit sind."
+      "welcomeBody": "Ihr Konto ist fertig. Erkunden Sie das Dashboard, tätigen Sie Ihre erste Einzahlung oder prüfen Sie Handelsmöglichkeiten, wenn Sie bereit sind.",
+      "adjustmentCreditTitle": "Saldo gutgeschrieben",
+      "adjustmentCreditBody": "{amount} USDT wurden Ihrem verfügbaren Saldo gutgeschrieben.",
+      "adjustmentDebitTitle": "Saldo belastet",
+      "adjustmentDebitBody": "{amount} USDT wurden von Ihrem verfügbaren Saldo abgezogen.",
+      "adjustmentNoteSuffix": " Hinweis: {note}"
     }
   },
   "supportPage": {

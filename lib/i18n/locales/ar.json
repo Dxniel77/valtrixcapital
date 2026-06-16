@@ -730,7 +730,8 @@
       "WITHDRAWAL": "انسحاب",
       "YIELD": "أداء",
       "COMMISSION": "عمولة",
-      "TRADE": "عملية"
+      "TRADE": "عملية",
+      "ADJUSTMENT": "تعديل الرصيد"
     },
     "recent": {
       "title": "الحركات الأخيرة",
@@ -831,7 +832,9 @@
     "downloadEarnings": "الأرباح",
     "downloadWithdrawals": "عمليات السحب",
     "downloadNetwork": "شبكة",
-    "downloadOperational": "العمليات"
+    "downloadOperational": "العمليات",
+    "filterAdjustments": "التعديلات",
+    "adjustmentNoNote": "تعديل يدوي من المسؤول"
   },
   "admin": {
     "backToApp": "العودة إلى التطبيق",
@@ -1273,7 +1276,12 @@
       "referralTitle": "معلم الشبكة",
       "referralBody": "لقد اجتزت {total} USDT في عمولات الإحالة.",
       "welcomeTitle": "مرحبا بكم في فالتريكس!",
-      "welcomeBody": "حسابك جاهز. استكشف لوحة التحكم، أو قم بإيداعك الأول، أو تحقق من فرص التداول عندما تكون مستعدًا."
+      "welcomeBody": "حسابك جاهز. استكشف لوحة التحكم، أو قم بإيداعك الأول، أو تحقق من فرص التداول عندما تكون مستعدًا.",
+      "adjustmentCreditTitle": "تم إضافة رصيد",
+      "adjustmentCreditBody": "تمت إضافة {amount} USDT إلى رصيدك المتاح.",
+      "adjustmentDebitTitle": "تم خصم رصيد",
+      "adjustmentDebitBody": "تم خصم {amount} USDT من رصيدك المتاح.",
+      "adjustmentNoteSuffix": " ملاحظة: {note}"
     }
   },
   "supportPage": {

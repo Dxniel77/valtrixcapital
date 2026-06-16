@@ -7,6 +7,7 @@ import {
   ArrowUpFromLine,
   Clock,
   ExternalLink,
+  Gift,
   Wallet as WalletIcon,
 } from "lucide-react";
 import { useAccount } from "wagmi";
@@ -280,6 +281,7 @@ const CATEGORY_META: Record<
   WITHDRAWAL: { icon: ArrowUpFromLine, sign: "-", tone: "text-danger" },
   YIELD: { icon: ArrowDownToLine, sign: "+", tone: "text-success" },
   COMMISSION: { icon: ArrowDownToLine, sign: "+", tone: "text-success" },
+  ADJUSTMENT: { icon: Gift, sign: "", tone: "text-success" },
   TRADE: { icon: ArrowDownToLine, sign: "", tone: "text-text-muted" },
 };
 
@@ -308,8 +310,21 @@ function RecentTransactionsCard() {
         ) : (
           <ul className="divide-y divide-border-subtle">
             {recent.map((e) => {
-              const m = CATEGORY_META[e.category];
+              const m = CATEGORY_META[e.category] ?? CATEGORY_META.YIELD;
               const Icon = m.icon;
+              const isCredit = e.amount >= 0;
+              const sign =
+                e.category === "ADJUSTMENT"
+                  ? isCredit
+                    ? "+"
+                    : "-"
+                  : m.sign;
+              const tone =
+                e.category === "ADJUSTMENT"
+                  ? isCredit
+                    ? "text-success"
+                    : "text-danger"
+                  : m.tone;
               return (
                 <li
                   key={e.id}
@@ -318,7 +333,7 @@ function RecentTransactionsCard() {
                   <span
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-base",
-                      m.tone,
+                      tone,
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -336,10 +351,11 @@ function RecentTransactionsCard() {
                         timeZone: "UTC",
                       })}
                       {e.status ? ` · ${t(`walletPage.status.${e.status}`)}` : ""}
+                      {e.note?.trim() ? ` · ${e.note.trim()}` : ""}
                     </p>
                   </div>
-                  <span className={cn("shrink-0 font-mono", m.tone)}>
-                    {m.sign}${formatNumber(Math.abs(e.amount), { decimals: 2 })}
+                  <span className={cn("shrink-0 font-mono", tone)}>
+                    {sign}${formatNumber(Math.abs(e.amount), { decimals: 2 })}
                   </span>
                 </li>
               );

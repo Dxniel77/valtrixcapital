@@ -15,6 +15,8 @@ import { createWagmiConfig, isWalletConnectConfigured } from "@/lib/wagmi";
 import { LocaleProvider, useRainbowKitLocale } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ReferralCapture } from "@/components/referrals/referral-capture";
+import { AdminBalanceSync } from "@/components/admin/admin-balance-sync";
+import { BackendUserSync } from "@/components/backend/backend-user-sync";
 
 function buildRainbowTheme(mode: "light" | "dark"): Theme {
   const base =
@@ -113,6 +115,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <RainbowKitThemed>
               <React.Suspense fallback={null}>
                 <ReferralCapture />
+                <AdminBalanceSync />
+                <BackendUserSync />
               </React.Suspense>
               {children}
             </RainbowKitThemed>

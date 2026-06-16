@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createNonce } from "@/lib/auth/siwe";
+import { createStoredNonce } from "@/lib/auth/nonce-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { nonce, expiresAt } = createNonce();
+  const { nonce, expiresAt } = await createStoredNonce();
   return NextResponse.json({ nonce, expiresAt: expiresAt.toISOString() });
 }

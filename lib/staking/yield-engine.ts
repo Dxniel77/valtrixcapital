@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTradeStore, useTradeStoreHydrated } from "@/lib/trade/store";
 import { useStakingStore } from "@/lib/staking/store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 
 /** Returns `true` once Zustand has loaded persisted state from localStorage. */
 export function useStakingStoreHydrated(): boolean {
@@ -18,23 +19,23 @@ export function useStakingStoreHydrated(): boolean {
 }
 
 /**
- * Wires the yield engine to the trade store. Runs on mount, every minute,
- * and whenever positions change (so a freshly resolved trade today still
- * applies retroactively if the user later refreshes after UTC midnight).
+ * Local yield accrual when backend is offline.
+ * When Postgres is connected, daily yield runs via `/api/cron/daily-yield`.
  */
 export function useYieldEngine(): void {
+  const backend = useBackendAvailable();
   const tradeHydrated = useTradeStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
   const catchup = useStakingStore((s) => s.catchupAccruals);
   const positions = useTradeStore((s) => s.positions);
 
   React.useEffect(() => {
-    if (!tradeHydrated || !stakingHydrated) return;
+    if (backend || !tradeHydrated || !stakingHydrated) return;
     catchup(positions);
     const id = setInterval(
       () => catchup(useTradeStore.getState().positions),
       60_000,
     );
     return () => clearInterval(id);
-  }, [tradeHydrated, stakingHydrated, catchup, positions]);
+  }, [backend, tradeHydrated, stakingHydrated, catchup, positions]);
 }

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 import { useTradeStore, type Position } from "@/lib/trade/store";
+import { resolveTradeWithBackend } from "@/lib/trade/backend-trades";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { deriveSimultaneousLimit } from "@/lib/trade/limits";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
 import { findPair } from "@/lib/market/pairs";
@@ -34,7 +36,9 @@ export function OpenPositions({
     [open, capital],
   );
   const resolvePosition = useTradeStore((s) => s.resolvePosition);
+  const backend = useBackendAvailable();
   const now = useClientNow(500);
+  const resolvingRef = React.useRef(new Set<string>());
 
   React.useEffect(() => {
     if (now === null) return;
@@ -46,12 +50,24 @@ export function OpenPositions({
             ? livePrice ?? prices?.[p.pair]
             : prices?.[p.pair];
         if (typeof price === "number" && price > 0) {
-          resolvePosition(p.id, price);
+          if (backend) {
+            if (resolvingRef.current.has(p.id)) continue;
+            resolvingRef.current.add(p.id);
+            void resolveTradeWithBackend(p.id, price)
+              .catch(() => {
+                resolvePosition(p.id, price);
+              })
+              .finally(() => {
+                resolvingRef.current.delete(p.id);
+              });
+          } else {
+            resolvePosition(p.id, price);
+          }
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [now, open.length, currentPair, livePrice]);
+  }, [now, open.length, currentPair, livePrice, backend]);
 
   if (open.length === 0) {
     return (

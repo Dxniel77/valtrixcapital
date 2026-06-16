@@ -174,8 +174,11 @@ export function useWalletStoreHydrated(): boolean {
   return hydrated;
 }
 
-/** Drives the withdrawal status tracker forward while any are in-flight. */
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+
+/** Drives the withdrawal status tracker forward while any are in-flight (local demo only). */
 export function useWithdrawalEngine(): void {
+  const backend = useBackendAvailable();
   const hydrated = useWalletStoreHydrated();
   const advance = useWalletStore((s) => s.advanceWithdrawals);
   const withdrawals = useWalletStore((s) => s.withdrawals);
@@ -185,9 +188,9 @@ export function useWithdrawalEngine(): void {
   );
 
   React.useEffect(() => {
-    if (!hydrated || !hasPending) return;
+    if (backend || !hydrated || !hasPending) return;
     advance();
     const id = window.setInterval(advance, 1_500);
     return () => window.clearInterval(id);
-  }, [hydrated, hasPending, advance]);
+  }, [backend, hydrated, hasPending, advance]);
 }

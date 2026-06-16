@@ -1,21 +1,18 @@
 "use client";
 
 import * as React from "react";
-import {
-  usePlatformSettingsStore,
-} from "@/lib/platform/settings-store";
+import { usePlatformSettingsStore } from "@/lib/platform/settings-store";
 import { useTradeStore, useTradeStoreHydrated } from "@/lib/trade/store";
-import {
-  activeCapital,
-  useStakingStore,
-} from "@/lib/staking/store";
+import { activeCapital, useStakingStore } from "@/lib/staking/store";
 import { useStakingStoreHydrated } from "@/lib/staking/yield-engine";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 
 /**
  * Credits trade-win bonuses instantly when a position resolves as WIN
- * (Binance-style: profit visible as soon as the operation closes).
+ * (local demo only — server credits wins in POST /api/trades/[id]/resolve).
  */
 export function useOperationalCreditEngine(): void {
+  const backend = useBackendAvailable();
   const tradeHydrated = useTradeStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
   const positions = useTradeStore((s) => s.positions);
@@ -25,7 +22,7 @@ export function useOperationalCreditEngine(): void {
   const bonusPerWinBps = usePlatformSettingsStore((s) => s.settings.bonusPerWinBps);
 
   React.useEffect(() => {
-    if (!tradeHydrated || !stakingHydrated) return;
+    if (backend || !tradeHydrated || !stakingHydrated) return;
 
     const capital = activeCapital(stakes);
     if (capital <= 0) return;
@@ -39,6 +36,7 @@ export function useOperationalCreditEngine(): void {
       creditTradeWin(p.id, bonusPerWin);
     }
   }, [
+    backend,
     tradeHydrated,
     stakingHydrated,
     positions,

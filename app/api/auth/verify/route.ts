@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { consumeNonce, verifySiwe } from "@/lib/auth/siwe";
+import { consumeStoredNonce } from "@/lib/auth/nonce-store";
+import { verifySiwe } from "@/lib/auth/siwe";
 import { normalizeWallet } from "@/lib/auth/admins";
 import { resolveUserRole } from "@/lib/auth/resolve-role";
 import { createSession } from "@/lib/auth/session";
-import { randomBytes } from "crypto";
+import { isDatabaseAvailable } from "@/lib/db/available";
+import { upsertUserByWallet } from "@/lib/services/users";
+import { fromMicro } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
 const bodySchema = z.object({
   message: z.string().min(1),
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
   nonce: z.string().min(8),
+  referralCode: z.string().trim().max(32).optional(),
 });
 
 export const dynamic = "force-dynamic";
@@ -19,19 +23,13 @@ export async function POST(req: Request) {
   let parsed;
   try {
     parsed = bodySchema.parse(await req.json());
-  } catch (err) {
-    return NextResponse.json(
-      { error: t("api.invalidBody") },
-      { status: 400 },
-    );
+  } catch {
+    return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  const ok = consumeNonce(parsed.nonce);
+  const ok = await consumeStoredNonce(parsed.nonce);
   if (!ok) {
-    return NextResponse.json(
-      { error: t("api.invalidNonce") },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: t("api.invalidNonce") }, { status: 401 });
   }
 
   const result = await verifySiwe({
@@ -43,11 +41,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: t("api.verifyFailed") }, { status: 401 });
   }
 
-  // Week 1: skip DB write — issue a session keyed by wallet address.
-  // Week 5+: upsert User in Prisma here and use real userId as sub.
   const address = normalizeWallet(result.address);
   const role = await resolveUserRole(address);
-  const userId = `wallet:${address}:${randomBytes(4).toString("hex")}`;
+
+  let userId = `wallet:${address}`;
+  let dbUser: Awaited<ReturnType<typeof upsertUserByWallet>> | null = null;
+
+  if (await isDatabaseAvailable()) {
+    dbUser = await upsertUserByWallet(address, {
+      referrerCode: parsed.referralCode ?? null,
+    });
+    userId = dbUser.id;
+  }
 
   await createSession({
     sub: userId,
@@ -57,6 +62,16 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    user: { id: userId, address, role },
+    user: {
+      id: userId,
+      address,
+      role,
+      db: dbUser
+        ? {
+            referralCode: dbUser.referralCode,
+            earningsBalance: fromMicro(dbUser.earningsBalance),
+          }
+        : null,
+    },
   });
 }

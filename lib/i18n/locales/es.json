@@ -721,7 +721,8 @@
       "WITHDRAWAL": "Retiro",
       "YIELD": "Rendimiento",
       "COMMISSION": "Comisión",
-      "TRADE": "Operación"
+      "TRADE": "Operación",
+      "ADJUSTMENT": "Ajuste de saldo"
     },
     "recent": {
       "title": "Movimientos recientes",
@@ -808,7 +809,9 @@
     "filterWithdrawals": "Retiros",
     "filterYield": "Rendimiento",
     "filterCommissions": "Comisiones",
+    "filterAdjustments": "Ajustes",
     "filterTrades": "Operaciones",
+    "adjustmentNoNote": "Ajuste manual del administrador",
     "empty": "Aún no hay actividad financiera.",
     "goWallet": "Ir a billetera",
     "colDate": "Fecha",
@@ -1203,7 +1206,12 @@
       "referralTitle": "Hito de red",
       "referralBody": "Has superado {total} USDT en comisiones de referidos.",
       "welcomeTitle": "¡Bienvenido a Valtrix!",
-      "welcomeBody": "Tu cuenta está lista. Explora el panel, haz tu primer depósito o revisa las oportunidades de trading cuando quieras."
+      "welcomeBody": "Tu cuenta está lista. Explora el panel, haz tu primer depósito o revisa las oportunidades de trading cuando quieras.",
+      "adjustmentCreditTitle": "Saldo acreditado",
+      "adjustmentCreditBody": "Se agregaron {amount} USDT a tu saldo disponible.",
+      "adjustmentDebitTitle": "Saldo debitado",
+      "adjustmentDebitBody": "Se descontaron {amount} USDT de tu saldo disponible.",
+      "adjustmentNoteSuffix": " Nota: {note}"
     }
   },
   "trade": {

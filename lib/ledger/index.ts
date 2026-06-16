@@ -12,7 +12,8 @@ export type LedgerCategory =
   | "WITHDRAWAL"
   | "YIELD"
   | "COMMISSION"
-  | "TRADE";
+  | "TRADE"
+  | "ADJUSTMENT";
 
 export interface LedgerEntry {
   id: string;
@@ -29,6 +30,7 @@ export interface LedgerEntry {
   level?: number;
   sourceWallet?: string;
   fee?: number;
+  note?: string;
 }
 
 export function useLedger(): LedgerEntry[] {
@@ -36,6 +38,7 @@ export function useLedger(): LedgerEntry[] {
   const pendingDeposit = useStakingStore((s) => s.pendingDeposit);
   const dailyYields = useStakingStore((s) => s.dailyYields);
   const instantCredits = useStakingStore((s) => s.instantCredits);
+  const balanceAdjustments = useStakingStore((s) => s.balanceAdjustments);
   const positions = useTradeStore((s) => s.positions);
   const commissions = useReferralsStore((s) => s.commissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
@@ -118,6 +121,19 @@ export function useLedger(): LedgerEntry[] {
       });
     }
 
+    for (const a of balanceAdjustments) {
+      entries.push({
+        id: `adj_${a.id}`,
+        category: "ADJUSTMENT",
+        timestamp: a.createdAt,
+        amount: a.amount,
+        network: null,
+        txHash: null,
+        status: "COMPLETED",
+        note: a.note,
+      });
+    }
+
     for (const p of positions) {
       entries.push({
         id: `trd_${p.id}`,
@@ -134,7 +150,7 @@ export function useLedger(): LedgerEntry[] {
 
     entries.sort((a, b) => b.timestamp - a.timestamp);
     return entries;
-  }, [stakes, pendingDeposit, dailyYields, instantCredits, positions, commissions, withdrawals]);
+  }, [stakes, pendingDeposit, dailyYields, instantCredits, balanceAdjustments, positions, commissions, withdrawals]);
 }
 
 export function ledgerToCsv(entries: LedgerEntry[]): string {
@@ -155,7 +171,9 @@ export function ledgerToCsv(entries: LedgerEntry[]): string {
           ? `L${e.level ?? ""} ${e.sourceWallet ?? ""}`.trim()
           : e.category === "WITHDRAWAL"
             ? `fee ${e.fee ?? 0}`
-            : "";
+            : e.category === "ADJUSTMENT"
+              ? e.note ?? ""
+              : "";
     return [
       new Date(e.timestamp).toISOString(),
       e.category,

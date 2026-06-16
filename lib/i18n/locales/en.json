@@ -721,7 +721,8 @@
       "WITHDRAWAL": "Withdrawal",
       "YIELD": "Performance",
       "COMMISSION": "Commission",
-      "TRADE": "Operation"
+      "TRADE": "Operation",
+      "ADJUSTMENT": "Balance adjustment"
     },
     "recent": {
       "title": "Recent movements",
@@ -808,7 +809,9 @@
     "filterWithdrawals": "Withdrawals",
     "filterYield": "Performance",
     "filterCommissions": "Commissions",
+    "filterAdjustments": "Adjustments",
     "filterTrades": "Operations",
+    "adjustmentNoNote": "Manual adjustment by administrator",
     "empty": "There is still no financial activity.",
     "goWallet": "Go to wallet",
     "colDate": "Date",
@@ -1264,7 +1267,12 @@
       "referralTitle": "Network milestone",
       "referralBody": "You passed {total} USDT in referral commissions.",
       "welcomeTitle": "Welcome to Valtrix!",
-      "welcomeBody": "Your account is ready. Explore the dashboard, make your first deposit, or check trading opportunities when you're ready."
+      "welcomeBody": "Your account is ready. Explore the dashboard, make your first deposit, or check trading opportunities when you're ready.",
+      "adjustmentCreditTitle": "Balance credited",
+      "adjustmentCreditBody": "{amount} USDT was added to your available balance.",
+      "adjustmentDebitTitle": "Balance debited",
+      "adjustmentDebitBody": "{amount} USDT was deducted from your available balance.",
+      "adjustmentNoteSuffix": " Note: {note}"
     }
   },
   "supportPage": {

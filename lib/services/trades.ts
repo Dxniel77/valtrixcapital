@@ -1,0 +1,230 @@
+import type { Direction, Trade } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getPlatformConfig } from "@/lib/services/config";
+import type { TradeDto } from "@/lib/trade/trade-types";
+import { fromMicro } from "@/lib/utils";
+
+const SIMULTANEOUS_TIER_MID_MIN = 501;
+const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
+const PAYOUT_CAP_MULTIPLIER = 2;
+
+export class TradeServiceError extends Error {
+  constructor(
+    message: string,
+    readonly code:
+      | "NOT_FOUND"
+      | "FORBIDDEN"
+      | "NO_CAPITAL"
+      | "DAILY_LIMIT"
+      | "SIMULTANEOUS_LIMIT"
+      | "HEDGE_BLOCKED"
+      | "ALREADY_RESOLVED"
+      | "INVALID_PAIR"
+      | "INACTIVE",
+  ) {
+    super(message);
+    this.name = "TradeServiceError";
+  }
+}
+
+export type { TradeDto } from "@/lib/trade/trade-types";
+
+function utcDayKey(ts = Date.now()): string {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function maxSimultaneousTrades(capitalUsdt: number, minStake: number): number {
+  if (capitalUsdt < minStake) return 0;
+  if (capitalUsdt >= SIMULTANEOUS_TIER_HIGH_MIN) return 7;
+  if (capitalUsdt >= SIMULTANEOUS_TIER_MID_MIN) return 5;
+  return 3;
+}
+
+function resolveTradeOutcome(
+  direction: Direction,
+  entryPrice: number,
+  exitPrice: number,
+): "WIN" | "LOSS" {
+  const movedUp = exitPrice > entryPrice;
+  const movedDown = exitPrice < entryPrice;
+  if (direction === "UP") return movedUp ? "WIN" : "LOSS";
+  return movedDown ? "WIN" : "LOSS";
+}
+
+function serializeTrade(trade: Trade): TradeDto {
+  return {
+    id: trade.id,
+    pair: trade.pair,
+    direction: trade.direction,
+    entryPrice: Number(trade.entryPrice),
+    exitPrice: trade.exitPrice !== null ? Number(trade.exitPrice) : null,
+    durationSec: trade.durationSec,
+    openedAt: trade.openedAt.getTime(),
+    resolvedAt: trade.resolvedAt?.getTime() ?? null,
+    status: trade.result ?? "OPEN",
+    bonusAppliedBps: trade.bonusAppliedBps,
+  };
+}
+
+function applyEarningsCredit(
+  totalEarned: bigint,
+  payoutCap: bigint,
+  amountMicro: bigint,
+): bigint {
+  if (payoutCap <= 0n) return 0n;
+  const room = payoutCap - totalEarned;
+  if (room <= 0n) return 0n;
+  return amountMicro > room ? room : amountMicro;
+}
+
+export async function listUserTrades(userId: string, limit = 500): Promise<TradeDto[]> {
+  const rows = await prisma.trade.findMany({
+    where: { userId },
+    orderBy: { openedAt: "desc" },
+    take: limit,
+  });
+  return rows.map(serializeTrade);
+}
+
+export async function openTrade(input: {
+  userId: string;
+  pair: string;
+  direction: Direction;
+  entryPrice: number;
+  durationSec: number;
+}): Promise<TradeDto> {
+  const config = await getPlatformConfig();
+  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  if (!user) throw new TradeServiceError("User not found", "NOT_FOUND");
+  if (!user.isActive) throw new TradeServiceError("Account inactive", "INACTIVE");
+
+  if (!config.allowedPairs.includes(input.pair)) {
+    throw new TradeServiceError("Pair not allowed", "INVALID_PAIR");
+  }
+
+  const capital = fromMicro(user.lockedCapital);
+  const maxTrades = maxSimultaneousTrades(capital, config.minStake);
+  if (maxTrades <= 0) {
+    throw new TradeServiceError("No staked capital", "NO_CAPITAL");
+  }
+
+  const dayStart = new Date(`${utcDayKey()}T00:00:00.000Z`);
+  const dayEnd = new Date(`${utcDayKey()}T23:59:59.999Z`);
+
+  const [todayCount, openCount, oppositeOpen] = await Promise.all([
+    prisma.trade.count({
+      where: {
+        userId: input.userId,
+        openedAt: { gte: dayStart, lte: dayEnd },
+      },
+    }),
+    prisma.trade.count({
+      where: { userId: input.userId, result: null },
+    }),
+    prisma.trade.findFirst({
+      where: {
+        userId: input.userId,
+        pair: input.pair,
+        result: null,
+        direction: input.direction === "UP" ? "DOWN" : "UP",
+      },
+    }),
+  ]);
+
+  if (todayCount >= maxTrades) {
+    throw new TradeServiceError("Daily trade limit reached", "DAILY_LIMIT");
+  }
+  if (openCount >= maxTrades) {
+    throw new TradeServiceError("Simultaneous trade limit reached", "SIMULTANEOUS_LIMIT");
+  }
+  if (oppositeOpen) {
+    throw new TradeServiceError("Opposite direction already open", "HEDGE_BLOCKED");
+  }
+
+  const trade = await prisma.trade.create({
+    data: {
+      userId: input.userId,
+      pair: input.pair,
+      direction: input.direction,
+      entryPrice: input.entryPrice,
+      durationSec: input.durationSec,
+    },
+  });
+
+  return serializeTrade(trade);
+}
+
+export async function resolveTrade(input: {
+  userId: string;
+  tradeId: string;
+  exitPrice: number;
+}): Promise<TradeDto> {
+  const config = await getPlatformConfig();
+  const trade = await prisma.trade.findFirst({
+    where: { id: input.tradeId, userId: input.userId },
+  });
+  if (!trade) throw new TradeServiceError("Trade not found", "NOT_FOUND");
+  if (trade.result !== null) {
+    throw new TradeServiceError("Trade already resolved", "ALREADY_RESOLVED");
+  }
+
+  const result = resolveTradeOutcome(trade.direction, Number(trade.entryPrice), input.exitPrice);
+  const now = new Date();
+
+  if (result === "LOSS") {
+    const updated = await prisma.trade.update({
+      where: { id: trade.id },
+      data: {
+        result: "LOSS",
+        exitPrice: input.exitPrice,
+        resolvedAt: now,
+      },
+    });
+    return serializeTrade(updated);
+  }
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
+  const payoutCap =
+    user.payoutCap > 0n
+      ? user.payoutCap
+      : user.lockedCapital * BigInt(PAYOUT_CAP_MULTIPLIER);
+  const bonusMicro =
+    user.lockedCapital > 0n
+      ? (user.lockedCapital * BigInt(config.bonusPerWinBps)) / 10_000n
+      : 0n;
+  const applied = applyEarningsCredit(user.totalEarned, payoutCap, bonusMicro);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.trade.update({
+      where: { id: trade.id },
+      data: {
+        result: "WIN",
+        exitPrice: input.exitPrice,
+        resolvedAt: now,
+        bonusAppliedBps: config.bonusPerWinBps,
+      },
+    });
+
+    if (applied > 0n) {
+      const nextEarned = user.totalEarned + applied;
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          earningsBalance: user.earningsBalance + applied,
+          totalEarned: nextEarned,
+        },
+      });
+
+      if (payoutCap > 0n && nextEarned >= payoutCap) {
+        await tx.stake.updateMany({
+          where: { userId: user.id, status: "ACTIVE" },
+          data: { status: "COMPLETED", completedAt: now },
+        });
+      }
+    }
+
+    return row;
+  });
+
+  return serializeTrade(updated);
+}
