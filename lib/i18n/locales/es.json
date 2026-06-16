@@ -269,7 +269,9 @@
       "expand": "Expandir barra lateral",
       "collapse": "Contraer barra lateral",
       "proTip": "Consejo",
-      "proTipText": "Gana las 7 operaciones hoy para alcanzar el tope diario del 1%."
+      "proTipText": "Gana las 7 operaciones hoy para alcanzar el tope diario del 1%.",
+      "depositTip": "Añadir fondos al staking",
+      "depositTipText": "Envía USDT por BEP-20 (BSC) o Polygon desde cualquier wallet o exchange."
     },
     "mobileNav": {
       "close": "Cerrar menú"
@@ -701,7 +703,8 @@
       "contractLabel": "Contrato USDT",
       "warning": "Envía solo USDT en la red {network} a esta dirección. Otros activos o redes se perderán.",
       "addCapital": "Depositar USDT",
-      "registerDeposit": "Registrar depósito"
+      "registerDeposit": "Registrar depósito",
+      "viewAddresses": "Ver direcciones de depósito"
     },
     "tracker": {
       "title": "Retiro en proceso",
@@ -876,6 +879,7 @@
     "headerNote": "Panel de administración · datos de demostración",
     "nav": {
       "overview": "Resumen",
+      "treasury": "Tesorería",
       "grant": "Dar cuenta",
       "lookup": "Buscar usuario",
       "leaders": "Top facturación",
@@ -912,7 +916,10 @@
       "SETTINGS_UPDATED": "Ajustes actualizados",
       "ACCOUNT_GRANTED": "Cuenta concedida",
       "WITHDRAWAL_UNLOCKED": "Retiro habilitado",
-      "SPONSOR_CHANGED": "Patrocinador actualizado"
+      "SPONSOR_CHANGED": "Patrocinador actualizado",
+      "TREASURY_DEPOSIT": "Depósito en tesorería",
+      "TREASURY_WITHDRAW": "Retiro de tesorería",
+      "WITHDRAWAL_PROCESSED": "Retiro procesado"
     },
     "overview": {
       "title": "Resumen",
@@ -931,6 +938,64 @@
       "recentAudit": "Auditoría reciente",
       "noAudit": "Sin acciones registradas todavía.",
       "dailyTransactionsTitle": "Movimientos de hoy"
+    },
+    "treasury": {
+      "title": "Tesorería y liquidez",
+      "subtitle": "Carga USDT por BEP-20 o Polygon para pagar retiros de usuarios. Mismo flujo manual que los depósitos de staking.",
+      "manageCta": "Gestionar tesorería",
+      "depositCta": "Añadir USDT",
+      "withdrawCta": "Retirar USDT",
+      "totalLiquidity": "Saldo en tesorería",
+      "totalLiquidityHint": "Disponible para pagos",
+      "bscBalance": "Liquidez BSC",
+      "polygonBalance": "Liquidez Polygon",
+      "coverage": "Cobertura",
+      "coverageHint": "Tesorería vs saldos pagables",
+      "addressesTitle": "Direcciones de depósito",
+      "addressesDesc": "Envía USDT desde cualquier wallet o exchange a estas direcciones. El administrador (Carlos) usa las mismas direcciones para cargar liquidez y pagar retiros.",
+      "depositSubtitle": "Transferencia manual de USDT — no desde la wallet conectada.",
+      "depositExplain": "Recarga la hot wallet para poder pagar retiros de usuarios. Elige red, envía USDT y registra la transacción.",
+      "depositStep": {
+        "form": "Añadir fondos a tesorería",
+        "transfer": "Enviar USDT",
+        "confirming": "Confirmando en cadena",
+        "success": "Liquidez añadida"
+      },
+      "amountLabel": "Monto (USDT)",
+      "amountRequired": "Introduce un monto válido",
+      "confirmDeposit": "Envié USDT",
+      "depositTo": "Dirección de tesorería: {address}",
+      "depositConfirmed": "Depósito en tesorería confirmado",
+      "depositSuccess": "${amount} USDT añadidos a tesorería {network}",
+      "withdrawTitle": "Retirar de tesorería",
+      "withdrawSubtitle": "Registra una transferencia saliente de USDT desde la hot wallet.",
+      "destinationLabel": "Dirección de destino",
+      "txHashOptional": "Hash de transacción (opcional)",
+      "available": "Disponible: ${amount} USDT",
+      "recordWithdraw": "Registrar retiro",
+      "withdrawRecorded": "Retiro de tesorería registrado",
+      "withdrawInsufficient": "Saldo insuficiente en tesorería",
+      "invalidAddress": "Introduce una dirección 0x válida",
+      "lowLiquidityTitle": "Liquidez baja en tesorería",
+      "lowLiquidityDesc": "La tesorería tiene ${balance} pero los saldos pagables son ${liabilities}. Añade USDT por BEP-20 o Polygon antes de aprobar retiros.",
+      "overviewWarning": "El saldo de tesorería (${balance}) está por debajo de las obligaciones (${liabilities}). Añade fondos en Tesorería.",
+      "insufficientForPayout": "Saldo de tesorería bajo — recarga antes de completar más pagos.",
+      "recentDeposits": "Depósitos recientes en tesorería",
+      "recentWithdrawals": "Retiros recientes de tesorería",
+      "noDeposits": "Aún no hay depósitos en tesorería.",
+      "noWithdrawals": "Aún no hay retiros de tesorería."
+    },
+    "withdrawals": {
+      "title": "Retiros de usuarios pendientes",
+      "approve": "Aprobar",
+      "process": "Marcar en proceso",
+      "complete": "Marcar pagado",
+      "reject": "Rechazar",
+      "updated": "Retiro actualizado",
+      "completed": "Retiro marcado como pagado",
+      "rejected": "Retiro rechazado — saldo reembolsado",
+      "actionFailed": "No se pudo actualizar el retiro",
+      "txHashPlaceholder": "Hash de la transacción de pago (opcional)"
     },
     "users": {
       "title": "Usuarios",

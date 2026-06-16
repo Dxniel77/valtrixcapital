@@ -108,10 +108,16 @@ export function Sidebar({
       {!collapsed ? (
         <div className="m-3 rounded-lg border border-gold/30 bg-gradient-to-br from-gold/5 to-transparent p-3 text-xs">
           <div className="mb-1 inline-flex items-center gap-1.5 text-gold">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="font-medium">{t("dashboard.sidebar.proTip")}</span>
+            <Wallet className="h-3.5 w-3.5" />
+            <span className="font-medium">{t("dashboard.sidebar.depositTip")}</span>
           </div>
-          <p className="text-text-secondary">{t("dashboard.sidebar.proTipText")}</p>
+          <p className="mb-2 text-text-secondary">{t("dashboard.sidebar.depositTipText")}</p>
+          <Link
+            href="/dashboard/wallet#add-funds"
+            className="inline-flex font-medium text-gold hover:text-gold-bright"
+          >
+            {t("walletPage.deposit.addCapital")} →
+          </Link>
         </div>
       ) : null}
     </aside>

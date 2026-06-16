@@ -270,7 +270,9 @@
       "expand": "قم بتوسيع الشريط الجانبي",
       "collapse": "طي الشريط الجانبي",
       "proTip": "نصيحة",
-      "proTipText": "اربح جميع الصفقات السبعة اليوم لتصل إلى الحد الأقصى اليومي البالغ 1%."
+      "proTipText": "اربح جميع الصفقات السبعة اليوم لتصل إلى الحد الأقصى اليومي البالغ 1%.",
+      "depositTip": "Add staking funds",
+      "depositTipText": "Send USDT via BEP-20 (BSC) or Polygon from any wallet or exchange."
     },
     "mobileNav": {
       "close": "إغلاق القائمة"
@@ -710,7 +712,8 @@
       "warning": "Send only USDT on the {network} network to this address. Other assets or networks will be lost.",
       "addCapital": "Deposit USDT",
       "stepSend": "3. Send USDT to the deposit address shown below.",
-      "registerDeposit": "Register deposit"
+      "registerDeposit": "Register deposit",
+      "viewAddresses": "View deposit addresses"
     },
     "tracker": {
       "title": "السحب قيد المعالجة",
@@ -861,7 +864,8 @@
       "reports": "التقارير",
       "settings": "إعدادات",
       "notifications": "إشعارات",
-      "audit": "مراجعة"
+      "audit": "مراجعة",
+      "treasury": "Treasury"
     },
     "notifications": {
       "title": "إرسال الإخطارات",
@@ -888,7 +892,10 @@
       "SETTINGS_UPDATED": "الإعدادات المحدثة",
       "ACCOUNT_GRANTED": "تم منح الحساب",
       "WITHDRAWAL_UNLOCKED": "الانسحاب مقفلة",
-      "SPONSOR_CHANGED": "تم تحديث الراعي"
+      "SPONSOR_CHANGED": "تم تحديث الراعي",
+      "TREASURY_DEPOSIT": "Treasury deposit",
+      "TREASURY_WITHDRAW": "Treasury withdrawal",
+      "WITHDRAWAL_PROCESSED": "Withdrawal processed"
     },
     "overview": {
       "title": "ملخص",
@@ -1186,6 +1193,64 @@
       "invalidPin": "يجب أن يتكون رقم التعريف الشخصي من 6 أرقام رقمية",
       "pinMismatch": "أرقام التعريف الشخصية غير متطابقة",
       "wrongPin": "رقم التعريف الشخصي غير صحيح"
+    },
+    "treasury": {
+      "title": "Treasury & liquidity",
+      "subtitle": "Load USDT via BEP-20 or Polygon to fund user withdrawals. Same manual transfer flow as user staking deposits.",
+      "manageCta": "Manage treasury",
+      "depositCta": "Add USDT",
+      "withdrawCta": "Withdraw USDT",
+      "totalLiquidity": "Treasury balance",
+      "totalLiquidityHint": "Available for payouts",
+      "bscBalance": "BSC liquidity",
+      "polygonBalance": "Polygon liquidity",
+      "coverage": "Coverage",
+      "coverageHint": "Treasury vs payable balances",
+      "addressesTitle": "Treasury deposit addresses",
+      "addressesDesc": "Send USDT from any wallet or exchange to these addresses. Carlos (admin) uses the same addresses to top up liquidity for user withdrawals.",
+      "depositSubtitle": "Manual USDT transfer — not from the connected wallet.",
+      "depositExplain": "Top up the hot wallet so user withdrawal requests can be paid. Select network, send USDT, then register the transaction.",
+      "depositStep": {
+        "form": "Add treasury funds",
+        "transfer": "Send USDT",
+        "confirming": "Confirming on-chain",
+        "success": "Liquidity added"
+      },
+      "amountLabel": "Amount (USDT)",
+      "amountRequired": "Enter a valid amount",
+      "confirmDeposit": "I sent USDT",
+      "depositTo": "Treasury address: {address}",
+      "depositConfirmed": "Treasury deposit confirmed",
+      "depositSuccess": "${amount} USDT added to {network} treasury",
+      "withdrawTitle": "Withdraw from treasury",
+      "withdrawSubtitle": "Record an outbound USDT transfer from the hot wallet.",
+      "destinationLabel": "Destination address",
+      "txHashOptional": "Transaction hash (optional)",
+      "available": "Available: ${amount} USDT",
+      "recordWithdraw": "Record withdrawal",
+      "withdrawRecorded": "Treasury withdrawal recorded",
+      "withdrawInsufficient": "Insufficient treasury balance",
+      "invalidAddress": "Enter a valid 0x address",
+      "lowLiquidityTitle": "Low treasury liquidity",
+      "lowLiquidityDesc": "Treasury holds ${balance} but payable balances are ${liabilities}. Add USDT via BEP-20 or Polygon before approving withdrawals.",
+      "overviewWarning": "Treasury balance (${balance}) is below payable liabilities (${liabilities}). Add funds in Treasury.",
+      "insufficientForPayout": "Treasury balance is low — top up before completing more payouts.",
+      "recentDeposits": "Recent treasury deposits",
+      "recentWithdrawals": "Recent treasury withdrawals",
+      "noDeposits": "No treasury deposits yet.",
+      "noWithdrawals": "No treasury withdrawals yet."
+    },
+    "withdrawals": {
+      "title": "Pending user withdrawals",
+      "approve": "Approve",
+      "process": "Mark processing",
+      "complete": "Mark paid",
+      "reject": "Reject",
+      "updated": "Withdrawal updated",
+      "completed": "Withdrawal marked as paid",
+      "rejected": "Withdrawal rejected — balance refunded",
+      "actionFailed": "Could not update withdrawal",
+      "txHashPlaceholder": "Payout transaction hash (optional)"
     }
   },
   "trade": {

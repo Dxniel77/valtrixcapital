@@ -47,6 +47,11 @@ interface WalletState {
   }) => Withdrawal | { error: string };
   advanceWithdrawals: () => void;
   rejectWithdrawal: (id: string, note?: string) => void;
+  adminSetWithdrawalStatus: (
+    id: string,
+    status: WithdrawalStatus,
+    txHash?: string,
+  ) => void;
   reset: () => void;
 }
 
@@ -139,6 +144,34 @@ export const useWalletStore = create<WalletState>()(
           withdrawals: s.withdrawals.map((w) =>
             w.id === id
               ? { ...w, status: "REJECTED", note, updatedAt: Date.now() }
+              : w,
+          ),
+        }));
+      },
+
+      adminSetWithdrawalStatus: (id, status, txHash) => {
+        const target = get().withdrawals.find((w) => w.id === id);
+        if (!target) return;
+        if (target.status === "COMPLETED" || target.status === "REJECTED") return;
+
+        if (status === "REJECTED") {
+          get().rejectWithdrawal(id);
+          return;
+        }
+
+        const now = Date.now();
+        set((s) => ({
+          withdrawals: s.withdrawals.map((w) =>
+            w.id === id
+              ? {
+                  ...w,
+                  status,
+                  txHash:
+                    status === "COMPLETED"
+                      ? txHash?.trim() || w.txHash || makeTxHash()
+                      : w.txHash,
+                  updatedAt: now,
+                }
               : w,
           ),
         }));

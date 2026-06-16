@@ -2,37 +2,59 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Coins, ShieldAlert, TrendingUp, Users } from "lucide-react";
+import { Coins, Landmark, ShieldAlert, TrendingUp, Users } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DailyTransactionsPanel } from "@/components/admin/daily-transactions-panel";
+import { PendingWithdrawalsPanel } from "@/components/admin/pending-withdrawals-panel";
 import { StatTile } from "@/components/ui/stat-tile";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStats, useAdminStore } from "@/lib/admin/store";
-import { formatNumber, shortenAddress } from "@/lib/utils";
+import {
+  useTreasuryStoreHydrated,
+  useTreasurySummary,
+} from "@/lib/admin/treasury-store";
+import { formatNumber } from "@/lib/utils";
 import { utcDateKey } from "@/lib/admin/movements";
 
 export default function AdminOverviewPage() {
   const { t } = useI18n();
   const stats = useAdminStats();
+  const treasury = useTreasurySummary();
+  const treasuryHydrated = useTreasuryStoreHydrated();
   const audit = useAdminStore((s) => s.audit);
   const movements = useAdminStore((s) => s.movements);
 
-  const pendingWithdrawals = movements
-    .filter((m) => m.type === "WITHDRAWAL" && m.status !== "COMPLETED")
-    .slice(0, 6);
+  const lowLiquidity =
+    treasuryHydrated && treasury.totalBalance < stats.liabilities;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={t("admin.overview.title")}
         subtitle={t("admin.overview.subtitle")}
+        actions={
+          <Button asChild variant="primary" size="md">
+            <Link href="/admin/treasury">
+              <Landmark className="h-4 w-4" />
+              {t("admin.treasury.manageCta")}
+            </Link>
+          </Button>
+        }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {lowLiquidity ? (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
+          {t("admin.treasury.overviewWarning", {
+            balance: formatNumber(treasury.totalBalance, { decimals: 0 }),
+            liabilities: formatNumber(stats.liabilities, { decimals: 0 }),
+          })}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatTile
           label={t("admin.overview.totalUsers")}
           value={String(stats.totalUsers)}
@@ -61,6 +83,13 @@ export default function AdminOverviewPage() {
           accent="danger"
           hint={t("admin.overview.pendingHint")}
         />
+        <StatTile
+          label={t("admin.treasury.totalLiquidity")}
+          value={`$${formatNumber(treasuryHydrated ? treasury.totalBalance : 0, { decimals: 0 })}`}
+          icon={Landmark}
+          accent={lowLiquidity ? "danger" : "gold"}
+          hint={t("admin.treasury.totalLiquidityHint")}
+        />
       </div>
 
       <DailyTransactionsPanel
@@ -78,33 +107,12 @@ export default function AdminOverviewPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle>{t("admin.overview.pendingTitle")}</CardTitle>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/movements">{t("admin.overview.viewAll")}</Link>
+                <Link href="/admin/treasury">{t("admin.treasury.manageCta")}</Link>
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {pendingWithdrawals.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border-subtle bg-bg-base/40 p-6 text-center text-sm text-text-secondary">
-                {t("admin.overview.noPending")}
-              </p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {pendingWithdrawals.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center justify-between gap-3 py-2.5 text-sm"
-                  >
-                    <span className="font-mono text-text-secondary">
-                      {shortenAddress(m.wallet)}
-                    </span>
-                    <Badge variant="warning">{t(`walletPage.status.${m.status}`)}</Badge>
-                    <span className="font-mono text-danger">
-                      ${formatNumber(m.amount, { decimals: 2 })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <PendingWithdrawalsPanel limit={4} />
           </CardContent>
         </Card>
 

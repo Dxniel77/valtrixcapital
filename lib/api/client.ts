@@ -278,6 +278,38 @@ export async function registerDepositRequest(input: {
   });
 }
 
+export async function fetchPendingWithdrawals() {
+  return apiFetch<{
+    backend: boolean;
+    withdrawals: Array<{
+      id: string;
+      network: "BSC" | "POLYGON";
+      amount: number;
+      fee: number;
+      netAmount: number;
+      toAddress: string;
+      status: string;
+      txHash: string | null;
+      requestedAt: string;
+      walletAddress: string;
+    }>;
+  }>("/api/withdrawals?scope=pending");
+}
+
+export async function adminUpdateWithdrawalStatus(input: {
+  withdrawalId: string;
+  status: "APPROVED" | "REJECTED" | "SENT" | "CONFIRMED";
+  txHash?: string;
+}) {
+  return apiFetch<{ ok: true; withdrawal: unknown }>(
+    "/api/withdrawals?admin=status",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
 export async function fetchPlatformConfig() {
   return apiFetch<{
     backend: boolean;

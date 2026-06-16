@@ -313,12 +313,12 @@ function CapitalCallout() {
           {t("dashboard.overview.capitalCalloutDesc")}
         </p>
         <div className="flex flex-col gap-2">
-          <Button asChild variant="primary" size="md" className="w-full">
+          <StartStakingCTA className="w-full" size="md" variant="primary" />
+          <Button asChild variant="outline" size="md" className="w-full">
             <Link href="/dashboard/wallet#add-funds">
-              {t("walletPage.deposit.addCapital")}
+              {t("walletPage.deposit.viewAddresses")}
             </Link>
           </Button>
-          <StartStakingCTA className="w-full" size="md" variant="outline" />
         </div>
       </CardContent>
     </Card>

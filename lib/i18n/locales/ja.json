@@ -270,7 +270,9 @@
       "expand": "サイドバーを展開する",
       "collapse": "サイドバーを折りたたむ",
       "proTip": "アドバイス",
-      "proTipText": "今日 7 回のトレードすべてに勝利して、1 日の上限 1% に到達しましょう。"
+      "proTipText": "今日 7 回のトレードすべてに勝利して、1 日の上限 1% に到達しましょう。",
+      "depositTip": "Add staking funds",
+      "depositTipText": "Send USDT via BEP-20 (BSC) or Polygon from any wallet or exchange."
     },
     "mobileNav": {
       "close": "メニューを閉じる"
@@ -702,7 +704,8 @@
       "contractLabel": "USDT契約",
       "warning": "{network} ネットワーク上の USDT のみをこのアドレスに送信します。 他の資産やネットワークも失われます。",
       "addCapital": "USDTを入金する",
-      "registerDeposit": "預金を登録する"
+      "registerDeposit": "預金を登録する",
+      "viewAddresses": "View deposit addresses"
     },
     "tracker": {
       "title": "出金処理中",
@@ -853,7 +856,8 @@
       "reports": "レポート",
       "settings": "設定",
       "notifications": "通知",
-      "audit": "監査"
+      "audit": "監査",
+      "treasury": "Treasury"
     },
     "notifications": {
       "title": "通知を送信する",
@@ -880,7 +884,10 @@
       "SETTINGS_UPDATED": "更新された設定",
       "ACCOUNT_GRANTED": "アカウントが付与されました",
       "WITHDRAWAL_UNLOCKED": "出金ロック解除",
-      "SPONSOR_CHANGED": "スポンサーを更新しました"
+      "SPONSOR_CHANGED": "スポンサーを更新しました",
+      "TREASURY_DEPOSIT": "Treasury deposit",
+      "TREASURY_WITHDRAW": "Treasury withdrawal",
+      "WITHDRAWAL_PROCESSED": "Withdrawal processed"
     },
     "overview": {
       "title": "まとめ",
@@ -1178,6 +1185,64 @@
       "invalidPin": "PIN は 6 桁の数字である必要があります",
       "pinMismatch": "PIN が一致しません",
       "wrongPin": "間違ったPIN"
+    },
+    "treasury": {
+      "title": "Treasury & liquidity",
+      "subtitle": "Load USDT via BEP-20 or Polygon to fund user withdrawals. Same manual transfer flow as user staking deposits.",
+      "manageCta": "Manage treasury",
+      "depositCta": "Add USDT",
+      "withdrawCta": "Withdraw USDT",
+      "totalLiquidity": "Treasury balance",
+      "totalLiquidityHint": "Available for payouts",
+      "bscBalance": "BSC liquidity",
+      "polygonBalance": "Polygon liquidity",
+      "coverage": "Coverage",
+      "coverageHint": "Treasury vs payable balances",
+      "addressesTitle": "Treasury deposit addresses",
+      "addressesDesc": "Send USDT from any wallet or exchange to these addresses. Carlos (admin) uses the same addresses to top up liquidity for user withdrawals.",
+      "depositSubtitle": "Manual USDT transfer — not from the connected wallet.",
+      "depositExplain": "Top up the hot wallet so user withdrawal requests can be paid. Select network, send USDT, then register the transaction.",
+      "depositStep": {
+        "form": "Add treasury funds",
+        "transfer": "Send USDT",
+        "confirming": "Confirming on-chain",
+        "success": "Liquidity added"
+      },
+      "amountLabel": "Amount (USDT)",
+      "amountRequired": "Enter a valid amount",
+      "confirmDeposit": "I sent USDT",
+      "depositTo": "Treasury address: {address}",
+      "depositConfirmed": "Treasury deposit confirmed",
+      "depositSuccess": "${amount} USDT added to {network} treasury",
+      "withdrawTitle": "Withdraw from treasury",
+      "withdrawSubtitle": "Record an outbound USDT transfer from the hot wallet.",
+      "destinationLabel": "Destination address",
+      "txHashOptional": "Transaction hash (optional)",
+      "available": "Available: ${amount} USDT",
+      "recordWithdraw": "Record withdrawal",
+      "withdrawRecorded": "Treasury withdrawal recorded",
+      "withdrawInsufficient": "Insufficient treasury balance",
+      "invalidAddress": "Enter a valid 0x address",
+      "lowLiquidityTitle": "Low treasury liquidity",
+      "lowLiquidityDesc": "Treasury holds ${balance} but payable balances are ${liabilities}. Add USDT via BEP-20 or Polygon before approving withdrawals.",
+      "overviewWarning": "Treasury balance (${balance}) is below payable liabilities (${liabilities}). Add funds in Treasury.",
+      "insufficientForPayout": "Treasury balance is low — top up before completing more payouts.",
+      "recentDeposits": "Recent treasury deposits",
+      "recentWithdrawals": "Recent treasury withdrawals",
+      "noDeposits": "No treasury deposits yet.",
+      "noWithdrawals": "No treasury withdrawals yet."
+    },
+    "withdrawals": {
+      "title": "Pending user withdrawals",
+      "approve": "Approve",
+      "process": "Mark processing",
+      "complete": "Mark paid",
+      "reject": "Reject",
+      "updated": "Withdrawal updated",
+      "completed": "Withdrawal marked as paid",
+      "rejected": "Withdrawal rejected — balance refunded",
+      "actionFailed": "Could not update withdrawal",
+      "txHashPlaceholder": "Payout transaction hash (optional)"
     }
   },
   "trade": {

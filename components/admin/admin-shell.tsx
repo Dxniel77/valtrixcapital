@@ -8,6 +8,7 @@ import {
   Bell,
   ClipboardList,
   FileSpreadsheet,
+  Landmark,
   LayoutDashboard,
   Network,
   Search,
@@ -28,6 +29,7 @@ import { useAdminSeed } from "@/lib/admin/store";
 
 export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
+  { href: "/admin/treasury", key: "treasury", icon: Landmark },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
   { href: "/admin/lookup", key: "lookup", icon: Search },
   { href: "/admin/leaders", key: "leaders", icon: Trophy },

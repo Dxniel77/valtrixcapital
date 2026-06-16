@@ -141,6 +141,11 @@ interface AdminState {
   updateSettings: (patch: Partial<AdminSettings>) => void;
   recordMovement: (movement: AdminMovement) => void;
   syncLiveMovements: (movements: AdminMovement[]) => void;
+  processWithdrawalMovement: (
+    movementId: string,
+    status: string,
+    txHash?: string,
+  ) => { ok: true; netAmount: number; network: AdminNetwork } | { ok: false };
   reset: () => void;
 }
 
@@ -667,6 +672,41 @@ export const useAdminStore = create<AdminState>()(
           );
           return { movements: merged.slice(0, 500) };
         });
+      },
+
+      processWithdrawalMovement: (movementId, status, _txHash) => {
+        const movement = get().movements.find((m) => m.id === movementId);
+        if (!movement || movement.type !== "WITHDRAWAL") return { ok: false };
+        if (movement.status === "COMPLETED" || movement.status === "REJECTED") {
+          return { ok: false };
+        }
+        if (!movement.network) return { ok: false };
+
+        const now = Date.now();
+        const feeBps = 400;
+        const fee = Math.round(movement.amount * (feeBps / 10_000) * 100) / 100;
+        const netAmount = Math.round((movement.amount - fee) * 100) / 100;
+
+        set((s) => ({
+          movements: s.movements.map((m) =>
+            m.id === movementId
+              ? { ...m, status, timestamp: now }
+              : m,
+          ),
+          audit: [
+            {
+              id: makeId("aud"),
+              action: "WITHDRAWAL_PROCESSED",
+              target: movement.wallet,
+              detail: `${status} · $${netAmount.toFixed(2)} USDT (${movement.network})`,
+              actor: "admin",
+              timestamp: now,
+            },
+            ...s.audit,
+          ].slice(0, 200),
+        }));
+
+        return { ok: true, netAmount, network: movement.network };
       },
 
       reset: () => {
