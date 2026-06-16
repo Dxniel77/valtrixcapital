@@ -12,7 +12,7 @@ import type { UserDetailSnapshot } from "@/lib/admin/analytics";
 import { useAdminStore } from "@/lib/admin/store";
 import { exportUserDetailCsv } from "@/lib/admin/exports";
 import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
-import { findSponsorUser } from "@/lib/admin/sponsor";
+import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
 import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
@@ -33,6 +33,10 @@ export function UserDetailPanel({
   const sponsor = React.useMemo(
     () => findSponsorUser(users, user.uplineWallet),
     [users, user.uplineWallet],
+  );
+  const referrer = React.useMemo(
+    () => getReferrerInfo(user, users),
+    [user, users],
   );
 
   const deposits = detail.movements.filter((m) => m.type === "DEPOSIT");
@@ -73,12 +77,43 @@ export function UserDetailPanel({
             {isSponsored ? (
               <Badge variant="warning">{t("admin.users.sponsoredBadge")}</Badge>
             ) : null}
+            <Badge
+              variant={user.registrationSource === "referral" ? "gold" : "outline"}
+            >
+              {user.registrationSource === "referral"
+                ? t("admin.users.registrationReferral")
+                : t("admin.users.registrationDirect")}
+            </Badge>
             {user.withdrawalUnlocked ? (
               <Badge variant="success">{t("admin.lookup.withdrawOk")}</Badge>
             ) : isSponsored ? (
               <Badge variant="outline">{t("admin.lookup.withdrawLocked")}</Badge>
             ) : null}
           </div>
+          {referrer ? (
+            <p className="mt-2 text-sm text-text-secondary">
+              {t("admin.userDetail.referredBy")}:{" "}
+              {referrer.adminUserId ? (
+                <Link
+                  href={`/admin/users/${referrer.adminUserId}`}
+                  className="font-medium text-gold hover:underline"
+                >
+                  {referrer.displayName}
+                </Link>
+              ) : (
+                <span className="font-medium text-text-primary">
+                  {referrer.displayName}
+                </span>
+              )}
+              <span className="ml-1.5 font-mono text-xs text-text-muted">
+                ({shortenAddress(referrer.wallet)})
+              </span>
+            </p>
+          ) : user.registrationSource === "direct" ? (
+            <p className="mt-2 text-sm text-text-muted">
+              {t("admin.userDetail.referredBy")}: {t("admin.users.referredByNone")}
+            </p>
+          ) : null}
         </div>
         <Button
           variant="outline"
@@ -100,6 +135,22 @@ export function UserDetailPanel({
           <Stat label={t("admin.lookup.balance")} value={`$${formatNumber(totals.balance, { decimals: 2 })}`} />
           <Stat label={t("admin.userDetail.totalEarned")} value={`$${formatNumber(totals.totalEarned, { decimals: 2 })}`} />
           <Stat label={t("admin.lookup.directRefs")} value={String(totals.directReferrals)} />
+          <Stat
+            label={t("admin.userDetail.registrationSource")}
+            value={
+              user.registrationSource === "referral"
+                ? t("admin.users.registrationReferral")
+                : t("admin.users.registrationDirect")
+            }
+          />
+          <Stat
+            label={t("admin.userDetail.referredBy")}
+            value={
+              referrer
+                ? referrer.displayName
+                : t("admin.users.referredByNone")
+            }
+          />
           <Stat
             label={t("admin.userDetail.sponsorCurrent")}
             value={sponsor ? sponsor.alias : t("admin.userDetail.sponsorNone")}

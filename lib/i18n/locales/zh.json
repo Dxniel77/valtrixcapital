@@ -594,7 +594,8 @@
     "colJoined": "从",
     "colEarned": "利润总额",
     "colCommissions": "佣金",
-    "networkLevel": "网格"
+    "networkLevel": "网格",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "机器人交易",
@@ -952,7 +953,22 @@
       "noteLabel": "笔记",
       "notePlaceholder": "调整原因",
       "cancel": "取消",
-      "applyAdjust": "应用设置"
+      "applyAdjust": "应用设置",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "动作",
@@ -1150,7 +1166,9 @@
         "SELF_SPONSOR": "用户不能成为自己的赞助商",
         "SPONSOR_NOT_FOUND": "未找到赞助商 — 检查钱包、用户名或代码",
         "CYCLE": "该分配将在网络中创建一个循环"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "mobileNav": {
       "open": "打开管理菜单",

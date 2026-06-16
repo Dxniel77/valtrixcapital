@@ -18,6 +18,7 @@ import {
   useReferralsStore,
   useReferralsStoreHydrated,
 } from "@/lib/referrals/store";
+import { useMyReferrer } from "@/lib/referrals/use-my-referrer";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 
 export default function ReferralsPage() {
@@ -31,6 +32,7 @@ export default function ReferralsPage() {
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const downline = useReferralsStore((s) => s.downline);
   const levelStats = useReferralLevelStats();
+  const myReferrer = useMyReferrer();
 
   React.useEffect(() => {
     if (hydrated) ensureCode(address);
@@ -48,6 +50,23 @@ export default function ReferralsPage() {
         title={t("referralsPage.title")}
         subtitle={t("referralsPage.subtitle")}
       />
+
+      {myReferrer ? (
+        <Card className="border-gold/30 bg-gold/5">
+          <CardContent className="flex flex-wrap items-center gap-2 p-4 text-sm">
+            <Users className="h-4 w-4 text-gold" />
+            <span className="text-text-secondary">
+              {t("referralsPage.referredBy")}
+            </span>
+            <span className="font-medium text-text-primary">
+              {myReferrer.displayName}
+            </span>
+            <span className="font-mono text-xs text-text-muted">
+              ({shortenAddress(myReferrer.wallet)})
+            </span>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatTile

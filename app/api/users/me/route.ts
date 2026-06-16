@@ -3,8 +3,9 @@ import { z } from "zod";
 import { requireSession } from "@/lib/auth/require-session";
 import { isDatabaseAvailable } from "@/lib/db/available";
 import {
-  findUserByWallet,
+  findUserByWalletWithReferrer,
   serializeUser,
+  serializeUserWithReferrer,
   updateUsername,
   upsertUserByWallet,
 } from "@/lib/services/users";
@@ -25,16 +26,21 @@ export async function GET() {
   }
 
   let user = auth.session.dbUserId
-    ? await findUserByWallet(auth.session.address)
+    ? await findUserByWalletWithReferrer(auth.session.address)
     : null;
 
   if (!user) {
-    user = await upsertUserByWallet(auth.session.address);
+    const created = await upsertUserByWallet(auth.session.address);
+    user = await findUserByWalletWithReferrer(created.walletAddress);
+  }
+
+  if (!user) {
+    return NextResponse.json({ backend: true, user: null });
   }
 
   return NextResponse.json({
     backend: true,
-    user: serializeUser(user),
+    user: serializeUserWithReferrer(user),
   });
 }
 
@@ -59,7 +65,10 @@ export async function PATCH(req: Request) {
 
   if (parsed.username) {
     const user = await updateUsername(auth.session.dbUserId, parsed.username);
-    return NextResponse.json({ user: serializeUser(user) });
+    const withReferrer = await findUserByWalletWithReferrer(user.walletAddress);
+    return NextResponse.json({
+      user: withReferrer ? serializeUserWithReferrer(withReferrer) : serializeUser(user),
+    });
   }
 
   return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });

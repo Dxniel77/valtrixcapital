@@ -602,7 +602,8 @@
     "colJoined": "منذ",
     "colEarned": "مجموع المكتسبة",
     "colCommissions": "اللجان",
-    "networkLevel": "شبكة"
+    "networkLevel": "شبكة",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "تجارة الروبوتات",
@@ -927,7 +928,22 @@
       "subtitleBilling": "الفواتير حسب الفترة والشبكة لكل مستوى وتفاصيل المستخدم الحصرية.",
       "colDirectRefs": "مباشر",
       "sponsoredBadge": "برعاية",
-      "sponsoredOnly": "برعاية فقط"
+      "sponsoredOnly": "برعاية فقط",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "Movements",
@@ -1125,7 +1141,9 @@
         "SELF_SPONSOR": "لا يمكن للمستخدم رعاية نفسه",
         "SPONSOR_NOT_FOUND": "لم يتم العثور على الراعي — تحقق من المحفظة أو اسم المستخدم أو الرمز",
         "CYCLE": "من شأن هذه المهمة إنشاء خط علوي دائري"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "التدفق النقدي",

@@ -49,8 +49,14 @@ export interface ReferralLevelStats {
   earned: number;
 }
 
+export interface MyReferrer {
+  wallet: string;
+  displayName: string;
+}
+
 interface ReferralsState {
   referralCode: string | null;
+  myReferrer: MyReferrer | null;
   downline: DownlineMember[];
   commissions: CommissionRecord[];
   processedYieldIds: string[];
@@ -59,6 +65,7 @@ interface ReferralsState {
   lastNetworkPayoutDay: string | null;
 
   ensureCode: (walletAddress?: string) => string;
+  setMyReferrer: (referrer: MyReferrer | null) => void;
   seedDemoNetwork: () => void;
   processCommissionsForYields: (
     yields: { id: string; date: string; creditedAmount: number }[],
@@ -69,6 +76,7 @@ interface ReferralsState {
 
 const initial = {
   referralCode: null as string | null,
+  myReferrer: null as MyReferrer | null,
   downline: [] as DownlineMember[],
   commissions: [] as CommissionRecord[],
   processedYieldIds: [] as string[],
@@ -151,6 +159,8 @@ export const useReferralsStore = create<ReferralsState>()(
         set({ referralCode: code });
         return code;
       },
+
+      setMyReferrer: (referrer) => set({ myReferrer: referrer }),
 
       seedDemoNetwork: () => {
         const current = get().downline;
@@ -280,6 +290,7 @@ export const useReferralsStore = create<ReferralsState>()(
       ),
       partialize: (s) => ({
         referralCode: s.referralCode,
+        myReferrer: s.myReferrer,
         downline: s.downline,
         commissions: s.commissions,
         processedYieldIds: s.processedYieldIds,

@@ -1,6 +1,7 @@
 import type { AdminActionType } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { findUserById, serializeUser, type UserDto } from "@/lib/services/users";
+import { findUserById, serializeUser, type BalanceAdjustmentTarget, type UserDto } from "@/lib/services/users";
+import { refreshUserPayoutCap } from "@/lib/services/stakes";
 import { fromMicro, toMicro } from "@/lib/utils";
 
 export class AdminServiceError extends Error {
@@ -33,37 +34,89 @@ export async function adjustUserBalance(input: {
   targetUserId: string;
   delta: number;
   note: string;
+  target?: BalanceAdjustmentTarget;
 }): Promise<UserDto> {
+  const targetType = input.target ?? "WITHDRAWABLE";
+
   if (!Number.isFinite(input.delta) || input.delta === 0) {
     throw new AdminServiceError("Delta must be a non-zero number", "INVALID_DELTA");
   }
 
-  const target = await findUserById(input.targetUserId);
-  if (!target) {
+  const targetUser = await findUserById(input.targetUserId);
+  if (!targetUser) {
     throw new AdminServiceError("User not found", "NOT_FOUND");
   }
 
+  if (targetType === "STAKING") {
+    if (input.delta <= 0) {
+      throw new AdminServiceError(
+        "Staking credits must be a positive amount",
+        "INVALID_DELTA",
+      );
+    }
+
+    const deltaMicro = toMicro(input.delta);
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: targetUser.id },
+        data: { lockedCapital: { increment: deltaMicro } },
+      });
+
+      await tx.stake.create({
+        data: {
+          userId: targetUser.id,
+          amount: deltaMicro,
+          network: "BSC",
+          status: "ACTIVE",
+        },
+      });
+
+      await tx.adminAction.create({
+        data: {
+          adminId: input.adminUserId,
+          targetUserId: targetUser.id,
+          action: "ADJUST_BALANCE",
+          payload: {
+            delta: input.delta,
+            note: input.note.trim(),
+            target: targetType,
+            previousLockedCapital: fromMicro(targetUser.lockedCapital),
+            nextLockedCapital: fromMicro(user.lockedCapital),
+          },
+        },
+      });
+
+      return user;
+    });
+
+    await refreshUserPayoutCap(targetUser.id);
+    const fresh = await findUserById(targetUser.id);
+    return serializeUser(fresh ?? updated);
+  }
+
   const deltaMicro = toMicro(input.delta);
-  const nextBalance = target.earningsBalance + deltaMicro;
+  const nextBalance = targetUser.earningsBalance + deltaMicro;
   if (nextBalance < 0n) {
     throw new AdminServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
   }
 
   const updated = await prisma.$transaction(async (tx) => {
     const user = await tx.user.update({
-      where: { id: target.id },
+      where: { id: targetUser.id },
       data: { earningsBalance: nextBalance },
     });
 
     await tx.adminAction.create({
       data: {
         adminId: input.adminUserId,
-        targetUserId: target.id,
+        targetUserId: targetUser.id,
         action: "ADJUST_BALANCE",
         payload: {
           delta: input.delta,
           note: input.note.trim(),
-          previousBalance: fromMicro(target.earningsBalance),
+          target: targetType,
+          previousBalance: fromMicro(targetUser.earningsBalance),
           nextBalance: fromMicro(nextBalance),
         },
       },
@@ -192,7 +245,11 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
   }
 
   for (const a of adjustments) {
-    const payload = a.payload as { delta?: number; note?: string };
+    const payload = a.payload as {
+      delta?: number;
+      note?: string;
+      target?: BalanceAdjustmentTarget;
+    };
     rows.push({
       id: `adj_${a.id}`,
       type: "ADJUSTMENT",

@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   delta: z.number().refine((n) => n !== 0, "Delta cannot be zero"),
   note: z.string().max(500).optional().default(""),
+  target: z.enum(["WITHDRAWABLE", "STAKING"]).optional().default("WITHDRAWABLE"),
 });
 
 export async function POST(
@@ -47,6 +48,7 @@ export async function POST(
       targetUserId: id,
       delta: parsed.delta,
       note: parsed.note,
+      target: parsed.target,
     });
     return NextResponse.json({ ok: true, user });
   } catch (err) {

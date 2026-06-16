@@ -594,7 +594,8 @@
     "colJoined": "以来",
     "colEarned": "獲得総額",
     "colCommissions": "手数料",
-    "networkLevel": "ネットワーク"
+    "networkLevel": "ネットワーク",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "ボット取引",
@@ -919,7 +920,22 @@
       "subtitleBilling": "期間、レベルごとのネットワーク、および限定ユーザーの詳細ごとに請求されます。",
       "colDirectRefs": "直接",
       "sponsoredBadge": "スポンサー付き",
-      "sponsoredOnly": "スポンサー付きのみ"
+      "sponsoredOnly": "スポンサー付きのみ",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "動き",
@@ -1117,7 +1133,9 @@
         "SELF_SPONSOR": "ユーザーは自分自身をスポンサーにすることはできません",
         "SPONSOR_NOT_FOUND": "スポンサーが見つかりません — ウォレット、ユーザー名、またはコードを確認してください",
         "CYCLE": "この割り当てにより、循環アップラインが作成されます"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "キャッシュフロー",

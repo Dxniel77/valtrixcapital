@@ -594,7 +594,8 @@
     "colJoined": "तब से",
     "colEarned": "कुल कमाई",
     "colCommissions": "आयोगों",
-    "networkLevel": "नेटवर्क"
+    "networkLevel": "नेटवर्क",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "बॉट ट्रेडिंग",
@@ -919,7 +920,22 @@
       "subtitleBilling": "अवधि के अनुसार बिलिंग, प्रति स्तर नेटवर्क और विशिष्ट उपयोगकर्ता विवरण।",
       "colDirectRefs": "प्रत्यक्ष",
       "sponsoredBadge": "प्रायोजित",
-      "sponsoredOnly": "केवल प्रायोजित"
+      "sponsoredOnly": "केवल प्रायोजित",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "आंदोलनों",
@@ -1117,7 +1133,9 @@
         "SELF_SPONSOR": "कोई उपयोगकर्ता स्वयं को प्रायोजित नहीं कर सकता",
         "SPONSOR_NOT_FOUND": "प्रायोजक नहीं मिला - वॉलेट, उपयोगकर्ता नाम या कोड जांचें",
         "CYCLE": "वह असाइनमेंट एक गोलाकार अपलाइन बनाएगा"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "नकदी प्रवाह",

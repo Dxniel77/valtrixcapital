@@ -67,11 +67,14 @@ export {
   STAKE_MIN_USDT,
 } from "@/lib/staking/constants";
 
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
+
 export interface BalanceAdjustment {
   id: string;
   amount: number;
   note: string;
   createdAt: number;
+  target: BalanceAdjustmentTarget;
 }
 
 interface StakingState {
@@ -102,6 +105,7 @@ interface StakingState {
     id: string;
     amount: number;
     note: string;
+    target?: BalanceAdjustmentTarget;
   }) => void;
   reset: () => void;
 }
@@ -301,9 +305,36 @@ export const useStakingStore = create<StakingState>()(
         return applied;
       },
 
-      applyBalanceAdjustment: ({ id, amount, note }) => {
+      applyBalanceAdjustment: ({ id, amount, note, target = "WITHDRAWABLE" }) => {
         const state = get();
         if (state.balanceAdjustments.some((a) => a.id === id)) return;
+
+        if (target === "STAKING") {
+          if (amount <= 0) return;
+          const stake: Stake = {
+            id: makeId("stk"),
+            amount,
+            network: "BSC",
+            status: "ACTIVE",
+            txHash: `0xadmin${id.replace(/[^a-z0-9]/gi, "").slice(0, 56)}`,
+            createdAt: Date.now(),
+            confirmedAt: Date.now(),
+          };
+          set((s) => ({
+            stakes: [stake, ...s.stakes],
+            balanceAdjustments: [
+              {
+                id,
+                amount,
+                note: note.trim(),
+                createdAt: Date.now(),
+                target: "STAKING" as const,
+              },
+              ...s.balanceAdjustments,
+            ].slice(0, 200),
+          }));
+          return;
+        }
 
         let applied = amount;
         if (amount < 0) {
@@ -318,6 +349,7 @@ export const useStakingStore = create<StakingState>()(
               amount: applied,
               note: note.trim(),
               createdAt: Date.now(),
+              target: "WITHDRAWABLE" as const,
             },
             ...s.balanceAdjustments,
           ].slice(0, 200),

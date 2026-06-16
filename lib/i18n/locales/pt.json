@@ -593,7 +593,8 @@
     "colJoined": "Desde",
     "colEarned": "Total ganho",
     "colCommissions": "Comissões",
-    "networkLevel": "Rede"
+    "networkLevel": "Rede",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "Negociação de bots",
@@ -918,7 +919,22 @@
       "subtitleBilling": "Faturamento por período, rede por nível e detalhe exclusivo do usuário.",
       "colDirectRefs": "Direta",
       "sponsoredBadge": "Patrocinada",
-      "sponsoredOnly": "Patrocinado apenas"
+      "sponsoredOnly": "Patrocinado apenas",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "Movimentos",
@@ -1116,7 +1132,9 @@
         "SELF_SPONSOR": "Um usuário não pode patrocinar a si mesmo",
         "SPONSOR_NOT_FOUND": "Patrocinador não encontrado – verifique carteira, nome de usuário ou código",
         "CYCLE": "Essa atribuição criaria um upline circular"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "Fluxo de caixa",

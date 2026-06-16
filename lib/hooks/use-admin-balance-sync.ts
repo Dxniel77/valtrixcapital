@@ -44,6 +44,7 @@ export function useAdminBalanceSync(): void {
         id: adj.id,
         amount: adj.delta,
         note: adj.note,
+        target: adj.target,
       });
 
       const entry = useStakingStore

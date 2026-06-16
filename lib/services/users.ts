@@ -4,6 +4,8 @@ import { isAdminWallet, normalizeWallet } from "@/lib/auth/admins";
 import { fromMicro } from "@/lib/utils";
 import { generateUniqueReferralCode } from "@/lib/services/referral-code";
 
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
+
 export interface UserDto {
   id: string;
   walletAddress: string;
@@ -12,6 +14,10 @@ export interface UserDto {
   isActive: boolean;
   referralCode: string;
   referrerId: string | null;
+  registrationSource: "referral" | "direct";
+  referrerWallet: string | null;
+  referrerUsername: string | null;
+  directReferrals: number;
   earningsBalance: number;
   lockedCapital: number;
   totalEarned: number;
@@ -20,7 +26,14 @@ export interface UserDto {
   updatedAt: string;
 }
 
-export function serializeUser(user: User): UserDto {
+export function serializeUser(
+  user: User,
+  meta?: {
+    referrerWallet?: string | null;
+    referrerUsername?: string | null;
+    directReferrals?: number;
+  },
+): UserDto {
   return {
     id: user.id,
     walletAddress: user.walletAddress,
@@ -29,6 +42,10 @@ export function serializeUser(user: User): UserDto {
     isActive: user.isActive,
     referralCode: user.referralCode,
     referrerId: user.referrerId,
+    registrationSource: user.referrerId ? "referral" : "direct",
+    referrerWallet: meta?.referrerWallet ?? null,
+    referrerUsername: meta?.referrerUsername ?? null,
+    directReferrals: meta?.directReferrals ?? 0,
     earningsBalance: fromMicro(user.earningsBalance),
     lockedCapital: fromMicro(user.lockedCapital),
     totalEarned: fromMicro(user.totalEarned),
@@ -43,6 +60,26 @@ export async function findUserByWallet(
 ): Promise<User | null> {
   return prisma.user.findUnique({
     where: { walletAddress: normalizeWallet(walletAddress) },
+  });
+}
+
+export async function findUserByWalletWithReferrer(walletAddress: string) {
+  return prisma.user.findUnique({
+    where: { walletAddress: normalizeWallet(walletAddress) },
+    include: {
+      referrer: { select: { walletAddress: true, username: true } },
+    },
+  });
+}
+
+export function serializeUserWithReferrer(
+  user: User & {
+    referrer?: { walletAddress: string; username: string | null } | null;
+  },
+): UserDto {
+  return serializeUser(user, {
+    referrerWallet: user.referrer?.walletAddress ?? null,
+    referrerUsername: user.referrer?.username ?? null,
   });
 }
 
@@ -103,14 +140,25 @@ export async function listUsersForAdmin(): Promise<UserDto[]> {
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
     take: 500,
+    include: {
+      referrer: { select: { walletAddress: true, username: true } },
+      _count: { select: { downline: true } },
+    },
   });
-  return users.map(serializeUser);
+  return users.map((user) =>
+    serializeUser(user, {
+      referrerWallet: user.referrer?.walletAddress ?? null,
+      referrerUsername: user.referrer?.username ?? null,
+      directReferrals: user._count.downline,
+    }),
+  );
 }
 
 export interface BalanceAdjustmentDto {
   id: string;
   amount: number;
   note: string;
+  target: BalanceAdjustmentTarget;
   createdAt: string;
 }
 
@@ -133,11 +181,13 @@ export async function listBalanceAdjustmentsForUser(
     const payload = row.payload as {
       delta?: number;
       note?: string;
+      target?: BalanceAdjustmentTarget;
     };
     return {
       id: row.id,
       amount: payload.delta ?? 0,
       note: payload.note ?? "",
+      target: payload.target ?? "WITHDRAWABLE",
       createdAt: row.createdAt.toISOString(),
     };
   });

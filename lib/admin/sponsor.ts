@@ -1,4 +1,5 @@
 import type { AdminUser } from "@/lib/admin/store";
+import { shortenAddress } from "@/lib/utils";
 
 export type SponsorUpdateError =
   | "NOT_FOUND"
@@ -98,4 +99,28 @@ export function findSponsorUser(
     users.find((u) => u.wallet.toLowerCase() === uplineWallet.toLowerCase()) ??
     null
   );
+}
+
+export interface ReferrerInfo {
+  wallet: string;
+  displayName: string;
+  adminUserId: string | null;
+}
+
+/** Resolves who referred / sponsors this user for admin display. */
+export function getReferrerInfo(
+  user: Pick<AdminUser, "uplineWallet" | "referrerUsername">,
+  users: AdminUser[],
+): ReferrerInfo | null {
+  if (!user.uplineWallet) return null;
+  const sponsor = findSponsorUser(users, user.uplineWallet);
+  const displayName =
+    sponsor?.alias?.trim() ||
+    user.referrerUsername?.trim() ||
+    shortenAddress(user.uplineWallet);
+  return {
+    wallet: user.uplineWallet,
+    displayName,
+    adminUserId: sponsor?.id ?? null,
+  };
 }

@@ -124,10 +124,10 @@ export function useLedger(): LedgerEntry[] {
     for (const a of balanceAdjustments) {
       entries.push({
         id: `adj_${a.id}`,
-        category: "ADJUSTMENT",
+        category: a.target === "STAKING" ? "DEPOSIT" : "ADJUSTMENT",
         timestamp: a.createdAt,
         amount: a.amount,
-        network: null,
+        network: a.target === "STAKING" ? "BSC" : null,
         txHash: null,
         status: "COMPLETED",
         note: a.note,

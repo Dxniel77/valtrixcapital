@@ -12,8 +12,9 @@ import {
 import { syncTradesFromServer } from "@/lib/trade/backend-trades";
 import { hydratePortfolioFromServer } from "@/lib/staking/hydrate-portfolio";
 import { useStakingStore } from "@/lib/staking/store";
+import { useReferralsStore } from "@/lib/referrals/store";
 import { pushNotification } from "@/lib/notifications/push";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, shortenAddress } from "@/lib/utils";
 
 let backendAvailable: boolean | null = null;
 
@@ -46,6 +47,7 @@ export function useBackendUserSync(): void {
   const { address } = useAccount();
   const backend = useBackendAvailable();
   const applyBalanceAdjustment = useStakingStore((s) => s.applyBalanceAdjustment);
+  const setMyReferrer = useReferralsStore((s) => s.setMyReferrer);
   const { t } = useI18n();
   const lastSyncRef = React.useRef(0);
   const appliedIdsRef = React.useRef(new Set<string>());
@@ -63,6 +65,17 @@ export function useBackendUserSync(): void {
           syncTradesFromServer(),
         ]);
         if (cancelled || !me.backend || !me.user) return;
+
+        if (me.user.referrerWallet) {
+          setMyReferrer({
+            wallet: me.user.referrerWallet,
+            displayName:
+              me.user.referrerUsername?.trim() ||
+              shortenAddress(me.user.referrerWallet),
+          });
+        } else {
+          setMyReferrer(null);
+        }
 
         if (portfolioRes.backend && portfolioRes.portfolio) {
           hydratePortfolioFromServer(
@@ -97,6 +110,7 @@ export function useBackendUserSync(): void {
               id: adj.id,
               amount: adj.amount,
               note: adj.note,
+              target: adj.target ?? "WITHDRAWABLE",
             });
           } else if (!alreadyRecorded) {
             useStakingStore.setState((s) => ({
@@ -106,6 +120,7 @@ export function useBackendUserSync(): void {
                   amount: adj.amount,
                   note: adj.note,
                   createdAt: new Date(adj.createdAt).getTime(),
+                  target: adj.target ?? "WITHDRAWABLE",
                 },
                 ...s.balanceAdjustments,
               ].slice(0, 200),
@@ -150,5 +165,5 @@ export function useBackendUserSync(): void {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [backend, address, applyBalanceAdjustment, t]);
+  }, [backend, address, applyBalanceAdjustment, setMyReferrer, t]);
 }

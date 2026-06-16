@@ -16,6 +16,8 @@ export interface AdminUserShape {
   totalEarned: number;
   referrals: number;
   uplineWallet: string | null;
+  referrerUsername: string | null;
+  registrationSource: "referral" | "direct";
   joinedAt: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;

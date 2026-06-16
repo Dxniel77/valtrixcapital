@@ -59,6 +59,9 @@ export async function fetchCurrentUser() {
       payoutCap: number;
       isActive: boolean;
       referralCode: string;
+      registrationSource: "referral" | "direct";
+      referrerWallet: string | null;
+      referrerUsername: string | null;
     } | null;
   }>("/api/users/me");
 }
@@ -70,6 +73,7 @@ export async function fetchBalanceAdjustments(sinceMs = 0) {
       id: string;
       amount: number;
       note: string;
+      target: "WITHDRAWABLE" | "STAKING";
       createdAt: string;
     }>;
   }>(`/api/users/me/adjustments?since=${sinceMs}`);
@@ -79,13 +83,17 @@ export async function adminAdjustBalance(
   userId: string,
   delta: number,
   note: string,
+  target: "WITHDRAWABLE" | "STAKING" = "WITHDRAWABLE",
 ) {
   return apiFetch<{
     ok: true;
-    user: { earningsBalance: number };
+    user: {
+      earningsBalance: number;
+      lockedCapital: number;
+    };
   }>(`/api/admin/users/${userId}/adjust-balance`, {
     method: "POST",
-    body: JSON.stringify({ delta, note }),
+    body: JSON.stringify({ delta, note, target }),
   });
 }
 
@@ -101,6 +109,10 @@ export async function fetchAdminUsers() {
       totalEarned: number;
       isActive: boolean;
       role: "USER" | "ADMIN";
+      registrationSource: "referral" | "direct";
+      referrerWallet: string | null;
+      referrerUsername: string | null;
+      directReferrals: number;
       createdAt: string;
     }>;
   }>("/api/admin/users");

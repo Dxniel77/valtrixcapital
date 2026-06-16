@@ -23,6 +23,8 @@ import { useI18n } from "@/lib/i18n/context";
 import {
   useAdminStore,
   type AdminUser,
+  type BalanceAdjustmentTarget,
+  type RegistrationSource,
 } from "@/lib/admin/store";
 import {
   billingPeriodTotal,
@@ -36,8 +38,10 @@ import {
   fetchAdminUsers,
   fetchBackendHealth,
 } from "@/lib/api/client";
+import { getReferrerInfo } from "@/lib/admin/sponsor";
 
 const PERIODS: LeaderPeriod[] = ["week", "month", "3months"];
+type RegistrationFilter = "all" | RegistrationSource;
 
 export default function AdminUsersPage() {
   const { t } = useI18n();
@@ -48,7 +52,38 @@ export default function AdminUsersPage() {
   const [query, setQuery] = React.useState("");
   const [period, setPeriod] = React.useState<LeaderPeriod>("week");
   const [sponsoredOnly, setSponsoredOnly] = React.useState(false);
+  const [registrationFilter, setRegistrationFilter] =
+    React.useState<RegistrationFilter>("all");
   const [editing, setEditing] = React.useState<AdminUser | null>(null);
+
+  React.useEffect(() => {
+    void fetchBackendHealth().then(async (health) => {
+      if (!health.database) return;
+      try {
+        const { users: dbUsers } = await fetchAdminUsers();
+        useAdminStore.setState((s) => ({
+          users: s.users.map((u) => {
+            const db = dbUsers.find(
+              (d) =>
+                d.walletAddress.toLowerCase() === u.wallet.toLowerCase(),
+            );
+            if (!db) return u;
+            return {
+              ...u,
+              registrationSource: db.registrationSource,
+              uplineWallet: db.referrerWallet ?? u.uplineWallet,
+              referrerUsername: db.referrerUsername ?? u.referrerUsername,
+              referrals: db.directReferrals ?? u.referrals,
+              balance: db.earningsBalance,
+              capital: db.lockedCapital,
+            };
+          }),
+        }));
+      } catch {
+        // keep local demo data
+      }
+    });
+  }, []);
 
   const billingRows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,10 +103,16 @@ export default function AdminUsersPage() {
       list = list.filter((r) => r.user.accountGranted);
     }
 
+    if (registrationFilter !== "all") {
+      list = list.filter(
+        (r) => r.user.registrationSource === registrationFilter,
+      );
+    }
+
     return list.sort(
       (a, b) => billingPeriodTotal(b) - billingPeriodTotal(a),
     );
-  }, [users, movements, period, query, sponsoredOnly]);
+  }, [users, movements, period, query, sponsoredOnly, registrationFilter]);
 
   const periodLabel = (p: LeaderPeriod) => {
     if (p === "week") return t("admin.leaders.week");
@@ -137,6 +178,29 @@ export default function AdminUsersPage() {
         >
           {t("admin.users.sponsoredOnly")}
         </button>
+        <div className="inline-flex rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
+          {(
+            [
+              ["all", "registrationFilterAll"],
+              ["referral", "registrationFilterReferral"],
+              ["direct", "registrationFilterDirect"],
+            ] as const
+          ).map(([key, labelKey]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setRegistrationFilter(key)}
+              className={cn(
+                "rounded-sm px-3 py-1.5 text-xs transition-colors",
+                registrationFilter === key
+                  ? "bg-gold/15 text-gold"
+                  : "text-text-secondary hover:bg-bg-hover",
+              )}
+            >
+              {t(`admin.users.${labelKey}`)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -145,6 +209,8 @@ export default function AdminUsersPage() {
             <THeadRow>
               <TH>#</TH>
               <TH>{t("admin.users.colUser")}</TH>
+              <TH>{t("admin.users.colRegistration")}</TH>
+              <TH>{t("admin.users.colReferredBy")}</TH>
               <TH className="text-right">{t("admin.users.colDirectRefs")}</TH>
               <TH className="text-right">{t("admin.leaders.colOperational")}</TH>
               <TH className="text-right">{t("admin.leaders.colNetwork")}</TH>
@@ -165,6 +231,7 @@ export default function AdminUsersPage() {
             {billingRows.map((row, idx) => {
               const u = row.user;
               const sponsored = u.accountGranted;
+              const referrer = getReferrerInfo(u, users);
               return (
                 <TR
                   key={u.id}
@@ -190,6 +257,42 @@ export default function AdminUsersPage() {
                     <p className="font-mono text-xs text-text-muted">
                       {shortenAddress(u.wallet)}
                     </p>
+                  </TD>
+                  <TD>
+                    <Badge
+                      variant={
+                        u.registrationSource === "referral" ? "gold" : "outline"
+                      }
+                    >
+                      {u.registrationSource === "referral"
+                        ? t("admin.users.registrationReferral")
+                        : t("admin.users.registrationDirect")}
+                    </Badge>
+                  </TD>
+                  <TD>
+                    {referrer ? (
+                      <div>
+                        {referrer.adminUserId ? (
+                          <Link
+                            href={`/admin/users/${referrer.adminUserId}`}
+                            className="text-sm font-medium text-gold hover:underline"
+                          >
+                            {referrer.displayName}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium text-text-primary">
+                            {referrer.displayName}
+                          </p>
+                        )}
+                        <p className="font-mono text-xs text-text-muted">
+                          {shortenAddress(referrer.wallet)}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-text-muted">
+                        {t("admin.users.referredByNone")}
+                      </span>
+                    )}
                   </TD>
                   <TD className="text-right font-mono">{u.referrals}</TD>
                   <TD className="text-right font-mono text-xs">
@@ -270,16 +373,20 @@ function AdjustBalanceModal({
   const adjustBalance = useAdminStore((s) => s.adjustBalance);
   const [deltaStr, setDeltaStr] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [target, setTarget] =
+    React.useState<BalanceAdjustmentTarget>("WITHDRAWABLE");
 
   React.useEffect(() => {
     if (user) {
       setDeltaStr("");
       setNote("");
+      setTarget("WITHDRAWABLE");
     }
   }, [user]);
 
   const delta = Number(deltaStr.replace(/,/g, "."));
-  const valid = Number.isFinite(delta) && delta !== 0;
+  const stakingInvalid = target === "STAKING" && delta <= 0;
+  const valid = Number.isFinite(delta) && delta !== 0 && !stakingInvalid;
   const [submitting, setSubmitting] = React.useState(false);
 
   async function apply() {
@@ -293,12 +400,20 @@ function AdjustBalanceModal({
           (u) => u.walletAddress.toLowerCase() === user.wallet.toLowerCase(),
         );
         if (dbUser) {
-          const result = await adminAdjustBalance(dbUser.id, delta, note);
-          const nextBalance = (result.user as { earningsBalance: number }).earningsBalance;
+          const result = await adminAdjustBalance(
+            dbUser.id,
+            delta,
+            note,
+            target,
+          );
           useAdminStore.setState((s) => ({
             users: s.users.map((u) =>
               u.wallet.toLowerCase() === user.wallet.toLowerCase()
-                ? { ...u, balance: nextBalance }
+                ? {
+                    ...u,
+                    balance: result.user.earningsBalance,
+                    capital: result.user.lockedCapital,
+                  }
                 : u,
             ),
           }));
@@ -308,7 +423,7 @@ function AdjustBalanceModal({
         }
       }
 
-      adjustBalance(user.id, delta, note);
+      adjustBalance(user.id, delta, note, target);
       toast.success(t("admin.users.balanceAdjusted"));
       onClose();
     } catch (err) {
@@ -325,14 +440,47 @@ function AdjustBalanceModal({
           <DialogTitle>{t("admin.users.adjustTitle")}</DialogTitle>
           <DialogDescription>
             {user
-              ? t("admin.users.adjustSubtitle", {
+              ? t("admin.users.adjustSubtitleFull", {
                   user: user.alias,
                   balance: formatNumber(user.balance, { decimals: 2 }),
+                  capital: formatNumber(user.capital, { decimals: 2 }),
                 })
               : ""}
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider text-text-muted">
+              {t("admin.users.adjustTargetLabel")}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ["WITHDRAWABLE", "adjustTargetWithdrawable", "adjustTargetWithdrawableDesc"],
+                  ["STAKING", "adjustTargetStaking", "adjustTargetStakingDesc"],
+                ] as const
+              ).map(([value, titleKey, descKey]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTarget(value)}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition-colors",
+                    target === value
+                      ? "border-gold/50 bg-gold/10"
+                      : "border-border-subtle hover:bg-bg-hover",
+                  )}
+                >
+                  <p className="text-sm font-medium text-text-primary">
+                    {t(`admin.users.${titleKey}`)}
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    {t(`admin.users.${descKey}`)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.users.deltaLabel")}
@@ -344,7 +492,11 @@ function AdjustBalanceModal({
               placeholder="e.g. 100 / -50"
               className="font-mono"
             />
-            <p className="text-xs text-text-muted">{t("admin.users.deltaHint")}</p>
+            <p className="text-xs text-text-muted">
+              {target === "STAKING"
+                ? t("admin.users.deltaHintStaking")
+                : t("admin.users.deltaHint")}
+            </p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-text-muted">

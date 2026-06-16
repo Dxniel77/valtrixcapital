@@ -594,7 +594,8 @@
     "colJoined": "Depuis",
     "colEarned": "Total gagné",
     "colCommissions": "Commissions",
-    "networkLevel": "Réseau"
+    "networkLevel": "Réseau",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "Commerce de robots",
@@ -919,7 +920,22 @@
       "subtitleBilling": "Facturation par période, réseau par niveau et détail utilisateur exclusif.",
       "colDirectRefs": "Direct",
       "sponsoredBadge": "Sponsorisé",
-      "sponsoredOnly": "Sponsorisé uniquement"
+      "sponsoredOnly": "Sponsorisé uniquement",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "Mouvements",
@@ -1117,7 +1133,9 @@
         "SELF_SPONSOR": "Un utilisateur ne peut pas se parrainer",
         "SPONSOR_NOT_FOUND": "Sponsor introuvable : vérifiez votre portefeuille, votre nom d'utilisateur ou votre code.",
         "CYCLE": "Cette affectation créerait une upline circulaire"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "Des flux de trésorerie",

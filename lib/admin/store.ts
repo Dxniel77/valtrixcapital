@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin/withdrawal-eligibility";
 import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
 import {
+  findSponsorUser,
   findUserByReferralCode,
   recountDirectReferrals,
   resolveSponsorQuery,
@@ -27,6 +28,8 @@ export type { WithdrawalRule };
 export type AdminUserStatus = "ACTIVE" | "INACTIVE";
 export type AdminUserRole = "USER" | "ADMIN";
 export type AdminNetwork = "BSC" | "POLYGON";
+export type RegistrationSource = "referral" | "direct";
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
 
 export interface AdminUser {
   id: string;
@@ -40,6 +43,10 @@ export interface AdminUser {
   totalEarned: number;
   referrals: number;
   uplineWallet: string | null;
+  /** Cached referrer username from DB when not in local user list. */
+  referrerUsername: string | null;
+  /** Whether the user signed up via a referral link (vs direct registration). */
+  registrationSource: RegistrationSource;
   joinedAt: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
@@ -68,6 +75,7 @@ export interface AdminBalanceAdjustment {
   wallet: string;
   delta: number;
   note: string;
+  target: BalanceAdjustmentTarget;
   createdAt: number;
   appliedAt: number | null;
 }
@@ -123,7 +131,12 @@ interface AdminState {
     },
   ) => void;
   setUserStatus: (id: string, status: AdminUserStatus) => void;
-  adjustBalance: (id: string, delta: number, note: string) => void;
+  adjustBalance: (
+    id: string,
+    delta: number,
+    note: string,
+    target?: BalanceAdjustmentTarget,
+  ) => void;
   markBalanceAdjustmentsApplied: (ids: string[]) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
   recordMovement: (movement: AdminMovement) => void;
@@ -173,6 +186,8 @@ function buildDemoUsers(): AdminUser[] {
           totalEarned,
           referrals: Math.floor(Math.random() * 24),
           uplineWallet: i > 2 ? users[Math.floor(Math.random() * Math.min(i, 5))].wallet : null,
+          referrerUsername: null,
+          registrationSource: i > 2 && i % 2 === 0 ? "referral" : "direct",
           joinedAt: now - Math.floor(Math.random() * 90) * 86_400_000,
           accountGranted: false,
           withdrawalUnlocked: false,
@@ -305,6 +320,10 @@ export const useAdminStore = create<AdminState>()(
               totalEarned: 0,
               referrals: 0,
               uplineWallet: resolvedUpline,
+              referrerUsername: resolvedUpline
+                ? findSponsorUser(get().users, resolvedUpline)?.alias ?? null
+                : null,
+              registrationSource: resolvedUpline ? "referral" : "direct",
               joinedAt: profile.joinedAt,
               accountGranted: true,
               withdrawalUnlocked: false,
@@ -362,6 +381,8 @@ export const useAdminStore = create<AdminState>()(
           totalEarned: 0,
           referrals: 0,
           uplineWallet,
+          referrerUsername: null,
+          registrationSource: "direct",
           joinedAt: Date.now(),
           accountGranted: true,
           withdrawalUnlocked: false,
@@ -517,23 +538,31 @@ export const useAdminStore = create<AdminState>()(
         }));
       },
 
-      adjustBalance: (id, delta, note) => {
+      adjustBalance: (id, delta, note, target = "WITHDRAWABLE") => {
         const user = get().users.find((u) => u.id === id);
         if (!user || delta === 0) return;
         const adjId = makeId("adj");
         const now = Date.now();
+        const isStaking = target === "STAKING" && delta > 0;
+
         set((s) => ({
-          users: s.users.map((u) =>
-            u.id === id
-              ? { ...u, balance: Math.max(0, u.balance + delta) }
-              : u,
-          ),
+          users: s.users.map((u) => {
+            if (u.id !== id) return u;
+            if (isStaking) {
+              return { ...u, capital: u.capital + delta };
+            }
+            return {
+              ...u,
+              balance: Math.max(0, u.balance + delta),
+            };
+          }),
           balanceAdjustments: [
             {
               id: adjId,
               wallet: user.wallet.toLowerCase(),
               delta,
               note: note.trim(),
+              target,
               createdAt: now,
               appliedAt: null,
             },
@@ -556,7 +585,7 @@ export const useAdminStore = create<AdminState>()(
               id: makeId("aud"),
               action: "BALANCE_ADJUSTED",
               target: user.alias,
-              detail: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} USDT — ${note || "sin nota"}`,
+              detail: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} USDT (${target}) — ${note || "sin nota"}`,
               actor: "admin",
               timestamp: now,
             },
@@ -639,16 +668,35 @@ export const useAdminStore = create<AdminState>()(
         seeded: s.seeded,
       }),
       migrate: (persisted) => {
-        const prev = persisted as { settings?: Partial<PlatformSettings> } & Record<string, unknown>;
+        const prev = persisted as {
+          settings?: Partial<PlatformSettings>;
+          users?: AdminUser[];
+          balanceAdjustments?: AdminBalanceAdjustment[];
+        } & Record<string, unknown>;
         if (prev.settings && typeof window !== "undefined") {
           usePlatformSettingsStore
             .getState()
             .updateSettings({ ...DEFAULT_PLATFORM_SETTINGS, ...prev.settings });
         }
         const { settings: _settings, ...rest } = prev;
+        if (Array.isArray(rest.users)) {
+          rest.users = rest.users.map((u) => ({
+            ...u,
+            registrationSource:
+              u.registrationSource ??
+              (u.uplineWallet ? "referral" : "direct"),
+            referrerUsername: u.referrerUsername ?? null,
+          }));
+        }
+        if (Array.isArray(rest.balanceAdjustments)) {
+          rest.balanceAdjustments = rest.balanceAdjustments.map((a) => ({
+            ...a,
+            target: a.target ?? "WITHDRAWABLE",
+          }));
+        }
         return rest;
       },
-      version: 4,
+      version: 5,
     },
   ),
 );

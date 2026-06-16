@@ -602,7 +602,8 @@
     "colJoined": "Seit",
     "colEarned": "Insgesamt verdient",
     "colCommissions": "Provisionen",
-    "networkLevel": "Netzwerk"
+    "networkLevel": "Netzwerk",
+    "referredBy": "You were referred by"
   },
   "botPage": {
     "title": "Bot-Handel",
@@ -927,7 +928,22 @@
       "subtitleBilling": "Abrechnung nach Zeitraum, Netzwerk pro Ebene und exklusiven Benutzerdetails.",
       "colDirectRefs": "Direkt",
       "sponsoredBadge": "Gesponsert",
-      "sponsoredOnly": "Nur gesponsert"
+      "sponsoredOnly": "Nur gesponsert",
+      "colRegistration": "Registration",
+      "registrationReferral": "Referral link",
+      "registrationDirect": "Direct",
+      "registrationFilterAll": "All",
+      "registrationFilterReferral": "Referrals",
+      "registrationFilterDirect": "Direct",
+      "adjustSubtitleFull": "{user} · balance ${balance} · capital ${capital} USDT",
+      "adjustTargetLabel": "Credit type",
+      "adjustTargetWithdrawable": "Withdrawable bonus",
+      "adjustTargetWithdrawableDesc": "Adds to earnings balance. The user can withdraw these funds.",
+      "adjustTargetStaking": "Staking capital",
+      "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
+      "deltaHintStaking": "Staking credits must be a positive amount.",
+      "colReferredBy": "Referred by",
+      "referredByNone": "—"
     },
     "movements": {
       "title": "Movements",
@@ -1125,7 +1141,9 @@
         "SELF_SPONSOR": "Ein Benutzer kann sich nicht selbst sponsern",
         "SPONSOR_NOT_FOUND": "Sponsor nicht gefunden – überprüfen Sie Wallet, Benutzernamen oder Code",
         "CYCLE": "Diese Aufgabe würde eine kreisförmige Upline schaffen"
-      }
+      },
+      "registrationSource": "Registration",
+      "referredBy": "Referred by"
     },
     "cashflow": {
       "title": "Cashflow",
