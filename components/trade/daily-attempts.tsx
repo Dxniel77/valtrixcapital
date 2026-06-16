@@ -107,7 +107,10 @@ function Ring({
 }) {
   const radius = 36;
   const circ = 2 * Math.PI * radius;
-  const offset = circ - (percent / 100) * circ;
+  const safePct = Number.isFinite(percent)
+    ? Math.min(100, Math.max(0, percent))
+    : 0;
+  const offset = circ - (safePct / 100) * circ;
   return (
     <div className="relative h-24 w-24 shrink-0">
       <svg className="h-full w-full -rotate-90" viewBox="0 0 96 96">

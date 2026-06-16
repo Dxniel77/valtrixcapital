@@ -5,23 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UsernameGate } from "@/components/user/username-gate";
-import { CompanyFeedEngines } from "@/components/earnings/company-feed-engines";
-import { EarningsEngines } from "@/components/earnings/earnings-engines";
-import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
-import { NotificationBridge } from "@/components/notifications/notification-bridge";
-import { useAdminUserSync } from "@/lib/hooks/use-admin-user-sync";
-
-function DashboardRuntime() {
-  useAdminUserSync();
-  return (
-    <>
-      <EarningsEngines />
-      <CompanyFeedEngines />
-      <AdminMovementBridge />
-      <NotificationBridge />
-    </>
-  );
-}
+import { DeferredDashboardRuntime } from "@/components/dashboard/deferred-dashboard-runtime";
 
 export default function DashboardLayout({
   children,
@@ -33,7 +17,7 @@ export default function DashboardLayout({
 
   return (
     <UsernameGate>
-      <DashboardRuntime />
+      <DeferredDashboardRuntime />
       <div className="flex min-h-screen bg-bg-base">
         <Sidebar
           collapsed={collapsed}

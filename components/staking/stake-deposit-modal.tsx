@@ -638,7 +638,10 @@ function ConfirmationsRing({
 }) {
   const radius = 44;
   const circ = 2 * Math.PI * radius;
-  const offset = circ - (Math.min(100, pct) / 100) * circ;
+  const safePct = Number.isFinite(pct)
+    ? Math.min(100, Math.max(0, pct))
+    : 0;
+  const offset = circ - (safePct / 100) * circ;
   return (
     <div className="relative h-28 w-28">
       <svg className="h-full w-full -rotate-90" viewBox="0 0 112 112">

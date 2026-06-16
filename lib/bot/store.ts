@@ -650,7 +650,7 @@ export function useCompanyProfits() {
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => setNow(Date.now()), 3_000);
     return () => window.clearInterval(id);
   }, []);
 

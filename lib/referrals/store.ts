@@ -334,12 +334,17 @@ export function referralLink(code: string, origin?: string): string {
 export function useCommissionEngine(): void {
   const hydrated = useReferralsStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
-  const dailyYields = useStakingStore((s) => s.dailyYields);
+  const yieldSignature = useStakingStore(
+    (s) =>
+      s.dailyYields.length === 0
+        ? ""
+        : `${s.dailyYields.length}:${s.dailyYields.at(-1)?.id ?? ""}`,
+  );
   const process = useReferralsStore((s) => s.processCommissionsForYields);
 
   React.useEffect(() => {
-    if (!hydrated || !stakingHydrated) return;
-    if (dailyYields.length === 0) return;
+    if (!hydrated || !stakingHydrated || !yieldSignature) return;
+    const dailyYields = useStakingStore.getState().dailyYields;
     process(
       dailyYields.map((y) => ({
         id: y.id,
@@ -347,7 +352,7 @@ export function useCommissionEngine(): void {
         creditedAmount: y.creditedAmount,
       })),
     );
-  }, [hydrated, stakingHydrated, dailyYields, process]);
+  }, [hydrated, stakingHydrated, yieldSignature, process]);
 }
 
 /** Pays accumulated network commissions to withdrawable balance every UTC day. */

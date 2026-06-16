@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useShallow } from "zustand/react/shallow";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
@@ -174,13 +175,19 @@ export interface DailySummary {
 
 /** React hook that returns a memoized daily summary derived from the store. */
 export function useDailySummary(): DailySummary {
-  const positions = useTradeStore((s) => s.positions);
-  const stakes = useStakingStore((s) => s.stakes);
-  const capital = activeCapital(stakes);
+  const positionOutcomes = useTradeStore(
+    useShallow((s) =>
+      s.positions.map((p) => ({
+        status: p.status,
+        openedAt: p.openedAt,
+      })),
+    ),
+  );
+  const capital = useStakingStore((s) => activeCapital(s.stakes));
   const settings = usePlatformSettingsStore((s) => s.settings);
   return React.useMemo(
-    () => deriveDailySummary(positions, capital, settings),
-    [positions, capital, settings],
+    () => deriveDailySummary(positionOutcomes, capital, settings),
+    [positionOutcomes, capital, settings],
   );
 }
 
@@ -206,7 +213,7 @@ export function useOpenPositions(): Position[] {
 
 /** Pure derivation — call with a stable positions array. */
 export function deriveDailySummary(
-  positions: Position[],
+  positions: Pick<Position, "openedAt" | "status">[],
   capital: number,
   settings: PlatformSettings = getPlatformSettings(),
 ): DailySummary {

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useShallow } from "zustand/react/shallow";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import {
@@ -43,7 +44,6 @@ import {
 } from "@/lib/staking/store";
 import {
   useCombinedEngineProfits,
-  useLiveCombinedToday,
 } from "@/lib/company-tools/combined-profits";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -55,7 +55,7 @@ export function DashboardOverview() {
   const portfolio = usePortfolioSummary();
   const preview = useTodayYieldPreview();
   const hydrated = useStakingStoreHydrated();
-  const yields = useStakingStore((s) => s.dailyYields);
+  const yields = useStakingStore(useShallow((s) => s.dailyYields.slice(0, 7)));
   const companyProfits = useCombinedEngineProfits();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
@@ -215,9 +215,8 @@ function CompanyProfitsStrip({
   profits: ReturnType<typeof useCombinedEngineProfits>;
 }) {
   const { t } = useI18n();
-  const liveToday = useLiveCombinedToday();
   const items = [
-    { label: t("dashboard.overview.companyToday"), value: liveToday },
+    { label: t("dashboard.overview.companyToday"), value: profits.combinedTodayLive },
     { label: t("dashboard.overview.companyWeek"), value: profits.combinedWeek },
     {
       label: t("dashboard.overview.companyAllTime"),
@@ -472,7 +471,7 @@ function DailyAttemptsCard({
   const { t } = useI18n();
   const used = wins + losses;
   const remaining = Math.max(total - used, 0);
-  const pct = (used / total) * 100;
+  const pct = total > 0 ? (used / total) * 100 : 0;
 
   return (
     <Card>
@@ -526,7 +525,10 @@ function DailyAttemptsCard({
 function RingProgress({ percent, value }: { percent: number; value: string }) {
   const radius = 32;
   const circ = 2 * Math.PI * radius;
-  const offset = circ - (percent / 100) * circ;
+  const safePct = Number.isFinite(percent)
+    ? Math.min(100, Math.max(0, percent))
+    : 0;
+  const offset = circ - (safePct / 100) * circ;
   return (
     <div className="relative h-20 w-20 shrink-0">
       <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80">

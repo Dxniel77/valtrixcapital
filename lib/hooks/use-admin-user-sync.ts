@@ -2,68 +2,79 @@
 
 import * as React from "react";
 import { useAccount } from "wagmi";
+import { useShallow } from "zustand/react/shallow";
 import { useAdminStore } from "@/lib/admin/store";
 import { useStakingStore } from "@/lib/staking/store";
 import { useReferralsStore } from "@/lib/referrals/store";
+import { selectActiveCapital } from "@/lib/staking/selectors";
 import {
   evaluateWithdrawalEligibility,
   type WithdrawalEligibilityResult,
 } from "@/lib/admin/withdrawal-eligibility";
+import { useDebouncedEffect } from "@/lib/hooks/use-debounced-effect";
 
 export function useAdminUserSync(): void {
   const { address } = useAccount();
   const sync = useAdminStore((s) => s.syncLiveUserMetrics);
-  const capital = useStakingStore((s) =>
-    s.stakes.filter((st) => st.status === "ACTIVE").reduce((a, st) => a + st.amount, 0),
-  );
+  const capital = useStakingStore((s) => selectActiveCapital(s.stakes));
   const balance = useStakingStore((s) => s.earningsBalance);
   const totalEarned = useStakingStore((s) => s.totalEarned);
-  const instantCredits = useStakingStore((s) => s.instantCredits);
-  const dailyYields = useStakingStore((s) => s.dailyYields);
+  const operationalEarned = useStakingStore((s) =>
+    s.instantCredits.reduce((a, c) => a + c.amount, 0),
+  );
+  const passiveEarned = useStakingStore((s) =>
+    s.dailyYields.reduce((a, y) => a + y.creditedAmount, 0),
+  );
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
-  const downline = useReferralsStore((s) => s.downline);
-  const levelStats = useReferralsStore((s) => s.commissions);
-
-  React.useEffect(() => {
-    if (!address) return;
-
-    const operationalEarned = instantCredits.reduce((a, c) => a + c.amount, 0);
-    const passiveEarned = dailyYields.reduce((a, y) => a + y.creditedAmount, 0);
-    const networkEarned = totalCommissions;
-    const directReferrals = downline.filter((m) => m.level === 1).length;
-    const levelVolumes = Array.from({ length: 8 }, (_, i) => {
-      const lvl = i + 1;
-      return levelStats
-        .filter((c) => c.level === lvl)
-        .reduce((a, c) => a + c.amount, 0);
-    });
-    const directSalesVolume = downline
+  const directReferrals = useReferralsStore(
+    (s) => s.downline.filter((m) => m.level === 1).length,
+  );
+  const directSalesVolume = useReferralsStore((s) =>
+    s.downline
       .filter((m) => m.level === 1 && m.isActive)
-      .reduce((a, m) => a + m.capital, 0);
+      .reduce((a, m) => a + m.capital, 0),
+  );
+  const levelVolumes = useReferralsStore(
+    useShallow((s) =>
+      Array.from({ length: 8 }, (_, i) => {
+        const lvl = i + 1;
+        return s.commissions
+          .filter((c) => c.level === lvl)
+          .reduce((a, c) => a + c.amount, 0);
+      }),
+    ),
+  );
 
-    sync(address, {
+  useDebouncedEffect(
+    () => {
+      if (!address) return;
+      sync(address, {
+        capital,
+        balance,
+        totalEarned,
+        operationalEarned,
+        networkEarned: totalCommissions,
+        passiveEarned,
+        directReferrals,
+        directSalesVolume,
+        levelVolumes,
+      });
+    },
+    [
+      address,
+      sync,
       capital,
       balance,
       totalEarned,
       operationalEarned,
-      networkEarned,
       passiveEarned,
+      totalCommissions,
       directReferrals,
       directSalesVolume,
       levelVolumes,
-    });
-  }, [
-    address,
-    sync,
-    capital,
-    balance,
-    totalEarned,
-    instantCredits,
-    dailyYields,
-    totalCommissions,
-    downline,
-    levelStats,
-  ]);
+    ],
+    350,
+  );
 }
 
 export function useWithdrawalEligibility(): WithdrawalEligibilityResult & {

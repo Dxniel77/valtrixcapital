@@ -424,7 +424,7 @@ export function useLiquidationProfits() {
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => setNow(Date.now()), 3_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -467,7 +467,7 @@ export function useLiquidationFeedEngine(): void {
 
   React.useEffect(() => {
     if (!hydrated || !running) return;
-    const id = window.setInterval(() => tickMicroAccrual(), 500);
+    const id = window.setInterval(() => tickMicroAccrual(), 1_000);
     return () => window.clearInterval(id);
   }, [hydrated, running, tickMicroAccrual]);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { usePlatformSettings } from "@/lib/platform/settings-store";
 import { utcDayKey } from "@/lib/trade/constants";
@@ -184,7 +185,15 @@ export function usePortfolioSummary(): PortfolioSummary {
   const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
-  const positions = useTradeStore((s) => s.positions);
+  const positionOutcomes = useTradeStore(
+    useShallow((s) =>
+      s.positions.map((p) => ({
+        id: p.id,
+        status: p.status,
+        openedAt: p.openedAt,
+      })),
+    ),
+  );
   const preview = useTodayYieldPreview();
   const { bonusPerWinBps } = usePlatformSettings();
 
@@ -203,7 +212,7 @@ export function usePortfolioSummary(): PortfolioSummary {
     const operationalPendingToday = pendingOperationalCredit(
       stakes,
       creditedPositionIds,
-      positions,
+      positionOutcomes,
       bonusPerWinBps,
     );
     const breakdown: CapEarningsBreakdown = {
@@ -233,7 +242,7 @@ export function usePortfolioSummary(): PortfolioSummary {
     creditedPositionIds,
     totalCommissions,
     withdrawals,
-    positions,
+    positionOutcomes,
     preview.projectedBaseAmount,
     bonusPerWinBps,
   ]);
@@ -241,14 +250,21 @@ export function usePortfolioSummary(): PortfolioSummary {
 
 export function useTodayYieldPreview(): TodayYieldPreview {
   const stakes = useStakingStore((s) => s.stakes);
-  const positions = useTradeStore((s) => s.positions);
+  const positionOutcomes = useTradeStore(
+    useShallow((s) =>
+      s.positions.map((p) => ({
+        status: p.status,
+        openedAt: p.openedAt,
+      })),
+    ),
+  );
   const { baseYieldBps, bonusPerWinBps, maxDailyYieldBps } = usePlatformSettings();
   return React.useMemo(() => {
     const today = utcDayKey();
     const capital = stakes
       .filter((s) => stakeEligibleForPassiveYieldNow(s))
       .reduce((acc, s) => acc + s.amount, 0);
-    const todays = positions.filter(
+    const todays = positionOutcomes.filter(
       (p) => utcDayKey(p.openedAt) === today && p.status !== "OPEN",
     );
     const wins = todays.filter((p) => p.status === "WIN").length;
@@ -268,5 +284,5 @@ export function useTodayYieldPreview(): TodayYieldPreview {
       wins,
       losses,
     };
-  }, [stakes, positions, baseYieldBps, bonusPerWinBps, maxDailyYieldBps]);
+  }, [stakes, positionOutcomes, baseYieldBps, bonusPerWinBps, maxDailyYieldBps]);
 }

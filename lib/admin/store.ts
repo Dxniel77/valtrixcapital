@@ -140,6 +140,7 @@ interface AdminState {
   markBalanceAdjustmentsApplied: (ids: string[]) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
   recordMovement: (movement: AdminMovement) => void;
+  syncLiveMovements: (movements: AdminMovement[]) => void;
   reset: () => void;
 }
 
@@ -481,6 +482,18 @@ export const useAdminStore = create<AdminState>()(
         const user = get().users.find((u) => u.wallet.toLowerCase() === key);
         if (!user) return;
 
+        const unchanged =
+          user.capital === metrics.capital &&
+          user.balance === metrics.balance &&
+          user.totalEarned === metrics.totalEarned &&
+          user.operationalEarned === metrics.operationalEarned &&
+          user.networkEarned === metrics.networkEarned &&
+          user.passiveEarned === metrics.passiveEarned &&
+          user.referrals === metrics.directReferrals &&
+          user.directSalesVolume === metrics.directSalesVolume &&
+          user.levelVolumes.every((v, i) => v === metrics.levelVolumes[i]);
+        if (unchanged) return;
+
         const updated = recomputeWithdrawalUnlock({
           ...user,
           capital: metrics.capital,
@@ -635,6 +648,24 @@ export const useAdminStore = create<AdminState>()(
           return {
             movements: [movement, ...s.movements].slice(0, 500),
           };
+        });
+      },
+
+      syncLiveMovements: (incoming) => {
+        if (incoming.length === 0) return;
+        set((s) => {
+          const byId = new Map(s.movements.map((m) => [m.id, m] as const));
+          for (const movement of incoming) {
+            const prev = byId.get(movement.id);
+            byId.set(
+              movement.id,
+              prev ? { ...prev, ...movement } : movement,
+            );
+          }
+          const merged = [...byId.values()].sort(
+            (a, b) => b.timestamp - a.timestamp,
+          );
+          return { movements: merged.slice(0, 500) };
         });
       },
 

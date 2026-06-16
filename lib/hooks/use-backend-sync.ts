@@ -160,7 +160,7 @@ export function useBackendUserSync(): void {
     }
 
     void sync();
-    const timer = window.setInterval(() => void sync(), 20_000);
+    const timer = window.setInterval(() => void sync(), 30_000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
