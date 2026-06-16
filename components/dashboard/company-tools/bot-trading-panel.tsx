@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import {
-  useBotFeedEngine,
   useBotStore,
   useBotStoreHydrated,
   useCompanyProfits,
@@ -33,8 +32,6 @@ export function BotTradingPanel() {
   const syncMarketAnchors = useBotStore((s) => s.syncMarketAnchors);
   const symbols = React.useMemo(() => PAIRS.map((p) => p.binance), []);
   const tickers = useTickers(symbols);
-
-  useBotFeedEngine();
 
   React.useEffect(() => {
     const prices: Record<string, number> = {};

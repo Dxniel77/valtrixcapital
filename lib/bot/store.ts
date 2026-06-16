@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDeferredEffect } from "@/lib/hooks/use-deferred-effect";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { PAIRS } from "@/lib/market/pairs";
@@ -666,7 +667,7 @@ export function useBotFeedEngine(): void {
   const syncGlobalFeed = useBotStore((s) => s.syncGlobalFeed);
   const refreshRecentTxPool = useBotStore((s) => s.refreshRecentTxPool);
 
-  React.useEffect(() => {
+  useDeferredEffect(() => {
     if (!hydrated) return;
     void refreshRecentTxPool().then(() => {
       syncGlobalFeed();

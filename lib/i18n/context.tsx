@@ -6,7 +6,9 @@ import {
   getLocaleOption,
   getMessages,
   isLocale,
+  loadMessages,
   LOCALE_STORAGE_KEY,
+  preloadLocales,
   translate,
   type Locale,
   type Messages,
@@ -34,11 +36,17 @@ function readStoredLocale(): Locale {
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = React.useState<Locale>(defaultLocale);
+  const [messages, setMessages] = React.useState<Messages>(() =>
+    getMessages(defaultLocale),
+  );
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
-    setLocaleState(readStoredLocale());
+    const stored = readStoredLocale();
+    setLocaleState(stored);
+    void loadMessages(stored).then(setMessages);
     setReady(true);
+    preloadLocales();
   }, []);
 
   const setLocale = React.useCallback((next: Locale) => {
@@ -48,6 +56,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
+    void loadMessages(next).then(setMessages);
   }, []);
 
   React.useEffect(() => {
@@ -56,8 +65,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = option.htmlLang;
     document.documentElement.dir = option.dir;
   }, [locale, ready]);
-
-  const messages = React.useMemo(() => getMessages(locale), [locale]);
 
   const value = React.useMemo(
     () => ({

@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UsernameGate } from "@/components/user/username-gate";
+import { CompanyFeedEngines } from "@/components/earnings/company-feed-engines";
 import { EarningsEngines } from "@/components/earnings/earnings-engines";
 import { NotificationBridge } from "@/components/notifications/notification-bridge";
 import { useAdminUserSync } from "@/lib/hooks/use-admin-user-sync";
@@ -14,6 +15,7 @@ function DashboardRuntime() {
   return (
     <>
       <EarningsEngines />
+      <CompanyFeedEngines />
       <NotificationBridge />
     </>
   );

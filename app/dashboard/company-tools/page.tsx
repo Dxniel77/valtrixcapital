@@ -10,7 +10,6 @@ import { BotTradingPanel } from "@/components/dashboard/company-tools/bot-tradin
 import { LiquidationEnginePanel } from "@/components/dashboard/company-tools/liquidation-engine-panel";
 import { CompanyRevenueSummary } from "@/components/dashboard/company-tools/company-revenue-summary";
 import { useI18n } from "@/lib/i18n/context";
-import { useLiquidationFeedEngine } from "@/lib/liquidation-engine/store";
 import { cn } from "@/lib/utils";
 
 type CompanyToolsTab = "bot" | "liquidation";
@@ -24,8 +23,6 @@ function CompanyToolsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
-
-  useLiquidationFeedEngine();
 
   const tabs: {
     id: CompanyToolsTab;

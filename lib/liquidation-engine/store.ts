@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDeferredEffect } from "@/lib/hooks/use-deferred-effect";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { PAIRS } from "@/lib/market/pairs";
@@ -441,7 +442,7 @@ export function useLiquidationFeedEngine(): void {
   const refreshTxPool = useLiquidationStore((s) => s.refreshTxPool);
   const tickMicroAccrual = useLiquidationStore((s) => s.tickMicroAccrual);
 
-  React.useEffect(() => {
+  useDeferredEffect(() => {
     if (!hydrated) return;
     void refreshTxPool().then(() => {
       syncGlobalFeed();
