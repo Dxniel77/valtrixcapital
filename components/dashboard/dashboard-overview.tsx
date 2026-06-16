@@ -307,7 +307,14 @@ function CapitalCallout() {
         <p className="text-xs text-text-secondary">
           {t("dashboard.overview.capitalCalloutDesc")}
         </p>
-        <StartStakingCTA className="w-full" size="md" />
+        <div className="flex flex-col gap-2">
+          <Button asChild variant="primary" size="md" className="w-full">
+            <Link href="/dashboard/wallet#add-funds">
+              {t("walletPage.deposit.addCapital")}
+            </Link>
+          </Button>
+          <StartStakingCTA className="w-full" size="md" variant="outline" />
+        </div>
       </CardContent>
     </Card>
   );

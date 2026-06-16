@@ -2,15 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
-import { bsc, polygon } from "wagmi/chains";
+import { useAccount } from "wagmi";
 import { toast } from "sonner";
 import {
   ArrowRight,
   CheckCircle2,
   ExternalLink,
   Lock,
-  Loader2,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -25,11 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
 import { usePlatformSettings } from "@/lib/platform/settings-store";
 import {
-  REQUIRED_CONFIRMATIONS,
   useStakingStore,
   type StakingNetwork,
 } from "@/lib/staking/store";
@@ -37,10 +35,12 @@ import {
   cn,
   explorerUrl,
   formatNumber,
+  shortenAddress,
   shortenHash,
 } from "@/lib/utils";
+import { bsc, polygon } from "wagmi/chains";
 
-type Step = "form" | "wallet" | "confirming" | "success";
+type Step = "form" | "transfer" | "confirming" | "success";
 
 const PRESETS = [50, 250, 1000, 5000];
 
@@ -49,20 +49,21 @@ interface StakeDepositModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function targetChainIdFor(network: StakingNetwork): number {
+  return network === "POLYGON" ? polygon.id : bsc.id;
+}
+
 export function StakeDepositModal({
   open,
   onOpenChange,
 }: StakeDepositModalProps) {
   const { t } = useI18n();
-  const { isConnected } = useAccount();
-  const chainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
+  const { address, isConnected } = useAccount();
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState<string>("250");
-  const [network, setNetwork] = React.useState<StakingNetwork>(() =>
-    chainId === polygon.id ? "POLYGON" : "BSC",
-  );
+  const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
+  const [txHashInput, setTxHashInput] = React.useState("");
 
   const beginDeposit = useStakingStore((s) => s.beginDeposit);
   const advance = useStakingStore((s) => s.advanceDepositConfirmation);
@@ -72,13 +73,9 @@ export function StakeDepositModal({
   const { minStakeUsdt, maxStakeUsdt } = usePlatformSettings();
 
   React.useEffect(() => {
-    if (chainId === polygon.id) setNetwork("POLYGON");
-    else if (chainId === bsc.id) setNetwork("BSC");
-  }, [chainId]);
-
-  React.useEffect(() => {
     if (!open) return;
     setStep("form");
+    setTxHashInput("");
   }, [open]);
 
   const amount = Number(amountStr.replace(/,/g, "."));
@@ -86,17 +83,11 @@ export function StakeDepositModal({
     Number.isFinite(amount) &&
     amount >= minStakeUsdt &&
     amount <= maxStakeUsdt;
-  const targetChainId = network === "POLYGON" ? polygon.id : bsc.id;
-  const needsSwitch = isConnected && chainId !== targetChainId;
 
   const dailyMin = amountValid ? amount * 0.003 : 0;
   const dailyMax = amountValid ? amount * 0.01 : 0;
 
-  async function handleContinue() {
-    if (!isConnected) {
-      toast.error(t("staking.deposit.connectWalletFirst"));
-      return;
-    }
+  function handleContinueToTransfer() {
     if (!amountValid) {
       toast.error(
         amount < minStakeUsdt
@@ -105,21 +96,18 @@ export function StakeDepositModal({
       );
       return;
     }
-    if (needsSwitch && switchChainAsync) {
-      try {
-        await switchChainAsync({ chainId: targetChainId });
-      } catch {
-        toast.error(t("staking.deposit.switchFailed"));
-        return;
-      }
-    }
-    beginDeposit({ amount, network });
-    setStep("wallet");
-    // Simulate wallet approval lag (1.6s) then move into the confirmation watcher.
-    window.setTimeout(() => setStep("confirming"), 1600);
+    setStep("transfer");
   }
 
-  // Drive confirmations once we're in the watcher state.
+  function handleConfirmSent() {
+    if (!isConnected || !address) {
+      toast.error(t("staking.deposit.connectForCredit"));
+      return;
+    }
+    beginDeposit({ amount, network, txHash: txHashInput });
+    setStep("confirming");
+  }
+
   React.useEffect(() => {
     if (step !== "confirming") return;
     if (!pending) return;
@@ -130,7 +118,6 @@ export function StakeDepositModal({
     return () => window.clearInterval(id);
   }, [step, pending, advance]);
 
-  // Finalize as soon as confirmations are complete.
   React.useEffect(() => {
     if (step !== "confirming") return;
     if (!pending) return;
@@ -144,18 +131,18 @@ export function StakeDepositModal({
 
   function handleClose(next: boolean) {
     if (!next) {
-      if (step === "wallet" || step === "confirming") {
-        // User cancelled mid-flow — clear the pending deposit.
+      if (step === "confirming") {
         cancel();
       }
       setStep("form");
+      setTxHashInput("");
     }
     onOpenChange(next);
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent showClose={step !== "wallet" && step !== "confirming"}>
+      <DialogContent showClose={step !== "confirming"}>
         <DialogHeader>
           <DialogTitle>{stepTitle(step, t)}</DialogTitle>
           <DialogDescription>{stepSubtitle(step, t)}</DialogDescription>
@@ -172,13 +159,25 @@ export function StakeDepositModal({
             dailyMin={dailyMin}
             dailyMax={dailyMax}
             isConnected={isConnected}
-            needsSwitch={needsSwitch}
-            onContinue={handleContinue}
+            address={address}
+            onContinue={handleContinueToTransfer}
             onCancel={() => handleClose(false)}
           />
         ) : null}
 
-        {step === "wallet" ? <WalletStep network={network} /> : null}
+        {step === "transfer" ? (
+          <TransferStep
+            amount={amount}
+            network={network}
+            onNetworkChange={setNetwork}
+            txHashInput={txHashInput}
+            onTxHashChange={setTxHashInput}
+            isConnected={isConnected}
+            address={address}
+            onConfirmSent={handleConfirmSent}
+            onBack={() => setStep("form")}
+          />
+        ) : null}
 
         {step === "confirming" && pending ? (
           <ConfirmingStep
@@ -201,8 +200,8 @@ function stepTitle(step: Step, t: (k: string) => string): string {
   switch (step) {
     case "form":
       return t("staking.deposit.title");
-    case "wallet":
-      return t("staking.deposit.walletTitle");
+    case "transfer":
+      return t("staking.deposit.transferTitle");
     case "confirming":
       return t("staking.deposit.confirmingTitle");
     case "success":
@@ -214,8 +213,8 @@ function stepSubtitle(step: Step, t: (k: string) => string): string {
   switch (step) {
     case "form":
       return t("staking.deposit.subtitle");
-    case "wallet":
-      return t("staking.deposit.walletSubtitle");
+    case "transfer":
+      return t("staking.deposit.transferSubtitle");
     case "confirming":
       return t("staking.deposit.confirmingSubtitle");
     case "success":
@@ -233,7 +232,7 @@ function FormStep({
   dailyMin,
   dailyMax,
   isConnected,
-  needsSwitch,
+  address,
   onContinue,
   onCancel,
 }: {
@@ -246,7 +245,7 @@ function FormStep({
   dailyMin: number;
   dailyMax: number;
   isConnected: boolean;
-  needsSwitch: boolean;
+  address?: string;
   onContinue: () => void;
   onCancel: () => void;
 }) {
@@ -353,21 +352,21 @@ function FormStep({
           </div>
         </div>
 
-        {!isConnected ? (
-          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
-            <Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{t("staking.deposit.connectWalletFirst")}</span>
-          </div>
-        ) : needsSwitch ? (
+        {isConnected && address ? (
           <div className="flex items-start gap-2 rounded-md border border-info/30 bg-info/5 p-2.5 text-xs text-info">
-            <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
-              {t("staking.deposit.switchToNetwork", {
-                network: CHAIN_META[targetChainIdFor(network)].name,
+              {t("staking.deposit.accountNote", {
+                address: shortenAddress(address),
               })}
             </span>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
+            <Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{t("staking.deposit.connectForCredit")}</span>
+          </div>
+        )}
       </DialogBody>
       <DialogFooter>
         <Button variant="ghost" size="md" onClick={onCancel}>
@@ -377,20 +376,14 @@ function FormStep({
           variant="primary"
           size="md"
           onClick={onContinue}
-          disabled={!isConnected || !amountValid}
+          disabled={!amountValid}
         >
-          {needsSwitch
-            ? t("staking.deposit.switchAndContinue")
-            : t("staking.deposit.continue")}{" "}
+          {t("staking.deposit.continue")}{" "}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </DialogFooter>
     </>
   );
-}
-
-function targetChainIdFor(network: StakingNetwork): number {
-  return network === "POLYGON" ? polygon.id : bsc.id;
 }
 
 function NetworkOption({
@@ -437,32 +430,99 @@ function NetworkOption({
   );
 }
 
-function WalletStep({ network }: { network: StakingNetwork }) {
+function TransferStep({
+  amount,
+  network,
+  onNetworkChange,
+  txHashInput,
+  onTxHashChange,
+  isConnected,
+  address,
+  onConfirmSent,
+  onBack,
+}: {
+  amount: number;
+  network: StakingNetwork;
+  onNetworkChange: (n: StakingNetwork) => void;
+  txHashInput: string;
+  onTxHashChange: (v: string) => void;
+  isConnected: boolean;
+  address?: string;
+  onConfirmSent: () => void;
+  onBack: () => void;
+}) {
   const { t } = useI18n();
-  const meta = CHAIN_META[targetChainIdFor(network)];
+  const steps = [
+    t("walletPage.deposit.stepAmount"),
+    t("walletPage.deposit.stepNetwork"),
+    t("walletPage.deposit.stepSend"),
+    t("walletPage.deposit.stepConfirm"),
+  ];
+
   return (
-    <DialogBody className="flex flex-col items-center gap-4 py-8">
-      <div className="relative">
-        <span
-          className="absolute inset-0 -m-2 animate-pulse-soft rounded-full"
-          style={{ boxShadow: `0 0 0 6px ${meta.color}33` }}
-          aria-hidden
+    <>
+      <DialogBody className="space-y-5">
+        <ol className="space-y-1.5 text-xs text-text-secondary">
+          {steps.map((step, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="font-mono text-gold">{i + 1}.</span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+
+        <DepositAddressPanel
+          network={network}
+          onNetworkChange={onNetworkChange}
+          amount={amount}
         />
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-full border border-border-subtle bg-bg-base"
-          style={{ borderColor: `${meta.color}80` }}
-        >
-          <Wallet className="h-6 w-6 text-gold" />
+
+        <div className="space-y-2">
+          <label
+            htmlFor="deposit-tx-hash"
+            className="text-xs uppercase tracking-wider text-text-muted"
+          >
+            {t("staking.deposit.txHashLabel")}
+          </label>
+          <input
+            id="deposit-tx-hash"
+            type="text"
+            value={txHashInput}
+            onChange={(e) => onTxHashChange(e.target.value)}
+            placeholder={t("staking.deposit.txHashPlaceholder")}
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-base px-3 font-mono text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-gold"
+          />
+          <p className="text-xs text-text-muted">
+            {t("staking.deposit.txHashHint")}
+          </p>
         </div>
-      </div>
-      <p className="text-center text-sm text-text-secondary">
-        {t("staking.deposit.walletInstructions", { network: meta.short })}
-      </p>
-      <Badge variant="gold" className="mt-1">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        {t("staking.deposit.awaitingSignature")}
-      </Badge>
-    </DialogBody>
+
+        {isConnected && address ? (
+          <p className="text-xs text-text-muted">
+            {t("staking.deposit.accountNote", {
+              address: shortenAddress(address),
+            })}
+          </p>
+        ) : (
+          <p className="text-xs text-warning">
+            {t("staking.deposit.connectForCredit")}
+          </p>
+        )}
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="ghost" size="md" onClick={onBack}>
+          {t("staking.deposit.back")}
+        </Button>
+        <Button
+          variant="primary"
+          size="md"
+          onClick={onConfirmSent}
+          disabled={!isConnected}
+        >
+          {t("staking.deposit.confirmSent")}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 

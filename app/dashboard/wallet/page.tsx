@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
+import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { WithdrawModal } from "@/components/wallet/withdraw-modal";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
@@ -25,6 +26,7 @@ import {
   usePortfolioSummary,
   useStakingStore,
   useStakingStoreHydrated,
+  type StakingNetwork,
 } from "@/lib/staking/store";
 import {
   WITHDRAWAL_FLOW,
@@ -59,20 +61,28 @@ export default function WalletPage() {
         title={t("walletPage.title")}
         subtitle={t("walletPage.subtitle")}
         actions={
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setWithdrawOpen(true)}
-            disabled={!hydrated || earningsBalance <= 0 || !eligible}
-            title={!eligible ? t(messageKey) : undefined}
-          >
-            {!eligible && adminUser?.accountGranted ? (
-              <Lock className="h-4 w-4" />
-            ) : (
-              <ArrowUpFromLine className="h-4 w-4" />
-            )}{" "}
-            {t("walletPage.withdrawCta")}
-          </Button>
+          <>
+            <StartStakingCTA
+              variant="outline"
+              size="md"
+              add
+              label={t("walletPage.deposit.addCapital")}
+            />
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setWithdrawOpen(true)}
+              disabled={!hydrated || earningsBalance <= 0 || !eligible}
+              title={!eligible ? t(messageKey) : undefined}
+            >
+              {!eligible && adminUser?.accountGranted ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <ArrowUpFromLine className="h-4 w-4" />
+              )}{" "}
+              {t("walletPage.withdrawCta")}
+            </Button>
+          </>
         }
       />
 
@@ -138,9 +148,10 @@ export default function WalletPage() {
 function AddCapitalCard() {
   const { t } = useI18n();
   const { address, isConnected } = useAccount();
+  const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
 
   return (
-    <Card>
+    <Card id="add-funds">
       <CardHeader>
         <CardTitle>{t("walletPage.deposit.title")}</CardTitle>
       </CardHeader>
@@ -164,9 +175,15 @@ function AddCapitalCard() {
           </p>
         )}
 
+        <DepositAddressPanel
+          network={network}
+          onNetworkChange={setNetwork}
+        />
+
         <ul className="space-y-2 text-xs text-text-muted">
           <li>{t("walletPage.deposit.stepAmount")}</li>
           <li>{t("walletPage.deposit.stepNetwork")}</li>
+          <li>{t("walletPage.deposit.stepSend")}</li>
           <li>{t("walletPage.deposit.stepConfirm")}</li>
         </ul>
 
@@ -174,7 +191,7 @@ function AddCapitalCard() {
           className="w-full"
           size="md"
           add
-          label={t("walletPage.deposit.addCapital")}
+          label={t("walletPage.deposit.registerDeposit")}
         />
       </CardContent>
     </Card>

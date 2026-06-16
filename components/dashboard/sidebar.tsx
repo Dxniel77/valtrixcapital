@@ -22,13 +22,13 @@ import { useI18n } from "@/lib/i18n/context";
 
 const navKeys = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
   { href: "/dashboard/company-tools", key: "companyTools", icon: Layers },
   { href: "/dashboard/trade", key: "trade", icon: LineChart },
   { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },
   { href: "/dashboard/history", key: "history", icon: History },
   { href: "/dashboard/referrals", key: "referrals", icon: Users },
   { href: "/dashboard/share", key: "share", icon: Sparkles },
-  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
   { href: "/dashboard/profile", key: "profile", icon: User },
   { href: "/dashboard/support", key: "support", icon: Headphones },
 ] as const;

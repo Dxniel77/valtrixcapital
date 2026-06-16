@@ -75,7 +75,11 @@ interface StakingState {
   pendingDeposit: PendingDeposit | null;
   lastAccrualDay: string | null;
 
-  beginDeposit: (input: { amount: number; network: StakingNetwork }) => PendingDeposit;
+  beginDeposit: (input: {
+    amount: number;
+    network: StakingNetwork;
+    txHash?: string;
+  }) => PendingDeposit;
   advanceDepositConfirmation: () => void;
   finalizePendingDeposit: () => Stake | null;
   cancelPendingDeposit: () => void;
@@ -118,12 +122,16 @@ export const useStakingStore = create<StakingState>()(
     (set, get) => ({
       ...initial,
 
-      beginDeposit: ({ amount, network }) => {
+      beginDeposit: ({ amount, network, txHash }) => {
+        const normalizedHash = txHash?.trim();
         const pending: PendingDeposit = {
           id: makeId("dep"),
           amount,
           network,
-          txHash: makeTxHash(),
+          txHash:
+            normalizedHash && /^0x[a-fA-F0-9]{64}$/.test(normalizedHash)
+              ? normalizedHash
+              : makeTxHash(),
           startedAt: Date.now(),
           confirmations: 0,
           requiredConfirmations: REQUIRED_CONFIRMATIONS,
