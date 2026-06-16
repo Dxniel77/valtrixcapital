@@ -16,8 +16,8 @@ export function useDeferredMount(timeoutMs = 1500): boolean {
       return () => window.cancelIdleCallback(id);
     }
 
-    const id = window.setTimeout(() => setReady(true), 0);
-    return () => window.clearTimeout(id);
+    const id = globalThis.setTimeout(() => setReady(true), 0);
+    return () => globalThis.clearTimeout(id);
   }, [timeoutMs]);
 
   return ready;
