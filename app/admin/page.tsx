@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Coins, ShieldAlert, TrendingUp, Users } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
+import { DailyTransactionsPanel } from "@/components/admin/daily-transactions-panel";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStats, useAdminStore } from "@/lib/admin/store";
 import { formatNumber, shortenAddress } from "@/lib/utils";
+import { utcDateKey } from "@/lib/admin/movements";
 
 export default function AdminOverviewPage() {
   const { t } = useI18n();
@@ -60,6 +62,15 @@ export default function AdminOverviewPage() {
           hint={t("admin.overview.pendingHint")}
         />
       </div>
+
+      <DailyTransactionsPanel
+        movements={movements}
+        dayKey={utcDateKey()}
+        limit={8}
+        showDateControls={false}
+        title={t("admin.overview.dailyTransactionsTitle")}
+        viewAllHref={`/admin/movements?date=${utcDateKey()}`}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

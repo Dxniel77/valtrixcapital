@@ -115,6 +115,7 @@ interface AdminState {
   setUserStatus: (id: string, status: AdminUserStatus) => void;
   adjustBalance: (id: string, delta: number, note: string) => void;
   updateSettings: (patch: Partial<AdminSettings>) => void;
+  recordMovement: (movement: AdminMovement) => void;
   reset: () => void;
 }
 
@@ -184,6 +185,8 @@ function buildDemoMovements(users: AdminUser[]): AdminMovement[] {
   ];
   const movements: AdminMovement[] = [];
   const now = Date.now();
+  const todayStart = Date.parse(`${new Date(now).toISOString().slice(0, 10)}T00:00:00.000Z`);
+
   for (let i = 0; i < 60; i += 1) {
     const u = users[Math.floor(Math.random() * users.length)];
     const type = types[Math.floor(Math.random() * types.length)];
@@ -202,6 +205,12 @@ function buildDemoMovements(users: AdminUser[]): AdminMovement[] {
     } else {
       amount = Math.random() * 25;
     }
+
+    const isToday = i < 22;
+    const timestamp = isToday
+      ? todayStart + Math.floor(Math.random() * Math.min(now - todayStart + 1, 86_400_000))
+      : now - Math.floor(Math.random() * 30) * 86_400_000 - Math.floor(Math.random() * 86_400_000);
+
     movements.push({
       id: makeId("mov"),
       type,
@@ -213,7 +222,7 @@ function buildDemoMovements(users: AdminUser[]): AdminMovement[] {
         type === "WITHDRAWAL"
           ? ["COMPLETED", "PROCESSING", "REVIEW"][Math.floor(Math.random() * 3)]
           : "COMPLETED",
-      timestamp: now - Math.floor(Math.random() * 30) * 86_400_000 - Math.floor(Math.random() * 86_400_000),
+      timestamp,
     });
   }
   return movements.sort((a, b) => b.timestamp - a.timestamp);
@@ -535,6 +544,21 @@ export const useAdminStore = create<AdminState>()(
             ...s.audit,
           ].slice(0, 200),
         }));
+      },
+
+      recordMovement: (movement) => {
+        set((s) => {
+          if (s.movements.some((m) => m.id === movement.id)) {
+            return {
+              movements: s.movements.map((m) =>
+                m.id === movement.id ? { ...m, ...movement } : m,
+              ),
+            };
+          }
+          return {
+            movements: [movement, ...s.movements].slice(0, 500),
+          };
+        });
       },
 
       reset: () => {

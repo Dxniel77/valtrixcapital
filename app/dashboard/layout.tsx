@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UsernameGate } from "@/components/user/username-gate";
 import { CompanyFeedEngines } from "@/components/earnings/company-feed-engines";
 import { EarningsEngines } from "@/components/earnings/earnings-engines";
+import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
 import { NotificationBridge } from "@/components/notifications/notification-bridge";
 import { useAdminUserSync } from "@/lib/hooks/use-admin-user-sync";
 
@@ -16,6 +17,7 @@ function DashboardRuntime() {
     <>
       <EarningsEngines />
       <CompanyFeedEngines />
+      <AdminMovementBridge />
       <NotificationBridge />
     </>
   );

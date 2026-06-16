@@ -891,7 +891,8 @@
       "viewAll": "Voir tout",
       "noPending": "Il n’y a aucun retrait en attente.",
       "recentAudit": "Vérification récente",
-      "noAudit": "Aucune action enregistrée pour l'instant."
+      "noAudit": "Aucune action enregistrée pour l'instant.",
+      "dailyTransactionsTitle": "Today's transactions"
     },
     "users": {
       "title": "Utilisatrices",
@@ -926,16 +927,30 @@
       "sponsoredOnly": "Sponsorisé uniquement"
     },
     "movements": {
-      "title": "Mouvements",
-      "subtitle": "Tous les événements financiers sur la plateforme.",
-      "filterAll": "Toute",
-      "searchPlaceholder": "Trouver un portefeuille…",
+      "title": "Movements",
+      "subtitle": "Platform transaction history with daily UTC view.",
+      "filterAll": "All",
+      "searchPlaceholder": "Find wallet…",
       "colDate": "Date",
-      "colType": "Gars",
-      "colWallet": "Portefeuille",
-      "colNetwork": "Grille",
-      "colStatus": "État",
-      "colAmount": "Montante"
+      "colType": "Type",
+      "colWallet": "Wallet",
+      "colNetwork": "Network",
+      "colStatus": "State",
+      "colAmount": "Amount",
+      "dailyTitle": "Daily history",
+      "today": "Today",
+      "allDays": "All days",
+      "prevDay": "Previous day",
+      "nextDay": "Next day",
+      "dailyEmpty": "No movements on this day.",
+      "summaryCount": "Transactions",
+      "summaryCountHint": "Events recorded today",
+      "summaryDeposits": "Deposits",
+      "summaryDepositsHint": "{n} deposit(s)",
+      "summaryWithdrawals": "Withdrawals",
+      "summaryWithdrawalsHint": "{n} withdrawal(s)",
+      "summaryNet": "Net flow",
+      "summaryNetHint": "{yields} yields · {commissions} commissions"
     },
     "network": {
       "title": "explorateur de réseau",

@@ -891,7 +891,8 @@
       "viewAll": "सभी देखें",
       "noPending": "कोई भी निकासी लंबित नहीं है.",
       "recentAudit": "हालिया ऑडिट",
-      "noAudit": "अभी तक कोई शेयर पंजीकृत नहीं है."
+      "noAudit": "अभी तक कोई शेयर पंजीकृत नहीं है.",
+      "dailyTransactionsTitle": "Today's transactions"
     },
     "users": {
       "title": "उपयोगकर्ताओं",
@@ -926,16 +927,30 @@
       "sponsoredOnly": "केवल प्रायोजित"
     },
     "movements": {
-      "title": "आंदोलनों",
-      "subtitle": "मंच पर सभी वित्तीय घटनाएँ।",
-      "filterAll": "सभी",
-      "searchPlaceholder": "बटुआ ढूंढें...",
-      "colDate": "तारीख",
-      "colType": "लड़का",
-      "colWallet": "बटुआ",
-      "colNetwork": "ग्रिड",
-      "colStatus": "राज्य",
-      "colAmount": "मात्रा"
+      "title": "Movements",
+      "subtitle": "Platform transaction history with daily UTC view.",
+      "filterAll": "All",
+      "searchPlaceholder": "Find wallet…",
+      "colDate": "Date",
+      "colType": "Type",
+      "colWallet": "Wallet",
+      "colNetwork": "Network",
+      "colStatus": "State",
+      "colAmount": "Amount",
+      "dailyTitle": "Daily history",
+      "today": "Today",
+      "allDays": "All days",
+      "prevDay": "Previous day",
+      "nextDay": "Next day",
+      "dailyEmpty": "No movements on this day.",
+      "summaryCount": "Transactions",
+      "summaryCountHint": "Events recorded today",
+      "summaryDeposits": "Deposits",
+      "summaryDepositsHint": "{n} deposit(s)",
+      "summaryWithdrawals": "Withdrawals",
+      "summaryWithdrawalsHint": "{n} withdrawal(s)",
+      "summaryNet": "Net flow",
+      "summaryNetHint": "{yields} yields · {commissions} commissions"
     },
     "network": {
       "title": "नेटवर्क एक्सप्लोरर",

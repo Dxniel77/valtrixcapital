@@ -891,7 +891,8 @@
       "viewAll": "Vedi tutto",
       "noPending": "Non ci sono prelievi in ​​sospeso.",
       "recentAudit": "Audit recente",
-      "noAudit": "Nessuna azione ancora registrata."
+      "noAudit": "Nessuna azione ancora registrata.",
+      "dailyTransactionsTitle": "Today's transactions"
     },
     "users": {
       "title": "Utenti",
@@ -926,16 +927,30 @@
       "sponsoredOnly": "Solo sponsorizzato"
     },
     "movements": {
-      "title": "Movimenti",
-      "subtitle": "Tutti gli eventi finanziari sulla piattaforma.",
-      "filterAll": "Tutto",
-      "searchPlaceholder": "Trova portafoglio...",
-      "colDate": "Data",
-      "colType": "Tipo",
-      "colWallet": "Portafoglio",
-      "colNetwork": "Griglia",
-      "colStatus": "Stato",
-      "colAmount": "Quantità"
+      "title": "Movements",
+      "subtitle": "Platform transaction history with daily UTC view.",
+      "filterAll": "All",
+      "searchPlaceholder": "Find wallet…",
+      "colDate": "Date",
+      "colType": "Type",
+      "colWallet": "Wallet",
+      "colNetwork": "Network",
+      "colStatus": "State",
+      "colAmount": "Amount",
+      "dailyTitle": "Daily history",
+      "today": "Today",
+      "allDays": "All days",
+      "prevDay": "Previous day",
+      "nextDay": "Next day",
+      "dailyEmpty": "No movements on this day.",
+      "summaryCount": "Transactions",
+      "summaryCountHint": "Events recorded today",
+      "summaryDeposits": "Deposits",
+      "summaryDepositsHint": "{n} deposit(s)",
+      "summaryWithdrawals": "Withdrawals",
+      "summaryWithdrawalsHint": "{n} withdrawal(s)",
+      "summaryNet": "Net flow",
+      "summaryNetHint": "{yields} yields · {commissions} commissions"
     },
     "network": {
       "title": "esploratore di rete",

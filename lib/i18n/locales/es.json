@@ -915,7 +915,8 @@
       "viewAll": "Ver todo",
       "noPending": "No hay retiros pendientes.",
       "recentAudit": "Auditoría reciente",
-      "noAudit": "Sin acciones registradas todavía."
+      "noAudit": "Sin acciones registradas todavía.",
+      "dailyTransactionsTitle": "Movimientos de hoy"
     },
     "users": {
       "title": "Usuarios",
@@ -951,7 +952,21 @@
     },
     "movements": {
       "title": "Movimientos",
-      "subtitle": "Todos los eventos financieros de la plataforma.",
+      "subtitle": "Historial de transacciones de la plataforma, con vista diaria en UTC.",
+      "dailyTitle": "Historial del día",
+      "today": "Hoy",
+      "allDays": "Todos los días",
+      "prevDay": "Día anterior",
+      "nextDay": "Día siguiente",
+      "dailyEmpty": "No hay movimientos en este día.",
+      "summaryCount": "Transacciones",
+      "summaryCountHint": "Eventos registrados en el día",
+      "summaryDeposits": "Depósitos",
+      "summaryDepositsHint": "{n} depósito(s)",
+      "summaryWithdrawals": "Retiros",
+      "summaryWithdrawalsHint": "{n} retiro(s)",
+      "summaryNet": "Flujo neto",
+      "summaryNetHint": "{yields} rendimientos · {commissions} comisiones",
       "filterAll": "Todos",
       "searchPlaceholder": "Buscar billetera…",
       "colDate": "Fecha",

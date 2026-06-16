@@ -891,7 +891,8 @@
       "viewAll": "全て見る",
       "noPending": "保留中の引き出しはありません。",
       "recentAudit": "最近の監査",
-      "noAudit": "まだ株式が登録されていません。"
+      "noAudit": "まだ株式が登録されていません。",
+      "dailyTransactionsTitle": "Today's transactions"
     },
     "users": {
       "title": "ユーザー",
@@ -926,16 +927,30 @@
       "sponsoredOnly": "スポンサー付きのみ"
     },
     "movements": {
-      "title": "動き",
-      "subtitle": "プラットフォーム上のすべての金融イベント。",
-      "filterAll": "全て",
-      "searchPlaceholder": "財布を探す…",
-      "colDate": "日付",
-      "colType": "男",
-      "colWallet": "財布",
-      "colNetwork": "グリッド",
-      "colStatus": "州",
-      "colAmount": "額"
+      "title": "Movements",
+      "subtitle": "Platform transaction history with daily UTC view.",
+      "filterAll": "All",
+      "searchPlaceholder": "Find wallet…",
+      "colDate": "Date",
+      "colType": "Type",
+      "colWallet": "Wallet",
+      "colNetwork": "Network",
+      "colStatus": "State",
+      "colAmount": "Amount",
+      "dailyTitle": "Daily history",
+      "today": "Today",
+      "allDays": "All days",
+      "prevDay": "Previous day",
+      "nextDay": "Next day",
+      "dailyEmpty": "No movements on this day.",
+      "summaryCount": "Transactions",
+      "summaryCountHint": "Events recorded today",
+      "summaryDeposits": "Deposits",
+      "summaryDepositsHint": "{n} deposit(s)",
+      "summaryWithdrawals": "Withdrawals",
+      "summaryWithdrawalsHint": "{n} withdrawal(s)",
+      "summaryNet": "Net flow",
+      "summaryNetHint": "{yields} yields · {commissions} commissions"
     },
     "network": {
       "title": "ネットワークエクスプローラー",
