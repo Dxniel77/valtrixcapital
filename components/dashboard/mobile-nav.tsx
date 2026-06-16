@@ -10,7 +10,6 @@ import {
   Briefcase,
   History,
   Users,
-  Wallet,
   User,
   Headphones,
   Layers,
@@ -22,7 +21,6 @@ import { useI18n } from "@/lib/i18n/context";
 
 const navKeys = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
   { href: "/dashboard/company-tools", key: "companyTools", icon: Layers },
   { href: "/dashboard/trade", key: "trade", icon: LineChart },
   { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },

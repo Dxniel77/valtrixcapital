@@ -9,7 +9,6 @@ import {
   Briefcase,
   History,
   Users,
-  Wallet,
   User,
   Headphones,
   ChevronLeft,
@@ -22,7 +21,6 @@ import { useI18n } from "@/lib/i18n/context";
 
 const navKeys = [
   { href: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
   { href: "/dashboard/company-tools", key: "companyTools", icon: Layers },
   { href: "/dashboard/trade", key: "trade", icon: LineChart },
   { href: "/dashboard/portfolio", key: "portfolio", icon: Briefcase },
@@ -108,16 +106,10 @@ export function Sidebar({
       {!collapsed ? (
         <div className="m-3 rounded-lg border border-gold/30 bg-gradient-to-br from-gold/5 to-transparent p-3 text-xs">
           <div className="mb-1 inline-flex items-center gap-1.5 text-gold">
-            <Wallet className="h-3.5 w-3.5" />
-            <span className="font-medium">{t("dashboard.sidebar.depositTip")}</span>
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="font-medium">{t("dashboard.sidebar.proTip")}</span>
           </div>
-          <p className="mb-2 text-text-secondary">{t("dashboard.sidebar.depositTipText")}</p>
-          <Link
-            href="/dashboard/wallet#add-funds"
-            className="inline-flex font-medium text-gold hover:text-gold-bright"
-          >
-            {t("walletPage.deposit.addCapital")} →
-          </Link>
+          <p className="text-text-secondary">{t("dashboard.sidebar.proTipText")}</p>
         </div>
       ) : null}
     </aside>
