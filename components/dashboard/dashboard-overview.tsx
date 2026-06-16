@@ -50,13 +50,11 @@ import { useI18n } from "@/lib/i18n/context";
 export function DashboardOverview() {
   const { t } = useI18n();
   const { address, isConnected } = useAccount();
-  const countdown = useUtcMidnightCountdown();
   const summary = useDailySummary();
   const portfolio = usePortfolioSummary();
   const preview = useTodayYieldPreview();
   const hydrated = useStakingStoreHydrated();
   const yields = useStakingStore(useShallow((s) => s.dailyYields.slice(0, 7)));
-  const companyProfits = useCombinedEngineProfits();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
 
@@ -93,7 +91,7 @@ export function DashboardOverview() {
         }
       />
 
-      <CompanyProfitsStrip profits={companyProfits} />
+      <CompanyProfitsStrip />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -131,19 +129,7 @@ export function DashboardOverview() {
               : `${(preview.totalRateBps / 100).toFixed(2)}% ${t("dashboard.overview.capHint")}`
           }
         />
-        <StatTile
-          label={t("dashboard.overview.winsToday")}
-          value={`${summary.wins} / ${summary.maxAttempts}`}
-          delta={{ value: summary.bonusRateBps / 100 }}
-          icon={Trophy}
-          accent="info"
-          hint={t("dashboard.overview.resetIn", {
-            time:
-              countdown !== null
-                ? formatCountdown(countdown)
-                : COUNTDOWN_PLACEHOLDER,
-          })}
-        />
+        <WinsTodayStatTile summary={summary} />
         <StatTile
           label={t("dashboard.overview.toCap")}
           value={`${formatNumber(portfolio.capProgressPct, { decimals: 1 })}%`}
@@ -193,7 +179,6 @@ export function DashboardOverview() {
             <PayoutMiniCard portfolio={portfolio} />
           )}
           <DailyAttemptsCard
-            remainingMs={countdown}
             wins={summary.wins}
             losses={summary.losses}
             total={summary.maxAttempts}
@@ -209,11 +194,32 @@ function weekTotal(yields: DailyYield[]): number {
   return yields.slice(0, 7).reduce((acc, y) => acc + y.creditedAmount, 0);
 }
 
-function CompanyProfitsStrip({
-  profits,
+function WinsTodayStatTile({
+  summary,
 }: {
-  profits: ReturnType<typeof useCombinedEngineProfits>;
+  summary: ReturnType<typeof useDailySummary>;
 }) {
+  const { t } = useI18n();
+  const countdown = useUtcMidnightCountdown();
+  return (
+    <StatTile
+      label={t("dashboard.overview.winsToday")}
+      value={`${summary.wins} / ${summary.maxAttempts}`}
+      delta={{ value: summary.bonusRateBps / 100 }}
+      icon={Trophy}
+      accent="info"
+      hint={t("dashboard.overview.resetIn", {
+        time:
+          countdown !== null
+            ? formatCountdown(countdown)
+            : COUNTDOWN_PLACEHOLDER,
+      })}
+    />
+  );
+}
+
+function CompanyProfitsStrip() {
+  const profits = useCombinedEngineProfits();
   const { t } = useI18n();
   const items = [
     { label: t("dashboard.overview.companyToday"), value: profits.combinedTodayLive },
@@ -458,17 +464,16 @@ function YieldWeekChart({
 }
 
 function DailyAttemptsCard({
-  remainingMs,
   wins,
   losses,
   total,
 }: {
-  remainingMs: number | null;
   wins: number;
   losses: number;
   total: number;
 }) {
   const { t } = useI18n();
+  const remainingMs = useUtcMidnightCountdown();
   const used = wins + losses;
   const remaining = Math.max(total - used, 0);
   const pct = total > 0 ? (used / total) * 100 : 0;

@@ -250,13 +250,18 @@ export function usePortfolioSummary(): PortfolioSummary {
 
 export function useTodayYieldPreview(): TodayYieldPreview {
   const stakes = useStakingStore((s) => s.stakes);
-  const positionOutcomes = useTradeStore(
-    useShallow((s) =>
-      s.positions.map((p) => ({
-        status: p.status,
-        openedAt: p.openedAt,
-      })),
-    ),
+  const todayTradeStats = useTradeStore(
+    useShallow((s) => {
+      const today = utcDayKey();
+      let wins = 0;
+      let losses = 0;
+      for (const p of s.positions) {
+        if (utcDayKey(p.openedAt) !== today || p.status === "OPEN") continue;
+        if (p.status === "WIN") wins += 1;
+        else if (p.status === "LOSS") losses += 1;
+      }
+      return { wins, losses };
+    }),
   );
   const { baseYieldBps, bonusPerWinBps, maxDailyYieldBps } = usePlatformSettings();
   return React.useMemo(() => {
@@ -264,11 +269,7 @@ export function useTodayYieldPreview(): TodayYieldPreview {
     const capital = stakes
       .filter((s) => stakeEligibleForPassiveYieldNow(s))
       .reduce((acc, s) => acc + s.amount, 0);
-    const todays = positionOutcomes.filter(
-      (p) => utcDayKey(p.openedAt) === today && p.status !== "OPEN",
-    );
-    const wins = todays.filter((p) => p.status === "WIN").length;
-    const losses = todays.filter((p) => p.status === "LOSS").length;
+    const { wins, losses } = todayTradeStats;
     const rate = computeDailyRate(wins);
     const projectedBaseAmount = (capital * rate.baseRateBps) / 10_000;
     const projectedBonusAmount = (capital * rate.bonusRateBps) / 10_000;
@@ -284,5 +285,5 @@ export function useTodayYieldPreview(): TodayYieldPreview {
       wins,
       losses,
     };
-  }, [stakes, positionOutcomes, baseYieldBps, bonusPerWinBps, maxDailyYieldBps]);
+  }, [stakes, todayTradeStats, baseYieldBps, bonusPerWinBps, maxDailyYieldBps]);
 }

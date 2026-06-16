@@ -647,17 +647,28 @@ export function useBotStoreHydrated(): boolean {
 /** Company profit — identical for every user (UTC slot ledger). */
 export function useCompanyProfits() {
   const cadence = useBotStore((s) => s.cadence);
-  const [now, setNow] = React.useState(() => Date.now());
+  const [profits, setProfits] = React.useState(() =>
+    computeGlobalBotProfits(Date.now(), BOT_CADENCE_MS[cadence]),
+  );
 
   React.useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 3_000);
+    const ms = BOT_CADENCE_MS[cadence];
+    const tick = () => {
+      const next = computeGlobalBotProfits(Date.now(), ms);
+      setProfits((prev) =>
+        prev.today === next.today &&
+        prev.week === next.week &&
+        prev.allTime === next.allTime
+          ? prev
+          : next,
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 3_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [cadence]);
 
-  return React.useMemo(
-    () => computeGlobalBotProfits(now, BOT_CADENCE_MS[cadence]),
-    [now, cadence],
-  );
+  return profits;
 }
 
 export function useBotFeedEngine(): void {

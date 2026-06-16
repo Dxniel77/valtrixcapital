@@ -72,7 +72,7 @@ export const POSTER_TEXT_LAYOUT: Record<PosterPeriod, PosterTextLayout> = {
   /** Template: /images/2.png — no "today" line; heading sits higher */
   weekly: {
     amountMode: "digitsOnly",
-    heading: { x: 0.1, y: 0.31, maxW: 0.58, size: 0.031 },
+    heading: { x: 0.09, y: 0.31, maxW: 0.58, size: 0.031 },
     amount: { x: 0.14, y: 0.44, maxW: 0.6, size: 0.2 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
@@ -82,7 +82,7 @@ export const POSTER_TEXT_LAYOUT: Record<PosterPeriod, PosterTextLayout> = {
   },
   monthly: {
     amountMode: "digitsOnly",
-    heading: { x: 0.1, y: 0.31, maxW: 0.58, size: 0.031 },
+    heading: { x: 0.09, y: 0.31, maxW: 0.58, size: 0.031 },
     amount: { x: 0.14, y: 0.44, maxW: 0.6, size: 0.2 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },
@@ -92,7 +92,7 @@ export const POSTER_TEXT_LAYOUT: Record<PosterPeriod, PosterTextLayout> = {
   },
   threeMonths: {
     amountMode: "digitsOnly",
-    heading: { x: 0.1, y: 0.31, maxW: 0.58, size: 0.031 },
+    heading: { x: 0.09, y: 0.31, maxW: 0.58, size: 0.031 },
     amount: { x: 0.14, y: 0.44, maxW: 0.6, size: 0.2 },
     suffix: { gap: 0.008, size: 0.04 },
     date: { x: 0.155, y: 0.519, maxW: 0.55, size: 0.027 },

@@ -22,6 +22,10 @@ import {
   type PosterPeriod,
 } from "@/lib/share/earnings-periods";
 import {
+  buildPosterCacheKey,
+  posterEarningsEqual,
+} from "@/lib/share/poster-render-key";
+import {
   downloadDataUrl,
   renderEarningsPoster,
   type PosterLabels,
@@ -37,11 +41,6 @@ const PERIOD_ICONS: Record<PosterPeriod, React.ElementType> = {
   threeMonths: Layers,
 };
 
-interface EarningsPosterProps {
-  username: string;
-  earnings: PeriodEarningsDetailed;
-}
-
 const POSTER_HEADING_KEYS: Record<PosterPeriod, string> = {
   daily: "share.poster.imageHeadingDaily",
   weekly: "share.poster.imageHeadingWeekly",
@@ -49,11 +48,19 @@ const POSTER_HEADING_KEYS: Record<PosterPeriod, string> = {
   threeMonths: "share.poster.imageHeadingThreeMonths",
 };
 
-export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
+interface EarningsPosterProps {
+  username: string;
+  earnings: PeriodEarningsDetailed;
+}
+
+function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
   const { t, locale } = useI18n();
   const [active, setActive] = React.useState<PosterPeriod>("daily");
-  const [preview, setPreview] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
+  const [posterCache, setPosterCache] = React.useState<
+    Partial<Record<PosterPeriod, string>>
+  >({});
+  const [generating, setGenerating] = React.useState(false);
+  const cacheKeysRef = React.useRef<Partial<Record<PosterPeriod, string>>>({});
   const [downloading, setDownloading] = React.useState<
     PosterPeriod | "all" | null
   >(null);
@@ -95,46 +102,57 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
 
   React.useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    renderEarningsPoster(meta, username, posterLabels(active))
-      .then((url) => {
-        if (!cancelled) setPreview(url);
-      })
-      .catch(() => {
-        if (!cancelled) setPreview(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meta, username, posterLabels, active]);
+    const stale = PERIODS.filter((period) => {
+      const key = buildPosterCacheKey(period, earnings, locale, username);
+      return cacheKeysRef.current[period] !== key;
+    });
 
-  const [posterCache, setPosterCache] = React.useState<
-    Partial<Record<PosterPeriod, string>>
-  >({});
+    if (stale.length === 0) return;
 
-  React.useEffect(() => {
-    let cancelled = false;
+    const hasAnyCached = stale.some(
+      (period) => cacheKeysRef.current[period] !== undefined,
+    );
+    if (!hasAnyCached) setGenerating(true);
+
     void Promise.all(
-      PERIODS.map(async (period) => {
+      stale.map(async (period) => {
+        const key = buildPosterCacheKey(period, earnings, locale, username);
         const periodMeta = getPosterPeriodMeta(period, earnings, locale);
         const url = await renderEarningsPoster(
           periodMeta,
           username,
           posterLabels(period),
         );
-        return [period, url] as const;
+        return { period, url, key } as const;
       }),
-    ).then((entries) => {
-      if (cancelled) return;
-      setPosterCache(Object.fromEntries(entries));
-    });
+    )
+      .then((entries) => {
+        if (cancelled) return;
+        setPosterCache((prev) => {
+          const next = { ...prev };
+          for (const { period, url } of entries) {
+            next[period] = url;
+          }
+          return next;
+        });
+        for (const { period, key } of entries) {
+          cacheKeysRef.current[period] = key;
+        }
+      })
+      .catch(() => {
+        /* keep previous cache on failure */
+      })
+      .finally(() => {
+        if (!cancelled) setGenerating(false);
+      });
+
     return () => {
       cancelled = true;
     };
   }, [earnings, username, locale, posterLabels]);
+
+  const preview = posterCache[active];
+  const showPreviewLoader = !preview && generating;
 
   function downloadOne(period: PosterPeriod) {
     const periodMeta = getPosterPeriodMeta(period, earnings, locale);
@@ -270,21 +288,21 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
             </span>
           </div>
           <div className="overflow-hidden rounded-xl border border-gold/20 bg-bg-base shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
-            {loading || !preview ? (
+            {showPreviewLoader ? (
               <div
                 className="flex items-center justify-center bg-bg-elevated"
                 style={{ aspectRatio: "1024 / 930" }}
               >
                 <Loader2 className="h-8 w-8 animate-spin text-gold" />
               </div>
-            ) : (
+            ) : preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={preview}
                 alt={periodLabel(active)}
                 className="w-full object-contain"
               />
-            )}
+            ) : null}
           </div>
           <p className="text-center text-xs text-text-muted">
             {t("share.poster.breakdownNote")}
@@ -370,6 +388,13 @@ export function EarningsPoster({ username, earnings }: EarningsPosterProps) {
     </div>
   );
 }
+
+export const EarningsPoster = React.memo(
+  EarningsPosterComponent,
+  (prev, next) =>
+    prev.username === next.username &&
+    posterEarningsEqual(prev.earnings, next.earnings),
+);
 
 function BreakdownBar({
   base,

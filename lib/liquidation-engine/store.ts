@@ -343,9 +343,11 @@ export const useLiquidationStore = create<LiquidationState>()(
 
       tickMicroAccrual: () => {
         const ms = LIQUIDATION_CADENCE_MS[get().cadence];
-        set({
-          microAccrualToday: globalLiquidationMicroAccrual(Date.now(), ms),
-        });
+        const next = globalLiquidationMicroAccrual(Date.now(), ms);
+        const prevRounded = Math.round(get().microAccrualToday * 100);
+        const nextRounded = Math.round(next * 100);
+        if (prevRounded === nextRounded) return;
+        set({ microAccrualToday: next });
       },
     }),
     {
@@ -421,17 +423,28 @@ function sumDailyFees(
 
 export function useLiquidationProfits() {
   const cadence = useLiquidationStore((s) => s.cadence);
-  const [now, setNow] = React.useState(() => Date.now());
+  const [profits, setProfits] = React.useState(() =>
+    computeGlobalLiquidationProfits(Date.now(), LIQUIDATION_CADENCE_MS[cadence]),
+  );
 
   React.useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 3_000);
+    const ms = LIQUIDATION_CADENCE_MS[cadence];
+    const tick = () => {
+      const next = computeGlobalLiquidationProfits(Date.now(), ms);
+      setProfits((prev) =>
+        prev.today === next.today &&
+        prev.week === next.week &&
+        prev.allTime === next.allTime
+          ? prev
+          : next,
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 3_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [cadence]);
 
-  return React.useMemo(
-    () => computeGlobalLiquidationProfits(now, LIQUIDATION_CADENCE_MS[cadence]),
-    [now, cadence],
-  );
+  return profits;
 }
 
 export function useLiquidationFeedEngine(): void {
