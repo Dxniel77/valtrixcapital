@@ -15,6 +15,10 @@ import {
   globalLiquidationMicroAccrual,
   LIQUIDATION_CADENCE_MS,
 } from "@/lib/liquidation-engine/global-simulation";
+import {
+  LIVE_FEED_WINDOW_MS,
+  liveFeedSlotCount,
+} from "@/lib/company-tools/global-metrics";
 import type {
   LiquidationCadence,
   LiquidationChainTx,
@@ -35,11 +39,10 @@ const CADENCE_MS: Record<LiquidationCadence, number> = {
   slow: 6_000,
 };
 
-const FEED_MAX = 80;
 const FEED_SEED_COUNT = 18;
-const FEED_STALE_MS = 6 * 60 * 60 * 1000;
+const FEED_STALE_MS = LIVE_FEED_WINDOW_MS;
 const TX_POOL_REFRESH_MS = 2 * 60 * 1000;
-const TX_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const TX_MAX_AGE_MS = LIVE_FEED_WINDOW_MS;
 
 interface LiquidationState {
   events: LiquidationEvent[];
@@ -223,7 +226,10 @@ export const useLiquidationStore = create<LiquidationState>()(
           creditedEventIds: credited.creditedEventIds,
           txsToday: credited.txsToday,
           microAccrualToday: 0,
-          events: [credited.ev, ...s.events].slice(0, FEED_MAX),
+          events: [credited.ev, ...s.events].slice(
+            0,
+            liveFeedSlotCount(LIQUIDATION_CADENCE_MS[s.cadence]),
+          ),
         }));
 
         return credited.ev;
@@ -279,7 +285,10 @@ export const useLiquidationStore = create<LiquidationState>()(
         if (seeded.length === 0) return;
 
         set({
-          events: [...seeded, ...freshExisting].slice(0, FEED_MAX),
+          events: [...seeded, ...freshExisting].slice(
+            0,
+            liveFeedSlotCount(LIQUIDATION_CADENCE_MS[current.cadence]),
+          ),
           txPoolCursor,
           dailyFees,
           creditedEventIds,
@@ -330,7 +339,7 @@ export const useLiquidationStore = create<LiquidationState>()(
         const events = buildGlobalLiquidationFeed(
           Date.now(),
           ms,
-          FEED_MAX,
+          liveFeedSlotCount(ms),
           state.txPool,
         );
         set({

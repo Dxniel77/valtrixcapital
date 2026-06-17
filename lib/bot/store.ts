@@ -12,6 +12,7 @@ import {
   buildGlobalBotFeed,
   computeGlobalBotProfits,
 } from "@/lib/bot/global-simulation";
+import { LIVE_FEED_WINDOW_MS, liveFeedSlotCount } from "@/lib/company-tools/global-metrics";
 
 export { botProfitUsd } from "@/lib/bot/global-simulation";
 
@@ -46,11 +47,10 @@ const CADENCE_MS: Record<BotCadence, number> = {
   slow: 24_000,
 };
 
-const FEED_MAX_OPS = 80;
 const FEED_SEED_COUNT = 14;
-const FEED_STALE_MS = 6 * 60 * 60 * 1000;
+const FEED_STALE_MS = LIVE_FEED_WINDOW_MS;
 const TX_POOL_REFRESH_MS = 2 * 60 * 1000;
-const TX_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const TX_MAX_AGE_MS = LIVE_FEED_WINDOW_MS;
 
 /** Simulated notionals — modest for an early-stage trading desk. */
 const BOT_VOLUME_MIN = 200;
@@ -439,7 +439,10 @@ export const useBotStore = create<BotState>()(
           pairLastPrice,
           dailyProfits: credited.dailyProfits,
           creditedOpIds: credited.creditedOpIds,
-          operations: [credited.op, ...s.operations].slice(0, FEED_MAX_OPS),
+          operations: [credited.op, ...s.operations].slice(
+            0,
+            liveFeedSlotCount(BOT_CADENCE_MS[s.cadence]),
+          ),
         }));
         return credited.op;
       },
@@ -495,7 +498,10 @@ export const useBotStore = create<BotState>()(
         if (seededOps.length === 0) return;
 
         set({
-          operations: [...seededOps, ...freshExisting].slice(0, FEED_MAX_OPS),
+          operations: [...seededOps, ...freshExisting].slice(
+            0,
+            liveFeedSlotCount(BOT_CADENCE_MS[current.cadence]),
+          ),
           txPoolCursor,
           pairLastPrice,
           dailyProfits,
@@ -573,7 +579,7 @@ export const useBotStore = create<BotState>()(
         const operations = buildGlobalBotFeed(
           Date.now(),
           ms,
-          FEED_MAX_OPS,
+          liveFeedSlotCount(ms),
           state.recentTxPool,
           state.marketAnchors,
         );

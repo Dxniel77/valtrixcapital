@@ -9,8 +9,12 @@ import {
   type ExplorerChain,
 } from "@/lib/block-explorer/etherscan-v2";
 
+import {
+  LIVE_FEED_WINDOW_MS,
+} from "@/lib/company-tools/global-metrics";
+
 const CACHE_TTL_MS = 2 * 60 * 1000;
-const MAX_TX_AGE_MS = 6 * 60 * 60 * 1000;
+const MAX_TX_AGE_MS = LIVE_FEED_WINDOW_MS;
 const FETCH_TIMEOUT_MS = 6_000;
 
 /** fetch() that aborts after a timeout so a hung upstream can't hold the connection. */

@@ -3,6 +3,13 @@ export const COMPANY_METRICS_LAUNCH_MS = Date.parse(
   "2025-03-15T00:00:00.000Z",
 );
 
+/** Live bot / liquidation tables only show this much history. */
+export const LIVE_FEED_WINDOW_MS = 5 * 60 * 1000;
+
+export function liveFeedSlotCount(cadenceMs: number): number {
+  return Math.max(1, Math.ceil(LIVE_FEED_WINDOW_MS / cadenceMs));
+}
+
 export function utcDateKey(ts = Date.now()): string {
   return new Date(ts).toISOString().slice(0, 10);
 }
