@@ -8,12 +8,10 @@ import {
   Activity,
   ArrowUpRight,
   Bot,
-  Cpu,
   Coins,
   LineChart,
   Lock,
   Sparkles,
-  TrendingUp,
   Trophy,
   Unlock,
   Users,
@@ -42,9 +40,6 @@ import {
   useTodayYieldPreview,
   type DailyYield,
 } from "@/lib/staking/store";
-import {
-  useCombinedEngineProfits,
-} from "@/lib/company-tools/combined-profits";
 import { useI18n } from "@/lib/i18n/context";
 
 export function DashboardOverview() {
@@ -90,8 +85,6 @@ export function DashboardOverview() {
           </>
         }
       />
-
-      <CompanyProfitsStrip />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -215,72 +208,6 @@ function WinsTodayStatTile({
             : COUNTDOWN_PLACEHOLDER,
       })}
     />
-  );
-}
-
-function CompanyProfitsStrip() {
-  const profits = useCombinedEngineProfits();
-  const { t } = useI18n();
-  const items = [
-    { label: t("dashboard.overview.companyToday"), value: profits.combinedTodayLive },
-    { label: t("dashboard.overview.companyWeek"), value: profits.combinedWeek },
-    {
-      label: t("dashboard.overview.companyAllTime"),
-      value: profits.combinedAllTime,
-    },
-  ];
-  return (
-    <div className="overflow-hidden rounded-lg border border-gold/30 bg-gradient-to-r from-gold/10 via-bg-elevated to-info/5">
-      <div className="space-y-4 p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gold/30 bg-gold/10 text-gold">
-              <TrendingUp className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gold">
-                {t("dashboard.overview.companyProfits")}
-              </p>
-              <p className="text-[11px] text-text-muted">
-                {t("dashboard.overview.companyProfitsHint")}
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {items.map((it) => (
-              <div key={it.label} className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-text-muted">
-                  {it.label}
-                </p>
-                <p className="font-mono text-base text-text-primary sm:text-lg">
-                  ${formatNumber(it.value, { decimals: 0 })}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-center justify-between rounded-md border border-border-subtle bg-bg-base/50 px-3 py-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 text-text-secondary">
-              <Bot className="h-3.5 w-3.5 text-gold" />
-              {t("companyToolsPage.tabBot")}
-            </span>
-            <span className="font-mono text-text-primary">
-              ${formatNumber(profits.botToday, { decimals: 0 })}
-            </span>
-          </div>
-          <div className="flex items-center justify-between rounded-md border border-border-subtle bg-bg-base/50 px-3 py-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 text-text-secondary">
-              <Cpu className="h-3.5 w-3.5 text-gold" />
-              {t("companyToolsPage.tabLiquidation")}
-            </span>
-            <span className="font-mono text-text-primary">
-              ${formatNumber(profits.liquidationTodayLive, { decimals: 2 })}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

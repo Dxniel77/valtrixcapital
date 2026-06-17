@@ -3,6 +3,11 @@ import type {
   LiquidationNetwork,
 } from "@/lib/liquidation-engine/types";
 import { fetchRecentTxsViaRpc } from "@/lib/bot/chain-txs";
+import {
+  fetchExplorerTokenTxs,
+  resolveExplorerApiKey,
+  type ExplorerChain,
+} from "@/lib/block-explorer/etherscan-v2";
 
 const CACHE_TTL_MS = 2 * 60 * 1000;
 const MAX_TX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -33,8 +38,6 @@ const TRANSFER_TOPIC =
 const NETWORK_CONFIG: Record<
   LiquidationNetwork,
   {
-    apiBase: string;
-    apiKeyEnv: string;
     contract: string;
     address: string;
     decimals: number;
@@ -42,16 +45,12 @@ const NETWORK_CONFIG: Record<
   }
 > = {
   BSC: {
-    apiBase: "https://api.bscscan.com/api",
-    apiKeyEnv: "BSCSCAN_API_KEY",
     contract: BSC_USDT,
     address: BSC_ACTIVITY_ADDRESS,
     decimals: 18,
     rpc: process.env.NEXT_PUBLIC_BSC_RPC ?? "https://bsc-dataseed.binance.org",
   },
   POLYGON: {
-    apiBase: "https://api.polygonscan.com/api",
-    apiKeyEnv: "POLYGONSCAN_API_KEY",
     contract: POLYGON_USDT,
     address: POLYGON_ACTIVITY_ADDRESS,
     decimals: 6,
@@ -60,13 +59,6 @@ const NETWORK_CONFIG: Record<
       "https://polygon-bor-rpc.publicnode.com",
   },
 };
-
-interface ExplorerTokenTx {
-  hash: string;
-  timeStamp: string;
-  value: string;
-  tokenDecimal?: string;
-}
 
 let cache: {
   at: number;
@@ -90,41 +82,21 @@ async function fetchViaExplorerApi(
   network: LiquidationNetwork,
 ): Promise<LiquidationChainTx[]> {
   const cfg = NETWORK_CONFIG[network];
-  const apiKey = process.env[cfg.apiKeyEnv]?.trim();
-  if (!apiKey) return [];
+  if (!resolveExplorerApiKey()) return [];
 
-  const params = new URLSearchParams({
-    module: "account",
-    action: "tokentx",
-    contractaddress: cfg.contract,
+  const rows = await fetchExplorerTokenTxs(network as ExplorerChain, {
+    contractAddress: cfg.contract,
     address: cfg.address,
-    page: "1",
-    offset: "80",
-    sort: "desc",
-    apikey: apiKey,
+    offset: 80,
+    fetch: fetchWithTimeout,
   });
-
-  let res: Response;
-  try {
-    res = await fetchWithTimeout(`${cfg.apiBase}?${params.toString()}`, {
-      cache: "no-store",
-    });
-  } catch {
-    return [];
-  }
-  if (!res.ok) return [];
-
-  const data = (await res.json()) as {
-    status?: string;
-    result?: ExplorerTokenTx[] | string;
-  };
-  if (data.status !== "1" || !Array.isArray(data.result)) return [];
+  if (rows.length === 0) return [];
 
   const cutoff = Date.now() - MAX_TX_AGE_MS;
   const seen = new Set<string>();
   const txs: LiquidationChainTx[] = [];
 
-  for (const row of data.result) {
+  for (const row of rows) {
     const hash = row.hash?.toLowerCase();
     const ts = Number(row.timeStamp) * 1000;
     const decimals = Number(row.tokenDecimal ?? cfg.decimals);
@@ -173,7 +145,7 @@ async function fetchUsdtTransfersViaLogs(
   const cfg = NETWORK_CONFIG[network];
   const latestHex = await rpcCall<string>(cfg.rpc, "eth_blockNumber", []);
   const latest = parseInt(latestHex, 16);
-  const fromBlock = Math.max(0, latest - (network === "BSC" ? 800 : 1200));
+  const fromBlock = Math.max(0, latest - (network === "BSC" ? 400 : 600));
   const cutoff = Date.now() - MAX_TX_AGE_MS;
 
   let logs: RpcLog[];
@@ -191,7 +163,21 @@ async function fetchUsdtTransfersViaLogs(
   }
 
   const seen = new Set<string>();
+  const blockTsCache = new Map<string, number>();
   const txs: LiquidationChainTx[] = [];
+
+  async function blockTimestamp(blockNumber: string): Promise<number> {
+    const cached = blockTsCache.get(blockNumber);
+    if (cached !== undefined) return cached;
+    const block = await rpcCall<{ timestamp: string }>(
+      cfg.rpc,
+      "eth_getBlockByNumber",
+      [blockNumber, false],
+    );
+    const ts = parseInt(block.timestamp, 16) * 1000;
+    blockTsCache.set(blockNumber, ts);
+    return ts;
+  }
 
   for (let i = logs.length - 1; i >= 0 && txs.length < limit; i -= 1) {
     const log = logs[i]!;
@@ -200,12 +186,7 @@ async function fetchUsdtTransfersViaLogs(
 
     let blockTs = 0;
     try {
-      const block = await rpcCall<{ timestamp: string }>(
-        cfg.rpc,
-        "eth_getBlockByNumber",
-        [log.blockNumber, false],
-      );
-      blockTs = parseInt(block.timestamp, 16) * 1000;
+      blockTs = await blockTimestamp(log.blockNumber);
     } catch {
       continue;
     }
@@ -231,46 +212,58 @@ async function enrichRpcHashesWithAmounts(
   hashes: { hash: string; executedAt: number }[],
 ): Promise<LiquidationChainTx[]> {
   const cfg = NETWORK_CONFIG[network];
-  const txs: LiquidationChainTx[] = [];
 
-  for (const item of hashes.slice(0, 30)) {
-    try {
-      const receipt = await rpcCall<{ logs: RpcLog[] }>(
-        cfg.rpc,
-        "eth_getTransactionReceipt",
-        [item.hash],
-      );
-      const usdtLog = receipt.logs.find(
-        (l) => l.data && l.data !== "0x" && l.transactionHash === item.hash,
-      );
-      if (!usdtLog?.data) continue;
-      const amountUsdt = parseTokenAmount(usdtLog.data, cfg.decimals);
-      if (!isSmallSettlement(amountUsdt)) continue;
-      txs.push({
-        hash: item.hash,
-        executedAt: item.executedAt,
-        amountUsdt,
-        network,
-      });
-    } catch {
-      continue;
-    }
-  }
+  const results = await Promise.all(
+    hashes.slice(0, 20).map(async (item) => {
+      try {
+        const receipt = await rpcCall<{ logs: RpcLog[] }>(
+          cfg.rpc,
+          "eth_getTransactionReceipt",
+          [item.hash],
+        );
+        const usdtLog = receipt.logs.find(
+          (l) => l.data && l.data !== "0x" && l.transactionHash === item.hash,
+        );
+        if (!usdtLog?.data) return null;
+        const amountUsdt = parseTokenAmount(usdtLog.data, cfg.decimals);
+        if (!isSmallSettlement(amountUsdt)) return null;
+        return {
+          hash: item.hash,
+          executedAt: item.executedAt,
+          amountUsdt,
+          network,
+        } satisfies LiquidationChainTx;
+      } catch {
+        return null;
+      }
+    }),
+  );
 
-  return txs;
+  return results.filter((tx): tx is LiquidationChainTx => tx !== null);
+}
+
+function hasExplorerApiKey(): boolean {
+  return Boolean(resolveExplorerApiKey());
 }
 
 async function fetchNetworkTxs(
   network: LiquidationNetwork,
+  options: { allowSlowFallback?: boolean } = {},
 ): Promise<LiquidationChainTx[]> {
-  const viaApi = await fetchViaExplorerApi(network);
-  if (viaApi.length > 0) return viaApi;
+  const { allowSlowFallback = true } = options;
+
+  if (hasExplorerApiKey()) {
+    const viaApi = await fetchViaExplorerApi(network);
+    if (viaApi.length > 0) return viaApi;
+  }
+
+  if (!allowSlowFallback) return [];
 
   const viaLogs = await fetchUsdtTransfersViaLogs(network);
   if (viaLogs.length > 0) return viaLogs;
 
   try {
-    const raw = await fetchRecentTxsViaRpc(network, MAX_TX_AGE_MS, 25);
+    const raw = await fetchRecentTxsViaRpc(network, MAX_TX_AGE_MS, 15);
     return enrichRpcHashesWithAmounts(network, raw);
   } catch {
     return [];
@@ -285,10 +278,12 @@ type TxCache = {
 
 let refreshInFlight: Promise<unknown> | null = null;
 
-async function refreshCache(): Promise<TxCache> {
+async function refreshCache(options?: {
+  allowSlowFallback?: boolean;
+}): Promise<TxCache> {
   const [BSC, POLYGON] = await Promise.all([
-    fetchNetworkTxs("BSC"),
-    fetchNetworkTxs("POLYGON"),
+    fetchNetworkTxs("BSC", options),
+    fetchNetworkTxs("POLYGON", options),
   ]);
   cache = { at: Date.now(), BSC, POLYGON };
   return cache;
@@ -296,11 +291,16 @@ async function refreshCache(): Promise<TxCache> {
 
 function triggerBackgroundRefresh(): void {
   if (refreshInFlight) return;
-  refreshInFlight = refreshCache()
+  refreshInFlight = refreshCache({ allowSlowFallback: true })
     .catch(() => undefined)
     .finally(() => {
       refreshInFlight = null;
     });
+}
+
+/** Kick off a background fetch (e.g. on server cold start). */
+export function warmLiquidationTxCache(): void {
+  triggerBackgroundRefresh();
 }
 
 export async function fetchLiquidationChainTxs(): Promise<{
@@ -315,14 +315,12 @@ export async function fetchLiquidationChainTxs(): Promise<{
     return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
   }
 
-  // Stale cache — serve stale instantly and refresh in the background so the
-  // request never waits on slow external explorer/RPC calls.
-  if (cache) {
-    triggerBackgroundRefresh();
-    return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
-  }
-
-  // Cold start — no cache yet. Await once (bounded by per-fetch timeouts).
-  const fresh = await refreshCache();
-  return { BSC: fresh.BSC, POLYGON: fresh.POLYGON, fetchedAt: fresh.at };
+  // Stale or cold cache — never block the HTTP response on slow RPC fallbacks.
+  // Return what we have (or empty) and refresh in the background.
+  triggerBackgroundRefresh();
+  return {
+    BSC: cache?.BSC ?? [],
+    POLYGON: cache?.POLYGON ?? [],
+    fetchedAt: cache?.at ?? now,
+  };
 }

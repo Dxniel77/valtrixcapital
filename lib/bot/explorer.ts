@@ -1,14 +1,14 @@
 import type { BotNetwork } from "./store";
 import { fetchRecentTxsViaRpc } from "./chain-txs";
+import {
+  fetchExplorerTokenTxs,
+  resolveExplorerApiKey,
+  type ExplorerChain,
+} from "@/lib/block-explorer/etherscan-v2";
 
 export interface RecentChainTx {
   hash: string;
   executedAt: number;
-}
-
-interface ExplorerTxResult {
-  hash: string;
-  timeStamp: string;
 }
 
 const CACHE_TTL_MS = 2 * 60 * 1000;
@@ -36,17 +36,13 @@ const POLYGON_ACTIVITY_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
 
 const NETWORK_CONFIG: Record<
   BotNetwork,
-  { apiBase: string; apiKeyEnv: string; contract: string; address: string }
+  { contract: string; address: string }
 > = {
   BSC: {
-    apiBase: "https://api.bscscan.com/api",
-    apiKeyEnv: "BSCSCAN_API_KEY",
     contract: BSC_USDT,
     address: BSC_ACTIVITY_ADDRESS,
   },
   POLYGON: {
-    apiBase: "https://api.polygonscan.com/api",
-    apiKeyEnv: "POLYGONSCAN_API_KEY",
     contract: POLYGON_USDT,
     address: POLYGON_ACTIVITY_ADDRESS,
   },
@@ -60,41 +56,21 @@ let cache: {
 
 async function fetchViaExplorerApi(network: BotNetwork): Promise<RecentChainTx[]> {
   const cfg = NETWORK_CONFIG[network];
-  const apiKey = process.env[cfg.apiKeyEnv]?.trim();
-  if (!apiKey) return [];
+  if (!resolveExplorerApiKey()) return [];
 
-  const params = new URLSearchParams({
-    module: "account",
-    action: "tokentx",
-    contractaddress: cfg.contract,
+  const rows = await fetchExplorerTokenTxs(network as ExplorerChain, {
+    contractAddress: cfg.contract,
     address: cfg.address,
-    page: "1",
-    offset: "50",
-    sort: "desc",
-    apikey: apiKey,
+    offset: 50,
+    fetch: fetchWithTimeout,
   });
-
-  let res: Response;
-  try {
-    res = await fetchWithTimeout(`${cfg.apiBase}?${params.toString()}`, {
-      cache: "no-store",
-    });
-  } catch {
-    return [];
-  }
-  if (!res.ok) return [];
-
-  const data = (await res.json()) as {
-    status?: string;
-    result?: ExplorerTxResult[] | string;
-  };
-  if (data.status !== "1" || !Array.isArray(data.result)) return [];
+  if (rows.length === 0) return [];
 
   const cutoff = Date.now() - MAX_TX_AGE_MS;
   const seen = new Set<string>();
   const txs: RecentChainTx[] = [];
 
-  for (const row of data.result) {
+  for (const row of rows) {
     const hash = row.hash?.toLowerCase();
     const ts = Number(row.timeStamp) * 1000;
     if (!hash || !Number.isFinite(ts) || ts < cutoff) continue;
@@ -108,15 +84,19 @@ async function fetchViaExplorerApi(network: BotNetwork): Promise<RecentChainTx[]
 }
 
 async function fetchNetworkTxs(network: BotNetwork): Promise<RecentChainTx[]> {
+  if (resolveExplorerApiKey()) {
+    const viaApi = await fetchViaExplorerApi(network);
+    if (viaApi.length > 0) return viaApi;
+  }
+
   try {
     const viaRpc = await fetchRecentTxsViaRpc(network, MAX_TX_AGE_MS, 40);
     if (viaRpc.length > 0) return viaRpc;
   } catch {
-    // fall through to explorer API
+    /* fall through */
   }
 
-  const viaApi = await fetchViaExplorerApi(network);
-  return viaApi;
+  return [];
 }
 
 type TxCache = {
@@ -152,19 +132,15 @@ export async function fetchRecentChainTxs(): Promise<{
 }> {
   const now = Date.now();
 
-  // Fresh cache — serve immediately.
   if (cache && now - cache.at < CACHE_TTL_MS) {
     return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
   }
 
-  // Stale cache — serve stale instantly and refresh in the background so the
-  // request never waits on slow external explorer/RPC calls.
   if (cache) {
     triggerBackgroundRefresh();
     return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
   }
 
-  // Cold start — await once (bounded by per-fetch timeouts).
   const fresh = await refreshCache();
   return { BSC: fresh.BSC, POLYGON: fresh.POLYGON, fetchedAt: fresh.at };
 }
