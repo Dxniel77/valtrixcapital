@@ -53,9 +53,10 @@ export function MarketingNav() {
         scrolled ? "glass border-b border-border-subtle" : "bg-transparent",
       )}
     >
-      <div className="container flex h-16 items-center gap-3 lg:h-[4.5rem] lg:gap-4">
+      <div className="container flex h-14 items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
         <div className="flex shrink-0 items-center">
-          <Logo className="flex" size="lg" showWordmark />
+          <Logo className="flex md:hidden" size="md" />
+          <Logo className="hidden md:flex" size="lg" showWordmark />
         </div>
 
         <nav
@@ -119,12 +120,18 @@ export function MarketingNav() {
             compact={compactNav}
           />
 
-          <div className="flex items-center gap-0.5 md:hidden">
+          <div className="flex min-w-0 items-center gap-0.5 sm:gap-1 md:hidden">
             <LanguageSelector variant="header" />
             <ThemeToggle size="icon" />
+            <ConnectWalletButton
+              size="sm"
+              compact
+              className="min-w-0 shrink"
+              onBeforeConnect={() => setOpen(false)}
+            />
             <button
               type="button"
-              className="rounded-md p-2 text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+              className="shrink-0 rounded-md p-2 text-text-secondary hover:bg-bg-hover hover:text-text-primary"
               onClick={() => setOpen((v) => !v)}
               aria-label={t("nav.toggleMenu")}
               aria-expanded={open}
@@ -148,13 +155,12 @@ export function MarketingNav() {
                 {l.label}
               </Link>
             ))}
-            <div className="mt-3 flex flex-col gap-2 border-t border-border-subtle pt-4">
-              <Button asChild variant="outline" size="md">
+            <div className="mt-3 border-t border-border-subtle pt-4">
+              <Button asChild variant="outline" size="md" className="w-full">
                 <Link href="/dashboard" onClick={() => setOpen(false)}>
                   {t("nav.openDashboard")}
                 </Link>
               </Button>
-              <ConnectWalletButton size="md" />
             </div>
           </div>
         </div>

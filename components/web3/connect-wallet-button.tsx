@@ -12,6 +12,8 @@ interface ConnectWalletButtonProps {
   variant?: ButtonProps["variant"];
   className?: string;
   compact?: boolean;
+  /** Called before opening the connect modal (e.g. close mobile nav). */
+  onBeforeConnect?: () => void;
 }
 
 export function ConnectWalletButton({
@@ -19,6 +21,7 @@ export function ConnectWalletButton({
   variant = "primary",
   className,
   compact = false,
+  onBeforeConnect,
 }: ConnectWalletButtonProps) {
   const { t } = useI18n();
 
@@ -42,6 +45,7 @@ export function ConnectWalletButton({
 
         const openConnect = () => {
           if (!ready) return;
+          onBeforeConnect?.();
           openConnectModal();
         };
 
@@ -56,13 +60,14 @@ export function ConnectWalletButton({
                 disabled={!ready}
                 aria-busy={!ready}
                 className={cn(
-                  compact && "gap-1.5 px-3 text-sm lg:px-3 xl:px-4 xl:text-base",
+                  compact &&
+                    "gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm lg:px-3 xl:px-4 xl:text-base",
                   !ready && "opacity-80",
                 )}
                 aria-label={t("common.connectWallet")}
               >
                 <Wallet className="h-4 w-4 shrink-0" />
-                <span className={cn(compact && "hidden xl:inline")}>
+                <span className={cn(compact && "hidden sm:inline xl:inline")}>
                   {!ready ? t("common.loading") : t("common.connectWallet")}
                 </span>
               </Button>
@@ -104,16 +109,25 @@ export function ConnectWalletButton({
                 <Button
                   onClick={openAccountModal}
                   size={size}
-                  variant={variant}
+                  variant={compact ? "outline" : variant}
                   type="button"
+                  className={cn(
+                    compact &&
+                      "max-w-[9.5rem] gap-1.5 px-2.5 text-xs font-medium sm:max-w-none sm:px-3 sm:text-sm",
+                  )}
                 >
                   <span
-                    className="inline-block h-2 w-2 rounded-full bg-success animate-pulse-soft"
+                    className="inline-block h-2 w-2 shrink-0 rounded-full bg-success animate-pulse-soft"
                     aria-hidden
                   />
-                  {compact
-                    ? shortenAddress(account.address, 4, 4)
-                    : account.displayName}
+                  <span className="truncate">
+                    {compact
+                      ? shortenAddress(account.address, 4, 4)
+                      : account.displayName}
+                  </span>
+                  {compact ? (
+                    <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+                  ) : null}
                 </Button>
               </>
             )}
