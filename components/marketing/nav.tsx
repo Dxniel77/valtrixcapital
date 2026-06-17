@@ -57,7 +57,7 @@ export function MarketingNav() {
         <div className="flex shrink-0 items-center">
           <Logo className="flex md:hidden" size="md" />
           <Logo
-            className={cn("hidden md:flex", compactNav && "xl:hidden")}
+            className={cn("hidden", compactNav && "md:flex xl:hidden")}
             size="md"
           />
           <Logo
