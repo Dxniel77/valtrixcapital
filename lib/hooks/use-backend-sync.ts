@@ -15,6 +15,7 @@ import { useStakingStore } from "@/lib/staking/store";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber, shortenAddress } from "@/lib/utils";
+import { usePageVisible } from "@/lib/hooks/use-page-visible";
 
 let backendAvailable: boolean | null = null;
 
@@ -46,6 +47,7 @@ export function useBackendAvailable(): boolean {
 export function useBackendUserSync(): void {
   const { address } = useAccount();
   const backend = useBackendAvailable();
+  const visible = usePageVisible();
   const applyBalanceAdjustment = useStakingStore((s) => s.applyBalanceAdjustment);
   const setMyReferrer = useReferralsStore((s) => s.setMyReferrer);
   const { t } = useI18n();
@@ -53,7 +55,7 @@ export function useBackendUserSync(): void {
   const appliedIdsRef = React.useRef(new Set<string>());
 
   React.useEffect(() => {
-    if (!backend || !address) return;
+    if (!backend || !address || !visible) return;
 
     let cancelled = false;
 
@@ -160,10 +162,10 @@ export function useBackendUserSync(): void {
     }
 
     void sync();
-    const timer = window.setInterval(() => void sync(), 30_000);
+    const timer = window.setInterval(() => void sync(), 60_000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [backend, address, applyBalanceAdjustment, setMyReferrer, t]);
+  }, [backend, address, visible, applyBalanceAdjustment, setMyReferrer, t]);
 }

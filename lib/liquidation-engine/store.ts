@@ -453,7 +453,6 @@ export function useLiquidationFeedEngine(): void {
   const cadence = useLiquidationStore((s) => s.cadence);
   const syncGlobalFeed = useLiquidationStore((s) => s.syncGlobalFeed);
   const refreshTxPool = useLiquidationStore((s) => s.refreshTxPool);
-  const tickMicroAccrual = useLiquidationStore((s) => s.tickMicroAccrual);
 
   useDeferredEffect(() => {
     if (!hydrated) return;
@@ -477,12 +476,6 @@ export function useLiquidationFeedEngine(): void {
     const id = window.setInterval(() => syncGlobalFeed(), ms);
     return () => window.clearInterval(id);
   }, [hydrated, running, cadence, syncGlobalFeed]);
-
-  React.useEffect(() => {
-    if (!hydrated || !running) return;
-    const id = window.setInterval(() => tickMicroAccrual(), 1_000);
-    return () => window.clearInterval(id);
-  }, [hydrated, running, tickMicroAccrual]);
 }
 
 export { LIQUIDATION_CADENCE_MS as CADENCE_MS };

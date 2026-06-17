@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import {
   TradingChart,
   type TradingChartHandle,
-} from "@/components/trade/trading-chart";
+} from "@/components/trade/trading-chart-lazy";
 import {
   ChartIndicators,
   loadStoredIndicators,

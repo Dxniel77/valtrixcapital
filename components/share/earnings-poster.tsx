@@ -102,43 +102,23 @@ function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
 
   React.useEffect(() => {
     let cancelled = false;
-    const stale = PERIODS.filter((period) => {
-      const key = buildPosterCacheKey(period, earnings, locale, username);
-      return cacheKeysRef.current[period] !== key;
-    });
+    const period = active;
+    const key = buildPosterCacheKey(period, earnings, locale, username);
+    if (cacheKeysRef.current[period] === key) return;
 
-    if (stale.length === 0) return;
+    setGenerating(true);
 
-    const hasAnyCached = stale.some(
-      (period) => cacheKeysRef.current[period] !== undefined,
-    );
-    if (!hasAnyCached) setGenerating(true);
-
-    void Promise.all(
-      stale.map(async (period) => {
-        const key = buildPosterCacheKey(period, earnings, locale, username);
-        const periodMeta = getPosterPeriodMeta(period, earnings, locale);
-        const url = await renderEarningsPoster(
-          periodMeta,
-          username,
-          posterLabels(period),
-        );
-        return { period, url, key } as const;
-      }),
-    )
-      .then((entries) => {
-        if (cancelled) return;
-        setPosterCache((prev) => {
-          const next = { ...prev };
-          for (const { period, url } of entries) {
-            next[period] = url;
-          }
-          return next;
-        });
-        for (const { period, key } of entries) {
-          cacheKeysRef.current[period] = key;
-        }
-      })
+    void (async () => {
+      const periodMeta = getPosterPeriodMeta(period, earnings, locale);
+      const url = await renderEarningsPoster(
+        periodMeta,
+        username,
+        posterLabels(period),
+      );
+      if (cancelled) return;
+      setPosterCache((prev) => ({ ...prev, [period]: url }));
+      cacheKeysRef.current[period] = key;
+    })()
       .catch(() => {
         /* keep previous cache on failure */
       })
@@ -149,7 +129,45 @@ function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
     return () => {
       cancelled = true;
     };
-  }, [earnings, username, locale, posterLabels]);
+  }, [active, earnings, username, locale, posterLabels]);
+
+  React.useEffect(() => {
+    const others = PERIODS.filter((p) => p !== active);
+    let cancelled = false;
+
+    const schedule =
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback
+        : (cb: () => void) => window.setTimeout(cb, 1500);
+
+    const idleId = schedule(() => {
+      void (async () => {
+        for (const period of others) {
+          if (cancelled) return;
+          const key = buildPosterCacheKey(period, earnings, locale, username);
+          if (cacheKeysRef.current[period] === key) continue;
+          const periodMeta = getPosterPeriodMeta(period, earnings, locale);
+          const url = await renderEarningsPoster(
+            periodMeta,
+            username,
+            posterLabels(period),
+          );
+          if (cancelled) return;
+          setPosterCache((prev) => ({ ...prev, [period]: url }));
+          cacheKeysRef.current[period] = key;
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      if (typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(idleId as number);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+    };
+  }, [active, earnings, username, locale, posterLabels]);
 
   const preview = posterCache[active];
   const showPreviewLoader = !preview && generating;

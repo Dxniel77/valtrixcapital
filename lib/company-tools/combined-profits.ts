@@ -7,6 +7,11 @@ import {
   useLiquidationStore,
   utcDateKey,
 } from "@/lib/liquidation-engine/store";
+import {
+  globalLiquidationMicroAccrual,
+  LIQUIDATION_CADENCE_MS,
+} from "@/lib/liquidation-engine/global-simulation";
+import { useClientNow } from "@/lib/hooks/use-client-now";
 import { useCountUp } from "@/lib/hooks/use-count-up";
 
 export interface CombinedEngineProfits {
@@ -24,10 +29,19 @@ export interface CombinedEngineProfits {
   combinedTodayLive: number;
 }
 
+function useLiveMicroAccrual(): number {
+  const cadence = useLiquidationStore((s) => s.cadence);
+  const now = useClientNow(3_000);
+  return React.useMemo(() => {
+    if (now == null) return 0;
+    return globalLiquidationMicroAccrual(now, LIQUIDATION_CADENCE_MS[cadence]);
+  }, [now, cadence]);
+}
+
 export function useCombinedEngineProfits(): CombinedEngineProfits {
   const bot = useCompanyProfits();
   const liquidation = useLiquidationProfits();
-  const microToday = useLiquidationStore((s) => s.microAccrualToday);
+  const microToday = useLiveMicroAccrual();
 
   return React.useMemo(() => {
     const liquidationTodayLive = liquidation.today + microToday;
@@ -49,7 +63,7 @@ export function useCombinedEngineProfits(): CombinedEngineProfits {
 
 export function useLiveLiquidationToday(): number {
   const liquidation = useLiquidationProfits();
-  const microToday = useLiquidationStore((s) => s.microAccrualToday);
+  const microToday = useLiveMicroAccrual();
   return useCountUp(liquidation.today + microToday, 2);
 }
 
@@ -59,6 +73,7 @@ export function useLiveCombinedToday(): number {
 }
 
 export function useActivePairsToday(): string[] {
+  const eventsLen = useLiquidationStore((s) => s.events.length);
   const events = useLiquidationStore((s) => s.events);
   const today = utcDateKey();
 
@@ -68,5 +83,5 @@ export function useActivePairsToday(): string[] {
       if (utcDateKey(ev.executedAt) === today) pairs.add(ev.pair);
     }
     return [...pairs];
-  }, [events, today]);
+  }, [events, eventsLen, today]);
 }

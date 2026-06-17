@@ -11,21 +11,28 @@ import { useDeferredMount } from "@/lib/hooks/use-deferred-mount";
 
 /** Mirrors live user ledger events into the admin movements feed. */
 export function AdminMovementBridge() {
-  const ready = useDeferredMount(1500);
+  const ready = useDeferredMount(2000);
   const { address } = useAccount();
   const syncLiveMovements = useAdminStore((s) => s.syncLiveMovements);
-  const stakes = useStakingStore((s) => s.stakes);
-  const pendingDeposit = useStakingStore((s) => s.pendingDeposit);
-  const dailyYields = useStakingStore((s) => s.dailyYields);
-  const instantCredits = useStakingStore((s) => s.instantCredits);
-  const commissions = useReferralsStore((s) => s.commissions);
-  const withdrawals = useWalletStore((s) => s.withdrawals);
+
+  // Length-only subscriptions — avoids re-running on every array mutation during render.
+  const stakesLen = useStakingStore((s) => s.stakes.length);
+  const pendingDepositId = useStakingStore((s) => s.pendingDeposit?.id ?? null);
+  const yieldsLen = useStakingStore((s) => s.dailyYields.length);
+  const creditsLen = useStakingStore((s) => s.instantCredits.length);
+  const commissionsLen = useReferralsStore((s) => s.commissions.length);
+  const withdrawalsLen = useWalletStore((s) => s.withdrawals.length);
 
   useDebouncedEffect(
     () => {
       if (!ready || !address) return;
       const wallet = address;
       const movements = [];
+
+      const { stakes, pendingDeposit, dailyYields, instantCredits } =
+        useStakingStore.getState();
+      const { commissions } = useReferralsStore.getState();
+      const { withdrawals } = useWalletStore.getState();
 
       for (const st of stakes) {
         movements.push({
@@ -107,14 +114,14 @@ export function AdminMovementBridge() {
       ready,
       address,
       syncLiveMovements,
-      stakes,
-      pendingDeposit,
-      dailyYields,
-      instantCredits,
-      commissions,
-      withdrawals,
+      stakesLen,
+      pendingDepositId,
+      yieldsLen,
+      creditsLen,
+      commissionsLen,
+      withdrawalsLen,
     ],
-    500,
+    800,
   );
 
   return null;

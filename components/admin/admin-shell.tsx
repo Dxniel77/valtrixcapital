@@ -25,6 +25,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
+import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
 import { useAdminSeed } from "@/lib/admin/store";
 
 export const adminNavItems = [
@@ -49,6 +50,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-bg-base">
+      <AdminMovementBridge />
       <aside className="sticky top-0 z-30 hidden h-screen w-[244px] shrink-0 flex-col border-r border-border-subtle bg-bg-elevated md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border-subtle px-4">
           <Logo size="sm" showWordmark={false} />

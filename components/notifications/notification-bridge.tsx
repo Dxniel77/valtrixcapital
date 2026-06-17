@@ -18,7 +18,7 @@ export function NotificationBridge() {
   const stakesLen = useStakingStore((s) => s.stakes.length);
   const yieldsLen = useStakingStore((s) => s.dailyYields.length);
   const lastYield = useStakingStore((s) => s.dailyYields[0]);
-  const withdrawals = useWalletStore((s) => s.withdrawals);
+  const withdrawalsLen = useWalletStore((s) => s.withdrawals.length);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
 
   const bootstrapped = React.useRef(false);
@@ -32,7 +32,7 @@ export function NotificationBridge() {
       prevStakes.current = stakesLen;
       prevYields.current = yieldsLen;
       prevWithdrawals.current = Object.fromEntries(
-        withdrawals.map((w) => [w.id, w.status]),
+        useWalletStore.getState().withdrawals.map((w) => [w.id, w.status]),
       );
       prevCommissionMilestone.current = Math.floor(totalCommissions / 100) * 100;
       bootstrapped.current = true;
@@ -77,6 +77,7 @@ export function NotificationBridge() {
   React.useEffect(() => {
     if (!bootstrapped.current) return;
 
+    const withdrawals = useWalletStore.getState().withdrawals;
     for (const w of withdrawals) {
       const prev = prevWithdrawals.current[w.id];
       if (prev === undefined) {
@@ -102,7 +103,7 @@ export function NotificationBridge() {
       }
       prevWithdrawals.current[w.id] = w.status;
     }
-  }, [withdrawals, t]);
+  }, [withdrawalsLen, t]);
 
   React.useEffect(() => {
     if (!bootstrapped.current) return;
