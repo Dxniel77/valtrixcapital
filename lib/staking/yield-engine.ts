@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTradeStore, useTradeStoreHydrated } from "@/lib/trade/store";
 import { useStakingStore } from "@/lib/staking/store";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 
 /** Returns `true` once Zustand has loaded persisted state from localStorage. */
 export function useStakingStoreHydrated(): boolean {
@@ -30,7 +31,7 @@ export function useYieldEngine(): void {
   const positions = useTradeStore((s) => s.positions);
 
   React.useEffect(() => {
-    if (backend || !tradeHydrated || !stakingHydrated) return;
+    if (backend || !allowOfflineSimulation() || !tradeHydrated || !stakingHydrated) return;
     catchup(positions);
     const id = setInterval(
       () => catchup(useTradeStore.getState().positions),

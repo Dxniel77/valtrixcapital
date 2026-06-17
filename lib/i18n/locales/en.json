@@ -53,7 +53,8 @@
     "noAttempts": "No daily attempts — restart at 00:00 UTC.",
     "hedgeBlocked": "You cannot open the opposite direction while a position is active on this pair.",
     "simultaneousLimit": "Simultaneous trade limit reached ({open}/{max}). Close an active position to open another.",
-    "tradeSuccess": "{side} {pair} · {price} · {duration}m"
+    "tradeSuccess": "{side} {pair} · {price} · {duration}m",
+    "backendRequired": "Service temporarily unavailable. Please try again in a few minutes."
   },
   "nav": {
     "features": "Features",
@@ -462,6 +463,7 @@
       "dailyMax": "Maximum daily yield (1.00%)",
       "payoutCap": "Payout cap (200%)",
       "connectForCredit": "Connect your wallet so deposits are credited to your account.",
+      "treasuryMissing": "Treasury deposit address is not configured. Contact support.",
       "accountNote": "Deposits are credited to your connected account ({address}). You can send USDT from any wallet or exchange.",
       "transferTitle": "Send USDT to this address",
       "transferSubtitle": "Copy the address or scan the QR code. Then confirm once you have sent the transfer.",

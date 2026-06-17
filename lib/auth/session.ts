@@ -5,9 +5,17 @@ export const SESSION_COOKIE = "valtrix.session";
 const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
 
 function getSecret(): Uint8Array {
-  const secret =
-    process.env.NEXTAUTH_SECRET ??
-    "valtrix-dev-fallback-secret-please-replace-32bytes!";
+  const secret = process.env.NEXTAUTH_SECRET?.trim();
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "NEXTAUTH_SECRET is required in production. Generate a random 32+ byte secret.",
+      );
+    }
+    return new TextEncoder().encode(
+      "valtrix-dev-fallback-secret-please-replace-32bytes!",
+    );
+  }
   return new TextEncoder().encode(secret);
 }
 

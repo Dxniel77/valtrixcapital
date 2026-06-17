@@ -15,6 +15,7 @@ import {
   commissionFromYield,
   simulateDownlineDailyYield,
 } from "./commission";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 
 export interface DownlineMember {
   id: string;
@@ -150,7 +151,7 @@ export const useReferralsStore = create<ReferralsState>()(
       ...initial,
 
       ensureCode: (walletAddress) => {
-        get().seedDemoNetwork();
+        if (allowOfflineSimulation()) get().seedDemoNetwork();
         const existing = get().referralCode;
         if (existing) return existing;
         const code = walletAddress
@@ -163,6 +164,7 @@ export const useReferralsStore = create<ReferralsState>()(
       setMyReferrer: (referrer) => set({ myReferrer: referrer }),
 
       seedDemoNetwork: () => {
+        if (!allowOfflineSimulation()) return;
         const current = get().downline;
         if (current.length === 0) {
           set({ downline: buildDemoDownline() });
@@ -195,7 +197,9 @@ export const useReferralsStore = create<ReferralsState>()(
       processCommissionsForYields: (yields) => {
         if (yields.length === 0) return;
         const state = get();
-        if (state.downline.length === 0) state.seedDemoNetwork();
+        if (state.downline.length === 0 && allowOfflineSimulation()) {
+          state.seedDemoNetwork();
+        }
 
         const processed = new Set(state.processedYieldIds);
         const newCommissions: CommissionRecord[] = [];
@@ -278,7 +282,7 @@ export const useReferralsStore = create<ReferralsState>()(
       reset: () => set(initial),
     }),
     {
-      name: "valtrix.referrals.v1",
+      name: "valtrix.referrals.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
           ? {

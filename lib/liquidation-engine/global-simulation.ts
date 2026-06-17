@@ -9,6 +9,7 @@ import {
   utcDateKey,
 } from "@/lib/company-tools/global-metrics";
 import { createSeededRng } from "@/lib/company-tools/seeded-rng";
+import { allowSyntheticChainTx } from "@/lib/runtime-mode";
 import type {
   LiquidationCadence,
   LiquidationChainTx,
@@ -46,11 +47,12 @@ function syntheticTx(
   };
 }
 
-function pickTx(slotIndex: number, pool: LiquidationChainTx[]): LiquidationChainTx {
+function pickTx(slotIndex: number, pool: LiquidationChainTx[]): LiquidationChainTx | null {
   if (pool.length > 0) {
     const rng = createSeededRng(slotIndex * 71 + 3);
     return pool[rng.int(pool.length)]!;
   }
+  if (!allowSyntheticChainTx()) return null;
   const network: LiquidationNetwork = slotIndex % 2 === 0 ? "BSC" : "POLYGON";
   return syntheticTx(slotIndex, network);
 }
@@ -66,8 +68,9 @@ export function createDeterministicLiquidationEvent(
   slotIndex: number,
   cadenceMs: number,
   txPool: LiquidationChainTx[],
-): LiquidationEvent {
+): LiquidationEvent | null {
   const tx = pickTx(slotIndex, txPool);
+  if (!tx) return null;
   const executedAt = slotTimestamp(slotIndex, cadenceMs);
   const feeDay = utcDateKey(executedAt);
   const feeUsd = deterministicSettlementFee(tx.amountUsdt, slotIndex, feeDay);
@@ -96,7 +99,8 @@ export function buildGlobalLiquidationFeed(
   const events: LiquidationEvent[] = [];
 
   for (let slot = startSlot; slot <= currentSlot; slot += 1) {
-    events.push(createDeterministicLiquidationEvent(slot, cadenceMs, txPool));
+    const ev = createDeterministicLiquidationEvent(slot, cadenceMs, txPool);
+    if (ev) events.push(ev);
   }
 
   return events.reverse();
@@ -105,7 +109,7 @@ export function buildGlobalLiquidationFeed(
 function feeForSlot(slotIndex: number, cadenceMs: number): number {
   const txPool: LiquidationChainTx[] = [];
   const ev = createDeterministicLiquidationEvent(slotIndex, cadenceMs, txPool);
-  return ev.feeUsd;
+  return ev?.feeUsd ?? 0;
 }
 
 const dailyFeeMemo = new Map<string, number>();

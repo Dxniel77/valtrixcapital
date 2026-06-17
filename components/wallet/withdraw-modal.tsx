@@ -27,6 +27,7 @@ import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { createWithdrawalRequest } from "@/lib/api/client";
 import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
@@ -116,7 +117,7 @@ export function WithdrawModal({
         useStakingStore.setState((s) => ({
           earningsBalance: Math.max(0, s.earningsBalance - breakdown.amount),
         }));
-      } else {
+      } else if (allowOfflineSimulation()) {
         const res = requestWithdrawal({
           amount: breakdown.amount,
           network,
@@ -134,6 +135,9 @@ export function WithdrawModal({
           toast.error(t("walletPage.withdraw.insufficient"));
           return;
         }
+      } else {
+        toast.error(t("errors.backendRequired"));
+        return;
       }
 
       setStep("success");

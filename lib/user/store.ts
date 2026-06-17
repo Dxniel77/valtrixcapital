@@ -160,7 +160,7 @@ export function markWelcomeSeen(wallet: string): void {
 function isUsernameTakenInAdmin(usernameKey: string): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const raw = window.localStorage.getItem("valtrix.admin.v2");
+    const raw = window.localStorage.getItem("valtrix.admin.v3");
     if (!raw) return false;
     const parsed = JSON.parse(raw) as {
       state?: { users?: Array<{ alias?: string }> };

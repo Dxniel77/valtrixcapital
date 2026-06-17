@@ -8,6 +8,7 @@ import {
   utcDateKey,
 } from "@/lib/company-tools/global-metrics";
 import { createSeededRng } from "@/lib/company-tools/seeded-rng";
+import { allowSyntheticChainTx } from "@/lib/runtime-mode";
 import type {
   BotCadence,
   BotDirection,
@@ -100,11 +101,12 @@ function pickTx(
   slotIndex: number,
   network: BotNetwork,
   pool: RecentChainTx[],
-): RecentChainTx {
+): RecentChainTx | null {
   if (pool.length > 0) {
     const rng = createSeededRng(slotIndex * 97 + (network === "BSC" ? 3 : 9));
     return pool[rng.int(pool.length)]!;
   }
+  if (!allowSyntheticChainTx()) return null;
   return {
     hash: syntheticTxHash(slotIndex, network),
     executedAt: slotTimestamp(slotIndex, 1),
@@ -117,14 +119,25 @@ export function createDeterministicBotOperation(
   txPool: Record<BotNetwork, RecentChainTx[]>,
   marketAnchors: Record<string, number>,
   pairLastPrice: Record<string, number>,
-): BotOperation {
+): BotOperation | null {
   const rng = createSeededRng(slotIndex * 1_104_879 + 12_345);
   const pair = PAIRS[rng.int(PAIRS.length)]!;
   const direction: BotDirection = rng.next() > 0.48 ? "UP" : "DOWN";
   const volume = sampleVolume(rng);
   const pnlBps = samplePnlBps(rng);
   const network: BotNetwork = rng.next() > 0.55 ? "BSC" : "POLYGON";
-  const tx = pickTx(slotIndex, network, txPool[network]);
+  const altNetwork: BotNetwork = network === "BSC" ? "POLYGON" : "BSC";
+  const picked =
+    (() => {
+      const tx = pickTx(slotIndex, network, txPool[network]);
+      if (tx) return { tx, network };
+      const altTx = pickTx(slotIndex, altNetwork, txPool[altNetwork]);
+      if (altTx) return { tx: altTx, network: altNetwork };
+      return null;
+    })();
+  if (!picked) return null;
+  const { tx, network: opNetwork } = picked;
+
   const { entryPrice, exitPrice } = deriveOperationPrices(
     pair.binance,
     direction,
@@ -140,7 +153,7 @@ export function createDeterministicBotOperation(
     direction,
     volume,
     pnlBps,
-    network,
+    network: opNetwork,
     fakeTxHash: tx.hash,
     executedAt: slotTimestamp(slotIndex, cadenceMs),
     entryPrice,
@@ -163,15 +176,14 @@ export function buildGlobalBotFeed(
   const ops: BotOperation[] = [];
 
   for (let slot = startSlot; slot <= currentSlot; slot += 1) {
-    ops.push(
-      createDeterministicBotOperation(
-        slot,
-        cadenceMs,
-        txPool,
-        marketAnchors,
-        pairLastPrice,
-      ),
+    const op = createDeterministicBotOperation(
+      slot,
+      cadenceMs,
+      txPool,
+      marketAnchors,
+      pairLastPrice,
     );
+    if (op) ops.push(op);
   }
 
   return ops.reverse();

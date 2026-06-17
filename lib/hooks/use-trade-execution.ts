@@ -20,6 +20,7 @@ import {
 import { mapServerTradeToPosition } from "@/lib/trade/hydrate-trades";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { formatNumber } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -120,6 +121,11 @@ export function useTradeExecution(
         } else if (code === "HEDGE_BLOCKED") toast.error(t("errors.hedgeBlocked"));
         else toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
       }
+      return;
+    }
+
+    if (!backend && !allowOfflineSimulation()) {
+      toast.error(t("errors.backendRequired"));
       return;
     }
 

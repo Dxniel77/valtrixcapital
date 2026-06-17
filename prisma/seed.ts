@@ -16,33 +16,28 @@ async function main() {
     create: { id: 1 },
   });
 
-  const admin = await prisma.user.upsert({
-    where: { walletAddress: "0xadmin0000000000000000000000000000000000a" },
-    update: {},
-    create: {
-      walletAddress: "0xadmin0000000000000000000000000000000000a",
-      username: "Admin",
-      role: "ADMIN",
-      referralCode: makeCode(),
-    },
-  });
+  const adminWallets = (process.env.ADMIN_WALLETS ?? "")
+    .split(",")
+    .map((w) => w.trim().toLowerCase())
+    .filter((w) => /^0x[a-f0-9]{40}$/.test(w));
 
-  const demoWallets = [
-    "0xdemo0000000000000000000000000000000000001",
-    "0xdemo0000000000000000000000000000000000002",
-    "0xdemo0000000000000000000000000000000000003",
-  ];
-  for (const w of demoWallets) {
+  for (const walletAddress of adminWallets) {
     await prisma.user.upsert({
-      where: { walletAddress: w },
-      update: {},
+      where: { walletAddress },
+      update: { role: "ADMIN" },
       create: {
-        walletAddress: w,
-        username: `Demo ${w.slice(-3)}`,
+        walletAddress,
+        username: "Admin",
+        role: "ADMIN",
         referralCode: makeCode(),
-        referrerId: admin.id,
       },
     });
+  }
+
+  if (adminWallets.length === 0) {
+    console.warn(
+      "No ADMIN_WALLETS set — only AppConfig was seeded. Add manager wallets to ADMIN_WALLETS before running db:seed.",
+    );
   }
 
   console.log("Done seeding.");

@@ -49,7 +49,7 @@ interface PlatformSettingsState {
 function importLegacyAdminSettings(): Partial<PlatformSettings> | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem("valtrix.admin.v2");
+    const raw = window.localStorage.getItem("valtrix.admin.v3");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { state?: { settings?: Partial<PlatformSettings> } };
     return parsed.state?.settings ?? null;

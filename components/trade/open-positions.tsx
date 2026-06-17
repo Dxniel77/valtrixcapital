@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, CircleCheck, CircleX } from "lucide-react";
 import { useTradeStore, type Position } from "@/lib/trade/store";
 import { resolveTradeWithBackend } from "@/lib/trade/backend-trades";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { deriveSimultaneousLimit } from "@/lib/trade/limits";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
 import { findPair } from "@/lib/market/pairs";
@@ -60,7 +61,7 @@ export function OpenPositions({
               .finally(() => {
                 resolvingRef.current.delete(p.id);
               });
-          } else {
+          } else if (allowOfflineSimulation()) {
             resolvePosition(p.id, price);
           }
         }

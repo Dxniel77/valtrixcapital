@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { useI18n } from "@/lib/i18n/context";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import {
   advanceDepositOnServer,
   confirmDepositOnServer,
@@ -117,6 +118,10 @@ export function StakeDepositModal({
       let serverDepositId: string | undefined;
       const trimmedHash = txHashInput.trim();
       const toAddress = getDepositAddress(network);
+      if (!toAddress) {
+        toast.error(t("staking.deposit.treasuryMissing"));
+        return;
+      }
 
       if (backend) {
         const hash =
@@ -138,8 +143,11 @@ export function StakeDepositModal({
           txHash: hash,
           serverDepositId,
         });
-      } else {
+      } else if (allowOfflineSimulation()) {
         beginDeposit({ amount, network, txHash: txHashInput });
+      } else {
+        toast.error(t("errors.backendRequired"));
+        return;
       }
 
       setStep("confirming");
@@ -180,6 +188,13 @@ export function StakeDepositModal({
           toast.error(t("errors.signInFailed"));
           return;
         }
+      }
+
+      if (!allowOfflineSimulation()) {
+        toast.error(t("errors.backendRequired"));
+        cancel();
+        setStep("form");
+        return;
       }
 
       const stake = finalize();

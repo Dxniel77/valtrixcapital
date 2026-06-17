@@ -208,6 +208,7 @@ export function useWalletStoreHydrated(): boolean {
 }
 
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 
 /** Drives the withdrawal status tracker forward while any are in-flight (local demo only). */
 export function useWithdrawalEngine(): void {
@@ -221,7 +222,7 @@ export function useWithdrawalEngine(): void {
   );
 
   React.useEffect(() => {
-    if (backend || !hydrated || !hasPending) return;
+    if (backend || !allowOfflineSimulation() || !hydrated || !hasPending) return;
     advance();
     const id = window.setInterval(advance, 1_500);
     return () => window.clearInterval(id);

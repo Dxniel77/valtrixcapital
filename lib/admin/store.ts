@@ -14,6 +14,7 @@ import {
   type WithdrawalRule,
 } from "@/lib/admin/withdrawal-eligibility";
 import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import {
   findSponsorUser,
   findUserByReferralCode,
@@ -278,6 +279,7 @@ export const useAdminStore = create<AdminState>()(
       liveDataSynced: false,
 
       seedDemo: () => {
+        if (!allowOfflineSimulation()) return;
         if (get().liveDataSynced) return;
         if (get().seeded && get().users.length > 0) return;
         const users = buildDemoUsers();
@@ -764,7 +766,7 @@ export const useAdminStore = create<AdminState>()(
       },
     }),
     {
-      name: "valtrix.admin.v2",
+      name: "valtrix.admin.v3",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
           ? {
@@ -829,13 +831,13 @@ export function useAdminStoreHydrated(): boolean {
   return hydrated;
 }
 
-/** Seeds demo data once hydrated. */
+/** Seeds demo data once hydrated (development / staging only). */
 export function useAdminSeed(): boolean {
   const hydrated = useAdminStoreHydrated();
   const liveDataSynced = useAdminStore((s) => s.liveDataSynced);
   const seedDemo = useAdminStore((s) => s.seedDemo);
   React.useEffect(() => {
-    if (!hydrated || liveDataSynced) return;
+    if (!allowOfflineSimulation() || !hydrated || liveDataSynced) return;
     // Wait for Postgres sync before falling back to demo users.
     const timer = window.setTimeout(() => {
       if (!useAdminStore.getState().liveDataSynced) seedDemo();
