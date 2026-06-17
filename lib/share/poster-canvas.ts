@@ -67,7 +67,7 @@ export const POSTER_TEXT_LAYOUT: Record<PosterPeriod, PosterTextLayout> = {
     date: { x: 0.17, y: 0.538, maxW: 0.52, size: 0.024 },
     username: { x: 0.18, y: 0.642, maxW: 0.36, size: 0.035 },
     features: { x: 0.17, y0: 0.715, lineH: 0.06, maxW: 0.55, size: 0.023 },
-    disclaimer: { y: 0.96, maxW: 0.98, size: 0.025, paragraphGap: 0.05 },
+    disclaimer: { y: 0.96, maxW: 0.98, size: 0.025, paragraphGap: 0.00 },
   },
   /** Template: /images/2.png — no "today" line; heading sits higher */
   weekly: {
