@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { TreasuryDepositModal } from "@/components/admin/treasury-deposit-modal";
 import { TreasuryWithdrawModal } from "@/components/admin/treasury-withdraw-modal";
 import { PendingWithdrawalsPanel } from "@/components/admin/pending-withdrawals-panel";
-import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStats } from "@/lib/admin/store";
 import {
@@ -19,7 +18,6 @@ import {
   useTreasuryStoreHydrated,
   useTreasurySummary,
 } from "@/lib/admin/treasury-store";
-import type { StakingNetwork } from "@/lib/staking/store";
 import { formatNumber } from "@/lib/utils";
 
 export default function AdminTreasuryPage() {
@@ -37,7 +35,6 @@ export default function AdminTreasuryPage() {
 
   const [depositOpen, setDepositOpen] = React.useState(false);
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
-  const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
 
   const coveragePct =
     stats.liabilities > 0
@@ -110,31 +107,14 @@ export default function AdminTreasuryPage() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.treasury.addressesTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-text-secondary">
-              {t("admin.treasury.addressesDesc")}
-            </p>
-            <DepositAddressPanel
-              network={network}
-              onNetworkChange={setNetwork}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.withdrawals.title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PendingWithdrawalsPanel />
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("admin.withdrawals.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PendingWithdrawalsPanel />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
