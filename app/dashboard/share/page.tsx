@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useAccount } from "wagmi";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import { useStakingStore } from "@/lib/staking/store";
 import { useReferralsStore } from "@/lib/referrals/store";
@@ -63,17 +62,12 @@ export default function SharePage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader title={t("share.title")} subtitle={t("share.subtitle")} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("share.posterSection")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EarningsPoster username={username} earnings={earnings} />
-        </CardContent>
-      </Card>
+      <section>
+        <EarningsPoster username={username} earnings={earnings} />
+      </section>
 
       <ExportReportsPanel items={exports} />
     </div>

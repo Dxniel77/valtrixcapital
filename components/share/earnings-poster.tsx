@@ -215,160 +215,128 @@ function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
   const total = slice.total || 1;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {periodCards.map(({ period, meta: cardMeta, slice: cardSlice }) => {
-          const Icon = PERIOD_ICONS[period];
-          const selected = active === period;
-          const isDownloading = downloading === period;
-          return (
-            <div
-              key={period}
-              className={cn(
-                "relative overflow-hidden rounded-lg border transition-all",
-                selected
-                  ? "border-gold/50 bg-gold/5 shadow-[0_0_24px_-6px_rgba(212,175,55,0.35)]"
-                  : "border-border-subtle bg-bg-base/40",
-              )}
-            >
-              {selected ? (
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-gold/60 to-transparent" />
-              ) : null}
+    <div className="space-y-5">
+      {/* Segmented period control */}
+      <div
+        className="rounded-2xl border border-border-subtle/80 bg-bg-base/60 p-1.5 backdrop-blur-sm"
+        role="tablist"
+        aria-label={t("share.posterSection")}
+      >
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          {periodCards.map(({ period, meta: cardMeta, slice: cardSlice }) => {
+            const Icon = PERIOD_ICONS[period];
+            const selected = active === period;
+            return (
               <button
+                key={period}
                 type="button"
+                role="tab"
+                aria-selected={selected}
                 onClick={() => setActive(period)}
-                className="w-full p-4 text-left transition-colors hover:bg-bg-hover"
+                className={cn(
+                  "group relative overflow-hidden rounded-xl px-3 py-2.5 text-left transition-all duration-200",
+                  selected
+                    ? "bg-gradient-to-br from-gold/20 via-gold/10 to-transparent shadow-[inset_0_1px_0_0_rgba(212,175,55,0.25)] ring-1 ring-gold/40"
+                    : "hover:bg-bg-hover/80",
+                )}
               >
-                <div className="flex items-start justify-between gap-2">
+                {selected ? (
+                  <div
+                    className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gold/10 blur-2xl"
+                    aria-hidden
+                  />
+                ) : null}
+                <div className="relative flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                      selected
+                        ? "bg-gold/20 text-gold"
+                        : "bg-bg-elevated text-text-muted group-hover:text-text-secondary",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Icon
-                        className={cn(
-                          "h-3.5 w-3.5 shrink-0",
-                          selected ? "text-gold" : "text-text-muted",
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          "text-xs font-semibold uppercase tracking-wider",
-                          selected ? "text-gold" : "text-text-secondary",
-                        )}
-                      >
-                        {periodLabel(period)}
-                      </span>
-                    </div>
-                    <p className="mt-2 font-mono text-xl font-medium text-text-primary">
+                    <p
+                      className={cn(
+                        "truncate text-[10px] font-semibold uppercase tracking-wider",
+                        selected ? "text-gold" : "text-text-muted",
+                      )}
+                    >
+                      {periodLabel(period)}
+                    </p>
+                    <p className="truncate font-mono text-sm font-medium text-text-primary">
                       ${formatNumber(cardSlice.total, { decimals: 2 })}
                     </p>
-                    <p className="mt-1 truncate text-[10px] uppercase tracking-wide text-text-muted">
-                      {cardMeta.rangeLabel}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-muted">
-                      <span>
-                        {t("share.poster.base")}: $
-                        {formatNumber(cardSlice.base, { decimals: 0 })}
-                      </span>
-                      <span>
-                        {t("share.poster.operational")}: $
-                        {formatNumber(cardSlice.operational, { decimals: 0 })}
-                      </span>
-                    </div>
                   </div>
                 </div>
+                <p className="relative mt-1 truncate pl-9 text-[9px] text-text-muted">
+                  {cardMeta.rangeLabel}
+                </p>
               </button>
-              <div className="border-t border-border-subtle/60 px-3 py-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-full text-xs"
-                  onClick={() => downloadOne(period)}
-                  disabled={downloading !== null || !posterCache[period]}
-                >
-                  {isDownloading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
-                  {t("share.downloadPeriod", { period: periodLabel(period) })}
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <Badge variant="gold">{periodLabel(active)}</Badge>
-            <span className="truncate text-xs text-text-muted">
-              @{username} · {meta.rangeLabel}
-            </span>
-          </div>
-          <div className="overflow-hidden rounded-xl border border-gold/20 bg-bg-base shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
-            {showPreviewLoader ? (
-              <div
-                className="flex items-center justify-center bg-bg-elevated"
-                style={{ aspectRatio: "1024 / 930" }}
-              >
-                <Loader2 className="h-8 w-8 animate-spin text-gold" />
-              </div>
-            ) : preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={preview}
-                alt={periodLabel(active)}
-                className="w-full object-contain"
-              />
-            ) : null}
-          </div>
-          <p className="text-center text-xs text-text-muted">
-            {t("share.poster.breakdownNote")}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border-subtle bg-bg-base/50 p-4">
-            <h3 className="text-sm font-semibold text-text-primary">
-              {t("share.breakdownTitle")}
-            </h3>
-            <p className="mt-0.5 font-mono text-2xl text-gold">
-              ${formatNumber(slice.total, { decimals: 2 })}
-            </p>
-
-            <BreakdownBar
-              base={slice.base}
-              operational={slice.operational}
-              network={slice.network}
-              total={total}
-            />
-
-            <div className="mt-4 space-y-1 divide-y divide-border-subtle/60">
-              <BreakdownRow
-                icon={Coins}
-                color="bg-gold"
-                label={t("share.poster.base")}
-                value={slice.base}
-                pct={(slice.base / total) * 100}
-              />
-              <BreakdownRow
-                icon={LineChart}
-                color="bg-success"
-                label={t("share.poster.operational")}
-                value={slice.operational}
-                pct={(slice.operational / total) * 100}
-              />
-              <BreakdownRow
-                icon={Users}
-                color="bg-info"
-                label={t("share.poster.network")}
-                value={slice.network}
-                pct={(slice.network / total) * 100}
-              />
+      {/* Bento: status + preview */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
+        {/* Status panel */}
+        <div className="order-1 space-y-4 rounded-2xl border border-border-subtle/80 bg-gradient-to-br from-bg-elevated/90 to-bg-base/40 p-5 backdrop-blur-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                {t("share.breakdownTitle")}
+              </p>
+              <p className="mt-1 bg-gradient-to-r from-gold via-gold-bright to-gold bg-clip-text font-mono text-3xl font-semibold tracking-tight text-transparent">
+                ${formatNumber(slice.total, { decimals: 2 })}
+              </p>
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+                <span className="rounded-full bg-bg-base px-2 py-0.5 font-medium text-text-secondary">
+                  @{username}
+                </span>
+                <span aria-hidden>·</span>
+                <span>{meta.rangeLabel}</span>
+              </p>
             </div>
+            <Badge variant="gold" className="shrink-0">
+              {periodLabel(active)}
+            </Badge>
           </div>
 
-          <div className="mt-auto flex flex-col gap-2 sm:flex-row lg:flex-col">
+          <BreakdownBar
+            base={slice.base}
+            operational={slice.operational}
+            network={slice.network}
+            total={total}
+          />
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <BreakdownStat
+              icon={Coins}
+              accent="gold"
+              label={t("share.poster.base")}
+              value={slice.base}
+              pct={(slice.base / total) * 100}
+            />
+            <BreakdownStat
+              icon={LineChart}
+              accent="success"
+              label={t("share.poster.operational")}
+              value={slice.operational}
+              pct={(slice.operational / total) * 100}
+            />
+            <BreakdownStat
+              icon={Users}
+              accent="info"
+              label={t("share.poster.network")}
+              value={slice.network}
+              pct={(slice.network / total) * 100}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row lg:flex-col">
             <Button
               variant="primary"
               size="md"
@@ -386,7 +354,7 @@ function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
             <Button
               variant="outline"
               size="md"
-              className="w-full"
+              className="w-full border-border-subtle bg-bg-base/50"
               onClick={downloadAll}
               disabled={
                 downloading !== null ||
@@ -401,6 +369,42 @@ function EarningsPosterComponent({ username, earnings }: EarningsPosterProps) {
               {t("share.downloadAll")}
             </Button>
           </div>
+        </div>
+
+        {/* Poster preview */}
+        <div className="order-2 space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-gold/15 bg-bg-elevated/50 p-3 shadow-[0_12px_48px_-16px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                {t("share.posterSection")}
+              </span>
+              <span className="text-[10px] text-text-muted">
+                {periodLabel(active)}
+              </span>
+            </div>
+            <div className="flex max-h-[min(38vh,320px)] items-center justify-center overflow-hidden rounded-xl bg-bg-base/80 sm:max-h-[min(44vh,380px)]">
+              {showPreviewLoader ? (
+                <div className="flex aspect-[1024/930] w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-7 w-7 animate-spin text-gold" />
+                    <span className="text-xs text-text-muted">
+                      {t("common.loading")}
+                    </span>
+                  </div>
+                </div>
+              ) : preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={preview}
+                  alt={periodLabel(active)}
+                  className="max-h-[min(38vh,320px)] w-full object-contain transition-opacity duration-300 sm:max-h-[min(44vh,380px)]"
+                />
+              ) : null}
+            </div>
+          </div>
+          <p className="px-1 text-center text-[11px] leading-relaxed text-text-muted">
+            {t("share.poster.breakdownNote")}
+          </p>
         </div>
       </div>
     </div>
@@ -426,26 +430,29 @@ function BreakdownBar({
   total: number;
 }) {
   const segments = [
-    { value: base, color: "bg-gold" },
-    { value: operational, color: "bg-success" },
-    { value: network, color: "bg-info" },
+    { value: base, className: "bg-gradient-to-r from-gold to-gold-bright" },
+    { value: operational, className: "bg-gradient-to-r from-success to-emerald-400" },
+    { value: network, className: "bg-gradient-to-r from-info to-sky-400" },
   ].filter((s) => s.value > 0);
 
   if (segments.length === 0) {
     return (
-      <div className="mt-4 h-2 rounded-full bg-bg-hover" aria-hidden />
+      <div className="mt-1 h-1.5 rounded-full bg-bg-hover" aria-hidden />
     );
   }
 
   return (
     <div
-      className="mt-4 flex h-2 overflow-hidden rounded-full bg-bg-hover"
+      className="mt-1 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-bg-hover p-px"
       aria-hidden
     >
       {segments.map((seg) => (
         <div
-          key={seg.color}
-          className={cn("h-full transition-all duration-500", seg.color)}
+          key={seg.className}
+          className={cn(
+            "h-full rounded-full transition-all duration-500 ease-out",
+            seg.className,
+          )}
           style={{ width: `${(seg.value / total) * 100}%` }}
         />
       ))}
@@ -453,31 +460,55 @@ function BreakdownBar({
   );
 }
 
-function BreakdownRow({
+const ACCENT_STYLES = {
+  gold: {
+    icon: "bg-gold/15 text-gold",
+    dot: "bg-gold",
+  },
+  success: {
+    icon: "bg-success/15 text-success",
+    dot: "bg-success",
+  },
+  info: {
+    icon: "bg-info/15 text-info",
+    dot: "bg-info",
+  },
+} as const;
+
+function BreakdownStat({
   icon: Icon,
-  color,
+  accent,
   label,
   value,
   pct,
 }: {
   icon: React.ElementType;
-  color: string;
+  accent: keyof typeof ACCENT_STYLES;
   label: string;
   value: number;
   pct: number;
 }) {
+  const styles = ACCENT_STYLES[accent];
   return (
-    <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", color)} />
-        <Icon className="h-3.5 w-3.5 shrink-0 text-text-muted" />
-        <span className="truncate text-xs text-text-secondary">{label}</span>
+    <div className="rounded-xl border border-border-subtle/60 bg-bg-base/50 p-3 transition-colors hover:border-border-subtle">
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+            styles.icon,
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="truncate text-[10px] font-medium uppercase tracking-wide text-text-muted">
+          {label}
+        </span>
       </div>
-      <div className="shrink-0 text-right">
-        <span className="font-mono text-sm text-text-primary">
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <span className="font-mono text-base font-medium text-text-primary">
           ${formatNumber(value, { decimals: 2 })}
         </span>
-        <span className="ml-2 text-[10px] text-text-muted">
+        <span className="rounded-md bg-bg-elevated px-1.5 py-0.5 font-mono text-[10px] text-text-muted">
           {formatNumber(pct, { decimals: 0 })}%
         </span>
       </div>
