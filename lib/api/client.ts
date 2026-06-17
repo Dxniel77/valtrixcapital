@@ -66,6 +66,19 @@ export async function fetchCurrentUser() {
   }>("/api/users/me");
 }
 
+export async function updateCurrentUsername(username: string) {
+  return apiFetch<{
+    user: {
+      id: string;
+      walletAddress: string;
+      username: string | null;
+    };
+  }>("/api/users/me", {
+    method: "PATCH",
+    body: JSON.stringify({ username }),
+  });
+}
+
 export async function fetchBalanceAdjustments(sinceMs = 0) {
   return apiFetch<{
     backend: boolean;

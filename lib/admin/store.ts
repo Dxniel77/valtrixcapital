@@ -22,6 +22,10 @@ import {
   wouldCreateUplineCycle,
   type SponsorUpdateError,
 } from "@/lib/admin/sponsor";
+import {
+  mergeBackendUsers,
+  type BackendAdminUserDto,
+} from "@/lib/admin/sync-users-from-backend";
 import { clearPendingReferralCode, getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 
 export type { WithdrawalRule };
@@ -97,8 +101,11 @@ interface AdminState {
   balanceAdjustments: AdminBalanceAdjustment[];
   audit: AuditEntry[];
   seeded: boolean;
+  /** True after a successful merge from Postgres — skips demo seed. */
+  liveDataSynced: boolean;
 
   seedDemo: () => void;
+  mergeUsersFromBackend: (dbUsers: BackendAdminUserDto[]) => void;
   upsertRegisteredUser: (profile: {
     id: string;
     wallet: string;
@@ -268,8 +275,10 @@ export const useAdminStore = create<AdminState>()(
       balanceAdjustments: [],
       audit: [],
       seeded: false,
+      liveDataSynced: false,
 
       seedDemo: () => {
+        if (get().liveDataSynced) return;
         if (get().seeded && get().users.length > 0) return;
         const users = buildDemoUsers();
         set({
@@ -277,6 +286,15 @@ export const useAdminStore = create<AdminState>()(
           movements: buildDemoMovements(users),
           seeded: true,
         });
+      },
+
+      mergeUsersFromBackend: (dbUsers) => {
+        if (dbUsers.length === 0) return;
+        set((s) => ({
+          users: mergeBackendUsers(s.users, dbUsers),
+          liveDataSynced: true,
+          seeded: true,
+        }));
       },
 
       upsertRegisteredUser: (profile) => {
@@ -717,6 +735,7 @@ export const useAdminStore = create<AdminState>()(
           balanceAdjustments: [],
           audit: [],
           seeded: false,
+          liveDataSynced: false,
         });
       },
     }),
@@ -737,6 +756,7 @@ export const useAdminStore = create<AdminState>()(
         balanceAdjustments: s.balanceAdjustments,
         audit: s.audit,
         seeded: s.seeded,
+        liveDataSynced: s.liveDataSynced,
       }),
       migrate: (persisted) => {
         const prev = persisted as {
@@ -765,9 +785,12 @@ export const useAdminStore = create<AdminState>()(
             target: a.target ?? "WITHDRAWABLE",
           }));
         }
+        if (typeof rest.liveDataSynced !== "boolean") {
+          rest.liveDataSynced = false;
+        }
         return rest;
       },
-      version: 5,
+      version: 6,
     },
   ),
 );
@@ -785,10 +808,16 @@ export function useAdminStoreHydrated(): boolean {
 /** Seeds demo data once hydrated. */
 export function useAdminSeed(): boolean {
   const hydrated = useAdminStoreHydrated();
+  const liveDataSynced = useAdminStore((s) => s.liveDataSynced);
   const seedDemo = useAdminStore((s) => s.seedDemo);
   React.useEffect(() => {
-    if (hydrated) seedDemo();
-  }, [hydrated, seedDemo]);
+    if (!hydrated || liveDataSynced) return;
+    // Wait for Postgres sync before falling back to demo users.
+    const timer = window.setTimeout(() => {
+      if (!useAdminStore.getState().liveDataSynced) seedDemo();
+    }, 1_500);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, liveDataSynced, seedDemo]);
   return hydrated;
 }
 

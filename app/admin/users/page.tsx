@@ -56,35 +56,6 @@ export default function AdminUsersPage() {
     React.useState<RegistrationFilter>("all");
   const [editing, setEditing] = React.useState<AdminUser | null>(null);
 
-  React.useEffect(() => {
-    void fetchBackendHealth().then(async (health) => {
-      if (!health.database) return;
-      try {
-        const { users: dbUsers } = await fetchAdminUsers();
-        useAdminStore.setState((s) => ({
-          users: s.users.map((u) => {
-            const db = dbUsers.find(
-              (d) =>
-                d.walletAddress.toLowerCase() === u.wallet.toLowerCase(),
-            );
-            if (!db) return u;
-            return {
-              ...u,
-              registrationSource: db.registrationSource,
-              uplineWallet: db.referrerWallet ?? u.uplineWallet,
-              referrerUsername: db.referrerUsername ?? u.referrerUsername,
-              referrals: db.directReferrals ?? u.referrals,
-              balance: db.earningsBalance,
-              capital: db.lockedCapital,
-            };
-          }),
-        }));
-      } catch {
-        // keep local demo data
-      }
-    });
-  }, []);
-
   const billingRows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = users.map((u) =>
@@ -109,9 +80,11 @@ export default function AdminUsersPage() {
       );
     }
 
-    return list.sort(
-      (a, b) => billingPeriodTotal(b) - billingPeriodTotal(a),
-    );
+    return list.sort((a, b) => {
+      const byJoined = b.user.joinedAt - a.user.joinedAt;
+      if (byJoined !== 0) return byJoined;
+      return billingPeriodTotal(b) - billingPeriodTotal(a);
+    });
   }, [users, movements, period, query, sponsoredOnly, registrationFilter]);
 
   const periodLabel = (p: LeaderPeriod) => {
@@ -417,6 +390,7 @@ function AdjustBalanceModal({
                 : u,
             ),
           }));
+          useAdminStore.getState().mergeUsersFromBackend(dbUsers);
           toast.success(t("admin.users.balanceAdjusted"));
           onClose();
           return;

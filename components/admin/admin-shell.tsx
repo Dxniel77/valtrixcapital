@@ -27,6 +27,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
 import { useAdminSeed } from "@/lib/admin/store";
+import { useAdminUsersSync } from "@/lib/hooks/use-admin-users-sync";
 
 export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
@@ -47,6 +48,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
   useAdminSeed();
+  useAdminUsersSync();
 
   return (
     <div className="flex min-h-screen bg-bg-base">

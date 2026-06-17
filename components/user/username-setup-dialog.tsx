@@ -17,6 +17,8 @@ import {
 import { WelcomeModal } from "@/components/user/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import { pushNotification } from "@/lib/notifications/push";
+import { updateCurrentUsername } from "@/lib/api/client";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import {
   markWelcomeSeen,
   syncProfileToAdmin,
@@ -37,6 +39,7 @@ export function UsernameSetupDialog({
 }: UsernameSetupDialogProps) {
   const { t } = useI18n();
   const registerUsername = useUserRegistry((s) => s.registerUsername);
+  const backend = useBackendAvailable();
   const [username, setUsername] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [registeredProfile, setRegisteredProfile] =
@@ -49,12 +52,11 @@ export function UsernameSetupDialog({
     }
   }, [open, wallet]);
 
-  function submit() {
+  async function submit() {
     setSubmitting(true);
     const result = registerUsername(wallet, username);
-    setSubmitting(false);
-
     if (!result.ok) {
+      setSubmitting(false);
       if (result.error === "TAKEN") {
         toast.error(t("dashboard.pages.profile.usernameTaken"));
       } else {
@@ -63,7 +65,18 @@ export function UsernameSetupDialog({
       return;
     }
 
+    if (backend) {
+      try {
+        await updateCurrentUsername(result.profile.username);
+      } catch {
+        toast.error(t("errors.signInFailed"));
+        setSubmitting(false);
+        return;
+      }
+    }
+
     syncProfileToAdmin(result.profile);
+    setSubmitting(false);
     setRegisteredProfile(result.profile);
   }
 
