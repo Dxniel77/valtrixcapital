@@ -6,6 +6,21 @@ import { fetchRecentTxsViaRpc } from "@/lib/bot/chain-txs";
 
 const CACHE_TTL_MS = 2 * 60 * 1000;
 const MAX_TX_AGE_MS = 6 * 60 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 6_000;
+
+/** fetch() that aborts after a timeout so a hung upstream can't hold the connection. */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
 const POLYGON_USDT = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
@@ -89,9 +104,14 @@ async function fetchViaExplorerApi(
     apikey: apiKey,
   });
 
-  const res = await fetch(`${cfg.apiBase}?${params.toString()}`, {
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(`${cfg.apiBase}?${params.toString()}`, {
+      cache: "no-store",
+    });
+  } catch {
+    return [];
+  }
   if (!res.ok) return [];
 
   const data = (await res.json()) as {
@@ -131,7 +151,7 @@ async function rpcCall<T>(
   method: string,
   params: unknown[],
 ): Promise<T> {
-  const res = await fetch(rpc, {
+  const res = await fetchWithTimeout(rpc, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
@@ -257,21 +277,52 @@ async function fetchNetworkTxs(
   }
 }
 
+type TxCache = {
+  at: number;
+  BSC: LiquidationChainTx[];
+  POLYGON: LiquidationChainTx[];
+};
+
+let refreshInFlight: Promise<unknown> | null = null;
+
+async function refreshCache(): Promise<TxCache> {
+  const [BSC, POLYGON] = await Promise.all([
+    fetchNetworkTxs("BSC"),
+    fetchNetworkTxs("POLYGON"),
+  ]);
+  cache = { at: Date.now(), BSC, POLYGON };
+  return cache;
+}
+
+function triggerBackgroundRefresh(): void {
+  if (refreshInFlight) return;
+  refreshInFlight = refreshCache()
+    .catch(() => undefined)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+}
+
 export async function fetchLiquidationChainTxs(): Promise<{
   BSC: LiquidationChainTx[];
   POLYGON: LiquidationChainTx[];
   fetchedAt: number;
 }> {
   const now = Date.now();
+
+  // Fresh cache — serve immediately.
   if (cache && now - cache.at < CACHE_TTL_MS) {
     return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
   }
 
-  const [BSC, POLYGON] = await Promise.all([
-    fetchNetworkTxs("BSC"),
-    fetchNetworkTxs("POLYGON"),
-  ]);
+  // Stale cache — serve stale instantly and refresh in the background so the
+  // request never waits on slow external explorer/RPC calls.
+  if (cache) {
+    triggerBackgroundRefresh();
+    return { BSC: cache.BSC, POLYGON: cache.POLYGON, fetchedAt: cache.at };
+  }
 
-  cache = { at: now, BSC, POLYGON };
-  return { BSC, POLYGON, fetchedAt: now };
+  // Cold start — no cache yet. Await once (bounded by per-fetch timeouts).
+  const fresh = await refreshCache();
+  return { BSC: fresh.BSC, POLYGON: fresh.POLYGON, fetchedAt: fresh.at };
 }

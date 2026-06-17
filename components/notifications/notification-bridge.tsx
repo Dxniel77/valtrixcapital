@@ -5,16 +5,15 @@ import { useI18n } from "@/lib/i18n/context";
 import { useStakingStore } from "@/lib/staking/store";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useReferralsStore } from "@/lib/referrals/store";
-import {
-  deliverBroadcast,
-  syncBroadcastNotificationsFromServer,
-} from "@/lib/notifications/broadcast";
+import { syncBroadcastNotificationsFromServer } from "@/lib/notifications/broadcast";
+import { usePageVisible } from "@/lib/hooks/use-page-visible";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber } from "@/lib/utils";
 
 /** Watches financial stores and emits in-app (+ email queue) notifications. */
 export function NotificationBridge() {
   const { t } = useI18n();
+  const visible = usePageVisible();
   const stakesLen = useStakingStore((s) => s.stakes.length);
   const yieldsLen = useStakingStore((s) => s.dailyYields.length);
   const lastYield = useStakingStore((s) => s.dailyYields[0]);
@@ -123,38 +122,20 @@ export function NotificationBridge() {
     }
   }, [totalCommissions, t]);
 
+  // Broadcasts are delivered via lightweight polling instead of a persistent
+  // SSE EventSource. A long-lived SSE connection permanently consumes one of
+  // the browser's ~6 HTTP/1.1 connection slots, starving the dashboard's other
+  // requests (JS chunks, data fetches) and slowing first render.
   React.useEffect(() => {
-    if (!bootstrapped.current) return;
+    if (!visible) return;
 
     void syncBroadcastNotificationsFromServer();
-
-    const es = new EventSource("/api/notifications/broadcasts/stream");
-    es.onmessage = (event) => {
-      try {
-        const broadcast = JSON.parse(event.data) as {
-          id: string;
-          kind: "alert" | "promo" | "system";
-          title: string;
-          body: string;
-          href?: string;
-          createdAt: number;
-          createdBy: string;
-        };
-        deliverBroadcast(broadcast);
-      } catch {
-        /* ignore malformed SSE payloads */
-      }
-    };
-
     const poll = window.setInterval(() => {
       void syncBroadcastNotificationsFromServer();
-    }, 60_000);
+    }, 45_000);
 
-    return () => {
-      es.close();
-      window.clearInterval(poll);
-    };
-  }, []);
+    return () => window.clearInterval(poll);
+  }, [visible]);
 
   return null;
 }

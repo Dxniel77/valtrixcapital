@@ -17,26 +17,60 @@ import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 import { usePageVisible } from "@/lib/hooks/use-page-visible";
 
-let backendAvailable: boolean | null = null;
+/**
+ * Shared backend-availability cache.
+ *
+ * `/api/health` used to be fetched independently by every component that called
+ * `useBackendAvailable()` (~10 of them) on every mount and every navigation.
+ * That meant a single dashboard page could fire `/api/health` 5–6 times, and it
+ * re-fired on every route transition. We now resolve it ONCE per TTL window for
+ * the whole app, deduping concurrent callers via a shared in-flight promise.
+ */
+const HEALTH_TTL_MS = 5 * 60_000;
+
+let cachedHealth: { value: boolean; at: number } | null = null;
+let inFlightHealth: Promise<boolean> | null = null;
+const healthListeners = new Set<(value: boolean) => void>();
+
+export function loadBackendAvailability(force = false): Promise<boolean> {
+  const now = Date.now();
+  if (!force && cachedHealth && now - cachedHealth.at < HEALTH_TTL_MS) {
+    return Promise.resolve(cachedHealth.value);
+  }
+  if (inFlightHealth) return inFlightHealth;
+
+  inFlightHealth = fetchBackendHealth()
+    .then((res) => res.database)
+    .catch(() => false)
+    .then((value) => {
+      cachedHealth = { value, at: Date.now() };
+      healthListeners.forEach((listener) => listener(value));
+      return value;
+    })
+    .finally(() => {
+      inFlightHealth = null;
+    });
+
+  return inFlightHealth;
+}
 
 export function useBackendAvailable(): boolean {
-  const [available, setAvailable] = React.useState(backendAvailable ?? false);
+  const [available, setAvailable] = React.useState(
+    () => cachedHealth?.value ?? false,
+  );
 
   React.useEffect(() => {
     let cancelled = false;
-    void fetchBackendHealth()
-      .then((res) => {
-        if (cancelled) return;
-        backendAvailable = res.database;
-        setAvailable(res.database);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        backendAvailable = false;
-        setAvailable(false);
-      });
+    const update = (value: boolean) => {
+      if (!cancelled) setAvailable(value);
+    };
+
+    healthListeners.add(update);
+    void loadBackendAvailability().then(update);
+
     return () => {
       cancelled = true;
+      healthListeners.delete(update);
     };
   }, []);
 

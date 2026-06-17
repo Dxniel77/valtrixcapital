@@ -12,13 +12,23 @@ interface RpcBlock {
   transactions: string[];
 }
 
+const RPC_TIMEOUT_MS = 6_000;
+
 async function rpcCall<T>(rpc: string, method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(rpc, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(rpc, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error(`RPC ${method} failed: ${res.status}`);
   const json = (await res.json()) as { result?: T; error?: { message?: string } };
   if (json.error) throw new Error(json.error.message ?? `RPC ${method} error`);

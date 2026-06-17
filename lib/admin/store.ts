@@ -290,11 +290,35 @@ export const useAdminStore = create<AdminState>()(
 
       mergeUsersFromBackend: (dbUsers) => {
         if (dbUsers.length === 0) return;
-        set((s) => ({
-          users: mergeBackendUsers(s.users, dbUsers),
+        const current = get().users;
+        const merged = mergeBackendUsers(current, dbUsers);
+
+        // Skip the state write when nothing actually changed — otherwise the
+        // array reference churns on every poll and re-renders all admin pages.
+        const sameLength = merged.length === current.length;
+        const unchanged =
+          sameLength &&
+          merged.every((u, i) => {
+            const prev = current[i];
+            return (
+              prev &&
+              prev.id === u.id &&
+              prev.alias === u.alias &&
+              prev.balance === u.balance &&
+              prev.capital === u.capital &&
+              prev.totalEarned === u.totalEarned &&
+              prev.status === u.status &&
+              prev.referrals === u.referrals
+            );
+          });
+
+        if (unchanged && get().liveDataSynced) return;
+
+        set({
+          users: merged,
           liveDataSynced: true,
           seeded: true,
-        }));
+        });
       },
 
       upsertRegisteredUser: (profile) => {

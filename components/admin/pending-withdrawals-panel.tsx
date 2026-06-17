@@ -51,12 +51,29 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
 
   React.useEffect(() => {
     if (!backend) return;
+    let cancelled = false;
+
+    function load() {
+      void fetchPendingWithdrawals()
+        .then((res) => {
+          if (!cancelled) setBackendRows(res.withdrawals ?? []);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }
+
     setLoading(true);
-    void fetchPendingWithdrawals()
-      .then((res) => setBackendRows(res.withdrawals ?? []))
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
-  }, [backend, movements]);
+    load();
+    // Poll on a fixed cadence instead of refetching on every `movements`
+    // mutation (the admin movement bridge updates it constantly).
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [backend]);
 
   function syncLocalWallet(movement: AdminMovement, status: string) {
     const match = movement.id.match(/^live_wd_(.+)$/);

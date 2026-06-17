@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useAdminStore } from "@/lib/admin/store";
-import { fetchAdminUsers, fetchBackendHealth } from "@/lib/api/client";
+import { fetchAdminUsers } from "@/lib/api/client";
+import { loadBackendAvailability } from "@/lib/hooks/use-backend-sync";
 
 /** Loads real users from Postgres into the admin store (replaces demo seed when DB has users). */
 export function useAdminUsersSync(): void {
@@ -13,8 +14,8 @@ export function useAdminUsersSync(): void {
 
     async function sync() {
       try {
-        const health = await fetchBackendHealth();
-        if (!health.database) return;
+        const available = await loadBackendAvailability();
+        if (!available || cancelled) return;
         const { users } = await fetchAdminUsers();
         if (!cancelled) mergeUsersFromBackend(users);
       } catch {
@@ -23,7 +24,7 @@ export function useAdminUsersSync(): void {
     }
 
     void sync();
-    const timer = window.setInterval(() => void sync(), 60_000);
+    const timer = window.setInterval(() => void sync(), 120_000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
