@@ -56,10 +56,10 @@
     "tradeSuccess": "{side} {pair} · {price} · {duration}m"
   },
   "nav": {
-    "features": "Caractéristiques",
-    "how": "Comment ça marche",
-    "yield": "Modèle de performances",
-    "referrals": "Références",
+    "features": "Fonctionnalités",
+    "how": "Fonctionnement",
+    "yield": "Performance",
+    "referrals": "Parrainage",
     "dashboard": "Tableau de bord",
     "openDashboard": "Panneau ouvert",
     "toggleMenu": "Ouvrir le menu"

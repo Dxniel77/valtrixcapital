@@ -12,12 +12,15 @@ type LanguageSelectorProps = {
   align?: "start" | "center" | "end";
   /** Header variant shows native name on wide screens */
   variant?: "default" | "header";
+  /** Shorter trigger for long-locale marketing headers */
+  compact?: boolean;
 };
 
 export function LanguageSelector({
   className,
   align,
   variant = "default",
+  compact = false,
 }: LanguageSelectorProps) {
   const { locale, setLocale, t } = useI18n();
   const { dir, nativeName, regionCode } = useLocaleMeta();
@@ -44,7 +47,12 @@ export function LanguageSelector({
               <span className="hidden font-medium uppercase tracking-wide sm:inline">
                 {regionCode}
               </span>
-              <span className="hidden max-w-[7rem] truncate font-medium xl:inline">
+              <span
+                className={cn(
+                  "hidden max-w-[7rem] truncate font-medium",
+                  compact ? "2xl:inline" : "xl:inline",
+                )}
+              >
                 {nativeName}
               </span>
             </>

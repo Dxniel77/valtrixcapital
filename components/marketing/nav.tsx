@@ -53,32 +53,46 @@ export function MarketingNav() {
         scrolled ? "glass border-b border-border-subtle" : "bg-transparent",
       )}
     >
-      <div className="container flex h-14 items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
+      <div className="container grid h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
         <div className="flex shrink-0 items-center">
           <Logo className="flex md:hidden" size="md" />
-          <Logo className="hidden md:flex" size="lg" showWordmark />
+          <Logo
+            className={cn("hidden md:flex", compactNav && "xl:hidden")}
+            size="md"
+          />
+          <Logo
+            className={cn(
+              "hidden",
+              compactNav ? "xl:flex" : "md:flex",
+            )}
+            size="lg"
+            showWordmark
+          />
         </div>
 
         <nav
           aria-label="Main"
-          className="hidden min-w-0 flex-1 md:block"
+          className={cn(
+            "hidden min-w-0 overflow-hidden",
+            compactNav ? "xl:block" : "lg:block",
+          )}
         >
           <ul
             className={cn(
-              "flex items-center justify-center",
+              "flex min-w-0 items-center justify-center",
               compactNav
-                ? "gap-2.5 lg:gap-4 xl:gap-6"
-                : "gap-4 lg:gap-6 xl:gap-8",
+                ? "gap-2 xl:gap-4 2xl:gap-6"
+                : "gap-3 lg:gap-5 xl:gap-6",
             )}
           >
             {links.map((l) => (
-              <li key={l.href} className="min-w-0">
+              <li key={l.href} className="min-w-0 shrink">
                 <Link
                   href={l.href}
                   className={cn(
-                    "block whitespace-nowrap font-medium text-text-secondary transition-colors hover:text-text-primary",
+                    "block truncate font-medium text-text-secondary transition-colors hover:text-text-primary",
                     compactNav
-                      ? "text-[13px] lg:text-sm xl:text-[15px]"
+                      ? "text-xs xl:text-sm 2xl:text-[15px]"
                       : "text-sm lg:text-[15px] xl:text-base",
                   )}
                 >
@@ -89,38 +103,50 @@ export function MarketingNav() {
           </ul>
         </nav>
 
-        <div className="ms-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
           <div
             className={cn(
-              "hidden items-center rounded-lg border border-border-subtle/70 bg-bg-base/50 p-0.5 md:flex",
+              "hidden items-center rounded-lg border border-border-subtle/70 bg-bg-base/50 p-0.5",
+              compactNav ? "xl:flex" : "md:flex",
               dir === "rtl" ? "flex-row-reverse" : "flex-row",
             )}
           >
-            <LanguageSelector variant="header" />
+            <LanguageSelector variant="header" compact={compactNav} />
             <ThemeToggle size="icon" className="h-9 w-9 shrink-0" />
           </div>
 
           <div
             aria-hidden
-            className="mx-0.5 hidden h-7 w-px bg-border-subtle lg:block"
+            className="mx-0.5 hidden h-7 w-px bg-border-subtle 2xl:block"
           />
 
           <Button
             asChild
             variant="ghost"
             size="lg"
-            className="hidden px-3 text-sm lg:inline-flex xl:text-base"
+            className={cn(
+              "hidden px-3 text-sm 2xl:inline-flex 2xl:text-base",
+              !compactNav && "xl:inline-flex",
+            )}
           >
             <Link href="/dashboard">{t("nav.dashboard")}</Link>
           </Button>
 
           <ConnectWalletButton
             size="lg"
-            className="hidden md:inline-flex"
+            className={cn(
+              "hidden",
+              compactNav ? "xl:inline-flex" : "md:inline-flex",
+            )}
             compact={compactNav}
           />
 
-          <div className="flex min-w-0 items-center gap-0.5 sm:gap-1 md:hidden">
+          <div
+            className={cn(
+              "flex min-w-0 items-center gap-0.5 sm:gap-1",
+              compactNav ? "xl:hidden" : "lg:hidden",
+            )}
+          >
             <LanguageSelector variant="header" />
             <ThemeToggle size="icon" />
             <ConnectWalletButton
@@ -143,7 +169,12 @@ export function MarketingNav() {
       </div>
 
       {open ? (
-        <div className="border-t border-border-subtle bg-bg-elevated md:hidden">
+        <div
+          className={cn(
+            "border-t border-border-subtle bg-bg-elevated",
+            compactNav ? "xl:hidden" : "lg:hidden",
+          )}
+        >
           <div className="container flex flex-col gap-1 py-4">
             {links.map((l) => (
               <Link
