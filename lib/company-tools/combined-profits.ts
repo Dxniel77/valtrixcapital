@@ -31,11 +31,16 @@ export interface CombinedEngineProfits {
 
 function useLiveMicroAccrual(): number {
   const cadence = useLiquidationStore((s) => s.cadence);
+  const txPool = useLiquidationStore((s) => s.txPool);
   const now = useClientNow(3_000);
   return React.useMemo(() => {
     if (now == null) return 0;
-    return globalLiquidationMicroAccrual(now, LIQUIDATION_CADENCE_MS[cadence]);
-  }, [now, cadence]);
+    return globalLiquidationMicroAccrual(
+      now,
+      LIQUIDATION_CADENCE_MS[cadence],
+      txPool,
+    );
+  }, [now, cadence, txPool]);
 }
 
 export function useCombinedEngineProfits(): CombinedEngineProfits {

@@ -47,6 +47,11 @@ function syntheticTx(
   };
 }
 
+function deterministicAmountUsdt(slotIndex: number): number {
+  const rng = createSeededRng(slotIndex * 33_119 + 7);
+  return Math.round((40 + rng.next() * 260) * 100) / 100;
+}
+
 function pickTx(slotIndex: number, pool: LiquidationChainTx[]): LiquidationChainTx | null {
   if (pool.length > 0) {
     const rng = createSeededRng(slotIndex * 71 + 3);
@@ -55,6 +60,14 @@ function pickTx(slotIndex: number, pool: LiquidationChainTx[]): LiquidationChain
   if (!allowSyntheticChainTx()) return null;
   const network: LiquidationNetwork = slotIndex % 2 === 0 ? "BSC" : "POLYGON";
   return syntheticTx(slotIndex, network);
+}
+
+function settlementAmountForSlot(
+  slotIndex: number,
+  txPool: LiquidationChainTx[],
+): number {
+  const tx = pickTx(slotIndex, txPool);
+  return tx?.amountUsdt ?? deterministicAmountUsdt(slotIndex);
 }
 
 function pickPair(slotIndex: number, tx: LiquidationChainTx): string {
@@ -106,10 +119,15 @@ export function buildGlobalLiquidationFeed(
   return events.reverse();
 }
 
-function feeForSlot(slotIndex: number, cadenceMs: number): number {
-  const txPool: LiquidationChainTx[] = [];
-  const ev = createDeterministicLiquidationEvent(slotIndex, cadenceMs, txPool);
-  return ev?.feeUsd ?? 0;
+function feeForSlot(
+  slotIndex: number,
+  cadenceMs: number,
+  txPool: LiquidationChainTx[] = [],
+): number {
+  const executedAt = slotTimestamp(slotIndex, cadenceMs);
+  const feeDay = utcDateKey(executedAt);
+  const amountUsdt = settlementAmountForSlot(slotIndex, txPool);
+  return deterministicSettlementFee(amountUsdt, slotIndex, feeDay);
 }
 
 const dailyFeeMemo = new Map<string, number>();
@@ -119,9 +137,10 @@ export function globalLiquidationDailyStats(
   dayKey: string,
   cadenceMs: number,
   now = Date.now(),
+  txPool: LiquidationChainTx[] = [],
 ): { fees: number; txs: number } {
   const todayKey = utcDateKey(now);
-  const memoKey = `${dayKey}:${cadenceMs}`;
+  const memoKey = `${dayKey}:${cadenceMs}:${txPool.length}`;
   if (dayKey < todayKey && dailyFeeMemo.has(memoKey) && dailyTxMemo.has(memoKey)) {
     return { fees: dailyFeeMemo.get(memoKey)!, txs: dailyTxMemo.get(memoKey)! };
   }
@@ -143,7 +162,7 @@ export function globalLiquidationDailyStats(
   let fees = 0;
   let txs = 0;
   for (let slot = Math.max(bounds.first, launchSlot); slot <= lastSlot; slot += 1) {
-    fees += feeForSlot(slot, cadenceMs);
+    fees += feeForSlot(slot, cadenceMs, txPool);
     txs += 1;
   }
 
@@ -157,6 +176,7 @@ export function globalLiquidationDailyStats(
 export function computeGlobalLiquidationProfits(
   now: number,
   cadenceMs: number,
+  txPool: LiquidationChainTx[] = [],
 ): { today: number; week: number; allTime: number; processedToday: number } {
   const todayKey = utcDateKey(now);
   const weekStartKey = utcDateKey(now - 6 * 86_400_000);
@@ -167,7 +187,12 @@ export function computeGlobalLiquidationProfits(
   let processedToday = 0;
 
   for (const dayKey of dayKeysThrough(todayKey)) {
-    const { fees, txs } = globalLiquidationDailyStats(dayKey, cadenceMs, now);
+    const { fees, txs } = globalLiquidationDailyStats(
+      dayKey,
+      cadenceMs,
+      now,
+      txPool,
+    );
     allTime += fees;
     if (dayKey >= weekStartKey && dayKey <= todayKey) week += fees;
     if (dayKey === todayKey) {
@@ -179,7 +204,11 @@ export function computeGlobalLiquidationProfits(
   return { today, week, allTime, processedToday };
 }
 
-export function globalLiquidationMicroAccrual(now: number, cadenceMs: number): number {
+export function globalLiquidationMicroAccrual(
+  now: number,
+  cadenceMs: number,
+  txPool: LiquidationChainTx[] = [],
+): number {
   const todayKey = utcDateKey(now);
   const bounds = daySlotBounds(todayKey, cadenceMs);
   if (!bounds) return 0;
@@ -190,7 +219,7 @@ export function globalLiquidationMicroAccrual(now: number, cadenceMs: number): n
 
   const progress = (now % cadenceMs) / cadenceMs;
   const nextSlot = currentSlot + 1;
-  const nextFee = feeForSlot(nextSlot, cadenceMs);
+  const nextFee = feeForSlot(nextSlot, cadenceMs, txPool);
   return nextFee * progress * 0.35;
 }
 

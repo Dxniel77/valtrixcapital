@@ -344,16 +344,21 @@ export const useLiquidationStore = create<LiquidationState>()(
         );
         set({
           events,
-          microAccrualToday: globalLiquidationMicroAccrual(Date.now(), ms),
+          microAccrualToday: globalLiquidationMicroAccrual(
+            Date.now(),
+            ms,
+            state.txPool,
+          ),
         });
       },
 
       reset: () => set(initial),
 
       tickMicroAccrual: () => {
-        const ms = LIQUIDATION_CADENCE_MS[get().cadence];
-        const next = globalLiquidationMicroAccrual(Date.now(), ms);
-        const prevRounded = Math.round(get().microAccrualToday * 100);
+        const state = get();
+        const ms = LIQUIDATION_CADENCE_MS[state.cadence];
+        const next = globalLiquidationMicroAccrual(Date.now(), ms, state.txPool);
+        const prevRounded = Math.round(state.microAccrualToday * 100);
         const nextRounded = Math.round(next * 100);
         if (prevRounded === nextRounded) return;
         set({ microAccrualToday: next });
@@ -432,18 +437,24 @@ function sumDailyFees(
 
 export function useLiquidationProfits() {
   const cadence = useLiquidationStore((s) => s.cadence);
+  const txPool = useLiquidationStore((s) => s.txPool);
   const [profits, setProfits] = React.useState(() =>
-    computeGlobalLiquidationProfits(Date.now(), LIQUIDATION_CADENCE_MS[cadence]),
+    computeGlobalLiquidationProfits(
+      Date.now(),
+      LIQUIDATION_CADENCE_MS[cadence],
+      txPool,
+    ),
   );
 
   React.useEffect(() => {
     const ms = LIQUIDATION_CADENCE_MS[cadence];
     const tick = () => {
-      const next = computeGlobalLiquidationProfits(Date.now(), ms);
+      const next = computeGlobalLiquidationProfits(Date.now(), ms, txPool);
       setProfits((prev) =>
         prev.today === next.today &&
         prev.week === next.week &&
-        prev.allTime === next.allTime
+        prev.allTime === next.allTime &&
+        prev.processedToday === next.processedToday
           ? prev
           : next,
       );
@@ -451,7 +462,7 @@ export function useLiquidationProfits() {
     tick();
     const id = window.setInterval(tick, 3_000);
     return () => window.clearInterval(id);
-  }, [cadence]);
+  }, [cadence, txPool]);
 
   return profits;
 }
