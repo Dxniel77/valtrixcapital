@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
-import { DepositAddressPanel } from "@/components/staking/deposit-address-panel";
 import { WithdrawModal } from "@/components/wallet/withdraw-modal";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
@@ -27,7 +26,6 @@ import {
   usePortfolioSummary,
   useStakingStore,
   useStakingStoreHydrated,
-  type StakingNetwork,
 } from "@/lib/staking/store";
 import {
   WITHDRAWAL_FLOW,
@@ -149,7 +147,6 @@ export default function WalletPage() {
 function AddCapitalCard() {
   const { t } = useI18n();
   const { address, isConnected } = useAccount();
-  const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
 
   return (
     <Card id="add-funds">
@@ -176,15 +173,9 @@ function AddCapitalCard() {
           </p>
         )}
 
-        <DepositAddressPanel
-          network={network}
-          onNetworkChange={setNetwork}
-        />
-
         <ul className="space-y-2 text-xs text-text-muted">
           <li>{t("walletPage.deposit.stepAmount")}</li>
           <li>{t("walletPage.deposit.stepNetwork")}</li>
-          <li>{t("walletPage.deposit.stepSend")}</li>
           <li>{t("walletPage.deposit.stepConfirm")}</li>
         </ul>
 
@@ -192,7 +183,7 @@ function AddCapitalCard() {
           className="w-full"
           size="md"
           add
-          label={t("walletPage.deposit.registerDeposit")}
+          label={t("walletPage.deposit.addCapital")}
         />
       </CardContent>
     </Card>

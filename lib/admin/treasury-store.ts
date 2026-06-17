@@ -41,7 +41,7 @@ interface TreasuryState {
   beginDeposit: (input: {
     amount: number;
     network: AdminNetwork;
-    txHash: string;
+    txHash?: string;
   }) => void;
   advanceDepositConfirmation: () => void;
   finalizePendingDeposit: () => TreasuryDeposit | null;
@@ -60,6 +60,15 @@ function makeId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function makeTxHash(): string {
+  let out = "0x";
+  const hex = "0123456789abcdef";
+  for (let i = 0; i < 64; i += 1) {
+    out += hex[Math.floor(Math.random() * 16)];
+  }
+  return out;
+}
+
 export const useTreasuryStore = create<TreasuryState>()(
   persist(
     (set, get) => ({
@@ -75,11 +84,15 @@ export const useTreasuryStore = create<TreasuryState>()(
       totalBalance: () => get().bscBalance + get().polygonBalance,
 
       beginDeposit: ({ amount, network, txHash }) => {
+        const normalizedHash = txHash?.trim();
         const deposit: TreasuryDeposit = {
           id: makeId("tdep"),
           network,
           amount,
-          txHash,
+          txHash:
+            normalizedHash && /^0x[a-fA-F0-9]{64}$/.test(normalizedHash)
+              ? normalizedHash
+              : makeTxHash(),
           startedAt: Date.now(),
           confirmations: 0,
           requiredConfirmations: REQUIRED_CONFIRMATIONS,
