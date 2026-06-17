@@ -53,8 +53,8 @@ export function MarketingNav() {
         scrolled ? "glass border-b border-border-subtle" : "bg-transparent",
       )}
     >
-      <div className="container grid h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
-        <div className="flex shrink-0 items-center">
+      <div className="container grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
+        <div className="flex shrink-0 items-center justify-self-start">
           <Logo className="flex md:hidden" size="md" />
           <Logo
             className={cn("hidden", compactNav && "md:flex xl:hidden")}
@@ -73,24 +73,24 @@ export function MarketingNav() {
         <nav
           aria-label="Main"
           className={cn(
-            "hidden min-w-0 overflow-hidden",
+            "hidden justify-self-center",
             compactNav ? "xl:block" : "lg:block",
           )}
         >
           <ul
             className={cn(
-              "flex min-w-0 items-center justify-center",
+              "flex items-center justify-center",
               compactNav
-                ? "gap-2 xl:gap-4 2xl:gap-6"
-                : "gap-3 lg:gap-5 xl:gap-6",
+                ? "gap-2 xl:gap-3 2xl:gap-5"
+                : "gap-3 lg:gap-4 xl:gap-6",
             )}
           >
             {links.map((l) => (
-              <li key={l.href} className="min-w-0 shrink">
+              <li key={l.href} className="shrink-0">
                 <Link
                   href={l.href}
                   className={cn(
-                    "block truncate font-medium text-text-secondary transition-colors hover:text-text-primary",
+                    "block whitespace-nowrap font-medium text-text-secondary transition-colors hover:text-text-primary",
                     compactNav
                       ? "text-xs xl:text-sm 2xl:text-[15px]"
                       : "text-sm lg:text-[15px] xl:text-base",
@@ -103,7 +103,7 @@ export function MarketingNav() {
           </ul>
         </nav>
 
-        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
+        <div className="flex shrink-0 items-center justify-end justify-self-end gap-1 sm:gap-1.5 lg:gap-2">
           <div
             className={cn(
               "hidden items-center rounded-lg border border-border-subtle/70 bg-bg-base/50 p-0.5",
