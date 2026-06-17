@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireSession } from "@/lib/auth/require-session";
 import { isDatabaseAvailable } from "@/lib/db/available";
 import {
+  applyReferrerIfMissing,
   findUserByWalletWithReferrer,
-  serializeUser,
   serializeUserWithReferrer,
   updateUsername,
   upsertUserByWallet,
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   username: z.string().trim().min(2).max(32).optional(),
+  referralCode: z.string().trim().max(32).optional(),
 });
 
 export async function GET() {
@@ -63,13 +64,24 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (parsed.username) {
-    const user = await updateUsername(auth.session.dbUserId, parsed.username);
-    const withReferrer = await findUserByWalletWithReferrer(user.walletAddress);
-    return NextResponse.json({
-      user: withReferrer ? serializeUserWithReferrer(withReferrer) : serializeUser(user),
-    });
+  if (!parsed.username && !parsed.referralCode) {
+    return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+  if (parsed.username) {
+    await updateUsername(auth.session.dbUserId, parsed.username);
+  }
+
+  if (parsed.referralCode) {
+    await applyReferrerIfMissing(auth.session.dbUserId, parsed.referralCode);
+  }
+
+  const withReferrer = await findUserByWalletWithReferrer(auth.session.address);
+  if (!withReferrer) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    user: serializeUserWithReferrer(withReferrer),
+  });
 }

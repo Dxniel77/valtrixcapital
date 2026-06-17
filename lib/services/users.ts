@@ -2,7 +2,10 @@ import type { User, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isAdminWallet, normalizeWallet } from "@/lib/auth/admins";
 import { fromMicro } from "@/lib/utils";
-import { generateUniqueReferralCode } from "@/lib/services/referral-code";
+import {
+  generateUniqueReferralCode,
+  resolveReferrerIdByCode,
+} from "@/lib/services/referral-code";
 
 export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
 
@@ -105,11 +108,7 @@ export async function upsertUserByWallet(
 
   let referrerId: string | null = null;
   if (input?.referrerCode) {
-    const sponsor = await prisma.user.findUnique({
-      where: { referralCode: input.referrerCode.trim().toUpperCase() },
-      select: { id: true },
-    });
-    referrerId = sponsor?.id ?? null;
+    referrerId = await resolveReferrerIdByCode(input.referrerCode);
   }
 
   const referralCode = await generateUniqueReferralCode();
@@ -133,6 +132,25 @@ export async function updateUsername(
   return prisma.user.update({
     where: { id: userId },
     data: { username: username.trim() },
+  });
+}
+
+/** Assigns a sponsor when the user registered without one (e.g. missed at sign-in). */
+export async function applyReferrerIfMissing(
+  userId: string,
+  referrerCode: string | null | undefined,
+): Promise<User | null> {
+  if (!referrerCode?.trim()) return null;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.referrerId) return null;
+
+  const referrerId = await resolveReferrerIdByCode(referrerCode);
+  if (!referrerId || referrerId === userId) return null;
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: { referrerId },
   });
 }
 

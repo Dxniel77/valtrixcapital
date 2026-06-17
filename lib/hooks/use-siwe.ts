@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { buildSiweMessage } from "@/lib/auth/siwe";
+import { getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 import { t } from "@/lib/i18n";
 
 export interface SessionUser {
@@ -57,10 +58,11 @@ export function useSiwe() {
             : "https://valtrix.capital",
       });
       const signature = await signMessageAsync({ message });
+      const referralCode = getPendingReferralCode() ?? undefined;
       const verifyRes = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, signature, nonce }),
+        body: JSON.stringify({ message, signature, nonce, referralCode }),
       });
       if (!verifyRes.ok) {
         const data = await verifyRes.json().catch(() => ({}));

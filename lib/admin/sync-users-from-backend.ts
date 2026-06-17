@@ -2,7 +2,7 @@ import {
   DEFAULT_WITHDRAWAL_RULE,
 } from "@/lib/admin/withdrawal-eligibility";
 import { recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
-import { recountDirectReferrals } from "@/lib/admin/sponsor";
+import { recountDirectReferrals, findSponsorUser } from "@/lib/admin/sponsor";
 import type { AdminUser } from "@/lib/admin/store";
 import { shortenAddress } from "@/lib/utils";
 
@@ -64,7 +64,16 @@ export function mergeBackendUsers(
   for (const local of localUsers) {
     const key = local.wallet.toLowerCase();
     const fromDb = byWallet.get(key);
-    if (!fromDb) continue;
+    if (!fromDb) {
+      byWallet.set(key, local);
+      continue;
+    }
+
+    const uplineWallet = fromDb.uplineWallet ?? local.uplineWallet;
+    const localSponsor = local.uplineWallet
+      ? findSponsorUser(localUsers, local.uplineWallet)
+      : null;
+
     byWallet.set(key, {
       ...fromDb,
       alias: fromDb.alias || local.alias,
@@ -72,6 +81,13 @@ export function mergeBackendUsers(
       withdrawalRule: local.accountGranted
         ? local.withdrawalRule
         : fromDb.withdrawalRule,
+      uplineWallet,
+      referrerUsername:
+        fromDb.referrerUsername ??
+        local.referrerUsername ??
+        localSponsor?.alias ??
+        null,
+      registrationSource: uplineWallet ? "referral" : fromDb.registrationSource,
       operationalEarned: local.operationalEarned,
       networkEarned: local.networkEarned,
       passiveEarned: local.passiveEarned,

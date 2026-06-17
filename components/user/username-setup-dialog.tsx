@@ -19,6 +19,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { pushNotification } from "@/lib/notifications/push";
 import { updateCurrentUsername } from "@/lib/api/client";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 import {
   markWelcomeSeen,
   syncProfileToAdmin,
@@ -67,7 +68,10 @@ export function UsernameSetupDialog({
 
     if (backend) {
       try {
-        await updateCurrentUsername(result.profile.username);
+        await updateCurrentUsername(
+          result.profile.username,
+          getPendingReferralCode(),
+        );
       } catch {
         toast.error(t("errors.signInFailed"));
         setSubmitting(false);

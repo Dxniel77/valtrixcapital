@@ -66,16 +66,24 @@ export async function fetchCurrentUser() {
   }>("/api/users/me");
 }
 
-export async function updateCurrentUsername(username: string) {
+export async function updateCurrentUsername(
+  username: string,
+  referralCode?: string | null,
+) {
   return apiFetch<{
     user: {
       id: string;
       walletAddress: string;
       username: string | null;
+      referrerWallet: string | null;
+      registrationSource: "referral" | "direct";
     };
   }>("/api/users/me", {
     method: "PATCH",
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({
+      username,
+      ...(referralCode ? { referralCode } : {}),
+    }),
   });
 }
 

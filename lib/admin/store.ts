@@ -17,7 +17,6 @@ import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fiel
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import {
   findSponsorUser,
-  findUserByReferralCode,
   recountDirectReferrals,
   resolveSponsorQuery,
   wouldCreateUplineCycle,
@@ -281,7 +280,8 @@ export const useAdminStore = create<AdminState>()(
       seedDemo: () => {
         if (!allowOfflineSimulation()) return;
         if (get().liveDataSynced) return;
-        if (get().seeded && get().users.length > 0) return;
+        if (get().users.length > 0) return;
+        if (get().seeded) return;
         const users = buildDemoUsers();
         set({
           users,
@@ -332,7 +332,7 @@ export const useAdminStore = create<AdminState>()(
         const pendingRef = getPendingReferralCode();
         let resolvedUpline: string | null = null;
         if (pendingRef) {
-          const sponsor = findUserByReferralCode(get().users, pendingRef);
+          const sponsor = resolveSponsorQuery(get().users, pendingRef);
           if (sponsor && sponsor.wallet.toLowerCase() !== wallet) {
             resolvedUpline = sponsor.wallet;
           }
@@ -371,7 +371,7 @@ export const useAdminStore = create<AdminState>()(
               referrals: 0,
               uplineWallet: resolvedUpline,
               referrerUsername: resolvedUpline
-                ? findSponsorUser(get().users, resolvedUpline)?.alias ?? null
+                ? findSponsorUser(s.users, resolvedUpline)?.alias ?? null
                 : null,
               registrationSource: resolvedUpline ? "referral" : "direct",
               joinedAt: profile.joinedAt,
