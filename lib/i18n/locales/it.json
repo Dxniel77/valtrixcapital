@@ -341,7 +341,11 @@
         "fri": "Ven",
         "sat": "Sab",
         "sun": "Sole"
-      }
+      },
+      "earningsDepositRequired": "Deposita capitale proprio per sbloccare performance e rendimento giornaliero.",
+      "sponsoredBadge": "Sponsorizzato",
+      "sponsoredTitle": "Il capitale sponsorizzato è solo per il trading",
+      "sponsoredDesc": "Performance settimanale e progresso pagamenti compaiono dopo un deposito USDT reale."
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "Attivo",
       "stakeCompleted": "Completato",
       "stakePending": "Orecchino",
-      "stakeFailed": "Fallito"
+      "stakeFailed": "Fallito",
+      "earningsDepositRequired": "Deposita capitale proprio per sbloccare performance e rendimento giornaliero.",
+      "sponsoredEarningsTitle": "La performance si sblocca con il tuo deposito",
+      "sponsoredEarningsDesc": "Il capitale sponsorizzato serve per esercitarsi. Deposita USDT reale per iniziare a guadagnare e seguire il progresso verso il 200%."
     }
   },
   "referralsPage": {

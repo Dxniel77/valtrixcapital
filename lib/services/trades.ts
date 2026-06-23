@@ -5,7 +5,7 @@ import type { TradeDto } from "@/lib/trade/trade-types";
 import { fromMicro } from "@/lib/utils";
 import { reconcileUserWinBonuses } from "@/lib/services/trade-bonuses";
 import { distributeReferralCommissions } from "@/lib/services/commissions";
-import { commissionableAmountMicro } from "@/lib/services/sponsored-capital";
+import { commissionableAmountMicro, getRealCapitalMicro } from "@/lib/services/sponsored-capital";
 
 const SIMULTANEOUS_TIER_MID_MIN = 501;
 const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -191,13 +191,16 @@ export async function resolveTrade(input: {
   }
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
+  const capitalMicro = user.accountGranted
+    ? await getRealCapitalMicro(user.id)
+    : user.lockedCapital;
   const payoutCap =
     user.payoutCap > 0n
       ? user.payoutCap
-      : user.lockedCapital * BigInt(PAYOUT_CAP_MULTIPLIER);
+      : capitalMicro * BigInt(PAYOUT_CAP_MULTIPLIER);
   const bonusMicro =
-    user.lockedCapital > 0n
-      ? (user.lockedCapital * BigInt(config.bonusPerWinBps)) / 10_000n
+    capitalMicro > 0n
+      ? (capitalMicro * BigInt(config.bonusPerWinBps)) / 10_000n
       : 0n;
   const applied = applyEarningsCredit(user.totalEarned, payoutCap, bonusMicro);
   const payableMicro =
@@ -213,7 +216,7 @@ export async function resolveTrade(input: {
         exitPrice: input.exitPrice,
         resolvedAt: now,
         bonusAppliedBps: config.bonusPerWinBps,
-        capitalSnapshotAtWin: user.lockedCapital,
+        capitalSnapshotAtWin: capitalMicro,
         bonusCredited: applied,
       },
     });

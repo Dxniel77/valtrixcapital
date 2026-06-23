@@ -341,7 +341,11 @@
         "fri": "الجمعة",
         "sat": "قعد",
         "sun": "شمس"
-      }
+      },
+      "earningsDepositRequired": "أودع رأس مالك الخاص لفتح تتبع الأداء والعائد اليومي.",
+      "sponsoredBadge": "برعاية",
+      "sponsoredTitle": "رأس المال الممول للتداول فقط",
+      "sponsoredDesc": "يظهر الأداء الأسبوعي وتقدم الدفع بعد إيداع USDT حقيقي."
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "نشيط",
       "stakeCompleted": "مكتمل",
       "stakePending": "حلق",
-      "stakeFailed": "فشل"
+      "stakeFailed": "فشل",
+      "earningsDepositRequired": "أودع رأس مالك الخاص لفتح تتبع الأداء والعائد اليومي.",
+      "sponsoredEarningsTitle": "يُفتح الأداء بإيداعك",
+      "sponsoredEarningsDesc": "رأس المال الممول للتدريب. أودع USDT حقيقياً لبدء الكسب وتتبع التقدم نحو 200%."
     }
   },
   "referralsPage": {

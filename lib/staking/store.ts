@@ -19,6 +19,7 @@ import {
   MAX_PASSIVE_CATCHUP_PERIODS,
   passiveCreditUsdtForPeriod,
 } from "@/lib/yield/passive-accrual";
+import { hasRealDepositedCapital } from "@/lib/staking/capital-profile";
 
 export type StakingNetwork = "BSC" | "POLYGON";
 export type StakeStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "FAILED";
@@ -92,6 +93,10 @@ interface StakingState {
   creditedPositionIds: string[];
   earningsBalance: number;
   totalEarned: number;
+  realCapital: number;
+  companyCapital: number;
+  accountGranted: boolean;
+  capitalProfileSynced: boolean;
   pendingDeposit: PendingDeposit | null;
   lastAccrualDay: string | null;
 
@@ -126,6 +131,10 @@ const initial = {
   creditedPositionIds: [] as string[],
   earningsBalance: 0,
   totalEarned: 0,
+  realCapital: 0,
+  companyCapital: 0,
+  accountGranted: false,
+  capitalProfileSynced: false,
   pendingDeposit: null as PendingDeposit | null,
   lastAccrualDay: null as string | null,
 };
@@ -259,9 +268,19 @@ export const useStakingStore = create<StakingState>()(
           return;
         }
 
-        const capital = activeStakes
+        const capitalEligible = hasRealDepositedCapital({
+          realCapital: state.realCapital,
+          capitalProfileSynced: state.capitalProfileSynced,
+          accountGranted: state.accountGranted,
+        });
+        let capital = activeStakes
           .filter((s) => stakeEligibleForPassiveYieldNow(s))
           .reduce((acc, s) => acc + s.amount, 0);
+        if (!capitalEligible) {
+          capital = 0;
+        } else if (state.accountGranted && state.realCapital > 0) {
+          capital = Math.min(capital, state.realCapital);
+        }
         if (capital <= 0) {
           set({ lastAccrualDay: utcDayKey() });
           return;

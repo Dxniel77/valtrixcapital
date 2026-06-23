@@ -341,7 +341,11 @@
         "fri": "周五",
         "sat": "星期六",
         "sun": "太阳"
-      }
+      },
+      "earningsDepositRequired": "存入自有资金以解锁业绩跟踪和每日收益。",
+      "sponsoredBadge": "赞助",
+      "sponsoredTitle": "赞助资金仅用于交易",
+      "sponsoredDesc": "进行真实 USDT 存款后才会显示周业绩和支付进度。"
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "积极的",
       "stakeCompleted": "完全的",
       "stakePending": "耳环",
-      "stakeFailed": "失败的"
+      "stakeFailed": "失败的",
+      "earningsDepositRequired": "存入自有资金以解锁业绩跟踪和每日收益。",
+      "sponsoredEarningsTitle": "存款后解锁业绩",
+      "sponsoredEarningsDesc": "赞助资金用于练习交易。存入真实 USDT 后开始赚取并跟踪 200% 进度。"
     }
   },
   "referralsPage": {

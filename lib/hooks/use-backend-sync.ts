@@ -142,6 +142,13 @@ export function useBackendUserSync(): void {
           });
         }
 
+        useStakingStore.setState({
+          realCapital: me.user.realCapital,
+          companyCapital: me.user.companyCapital,
+          accountGranted: me.user.accountGranted,
+          capitalProfileSynced: true,
+        });
+
         const since = lastSyncRef.current;
         const { adjustments } = await fetchBalanceAdjustments(since);
         if (cancelled) return;

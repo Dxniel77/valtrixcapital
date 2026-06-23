@@ -340,7 +340,11 @@
         "fri": "Vie",
         "sat": "Sáb",
         "sun": "Dom"
-      }
+      },
+      "earningsDepositRequired": "Deposita capital propio para desbloquear el rendimiento y el yield diario.",
+      "sponsoredBadge": "Patrocinada",
+      "sponsoredTitle": "El capital patrocinado es solo para operar",
+      "sponsoredDesc": "El rendimiento semanal y el progreso de pago aparecen después de un depósito real en USDT. Tu saldo patrocinado te permite operar mientras cumples el volumen para desbloquear retiros."
     },
     "pages": {
       "wallet": {
@@ -556,7 +560,10 @@
       "stakeActive": "Activa",
       "stakeCompleted": "Completada",
       "stakePending": "Pendiente",
-      "stakeFailed": "Fallida"
+      "stakeFailed": "Fallida",
+      "earningsDepositRequired": "Deposita capital propio para desbloquear el rendimiento y el yield diario.",
+      "sponsoredEarningsTitle": "El rendimiento se desbloquea con tu depósito",
+      "sponsoredEarningsDesc": "El capital patrocinado es para practicar operaciones. Haz un depósito real en USDT para empezar a ganar y seguir el progreso hacia el 200%."
     }
   },
   "referralsPage": {

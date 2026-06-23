@@ -341,7 +341,11 @@
         "fri": "Fr",
         "sat": "Sa",
         "sun": "Sonne"
-      }
+      },
+      "earningsDepositRequired": "Zahlen Sie eigenes Kapital ein, um Performance-Tracking und täglichen Ertrag freizuschalten.",
+      "sponsoredBadge": "Gesponsert",
+      "sponsoredTitle": "Gesponsertes Kapital ist nur zum Handeln",
+      "sponsoredDesc": "Wöchentliche Performance und Auszahlungsfortschritt erscheinen nach einer echten USDT-Einzahlung."
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "Aktiv",
       "stakeCompleted": "Vollendet",
       "stakePending": "Ohrring",
-      "stakeFailed": "Fehlgeschlagen"
+      "stakeFailed": "Fehlgeschlagen",
+      "earningsDepositRequired": "Zahlen Sie eigenes Kapital ein, um Performance-Tracking und täglichen Ertrag freizuschalten.",
+      "sponsoredEarningsTitle": "Performance wird mit Ihrer Einzahlung freigeschaltet",
+      "sponsoredEarningsDesc": "Gesponsertes Kapital dient dem Üben. Zahlen Sie echtes USDT ein, um zu verdienen und den Fortschritt bis 200% zu verfolgen."
     }
   },
   "referralsPage": {

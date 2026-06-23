@@ -8,6 +8,7 @@ import { useStakingStoreHydrated } from "@/lib/staking/yield-engine";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { bonusPerWinAmount } from "@/lib/staking/operational-credits";
+import { hasRealDepositedCapital } from "@/lib/staking/capital-profile";
 
 function capitalAtTime(stakes: Stake[], atMs: number): number {
   return stakes
@@ -30,11 +31,21 @@ export function useOperationalCreditEngine(): void {
   const positions = useTradeStore((s) => s.positions);
   const stakes = useStakingStore((s) => s.stakes);
   const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
+  const realCapital = useStakingStore((s) => s.realCapital);
+  const accountGranted = useStakingStore((s) => s.accountGranted);
+  const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
   const creditTradeWin = useStakingStore((s) => s.creditTradeWin);
   const bonusPerWinBps = usePlatformSettingsStore((s) => s.settings.bonusPerWinBps);
 
   React.useEffect(() => {
     if (backend || !allowOfflineSimulation() || !tradeHydrated || !stakingHydrated) return;
+
+    const earningsEligible = hasRealDepositedCapital({
+      realCapital,
+      capitalProfileSynced,
+      accountGranted,
+    });
+    if (!earningsEligible) return;
 
     for (const p of positions) {
       if (p.status !== "WIN" || !p.resolvedAt) continue;
@@ -55,5 +66,8 @@ export function useOperationalCreditEngine(): void {
     creditedPositionIds,
     creditTradeWin,
     bonusPerWinBps,
+    realCapital,
+    accountGranted,
+    capitalProfileSynced,
   ]);
 }

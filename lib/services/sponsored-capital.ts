@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 const ACTIVE_CAPITAL_STATUSES: StakeStatus[] = ["ACTIVE"];
 const COMMISSION_CAPITAL_STATUSES: StakeStatus[] = ["ACTIVE", "COMPLETED"];
 
-function isRealStake(source: string, depositId: string | null): boolean {
+export function isRealStake(source: string, depositId: string | null): boolean {
   return source === "ON_CHAIN" || depositId != null;
 }
 

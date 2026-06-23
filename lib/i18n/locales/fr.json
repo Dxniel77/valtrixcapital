@@ -341,7 +341,11 @@
         "fri": "Ven",
         "sat": "Assise",
         "sun": "Soleil"
-      }
+      },
+      "earningsDepositRequired": "Déposez votre propre capital pour débloquer le suivi de performance et le rendement quotidien.",
+      "sponsoredBadge": "Sponsorisé",
+      "sponsoredTitle": "Le capital sponsorisé sert uniquement au trading",
+      "sponsoredDesc": "La performance hebdomadaire et la progression de paiement apparaissent après un dépôt USDT réel."
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "Actif",
       "stakeCompleted": "Complété",
       "stakePending": "Boucle",
-      "stakeFailed": "Échoué"
+      "stakeFailed": "Échoué",
+      "earningsDepositRequired": "Déposez votre propre capital pour débloquer le suivi de performance et le rendement quotidien.",
+      "sponsoredEarningsTitle": "La performance se débloque avec votre dépôt",
+      "sponsoredEarningsDesc": "Le capital sponsorisé sert à s'entraîner. Faites un dépôt USDT réel pour commencer à gagner et suivre la progression vers 200%."
     }
   },
   "referralsPage": {

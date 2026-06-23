@@ -340,7 +340,11 @@
         "fri": "sex",
         "sat": "Sentada",
         "sun": "Sol"
-      }
+      },
+      "earningsDepositRequired": "Deposite capital próprio para desbloquear o desempenho e o rendimento diário.",
+      "sponsoredBadge": "Patrocinado",
+      "sponsoredTitle": "Capital patrocinado é apenas para operar",
+      "sponsoredDesc": "O desempenho semanal e o progresso de pagamento aparecem após um depósito real em USDT."
     },
     "pages": {
       "wallet": {
@@ -568,7 +572,10 @@
       "stakeActive": "Ativo",
       "stakeCompleted": "Concluída",
       "stakePending": "Brinco",
-      "stakeFailed": "Fracassada"
+      "stakeFailed": "Fracassada",
+      "earningsDepositRequired": "Deposite capital próprio para desbloquear o desempenho e o rendimento diário.",
+      "sponsoredEarningsTitle": "O desempenho é desbloqueado com o seu depósito",
+      "sponsoredEarningsDesc": "O capital patrocinado serve para praticar. Faça um depósito real em USDT para começar a ganhar e acompanhar o progresso até 200%."
     }
   },
   "referralsPage": {

@@ -1,0 +1,83 @@
+{
+  "es": {
+    "dashboard.overview.earningsDepositRequired": "Deposita capital propio para desbloquear el rendimiento y el yield diario.",
+    "dashboard.overview.sponsoredBadge": "Patrocinada",
+    "dashboard.overview.sponsoredTitle": "El capital patrocinado es solo para operar",
+    "dashboard.overview.sponsoredDesc": "El rendimiento semanal y el progreso de pago aparecen después de un depósito real en USDT. Tu saldo patrocinado te permite operar mientras cumples el volumen para desbloquear retiros.",
+    "staking.portfolio.earningsDepositRequired": "Deposita capital propio para desbloquear el rendimiento y el yield diario.",
+    "staking.portfolio.sponsoredEarningsTitle": "El rendimiento se desbloquea con tu depósito",
+    "staking.portfolio.sponsoredEarningsDesc": "El capital patrocinado es para practicar operaciones. Haz un depósito real en USDT para empezar a ganar y seguir el progreso hacia el 200%."
+  },
+  "de": {
+    "dashboard.overview.earningsDepositRequired": "Zahlen Sie eigenes Kapital ein, um Performance-Tracking und täglichen Ertrag freizuschalten.",
+    "dashboard.overview.sponsoredBadge": "Gesponsert",
+    "dashboard.overview.sponsoredTitle": "Gesponsertes Kapital ist nur zum Handeln",
+    "dashboard.overview.sponsoredDesc": "Wöchentliche Performance und Auszahlungsfortschritt erscheinen nach einer echten USDT-Einzahlung.",
+    "staking.portfolio.earningsDepositRequired": "Zahlen Sie eigenes Kapital ein, um Performance-Tracking und täglichen Ertrag freizuschalten.",
+    "staking.portfolio.sponsoredEarningsTitle": "Performance wird mit Ihrer Einzahlung freigeschaltet",
+    "staking.portfolio.sponsoredEarningsDesc": "Gesponsertes Kapital dient dem Üben. Zahlen Sie echtes USDT ein, um zu verdienen und den Fortschritt bis 200% zu verfolgen."
+  },
+  "fr": {
+    "dashboard.overview.earningsDepositRequired": "Déposez votre propre capital pour débloquer le suivi de performance et le rendement quotidien.",
+    "dashboard.overview.sponsoredBadge": "Sponsorisé",
+    "dashboard.overview.sponsoredTitle": "Le capital sponsorisé sert uniquement au trading",
+    "dashboard.overview.sponsoredDesc": "La performance hebdomadaire et la progression de paiement apparaissent après un dépôt USDT réel.",
+    "staking.portfolio.earningsDepositRequired": "Déposez votre propre capital pour débloquer le suivi de performance et le rendement quotidien.",
+    "staking.portfolio.sponsoredEarningsTitle": "La performance se débloque avec votre dépôt",
+    "staking.portfolio.sponsoredEarningsDesc": "Le capital sponsorisé sert à s'entraîner. Faites un dépôt USDT réel pour commencer à gagner et suivre la progression vers 200%."
+  },
+  "it": {
+    "dashboard.overview.earningsDepositRequired": "Deposita capitale proprio per sbloccare performance e rendimento giornaliero.",
+    "dashboard.overview.sponsoredBadge": "Sponsorizzato",
+    "dashboard.overview.sponsoredTitle": "Il capitale sponsorizzato è solo per il trading",
+    "dashboard.overview.sponsoredDesc": "Performance settimanale e progresso pagamenti compaiono dopo un deposito USDT reale.",
+    "staking.portfolio.earningsDepositRequired": "Deposita capitale proprio per sbloccare performance e rendimento giornaliero.",
+    "staking.portfolio.sponsoredEarningsTitle": "La performance si sblocca con il tuo deposito",
+    "staking.portfolio.sponsoredEarningsDesc": "Il capitale sponsorizzato serve per esercitarsi. Deposita USDT reale per iniziare a guadagnare e seguire il progresso verso il 200%."
+  },
+  "pt": {
+    "dashboard.overview.earningsDepositRequired": "Deposite capital próprio para desbloquear o desempenho e o rendimento diário.",
+    "dashboard.overview.sponsoredBadge": "Patrocinado",
+    "dashboard.overview.sponsoredTitle": "Capital patrocinado é apenas para operar",
+    "dashboard.overview.sponsoredDesc": "O desempenho semanal e o progresso de pagamento aparecem após um depósito real em USDT.",
+    "staking.portfolio.earningsDepositRequired": "Deposite capital próprio para desbloquear o desempenho e o rendimento diário.",
+    "staking.portfolio.sponsoredEarningsTitle": "O desempenho é desbloqueado com o seu depósito",
+    "staking.portfolio.sponsoredEarningsDesc": "O capital patrocinado serve para praticar. Faça um depósito real em USDT para começar a ganhar e acompanhar o progresso até 200%."
+  },
+  "ar": {
+    "dashboard.overview.earningsDepositRequired": "أودع رأس مالك الخاص لفتح تتبع الأداء والعائد اليومي.",
+    "dashboard.overview.sponsoredBadge": "برعاية",
+    "dashboard.overview.sponsoredTitle": "رأس المال الممول للتداول فقط",
+    "dashboard.overview.sponsoredDesc": "يظهر الأداء الأسبوعي وتقدم الدفع بعد إيداع USDT حقيقي.",
+    "staking.portfolio.earningsDepositRequired": "أودع رأس مالك الخاص لفتح تتبع الأداء والعائد اليومي.",
+    "staking.portfolio.sponsoredEarningsTitle": "يُفتح الأداء بإيداعك",
+    "staking.portfolio.sponsoredEarningsDesc": "رأس المال الممول للتدريب. أودع USDT حقيقياً لبدء الكسب وتتبع التقدم نحو 200%."
+  },
+  "zh": {
+    "dashboard.overview.earningsDepositRequired": "存入自有资金以解锁业绩跟踪和每日收益。",
+    "dashboard.overview.sponsoredBadge": "赞助",
+    "dashboard.overview.sponsoredTitle": "赞助资金仅用于交易",
+    "dashboard.overview.sponsoredDesc": "进行真实 USDT 存款后才会显示周业绩和支付进度。",
+    "staking.portfolio.earningsDepositRequired": "存入自有资金以解锁业绩跟踪和每日收益。",
+    "staking.portfolio.sponsoredEarningsTitle": "存款后解锁业绩",
+    "staking.portfolio.sponsoredEarningsDesc": "赞助资金用于练习交易。存入真实 USDT 后开始赚取并跟踪 200% 进度。"
+  },
+  "hi": {
+    "dashboard.overview.earningsDepositRequired": "प्रदर्शन ट्रैकिंग और दैनिक यील्ड अनलॉक करने के लिए अपना पूंजी जमा करें।",
+    "dashboard.overview.sponsoredBadge": "प्रायोजित",
+    "dashboard.overview.sponsoredTitle": "प्रायोजित पूंजी केवल ट्रेडिंग के लिए",
+    "dashboard.overview.sponsoredDesc": "साप्ताहिक प्रदर्शन और भुगतान प्रगति वास्तविक USDT जमा के बाद दिखाई देती है।",
+    "staking.portfolio.earningsDepositRequired": "प्रदर्शन ट्रैकिंग और दैनिक यील्ड अनलॉक करने के लिए अपना पूंजी जमा करें।",
+    "staking.portfolio.sponsoredEarningsTitle": "आपकी जमा राशि से प्रदर्शन अनलॉक होता है",
+    "staking.portfolio.sponsoredEarningsDesc": "प्रायोजित पूंजी अभ्यास के लिए है। कमाई शुरू करने और 200% प्रगति ट्रैक करने के लिए वास्तविक USDT जमा करें।"
+  },
+  "ja": {
+    "dashboard.overview.earningsDepositRequired": "自分の資本を入金して、パフォーマンス追跡と日次利回りを有効にしてください。",
+    "dashboard.overview.sponsoredBadge": "スポンサー付き",
+    "dashboard.overview.sponsoredTitle": "スポンサー資本は取引専用です",
+    "dashboard.overview.sponsoredDesc": "週間パフォーマンスと支払い進捗は、実際のUSDT入金後に表示されます。",
+    "staking.portfolio.earningsDepositRequired": "自分の資本を入金して、パフォーマンス追跡と日次利回りを有効にしてください。",
+    "staking.portfolio.sponsoredEarningsTitle": "入金でパフォーマンスが有効になります",
+    "staking.portfolio.sponsoredEarningsDesc": "スポンサー資本は練習用です。実際のUSDTを入金して収益を得り、200%までの進捗を追跡してください。"
+  }
+}

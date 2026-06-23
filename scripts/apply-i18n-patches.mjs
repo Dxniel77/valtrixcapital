@@ -13,6 +13,7 @@ const patchPath = path.join(root, "lib/i18n/patch-translations.json");
 const patch2Path = path.join(root, "lib/i18n/patch-translations-2.json");
 const patch3Path = path.join(root, "lib/i18n/patch-translations-3.json");
 const patch4Path = path.join(root, "lib/i18n/patch-translations-4.json");
+const patch5Path = path.join(root, "lib/i18n/patch-translations-5.json");
 const enPath = path.join(localesDir, "en.json");
 
 function setByPath(obj, pathStr, value) {
@@ -58,6 +59,12 @@ async function main() {
   } catch {
     /* optional fourth patch file */
   }
+  let patch5 = {};
+  try {
+    patch5 = JSON.parse(await fs.readFile(patch5Path, "utf8"));
+  } catch {
+    /* optional fifth patch file */
+  }
   const merged = { ...patch };
   for (const [locale, entries] of Object.entries(patch2)) {
     merged[locale] = { ...(merged[locale] ?? {}), ...entries };
@@ -66,6 +73,9 @@ async function main() {
     merged[locale] = { ...(merged[locale] ?? {}), ...entries };
   }
   for (const [locale, entries] of Object.entries(patch4)) {
+    merged[locale] = { ...(merged[locale] ?? {}), ...entries };
+  }
+  for (const [locale, entries] of Object.entries(patch5)) {
     merged[locale] = { ...(merged[locale] ?? {}), ...entries };
   }
   const en = JSON.parse(await fs.readFile(enPath, "utf8"));

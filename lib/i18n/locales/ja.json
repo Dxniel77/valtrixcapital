@@ -341,7 +341,11 @@
         "fri": "金",
         "sat": "土",
         "sun": "太陽"
-      }
+      },
+      "earningsDepositRequired": "自分の資本を入金して、パフォーマンス追跡と日次利回りを有効にしてください。",
+      "sponsoredBadge": "スポンサー付き",
+      "sponsoredTitle": "スポンサー資本は取引専用です",
+      "sponsoredDesc": "週間パフォーマンスと支払い進捗は、実際のUSDT入金後に表示されます。"
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "アクティブ",
       "stakeCompleted": "完了しました",
       "stakePending": "イヤリング",
-      "stakeFailed": "失敗した"
+      "stakeFailed": "失敗した",
+      "earningsDepositRequired": "自分の資本を入金して、パフォーマンス追跡と日次利回りを有効にしてください。",
+      "sponsoredEarningsTitle": "入金でパフォーマンスが有効になります",
+      "sponsoredEarningsDesc": "スポンサー資本は練習用です。実際のUSDTを入金して収益を得り、200%までの進捗を追跡してください。"
     }
   },
   "referralsPage": {

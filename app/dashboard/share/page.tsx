@@ -13,6 +13,8 @@ import { EarningsPoster } from "@/components/share/earnings-poster";
 import { ExportReportsPanel } from "@/components/share/export-reports-panel";
 import { computePeriodEarnings } from "@/lib/share/earnings-periods";
 import { useTodayYieldPreview } from "@/lib/staking/portfolio-summary";
+import { useHasRealDepositedCapital } from "@/lib/hooks/use-capital-profile";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   exportEarningsCsv,
   exportNetworkCsv,
@@ -30,16 +32,23 @@ export default function SharePage() {
   const withdrawals = useWalletStore((s) => s.withdrawals);
   const ledger = useLedger();
   const preview = useTodayYieldPreview();
+  const hasRealCapital = useHasRealDepositedCapital();
 
   const earnings = React.useMemo(
     () =>
       computePeriodEarnings({
-        dailyYields,
-        instantCredits,
+        dailyYields: hasRealCapital ? dailyYields : [],
+        instantCredits: hasRealCapital ? instantCredits : [],
         commissions,
-        todayProjectedYield: preview.projectedBaseAmount,
+        todayProjectedYield: hasRealCapital ? preview.projectedBaseAmount : 0,
       }),
-    [dailyYields, instantCredits, commissions, preview.projectedBaseAmount],
+    [
+      dailyYields,
+      instantCredits,
+      commissions,
+      preview.projectedBaseAmount,
+      hasRealCapital,
+    ],
   );
 
   const username = profile?.username ?? "user";
@@ -66,7 +75,15 @@ export default function SharePage() {
       <PageHeader title={t("share.title")} subtitle={t("share.subtitle")} />
 
       <section>
-        <EarningsPoster username={username} earnings={earnings} />
+        {hasRealCapital ? (
+          <EarningsPoster username={username} earnings={earnings} />
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-text-secondary">
+              {t("staking.portfolio.sponsoredEarningsDesc")}
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <ExportReportsPanel items={exports} />

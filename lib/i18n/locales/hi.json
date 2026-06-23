@@ -341,7 +341,11 @@
         "fri": "शुक्र",
         "sat": "बैठा",
         "sun": "सूरज"
-      }
+      },
+      "earningsDepositRequired": "प्रदर्शन ट्रैकिंग और दैनिक यील्ड अनलॉक करने के लिए अपना पूंजी जमा करें।",
+      "sponsoredBadge": "प्रायोजित",
+      "sponsoredTitle": "प्रायोजित पूंजी केवल ट्रेडिंग के लिए",
+      "sponsoredDesc": "साप्ताहिक प्रदर्शन और भुगतान प्रगति वास्तविक USDT जमा के बाद दिखाई देती है।"
     },
     "pages": {
       "wallet": {
@@ -569,7 +573,10 @@
       "stakeActive": "सक्रिय",
       "stakeCompleted": "पुरा होना।",
       "stakePending": "कान की बाली",
-      "stakeFailed": "असफल"
+      "stakeFailed": "असफल",
+      "earningsDepositRequired": "प्रदर्शन ट्रैकिंग और दैनिक यील्ड अनलॉक करने के लिए अपना पूंजी जमा करें।",
+      "sponsoredEarningsTitle": "आपकी जमा राशि से प्रदर्शन अनलॉक होता है",
+      "sponsoredEarningsDesc": "प्रायोजित पूंजी अभ्यास के लिए है। कमाई शुरू करने और 200% प्रगति ट्रैक करने के लिए वास्तविक USDT जमा करें।"
     }
   },
   "referralsPage": {

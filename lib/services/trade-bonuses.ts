@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getPlatformConfig } from "@/lib/services/config";
 import { distributeReferralCommissions } from "@/lib/services/commissions";
+import { commissionableAmountMicro, isRealStake } from "@/lib/services/sponsored-capital";
 
 const PAYOUT_CAP_MULTIPLIER = 2;
 
@@ -37,7 +38,11 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
 
   if (wins.length === 0) return;
 
-  const stakeEvents = stakes
+  const bonusStakes = user.accountGranted
+    ? stakes.filter((s) => isRealStake(s.source, s.depositId))
+    : stakes;
+
+  const stakeEvents = bonusStakes
     .map((stake) => ({
       at: stake.startedAt,
       amount: stake.amount,
@@ -88,7 +93,7 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
   const network = networkTotal._sum?.amount ?? 0n;
   const correctTotalEarned = operationalTotal + passive + network;
 
-  const activeCapital = stakes
+  const activeCapital = bonusStakes
     .filter((s) => s.status === "ACTIVE")
     .reduce((acc, s) => acc + s.amount, 0n);
   const payoutCap =
@@ -131,11 +136,14 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
   for (let i = 0; i < wins.length; i += 1) {
     const delta = tradeUpdates[i].bonusCredited - wins[i].bonusCredited;
     if (delta <= 0n) continue;
+    const payableMicro = await commissionableAmountMicro(userId, delta);
+    if (payableMicro <= 0n) continue;
     await distributeReferralCommissions({
       sourceUserId: userId,
       amountMicro: delta,
       ratesBps: config.commissionRatesBps,
       sourceTradeId: wins[i].id,
+      payableMicro,
     });
   }
 }
