@@ -1252,7 +1252,15 @@
       "colTotal": "Total",
       "colOperational": "Operational",
       "colNetwork": "Network",
-      "colPassive": "Passive"
+      "colPassive": "Passive",
+      "colTrades": "Trades",
+      "colWins": "Wins",
+      "directTitle": "Company direct accounts",
+      "directDesc": "Users without a referral sponsor — earnings generated in the selected period.",
+      "directAccounts": "Accounts",
+      "directBadge": "Direct",
+      "loading": "Loading billing data…",
+      "empty": "No billing activity in this period."
     },
     "reports": {
       "title": "Reports",

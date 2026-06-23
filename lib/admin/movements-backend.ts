@@ -12,6 +12,7 @@ function mapBackendMovement(
     network: (row.network as AdminMovement["network"]) ?? null,
     status: row.status,
     timestamp: row.timestamp,
+    yieldKind: row.yieldKind,
   };
 }
 

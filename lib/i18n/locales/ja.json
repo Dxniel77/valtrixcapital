@@ -1198,7 +1198,15 @@
       "colTotal": "合計",
       "colOperational": "稼働中",
       "colNetwork": "ネットワーク",
-      "colPassive": "受け身"
+      "colPassive": "受け身",
+      "colTrades": "取引",
+      "colWins": "勝利",
+      "directTitle": "会社直結アカウント",
+      "directDesc": "スポンサーなしのユーザー — 選択期間の収益。",
+      "directAccounts": "アカウント",
+      "directBadge": "直結",
+      "loading": "請求データを読み込み中…",
+      "empty": "この期間に請求活動はありません。"
     },
     "reports": {
       "title": "レポート",

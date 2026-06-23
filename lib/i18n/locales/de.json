@@ -1198,7 +1198,15 @@
       "colTotal": "Gesamt",
       "colOperational": "Betriebsbereit",
       "colNetwork": "Netzwerk",
-      "colPassive": "Passiv"
+      "colPassive": "Passiv",
+      "colTrades": "Operationen",
+      "colWins": "Siege",
+      "directTitle": "Direkte Firmenkonten",
+      "directDesc": "Benutzer ohne Patron — Einnahmen im ausgewählten Zeitraum.",
+      "directAccounts": "Konten",
+      "directBadge": "Direkt",
+      "loading": "Abrechnungsdaten werden geladen…",
+      "empty": "Keine Abrechnungsaktivität in diesem Zeitraum."
     },
     "reports": {
       "title": "Berichte",

@@ -188,8 +188,38 @@ export async function fetchAdminMovements(limit = 500) {
       status: string;
       timestamp: number;
       note?: string;
+      yieldKind?: "operational" | "passive";
     }>;
   }>(`/api/admin/movements?limit=${limit}`);
+}
+
+export async function fetchAdminLeaders(period: "week" | "month" | "3months") {
+  return apiFetch<{
+    backend: boolean;
+    rows: Array<{
+      userId: string;
+      wallet: string;
+      alias: string;
+      registrationSource: "referral" | "direct";
+      isDirectAccount: boolean;
+      total: number;
+      operational: number;
+      network: number;
+      passive: number;
+      tradesCount: number;
+      winsCount: number;
+      byLevel: Array<{ level: number; amount: number }>;
+    }>;
+    directAccounts: {
+      accountCount: number;
+      total: number;
+      operational: number;
+      network: number;
+      passive: number;
+      tradesCount: number;
+      winsCount: number;
+    };
+  }>(`/api/admin/leaders?period=${encodeURIComponent(period)}`);
 }
 
 export async function fetchAdminReportsSummary(from: string, to: string) {

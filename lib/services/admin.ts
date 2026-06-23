@@ -27,6 +27,7 @@ export interface AdminMovementDto {
   status: string;
   timestamp: number;
   note?: string;
+  yieldKind?: "operational" | "passive";
 }
 
 export async function adjustUserBalance(input: {
@@ -161,7 +162,7 @@ export async function setUserActive(input: {
 }
 
 export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[]> {
-  const [deposits, withdrawals, yields, commissions, adjustments, treasuryDeposits, treasuryWithdrawals] =
+  const [deposits, withdrawals, yields, commissions, adjustments, treasuryDeposits, treasuryWithdrawals, tradeBonuses] =
     await Promise.all([
       prisma.deposit.findMany({
         orderBy: { detectedAt: "desc" },
@@ -206,6 +207,12 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
           },
         },
       }),
+      prisma.trade.findMany({
+        where: { result: "WIN", bonusCredited: { gt: 0n }, resolvedAt: { not: null } },
+        orderBy: { resolvedAt: "desc" },
+        take: limit,
+        include: { user: { select: { walletAddress: true } } },
+      }),
     ]);
 
   const rows: AdminMovementDto[] = [];
@@ -243,6 +250,22 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
       network: null,
       status: "COMPLETED",
       timestamp: y.createdAt.getTime(),
+      yieldKind: "passive",
+    });
+  }
+
+  for (const t of tradeBonuses) {
+    if (!t.resolvedAt) continue;
+    rows.push({
+      id: `trd_${t.id}`,
+      type: "YIELD",
+      wallet: t.user.walletAddress,
+      amount: fromMicro(t.bonusCredited),
+      network: null,
+      status: "COMPLETED",
+      timestamp: t.resolvedAt.getTime(),
+      yieldKind: "operational",
+      note: `Trade win bonus · ${t.pair}`,
     });
   }
 

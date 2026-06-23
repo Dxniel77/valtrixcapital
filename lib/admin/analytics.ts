@@ -24,6 +24,9 @@ export interface UserLeaderRow {
   operational: number;
   network: number;
   passive: number;
+  tradesCount?: number;
+  winsCount?: number;
+  isDirectAccount?: boolean;
 }
 
 export interface UserDetailSnapshot {

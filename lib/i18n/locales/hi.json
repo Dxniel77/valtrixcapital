@@ -1198,7 +1198,15 @@
       "colTotal": "कुल",
       "colOperational": "आपरेशनल",
       "colNetwork": "नेटवर्क",
-      "colPassive": "निष्क्रिय"
+      "colPassive": "निष्क्रिय",
+      "colTrades": "ट्रेड",
+      "colWins": "जीत",
+      "directTitle": "कंपनी के प्रत्यक्ष खाते",
+      "directDesc": "बिना स्पॉन्सर के उपयोगकर्ता — चयनित अवधि की कमाई।",
+      "directAccounts": "खाते",
+      "directBadge": "प्रत्यक्ष",
+      "loading": "बिलिंग डेटा लोड हो रहा है…",
+      "empty": "इस अवधि में कोई बिलिंग गतिविधि नहीं।"
     },
     "reports": {
       "title": "रिपोर्टों",

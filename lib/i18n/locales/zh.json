@@ -1231,7 +1231,15 @@
       "colTotal": "全部的",
       "colOperational": "操作",
       "colNetwork": "网格",
-      "colPassive": "被动的"
+      "colPassive": "被动的",
+      "colTrades": "交易",
+      "colWins": "盈利",
+      "directTitle": "公司直链账户",
+      "directDesc": "无推荐人的用户 — 所选周期内的收益。",
+      "directAccounts": "账户",
+      "directBadge": "直链",
+      "loading": "正在加载账单数据…",
+      "empty": "此周期内无账单活动。"
     },
     "reports": {
       "title": "报告",

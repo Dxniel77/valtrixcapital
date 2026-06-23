@@ -1198,7 +1198,15 @@
       "colTotal": "Totale",
       "colOperational": "Operativo",
       "colNetwork": "Rete",
-      "colPassive": "Passivo"
+      "colPassive": "Passivo",
+      "colTrades": "Operazioni",
+      "colWins": "Vittorie",
+      "directTitle": "Account diretti dell'azienda",
+      "directDesc": "Utenti senza sponsor — guadagni nel periodo selezionato.",
+      "directAccounts": "Account",
+      "directBadge": "Diretto",
+      "loading": "Caricamento dati di fatturazione…",
+      "empty": "Nessuna attività di fatturazione in questo periodo."
     },
     "reports": {
       "title": "Rapporti",

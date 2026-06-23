@@ -1198,7 +1198,15 @@
       "colTotal": "المجموع",
       "colOperational": "التشغيلية",
       "colNetwork": "شبكة",
-      "colPassive": "سلبي"
+      "colPassive": "سلبي",
+      "colTrades": "عمليات",
+      "colWins": "انتصارات",
+      "directTitle": "حسابات الشركة المباشرة",
+      "directDesc": "مستخدمون بدون راعي — الأرباح في الفترة المحددة.",
+      "directAccounts": "الحسابات",
+      "directBadge": "مباشر",
+      "loading": "جارٍ تحميل بيانات الفوترة…",
+      "empty": "لا يوجد نشاط فوترة في هذه الفترة."
     },
     "reports": {
       "title": "التقارير",
