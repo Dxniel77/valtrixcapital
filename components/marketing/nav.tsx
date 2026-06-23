@@ -49,13 +49,23 @@ export function MarketingNav() {
     <header
       dir={dir}
       className={cn(
-        "sticky top-0 z-50 transition-all",
+        "sticky top-0 z-50 transition-all supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]",
         scrolled ? "glass border-b border-border-subtle" : "bg-transparent",
       )}
     >
-      <div className="container grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:h-16 sm:gap-3 lg:h-[4.5rem] lg:gap-4">
-        <div className="flex shrink-0 items-center justify-self-start">
-          <Logo className="flex md:hidden" size="md" />
+      <div
+        className={cn(
+          "container flex h-[3.75rem] w-full items-center justify-between gap-3 sm:h-16",
+          compactNav
+            ? "xl:grid xl:h-[4.5rem] xl:grid-cols-[1fr_auto_1fr] xl:gap-4"
+            : "lg:grid lg:h-[4.5rem] lg:grid-cols-[1fr_auto_1fr] lg:gap-4",
+        )}
+      >
+        <div className="flex min-w-0 shrink-0 items-center lg:justify-self-start">
+          <Logo
+            className={cn(compactNav ? "flex xl:hidden" : "flex lg:hidden")}
+            size="sm"
+          />
           <Logo
             className={cn("hidden", compactNav && "md:flex xl:hidden")}
             size="md"
@@ -103,11 +113,16 @@ export function MarketingNav() {
           </ul>
         </nav>
 
-        <div className="flex shrink-0 items-center justify-end justify-self-end gap-1 sm:gap-1.5 lg:gap-2">
+        {/* Desktop actions */}
+        <div
+          className={cn(
+            "hidden shrink-0 items-center justify-end justify-self-end gap-1.5 sm:gap-2",
+            compactNav ? "xl:flex" : "md:flex",
+          )}
+        >
           <div
             className={cn(
-              "hidden items-center rounded-lg border border-border-subtle/70 bg-bg-base/50 p-0.5",
-              compactNav ? "xl:flex" : "md:flex",
+              "flex items-center rounded-lg border border-border-subtle/70 bg-bg-base/50 p-0.5",
               dir === "rtl" ? "flex-row-reverse" : "flex-row",
             )}
           >
@@ -132,61 +147,71 @@ export function MarketingNav() {
             <Link href="/dashboard">{t("nav.dashboard")}</Link>
           </Button>
 
-          <ConnectWalletButton
-            size="lg"
-            className={cn(
-              "hidden",
-              compactNav ? "xl:inline-flex" : "md:inline-flex",
-            )}
-            compact={compactNav}
-          />
+          <ConnectWalletButton size="lg" compact={compactNav} />
+        </div>
 
+        {/* Mobile toolbar */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 sm:gap-2",
+            compactNav ? "xl:hidden" : "lg:hidden",
+            dir === "rtl" ? "flex-row-reverse" : "flex-row",
+          )}
+        >
           <div
             className={cn(
-              "flex min-w-0 items-center gap-0.5 sm:gap-1",
-              compactNav ? "xl:hidden" : "lg:hidden",
+              "flex items-center rounded-xl border border-border-subtle/80 bg-bg-base/70 p-0.5 shadow-sm backdrop-blur-sm",
+              dir === "rtl" ? "flex-row-reverse" : "flex-row",
             )}
           >
-            <LanguageSelector variant="header" />
-            <ThemeToggle size="icon" />
-            <ConnectWalletButton
-              size="sm"
-              compact
-              className="min-w-0 shrink"
-              onBeforeConnect={() => setOpen(false)}
-            />
-            <button
-              type="button"
-              className="shrink-0 rounded-md p-2 text-text-secondary hover:bg-bg-hover hover:text-text-primary"
-              onClick={() => setOpen((v) => !v)}
-              aria-label={t("nav.toggleMenu")}
-              aria-expanded={open}
-            >
-              {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            <LanguageSelector variant="header" iconOnly />
+            <ThemeToggle size="icon" className="h-10 w-10 shrink-0" />
           </div>
+
+          <ConnectWalletButton
+            iconOnly
+            onBeforeConnect={() => setOpen(false)}
+          />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-text-secondary hover:text-text-primary"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={t("nav.toggleMenu")}
+            aria-expanded={open}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </div>
       </div>
 
       {open ? (
         <div
           className={cn(
-            "border-t border-border-subtle bg-bg-elevated",
+            "max-h-[calc(100dvh-3.75rem)] overflow-y-auto border-t border-border-subtle bg-bg-elevated/98 backdrop-blur-md sm:max-h-[calc(100dvh-4rem)]",
             compactNav ? "xl:hidden" : "lg:hidden",
           )}
         >
-          <div className="container flex flex-col gap-1 py-4">
+          <div className="container flex flex-col gap-1 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {links.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="rounded-md px-2 py-2.5 text-base font-medium text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                className="rounded-lg px-3 py-3 text-base font-medium text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary active:bg-bg-hover"
                 onClick={() => setOpen(false)}
               >
                 {l.label}
               </Link>
             ))}
-            <div className="mt-3 border-t border-border-subtle pt-4">
+
+            <div className="mt-4 space-y-3 border-t border-border-subtle pt-4">
+              <ConnectWalletButton
+                size="lg"
+                className="w-full [&>div]:w-full [&_button]:w-full"
+                onBeforeConnect={() => setOpen(false)}
+              />
               <Button asChild variant="outline" size="md" className="w-full">
                 <Link href="/dashboard" onClick={() => setOpen(false)}>
                   {t("nav.openDashboard")}

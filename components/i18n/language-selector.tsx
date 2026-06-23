@@ -14,6 +14,8 @@ type LanguageSelectorProps = {
   variant?: "default" | "header";
   /** Shorter trigger for long-locale marketing headers */
   compact?: boolean;
+  /** Globe-only control for tight mobile headers */
+  iconOnly?: boolean;
 };
 
 export function LanguageSelector({
@@ -21,6 +23,7 @@ export function LanguageSelector({
   align,
   variant = "default",
   compact = false,
+  iconOnly = false,
 }: LanguageSelectorProps) {
   const { locale, setLocale, t } = useI18n();
   const { dir, nativeName, regionCode } = useLocaleMeta();
@@ -33,16 +36,20 @@ export function LanguageSelector({
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md text-sm text-text-secondary transition-colors",
-            variant === "header"
-              ? "h-9 px-2 hover:bg-bg-hover hover:text-text-primary data-[state=open]:bg-bg-hover data-[state=open]:text-text-primary"
-              : "border border-border-subtle bg-bg-base px-2.5 py-1.5 hover:border-gold/30 hover:text-text-primary data-[state=open]:border-gold/40 data-[state=open]:text-text-primary",
+            "inline-flex items-center rounded-md text-sm text-text-secondary transition-colors",
+            iconOnly
+              ? "h-10 w-10 shrink-0 justify-center hover:bg-bg-hover hover:text-text-primary data-[state=open]:bg-bg-hover data-[state=open]:text-text-primary"
+              : "gap-1.5",
+            !iconOnly &&
+              (variant === "header"
+                ? "h-9 px-2 hover:bg-bg-hover hover:text-text-primary data-[state=open]:bg-bg-hover data-[state=open]:text-text-primary"
+                : "border border-border-subtle bg-bg-base px-2.5 py-1.5 hover:border-gold/30 hover:text-text-primary data-[state=open]:border-gold/40 data-[state=open]:text-text-primary"),
             className,
           )}
           aria-label={t("common.language")}
         >
-          <Globe className="h-4 w-4 shrink-0 opacity-80" />
-          {variant === "header" ? (
+          <Globe className={cn("shrink-0 opacity-80", iconOnly ? "h-5 w-5" : "h-4 w-4")} />
+          {!iconOnly && variant === "header" ? (
             <>
               <span className="hidden font-medium uppercase tracking-wide sm:inline">
                 {regionCode}
@@ -56,17 +63,19 @@ export function LanguageSelector({
                 {nativeName}
               </span>
             </>
-          ) : (
+          ) : !iconOnly ? (
             <span className="font-medium uppercase tracking-wide">
               {regionCode}
             </span>
-          )}
-          <ChevronDown
-            className={cn(
-              "h-3.5 w-3.5 shrink-0 opacity-60 transition-transform",
-              open && "rotate-180",
-            )}
-          />
+          ) : null}
+          {!iconOnly ? (
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 opacity-60 transition-transform",
+                open && "rotate-180",
+              )}
+            />
+          ) : null}
         </button>
       </DropdownMenu.Trigger>
 

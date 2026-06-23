@@ -12,6 +12,8 @@ interface ConnectWalletButtonProps {
   variant?: ButtonProps["variant"];
   className?: string;
   compact?: boolean;
+  /** Square icon-only trigger for mobile headers */
+  iconOnly?: boolean;
   /** Called before opening the connect modal (e.g. close mobile nav). */
   onBeforeConnect?: () => void;
 }
@@ -21,6 +23,7 @@ export function ConnectWalletButton({
   variant = "primary",
   className,
   compact = false,
+  iconOnly = false,
   onBeforeConnect,
 }: ConnectWalletButtonProps) {
   const { t } = useI18n();
@@ -54,22 +57,26 @@ export function ConnectWalletButton({
             {!connected ? (
               <Button
                 onClick={openConnect}
-                size={size}
+                size={iconOnly ? "icon" : size}
                 variant={variant}
                 type="button"
                 disabled={!ready}
                 aria-busy={!ready}
                 className={cn(
+                  iconOnly && "shrink-0",
                   compact &&
+                    !iconOnly &&
                     "gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm lg:px-3 xl:px-4 xl:text-base",
                   !ready && "opacity-80",
                 )}
                 aria-label={t("common.connectWallet")}
               >
-                <Wallet className="h-4 w-4 shrink-0" />
-                <span className={cn(compact && "hidden sm:inline xl:inline")}>
-                  {!ready ? t("common.loading") : t("common.connectWallet")}
-                </span>
+                <Wallet className={cn("shrink-0", iconOnly ? "h-5 w-5" : "h-4 w-4")} />
+                {!iconOnly ? (
+                  <span className={cn(compact && "hidden sm:inline xl:inline")}>
+                    {!ready ? t("common.loading") : t("common.connectWallet")}
+                  </span>
+                ) : null}
               </Button>
             ) : chain.unsupported ? (
               <Button
@@ -108,26 +115,41 @@ export function ConnectWalletButton({
 
                 <Button
                   onClick={openAccountModal}
-                  size={size}
-                  variant={compact ? "outline" : variant}
+                  size={iconOnly ? "icon" : size}
+                  variant={iconOnly || compact ? "outline" : variant}
                   type="button"
                   className={cn(
+                    iconOnly && "relative shrink-0",
                     compact &&
+                      !iconOnly &&
                       "max-w-[9.5rem] gap-1.5 px-2.5 text-xs font-medium sm:max-w-none sm:px-3 sm:text-sm",
                   )}
+                  aria-label={account.displayName ?? shortenAddress(account.address)}
                 >
-                  <span
-                    className="inline-block h-2 w-2 shrink-0 rounded-full bg-success animate-pulse-soft"
-                    aria-hidden
-                  />
-                  <span className="truncate">
-                    {compact
-                      ? shortenAddress(account.address, 4, 4)
-                      : account.displayName}
-                  </span>
-                  {compact ? (
-                    <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
-                  ) : null}
+                  {iconOnly ? (
+                    <>
+                      <Wallet className="h-5 w-5 shrink-0" />
+                      <span
+                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-success ring-2 ring-bg-elevated animate-pulse-soft"
+                        aria-hidden
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-full bg-success animate-pulse-soft"
+                        aria-hidden
+                      />
+                      <span className="truncate">
+                        {compact
+                          ? shortenAddress(account.address, 4, 4)
+                          : account.displayName}
+                      </span>
+                      {compact ? (
+                        <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+                      ) : null}
+                    </>
+                  )}
                 </Button>
               </>
             )}
