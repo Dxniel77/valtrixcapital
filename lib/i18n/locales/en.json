@@ -810,6 +810,9 @@
   "share": {
     "title": "Share earnings",
     "subtitle": "Download one image per period (day, week, month or 3 months) with the official Valtrix design.",
+    "sponsoredPosterHint": "Passive and trading profit are not included on sponsored capital. Your poster shows network commissions only until you make a real USDT deposit.",
+    "posterDepositRequiredTitle": "Deposit required to download posters",
+    "posterDepositRequiredDesc": "Sponsored leader accounts can use the platform to trade and build their network, but shareable earnings images unlock only after a real USDT deposit is confirmed.",
     "posterSection": "Shareable images",
     "breakdownTitle": "Period breakdown",
     "download": "Download image",

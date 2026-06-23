@@ -810,6 +810,9 @@
   "share": {
     "title": "Compartir ganancias",
     "subtitle": "Descarga una imagen por periodo (día, semana, mes o 3 meses) con el diseño oficial de Valtrix.",
+    "sponsoredPosterHint": "El rendimiento pasivo y el beneficio por operaciones no se incluyen en capital patrocinado. Tu póster muestra solo comisiones de red hasta que hagas un depósito real en USDT.",
+    "posterDepositRequiredTitle": "Depósito requerido para descargar imágenes",
+    "posterDepositRequiredDesc": "Las cuentas de líderes patrocinadas pueden operar y construir su red, pero las imágenes de ganancias para compartir se desbloquean solo después de confirmar un depósito real en USDT.",
     "posterSection": "Imágenes para compartir",
     "breakdownTitle": "Desglose del periodo",
     "download": "Descargar imagen",

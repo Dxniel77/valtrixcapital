@@ -14,7 +14,10 @@ import { ExportReportsPanel } from "@/components/share/export-reports-panel";
 import { computePeriodEarnings } from "@/lib/share/earnings-periods";
 import { useTodayYieldPreview } from "@/lib/staking/portfolio-summary";
 import { useHasRealDepositedCapital } from "@/lib/hooks/use-capital-profile";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   exportEarningsCsv,
   exportNetworkCsv,
@@ -39,7 +42,7 @@ export default function SharePage() {
       computePeriodEarnings({
         dailyYields: hasRealCapital ? dailyYields : [],
         instantCredits: hasRealCapital ? instantCredits : [],
-        commissions,
+        commissions: hasRealCapital ? commissions : [],
         todayProjectedYield: hasRealCapital ? preview.projectedBaseAmount : 0,
       }),
     [
@@ -78,15 +81,33 @@ export default function SharePage() {
         {hasRealCapital ? (
           <EarningsPoster username={username} earnings={earnings} />
         ) : (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-text-secondary">
-              {t("staking.portfolio.sponsoredEarningsDesc")}
-            </CardContent>
-          </Card>
+          <SponsoredPosterGate />
         )}
       </section>
 
       <ExportReportsPanel items={exports} />
     </div>
+  );
+}
+
+function SponsoredPosterGate() {
+  const { t } = useI18n();
+  return (
+    <Card className="border-border-subtle">
+      <CardContent className="space-y-4 py-10 text-center">
+        <Badge variant="info">{t("dashboard.overview.sponsoredBadge")}</Badge>
+        <h3 className="font-display text-lg font-semibold text-text-primary">
+          {t("share.posterDepositRequiredTitle")}
+        </h3>
+        <p className="mx-auto max-w-md text-sm leading-relaxed text-text-secondary">
+          {t("share.posterDepositRequiredDesc")}
+        </p>
+        <Button asChild variant="primary" size="md" className="mx-auto">
+          <Link href="/dashboard/wallet#add-funds">
+            {t("walletPage.deposit.viewAddresses")}
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
