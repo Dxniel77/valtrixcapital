@@ -2,16 +2,10 @@
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { SupportTicketForm } from "@/components/support/ticket-form";
+import { SupportEmailChannel } from "@/components/support/support-email-channel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { LifeBuoy, Mail } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
-import { SUPPORT_EMAIL } from "@/lib/support/constants";
-import { cn } from "@/lib/utils";
-
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
-  "Valtrix Capital - Support",
-)}`;
 
 export default function SupportPage() {
   const { t } = useI18n();
@@ -29,13 +23,7 @@ export default function SupportPage() {
         </div>
 
         <div className="space-y-4">
-          <QuickChannel
-            icon={Mail}
-            title={t("dashboard.pages.support.email")}
-            desc={t("dashboard.pages.support.emailDesc")}
-            cta={SUPPORT_EMAIL}
-            href={SUPPORT_MAILTO}
-          />
+          <SupportEmailChannel />
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
@@ -52,57 +40,5 @@ export default function SupportPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function QuickChannel({
-  icon: Icon,
-  title,
-  desc,
-  cta,
-  href,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  desc: string;
-  cta: string;
-  href: string;
-}) {
-  const isMailto = href.startsWith("mailto:");
-  const isTel = href.startsWith("tel:");
-  const external = !isMailto && !isTel && /^https?:/i.test(href);
-
-  return (
-    <Card className="transition-colors hover:border-border-strong">
-      <CardContent className="flex items-start gap-3 p-4">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-hover text-gold">
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-text-primary">{title}</p>
-          <p className="mt-0.5 text-xs text-text-secondary">{desc}</p>
-          <a
-            href={href}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "mt-3",
-            )}
-            {...(external
-              ? { target: "_blank", rel: "noopener noreferrer" }
-              : {})}
-            onClick={
-              isMailto || isTel
-                ? (event) => {
-                    event.preventDefault();
-                    window.location.assign(href);
-                  }
-                : undefined
-            }
-          >
-            {cta}
-          </a>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
