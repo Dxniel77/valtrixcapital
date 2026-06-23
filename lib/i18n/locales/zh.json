@@ -43,7 +43,8 @@
     "invalidNonce": "无效或过期的随机数",
     "verifyFailed": "签名验证失败",
     "rateLimited": "请求太多。 稍后再尝试。",
-    "validationFailed": "表单数据无效"
+    "validationFailed": "表单数据无效",
+    "backendUnavailable": "服务暂时不可用，请稍后再试。"
   },
   "errors": {
     "connectFirst": "首先连接钱包。",
@@ -941,6 +942,7 @@
       "reports": "报告",
       "settings": "设置",
       "notifications": "通知",
+      "support": "支持工单",
       "audit": "审计",
       "treasury": "财政部"
     },
@@ -961,6 +963,38 @@
       "validation": "标题和内容为必填项",
       "recentTitle": "最近发货",
       "recentEmpty": "目前还没有自定义通知。"
+    },
+    "support": {
+      "title": "支持工单",
+      "subtitle": "查看、回复和跟踪用户支持页面提交的消息。",
+      "filterActive": "开放和待处理",
+      "filterAll": "全部",
+      "refresh": "刷新",
+      "queueTitle": "{n} 个工单需要处理",
+      "loading": "正在加载工单…",
+      "empty": "暂无支持工单。",
+      "selectTicket": "从列表中选择工单以查看详情并回复。",
+      "backendOffline": "数据库不可用——目前无法加载工单。",
+      "loadFailed": "无法加载支持工单。",
+      "actionFailed": "操作失败，请重试。",
+      "statusUpdated": "工单状态已更新。",
+      "replySent": "回复已保存。",
+      "replySentEmail": "回复已发送并已邮件通知用户。",
+      "replyLabel": "您的回复",
+      "replyPlaceholder": "写下您对用户的回复…",
+      "notifyUser": "通过邮件回复用户",
+      "sendReply": "发送回复",
+      "staffReply": "支持团队",
+      "metaName": "姓名",
+      "metaEmail": "邮箱",
+      "metaWallet": "钱包",
+      "metaCategory": "类别",
+      "status": {
+        "open": "开放",
+        "pending": "待处理",
+        "resolved": "已解决",
+        "closed": "已关闭"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "激活用户",

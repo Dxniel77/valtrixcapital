@@ -43,7 +43,8 @@
     "invalidNonce": "Ungültige oder abgelaufene Nonce",
     "verifyFailed": "Die Signaturüberprüfung ist fehlgeschlagen",
     "rateLimited": "Zu viele Anfragen. Versuchen Sie es später noch einmal.",
-    "validationFailed": "Ungültige Formulardaten"
+    "validationFailed": "Ungültige Formulardaten",
+    "backendUnavailable": "Dienst vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut."
   },
   "errors": {
     "connectFirst": "Schließen Sie zunächst ein Wallet an.",
@@ -908,6 +909,7 @@
       "reports": "Berichte",
       "settings": "Einstellungen",
       "notifications": "Benachrichtigungen",
+      "support": "Support-Tickets",
       "audit": "Prüfung",
       "treasury": "Kasse"
     },
@@ -928,6 +930,38 @@
       "validation": "Titel und Nachricht sind erforderlich",
       "recentTitle": "Aktuelle Sendungen",
       "recentEmpty": "Es wurden noch keine benutzerdefinierten Benachrichtigungen gesendet."
+    },
+    "support": {
+      "title": "Support-Tickets",
+      "subtitle": "Nachrichten von der Benutzer-Supportseite anzeigen, beantworten und nachverfolgen.",
+      "filterActive": "Offen & ausstehend",
+      "filterAll": "Alle",
+      "refresh": "Aktualisieren",
+      "queueTitle": "{n} Tickets erfordern Bearbeitung",
+      "loading": "Tickets werden geladen…",
+      "empty": "Noch keine Support-Tickets.",
+      "selectTicket": "Wählen Sie ein Ticket aus der Liste, um Details zu sehen und zu antworten.",
+      "backendOffline": "Datenbank nicht verfügbar — Tickets können derzeit nicht geladen werden.",
+      "loadFailed": "Support-Tickets konnten nicht geladen werden.",
+      "actionFailed": "Aktion fehlgeschlagen. Versuchen Sie es erneut.",
+      "statusUpdated": "Ticket-Status aktualisiert.",
+      "replySent": "Antwort gespeichert.",
+      "replySentEmail": "Antwort gesendet und per E-Mail an den Benutzer.",
+      "replyLabel": "Ihre Antwort",
+      "replyPlaceholder": "Schreiben Sie Ihre Antwort an den Benutzer…",
+      "notifyUser": "Antwort per E-Mail senden",
+      "sendReply": "Antwort senden",
+      "staffReply": "Support-Team",
+      "metaName": "Name",
+      "metaEmail": "E-Mail",
+      "metaWallet": "Wallet",
+      "metaCategory": "Kategorie",
+      "status": {
+        "open": "Offen",
+        "pending": "Ausstehend",
+        "resolved": "Gelöst",
+        "closed": "Geschlossen"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "Aktivierter Benutzer",

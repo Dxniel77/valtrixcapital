@@ -43,7 +43,8 @@
     "invalidNonce": "Nonce invalide ou expiré",
     "verifyFailed": "La vérification de la signature a échoué",
     "rateLimited": "Trop de demandes. Réessayez plus tard.",
-    "validationFailed": "Données de formulaire invalides"
+    "validationFailed": "Données de formulaire invalides",
+    "backendUnavailable": "Service temporairement indisponible. Réessayez bientôt."
   },
   "errors": {
     "connectFirst": "Connectez d'abord un portefeuille.",
@@ -908,6 +909,7 @@
       "reports": "Rapports",
       "settings": "Paramètres",
       "notifications": "Alertes",
+      "support": "Tickets de support",
       "audit": "Journal d'audit",
       "treasury": "Trésorerie"
     },
@@ -928,6 +930,38 @@
       "validation": "Le titre et le message sont obligatoires",
       "recentTitle": "Diffusions récentes",
       "recentEmpty": "Aucune notification personnalisée envoyée pour le moment."
+    },
+    "support": {
+      "title": "Tickets de support",
+      "subtitle": "Consultez, répondez et suivez les messages envoyés depuis la page d'assistance.",
+      "filterActive": "Ouverts et en attente",
+      "filterAll": "Tous",
+      "refresh": "Actualiser",
+      "queueTitle": "{n} tickets nécessitent une attention",
+      "loading": "Chargement des tickets…",
+      "empty": "Aucun ticket de support pour le moment.",
+      "selectTicket": "Sélectionnez un ticket dans la liste pour voir les détails et répondre.",
+      "backendOffline": "Base de données indisponible — les tickets ne peuvent pas être chargés pour le moment.",
+      "loadFailed": "Impossible de charger les tickets de support.",
+      "actionFailed": "Échec de l'action. Réessayez.",
+      "statusUpdated": "Statut du ticket mis à jour.",
+      "replySent": "Réponse enregistrée.",
+      "replySentEmail": "Réponse envoyée et transmise par e-mail à l'utilisateur.",
+      "replyLabel": "Votre réponse",
+      "replyPlaceholder": "Écrivez votre réponse à l'utilisateur…",
+      "notifyUser": "Envoyer la réponse par e-mail",
+      "sendReply": "Envoyer la réponse",
+      "staffReply": "Équipe de support",
+      "metaName": "Nom",
+      "metaEmail": "E-mail",
+      "metaWallet": "Portefeuille",
+      "metaCategory": "Catégorie",
+      "status": {
+        "open": "Ouvert",
+        "pending": "En attente",
+        "resolved": "Résolu",
+        "closed": "Fermé"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "Utilisateur activé",

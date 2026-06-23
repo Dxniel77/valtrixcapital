@@ -43,7 +43,8 @@
     "invalidNonce": "無効または期限切れの nonce",
     "verifyFailed": "署名検証に失敗しました",
     "rateLimited": "リクエストが多すぎます。 後でもう一度試してください。",
-    "validationFailed": "無効なフォームデータです"
+    "validationFailed": "無効なフォームデータです",
+    "backendUnavailable": "サービスが一時的に利用できません。しばらくしてから再度お試しください。"
   },
   "errors": {
     "connectFirst": "まずウォレットを接続します。",
@@ -908,6 +909,7 @@
       "reports": "レポート",
       "settings": "設定",
       "notifications": "通知",
+      "support": "サポートチケット",
       "audit": "監査",
       "treasury": "財務省"
     },
@@ -928,6 +930,38 @@
       "validation": "タイトルとメッセージは必須です",
       "recentTitle": "最近の放送",
       "recentEmpty": "カスタム通知はまだ送信されていません。"
+    },
+    "support": {
+      "title": "サポートチケット",
+      "subtitle": "ユーザーサポートページから送信されたメッセージを表示、返信、追跡します。",
+      "filterActive": "オープンと保留",
+      "filterAll": "すべて",
+      "refresh": "更新",
+      "queueTitle": "{n} 件のチケットが対応待ち",
+      "loading": "チケットを読み込み中…",
+      "empty": "サポートチケットはまだありません。",
+      "selectTicket": "リストからチケットを選択して詳細を表示し、返信します。",
+      "backendOffline": "データベースが利用できません — チケットを読み込めません。",
+      "loadFailed": "サポートチケットを読み込めませんでした。",
+      "actionFailed": "操作に失敗しました。再度お試しください。",
+      "statusUpdated": "チケットのステータスを更新しました。",
+      "replySent": "返信を保存しました。",
+      "replySentEmail": "返信を送信し、ユーザーにメールしました。",
+      "replyLabel": "あなたの返信",
+      "replyPlaceholder": "ユーザーへの返信を入力…",
+      "notifyUser": "ユーザーにメールで返信",
+      "sendReply": "返信を送信",
+      "staffReply": "サポートチーム",
+      "metaName": "名前",
+      "metaEmail": "メール",
+      "metaWallet": "ウォレット",
+      "metaCategory": "カテゴリ",
+      "status": {
+        "open": "オープン",
+        "pending": "保留",
+        "resolved": "解決済み",
+        "closed": "クローズ"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "アクティブ化されたユーザー",

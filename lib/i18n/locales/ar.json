@@ -43,7 +43,8 @@
     "invalidNonce": "رقم غير صالح أو منتهية الصلاحية",
     "verifyFailed": "فشل التحقق من التوقيع",
     "rateLimited": "طلبات كثيرة جدًا. حاول مرة أخرى لاحقًا.",
-    "validationFailed": "بيانات النموذج غير صالحة"
+    "validationFailed": "بيانات النموذج غير صالحة",
+    "backendUnavailable": "الخدمة غير متاحة مؤقتاً. حاول مرة أخرى قريباً."
   },
   "errors": {
     "connectFirst": "قم بتوصيل المحفظة أولاً.",
@@ -908,6 +909,7 @@
       "reports": "التقارير",
       "settings": "إعدادات",
       "notifications": "إشعارات",
+      "support": "تذاكر الدعم",
       "audit": "مراجعة",
       "treasury": "الخزانة"
     },
@@ -928,6 +930,38 @@
       "validation": "العنوان والرسالة مطلوبة",
       "recentTitle": "عمليات البث الأخيرة",
       "recentEmpty": "لم يتم إرسال أي إشعارات مخصصة حتى الآن."
+    },
+    "support": {
+      "title": "تذاكر الدعم",
+      "subtitle": "عرض والرد على وتتبع الرسائل المقدمة من صفحة الدعم.",
+      "filterActive": "مفتوحة ومعلقة",
+      "filterAll": "الكل",
+      "refresh": "تحديث",
+      "queueTitle": "{n} تذكرة تحتاج إلى متابعة",
+      "loading": "جارٍ تحميل التذاكر…",
+      "empty": "لا توجد تذاكر دعم حتى الآن.",
+      "selectTicket": "اختر تذكرة من القائمة لعرض التفاصيل والرد.",
+      "backendOffline": "قاعدة البيانات غير متاحة — لا يمكن تحميل التذاكر الآن.",
+      "loadFailed": "تعذر تحميل تذاكر الدعم.",
+      "actionFailed": "فشل الإجراء. حاول مرة أخرى.",
+      "statusUpdated": "تم تحديث حالة التذكرة.",
+      "replySent": "تم حفظ الرد.",
+      "replySentEmail": "تم إرسال الرد وإيميله للمستخدم.",
+      "replyLabel": "ردك",
+      "replyPlaceholder": "اكتب ردك للمستخدم…",
+      "notifyUser": "إرسال الرد بالبريد الإلكتروني",
+      "sendReply": "إرسال الرد",
+      "staffReply": "فريق الدعم",
+      "metaName": "الاسم",
+      "metaEmail": "البريد الإلكتروني",
+      "metaWallet": "المحفظة",
+      "metaCategory": "الفئة",
+      "status": {
+        "open": "مفتوح",
+        "pending": "معلق",
+        "resolved": "تم الحل",
+        "closed": "مغلق"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "المستخدم المنشط",
