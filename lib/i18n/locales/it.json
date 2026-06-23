@@ -824,6 +824,9 @@
   "share": {
     "title": "Condividi i guadagni",
     "subtitle": "Scarica un'immagine per periodo (giorno, settimana, mese o 3 mesi) con il design ufficiale Valtrix.",
+    "sponsoredPosterHint": "Il profitto passivo e da trading non sono inclusi sul capitale sponsorizzato. Il poster mostra solo le commissioni di rete finché non effettui un deposito USDT reale.",
+    "posterDepositRequiredTitle": "Deposito richiesto per scaricare i poster",
+    "posterDepositRequiredDesc": "I conti leader sponsorizzati possono operare e costruire la rete, ma le immagini dei guadagni condivisibili si sbloccano solo dopo un deposito USDT reale confermato.",
     "posterSection": "Immagini condivisibili",
     "breakdownTitle": "Ripartizione del periodo",
     "download": "Scarica l'immagine",

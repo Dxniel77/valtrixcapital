@@ -824,6 +824,9 @@
   "share": {
     "title": "Aktiengewinne",
     "subtitle": "Laden Sie pro Zeitraum (Tag, Woche, Monat oder 3 Monate) ein Bild mit dem offiziellen Valtrix-Design herunter.",
+    "sponsoredPosterHint": "Passives und Handels-Einkommen sind auf gesponsertem Kapital nicht enthalten. Ihr Poster zeigt nur Netzwerkprovisionen, bis Sie eine echte USDT-Einzahlung tätigen.",
+    "posterDepositRequiredTitle": "Einzahlung erforderlich zum Herunterladen von Postern",
+    "posterDepositRequiredDesc": "Gesponserte Leader-Konten können handeln und ihr Netzwerk aufbauen, aber teilbare Gewinnbilder werden erst nach einer bestätigten echten USDT-Einzahlung freigeschaltet.",
     "posterSection": "Gemeinsam nutzbare Bilder",
     "breakdownTitle": "Periodenaufschlüsselung",
     "download": "Bild herunterladen",

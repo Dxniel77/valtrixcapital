@@ -824,6 +824,9 @@
   "share": {
     "title": "株式収益",
     "subtitle": "公式 Valtrix デザインの画像を期間 (日、週、月、または 3 か月) ごとに 1 つダウンロードします。",
+    "sponsoredPosterHint": "スポンサー資本ではパッシブ収益とトレード収益は含まれません。実際のUSDT入金まで、ポスターにはネットワークコミッションのみ表示されます。",
+    "posterDepositRequiredTitle": "ポスターのダウンロードには入金が必要です",
+    "posterDepositRequiredDesc": "スポンサー付きリーダーアカウントは取引とネットワーク構築ができますが、共有用の収益画像は実際のUSDT入金が確認された後にのみ利用できます。",
     "posterSection": "共有可能な画像",
     "breakdownTitle": "期間内訳",
     "download": "画像をダウンロード",
