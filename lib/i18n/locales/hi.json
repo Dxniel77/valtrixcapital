@@ -1506,7 +1506,7 @@
       "supportTicketNewTitle": "नया सहायता टिकट",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "सहायता ने जवाब दिया",
-      "supportReplyBody": "टिकट {ticketId} पर नया जवाब। पढ़ने के लिए सहायता खोलें।"
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "supportPage": {

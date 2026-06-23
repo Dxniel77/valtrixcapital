@@ -8,6 +8,7 @@ import {
   createInboxNotification,
   resolveUserIdForTicket,
 } from "@/lib/services/inbox-notifications";
+import { t } from "@/lib/i18n";
 import { SUPPORT_EMAIL } from "@/lib/support/constants";
 import type { SupportTicketInput } from "@/lib/support/ticket-schema";
 import { ticketCategories } from "@/lib/support/ticket-schema";
@@ -164,14 +165,19 @@ export async function createSupportTicket(
     body: notifyBody,
   });
 
+  const ticketNewParams = {
+    name: input.name,
+    subject: input.subject,
+    ticketId: id,
+  };
   void createInboxNotification({
     audience: "ADMIN",
     kind: "alert",
     eventKey: "supportTicketNew",
     params: {
-      name: input.name,
-      subject: input.subject,
-      ticketId: id,
+      ...ticketNewParams,
+      title: t("notifications.events.supportTicketNewTitle"),
+      body: t("notifications.events.supportTicketNewBody", ticketNewParams),
     },
     href: "/admin/support",
     dedupeKey: `support_ticket_${id}`,
@@ -298,6 +304,13 @@ export async function replyToSupportTicket(input: {
     email: existing.email,
   });
 
+  const preview =
+    trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed;
+  const replyParams = {
+    ticketId: existing.id,
+    subject: existing.subject,
+    preview,
+  };
   void createInboxNotification({
     audience: "USER",
     userId,
@@ -306,9 +319,9 @@ export async function replyToSupportTicket(input: {
     kind: "system",
     eventKey: "supportReply",
     params: {
-      ticketId: existing.id,
-      subject: existing.subject,
-      preview: trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed,
+      ...replyParams,
+      title: t("notifications.events.supportReplyTitle"),
+      body: t("notifications.events.supportReplyBody", replyParams),
     },
     href: "/dashboard/support",
     dedupeKey: `support_reply_${reply.id}`,

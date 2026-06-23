@@ -1445,7 +1445,7 @@
       "supportTicketNewTitle": "新支持工单",
       "supportTicketNewBody": "{name}：{subject}",
       "supportReplyTitle": "支持已回复",
-      "supportReplyBody": "工单 {ticketId} 有新回复。打开支持页面查看。"
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "trade": {

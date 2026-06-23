@@ -1492,7 +1492,7 @@
       "supportTicketNewTitle": "New support ticket",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Support replied",
-      "supportReplyBody": "New response on ticket {ticketId}. Open Support to read it."
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "supportPage": {

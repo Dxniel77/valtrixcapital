@@ -1506,7 +1506,7 @@
       "supportTicketNewTitle": "新しいサポートチケット",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "サポートからの返信",
-      "supportReplyBody": "チケット {ticketId} に新しい返信があります。サポートを開いて確認してください。"
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "supportPage": {

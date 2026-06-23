@@ -1506,7 +1506,7 @@
       "supportTicketNewTitle": "Neues Support-Ticket",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Support-Antwort",
-      "supportReplyBody": "Neue Antwort auf Ticket {ticketId}. Öffne Support zum Lesen."
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "supportPage": {

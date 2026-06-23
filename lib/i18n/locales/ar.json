@@ -1506,7 +1506,7 @@
       "supportTicketNewTitle": "تذكرة دعم جديدة",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "رد من الدعم",
-      "supportReplyBody": "رد جديد على التذكرة {ticketId}. افتح الدعم لقراءته."
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "supportPage": {

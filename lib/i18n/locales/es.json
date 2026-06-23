@@ -1431,7 +1431,7 @@
       "supportTicketNewTitle": "Nuevo ticket de soporte",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Respuesta de soporte",
-      "supportReplyBody": "Nueva respuesta en el ticket {ticketId}. Abre Soporte para leerla."
+      "supportReplyBody": "Re: {subject} — {preview}"
     }
   },
   "trade": {
