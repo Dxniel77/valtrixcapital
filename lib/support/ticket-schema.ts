@@ -25,8 +25,12 @@ export const ticketSchema = z.object({
 
 export type SupportTicketInput = z.infer<typeof ticketSchema>;
 
+export const ticketStatuses = ["open", "pending", "resolved", "closed"] as const;
+
+export type SupportTicketStatus = (typeof ticketStatuses)[number];
+
 export interface SupportTicket extends SupportTicketInput {
   id: string;
   createdAt: number;
-  status: "open";
+  status: SupportTicketStatus;
 }

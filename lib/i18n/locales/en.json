@@ -43,7 +43,8 @@
     "invalidNonce": "Invalid or expired nonce",
     "verifyFailed": "Signature verification failed",
     "rateLimited": "Too many requests. Try again later.",
-    "validationFailed": "Invalid form data"
+    "validationFailed": "Invalid form data",
+    "backendUnavailable": "Service temporarily unavailable. Try again shortly."
   },
   "errors": {
     "connectFirst": "Connect a wallet first.",
@@ -898,6 +899,7 @@
       "reports": "Reports",
       "settings": "Settings",
       "notifications": "Notifications",
+      "support": "Support tickets",
       "audit": "Audit"
     },
     "notifications": {
@@ -917,6 +919,38 @@
       "validation": "Title and message are required",
       "recentTitle": "Recent broadcasts",
       "recentEmpty": "No custom notifications sent yet."
+    },
+    "support": {
+      "title": "Support tickets",
+      "subtitle": "View, respond to, and track messages submitted from the user support page.",
+      "filterActive": "Open & pending",
+      "filterAll": "All",
+      "refresh": "Refresh",
+      "queueTitle": "{n} tickets need attention",
+      "loading": "Loading tickets…",
+      "empty": "No support tickets yet.",
+      "selectTicket": "Select a ticket from the list to view details and reply.",
+      "backendOffline": "Database unavailable — tickets cannot be loaded right now.",
+      "loadFailed": "Could not load support tickets.",
+      "actionFailed": "Action failed. Try again.",
+      "statusUpdated": "Ticket status updated.",
+      "replySent": "Reply saved.",
+      "replySentEmail": "Reply sent and emailed to the user.",
+      "replyLabel": "Your reply",
+      "replyPlaceholder": "Write your response to the user…",
+      "notifyUser": "Email reply to user",
+      "sendReply": "Send reply",
+      "staffReply": "Support team",
+      "metaName": "Name",
+      "metaEmail": "Email",
+      "metaWallet": "Wallet",
+      "metaCategory": "Category",
+      "status": {
+        "open": "Open",
+        "pending": "Pending",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "Activated user",

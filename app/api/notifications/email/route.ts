@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sendWithResend } from "@/lib/email/resend";
 import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 import { t } from "@/lib/i18n";
 
@@ -20,39 +21,6 @@ const emailQueue: Array<{
 }> = [];
 
 export const dynamic = "force-dynamic";
-
-async function sendWithResend(input: {
-  to: string;
-  subject: string;
-  body: string;
-}): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) return false;
-
-  const from =
-    process.env.RESEND_FROM?.trim() || "Valtrix Capital <noreply@valtrix.capital>";
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: input.to,
-      subject: input.subject,
-      text: input.body,
-    }),
-  });
-
-  if (!res.ok) {
-    console.error("[email] Resend delivery failed", res.status, await res.text());
-    return false;
-  }
-
-  return true;
-}
 
 export async function POST(req: Request) {
   const ip = clientIp(req);

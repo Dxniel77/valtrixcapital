@@ -577,6 +577,73 @@ export async function fetchAdminAudit(limit = 200) {
   }>(`/api/admin/audit?limit=${limit}`);
 }
 
+export interface SupportTicketReplyDto {
+  id: string;
+  body: string;
+  isStaff: boolean;
+  adminId: string | null;
+  createdAt: number;
+}
+
+export interface SupportTicketDto {
+  id: string;
+  name: string;
+  email: string;
+  wallet: string | null;
+  category: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+  replies: SupportTicketReplyDto[];
+}
+
+export async function adminFetchSupportTickets(status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<{
+    backend: boolean;
+    tickets: SupportTicketDto[];
+  }>(`/api/admin/support/tickets${qs}`);
+}
+
+export async function adminFetchSupportTicket(id: string) {
+  return apiFetch<{
+    backend: boolean;
+    ticket: SupportTicketDto;
+  }>(`/api/admin/support/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function adminUpdateSupportTicketStatus(id: string, status: string) {
+  return apiFetch<{
+    ok: true;
+    ticket: SupportTicketDto;
+  }>(`/api/admin/support/tickets/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function adminReplySupportTicket(input: {
+  ticketId: string;
+  message: string;
+  notifyUser?: boolean;
+}) {
+  return apiFetch<{
+    ok: true;
+    ticket: SupportTicketDto;
+  }>(
+    `/api/admin/support/tickets/${encodeURIComponent(input.ticketId)}/reply`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        message: input.message,
+        notifyUser: input.notifyUser ?? true,
+      }),
+    },
+  );
+}
+
 export async function fetchAdminTreasury() {
   return apiFetch<{
     backend: boolean;

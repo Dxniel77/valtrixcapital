@@ -82,6 +82,22 @@ enum TreasuryWithdrawalKind {
   USER_PAYOUT
 }
 
+enum SupportTicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketCategory {
+  DEPOSIT
+  WITHDRAWAL
+  TRADING
+  REFERRALS
+  ACCOUNT
+  OTHER
+}
+
 // ------------------------------------------------------------
 // Core
 // ------------------------------------------------------------
@@ -367,4 +383,35 @@ model PlatformBroadcast {
   createdAt DateTime @default(now())
 
   @@index([createdAt(sort: Desc)])
+}
+
+model SupportTicket {
+  id        String                @id
+  name      String
+  email     String
+  wallet    String?
+  category  SupportTicketCategory
+  subject   String
+  message   String
+  status    SupportTicketStatus   @default(OPEN)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  replies   SupportTicketReply[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model SupportTicketReply {
+  id        String   @id @default(uuid())
+  ticketId  String
+  body      String
+  isStaff   Boolean  @default(true)
+  adminId   String?
+  createdAt DateTime @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }

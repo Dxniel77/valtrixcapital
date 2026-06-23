@@ -43,7 +43,8 @@
     "invalidNonce": "Nonce no válido o expirado",
     "verifyFailed": "Falló la verificación de la firma",
     "rateLimited": "Demasiadas solicitudes. Intenta más tarde.",
-    "validationFailed": "Datos del formulario no válidos"
+    "validationFailed": "Datos del formulario no válidos",
+    "backendUnavailable": "Servicio temporalmente no disponible. Intenta en unos momentos."
   },
   "errors": {
     "connectFirst": "Conecta una billetera primero.",
@@ -931,6 +932,7 @@
       "reports": "Reportes",
       "settings": "Ajustes",
       "notifications": "Notificaciones",
+      "support": "Tickets de soporte",
       "audit": "Auditoría"
     },
     "notifications": {
@@ -950,6 +952,38 @@
       "validation": "El título y el mensaje son obligatorios",
       "recentTitle": "Envíos recientes",
       "recentEmpty": "Aún no hay notificaciones personalizadas."
+    },
+    "support": {
+      "title": "Tickets de soporte",
+      "subtitle": "Consulta, responde y lleva seguimiento de los mensajes enviados desde la página de soporte.",
+      "filterActive": "Abiertos y pendientes",
+      "filterAll": "Todos",
+      "refresh": "Actualizar",
+      "queueTitle": "{n} tickets requieren atención",
+      "loading": "Cargando tickets…",
+      "empty": "Aún no hay tickets de soporte.",
+      "selectTicket": "Selecciona un ticket de la lista para ver detalles y responder.",
+      "backendOffline": "Base de datos no disponible — no se pueden cargar los tickets ahora.",
+      "loadFailed": "No se pudieron cargar los tickets de soporte.",
+      "actionFailed": "La acción falló. Intenta de nuevo.",
+      "statusUpdated": "Estado del ticket actualizado.",
+      "replySent": "Respuesta guardada.",
+      "replySentEmail": "Respuesta enviada y email al usuario.",
+      "replyLabel": "Tu respuesta",
+      "replyPlaceholder": "Escribe tu respuesta al usuario…",
+      "notifyUser": "Enviar respuesta por email",
+      "sendReply": "Enviar respuesta",
+      "staffReply": "Equipo de soporte",
+      "metaName": "Nombre",
+      "metaEmail": "Email",
+      "metaWallet": "Wallet",
+      "metaCategory": "Categoría",
+      "status": {
+        "open": "Abierto",
+        "pending": "Pendiente",
+        "resolved": "Resuelto",
+        "closed": "Cerrado"
+      }
     },
     "actions": {
       "USER_ACTIVATED": "Usuario activado",

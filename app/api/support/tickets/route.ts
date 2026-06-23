@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { clientIp, rateLimit } from "@/lib/security/rate-limit";
-import { ticketSchema, type SupportTicket } from "@/lib/support/ticket-schema";
+import { isDatabaseAvailable } from "@/lib/db/available";
 import { t } from "@/lib/i18n";
-
-const tickets: SupportTicket[] = [];
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
+import { createSupportTicket } from "@/lib/services/support-tickets";
+import { ticketSchema } from "@/lib/support/ticket-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +16,15 @@ export async function POST(req: Request) {
       { error: t("api.rateLimited") },
       {
         status: 429,
-        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        headers: {
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        },
       },
     );
+  }
+
+  if (!(await isDatabaseAvailable())) {
+    return NextResponse.json({ error: t("api.backendUnavailable") }, { status: 503 });
   }
 
   let body: unknown;
@@ -41,16 +47,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  const ticket: SupportTicket = {
-    ...parsed,
-    wallet: parsed.wallet || undefined,
-    id: `tkt_${Date.now().toString(36)}`,
-    createdAt: Date.now(),
-    status: "open",
-  };
-
-  tickets.unshift(ticket);
-  if (tickets.length > 500) tickets.length = 500;
+  const ticket = await createSupportTicket(parsed);
 
   return NextResponse.json({
     ok: true,
