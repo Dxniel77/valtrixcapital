@@ -1,6 +1,6 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { runPrisma } from "./prisma-cli.mjs";
 
 function loadEnvFile(relativePath) {
   const path = resolve(process.cwd(), relativePath);
@@ -36,10 +36,4 @@ if (args.length === 0) {
   process.exit(1);
 }
 
-const result = spawnSync("npx", ["prisma", ...args], {
-  stdio: "inherit",
-  shell: true,
-  env: process.env,
-});
-
-process.exit(result.status ?? 1);
+process.exit(runPrisma(args));

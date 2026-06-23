@@ -1493,7 +1493,11 @@
       "adjustmentCreditBody": "{amount} USDT foi adicionado ao seu saldo disponível.",
       "adjustmentDebitTitle": "Saldo devedor",
       "adjustmentDebitBody": "{amount} USDT foi deduzido do seu saldo disponível.",
-      "adjustmentNoteSuffix": "Nota: {note}"
+      "adjustmentNoteSuffix": "Nota: {note}",
+      "supportTicketNewTitle": "Novo ticket de suporte",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "Resposta do suporte",
+      "supportReplyBody": "Nova resposta no ticket {ticketId}. Abra Suporte para ler."
     }
   },
   "supportPage": {

@@ -16,6 +16,7 @@ function makeId() {
 export function pushNotification(
   input: Omit<AppNotification, "id" | "read" | "createdAt"> & {
     dedupeKey?: string;
+    skipEmail?: boolean;
   },
 ): void {
   if (hasNotificationInList(useNotificationsStore.getState().items, input)) return;
@@ -31,7 +32,9 @@ export function pushNotification(
     items: [item, ...s.items].slice(0, 100),
   }));
 
-  void queueEmailDigest(input);
+  if (!input.skipEmail) {
+    void queueEmailDigest(input);
+  }
 }
 
 async function queueEmailDigest(

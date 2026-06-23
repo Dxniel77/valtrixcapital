@@ -1494,7 +1494,11 @@
       "adjustmentCreditBody": "تمت إضافة {amount} USDT إلى رصيدك المتاح.",
       "adjustmentDebitTitle": "رصيد مدين",
       "adjustmentDebitBody": "تم خصم {amount} USDT من رصيدك المتاح.",
-      "adjustmentNoteSuffix": " ملاحظة: {note}"
+      "adjustmentNoteSuffix": " ملاحظة: {note}",
+      "supportTicketNewTitle": "تذكرة دعم جديدة",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "رد من الدعم",
+      "supportReplyBody": "رد جديد على التذكرة {ticketId}. افتح الدعم لقراءته."
     }
   },
   "supportPage": {

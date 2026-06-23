@@ -5,7 +5,7 @@
   "description": "Valtrix Capital — Web3 trading & staking platform on BSC + Polygon",
   "scripts": {
     "dev": "next dev",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prisma-with-env.mjs generate",
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",

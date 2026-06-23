@@ -1419,7 +1419,11 @@
       "adjustmentCreditBody": "Se agregaron {amount} USDT a tu saldo disponible.",
       "adjustmentDebitTitle": "Saldo debitado",
       "adjustmentDebitBody": "Se descontaron {amount} USDT de tu saldo disponible.",
-      "adjustmentNoteSuffix": " Nota: {note}"
+      "adjustmentNoteSuffix": " Nota: {note}",
+      "supportTicketNewTitle": "Nuevo ticket de soporte",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "Respuesta de soporte",
+      "supportReplyBody": "Nueva respuesta en el ticket {ticketId}. Abre Soporte para leerla."
     }
   },
   "trade": {

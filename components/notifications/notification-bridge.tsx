@@ -6,13 +6,14 @@ import { useStakingStore } from "@/lib/staking/store";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { syncBroadcastNotificationsFromServer } from "@/lib/notifications/broadcast";
+import { syncInboxNotificationsFromServer } from "@/lib/notifications/inbox";
 import { usePageVisible } from "@/lib/hooks/use-page-visible";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber } from "@/lib/utils";
 
 /** Watches financial stores and emits in-app (+ email queue) notifications. */
 export function NotificationBridge() {
-  const { t } = useI18n();
+  const { t, messages } = useI18n();
   const visible = usePageVisible();
   const stakesLen = useStakingStore((s) => s.stakes.length);
   const yieldsLen = useStakingStore((s) => s.dailyYields.length);
@@ -36,6 +37,7 @@ export function NotificationBridge() {
       prevCommissionMilestone.current = Math.floor(totalCommissions / 100) * 100;
       bootstrapped.current = true;
       void syncBroadcastNotificationsFromServer();
+      void syncInboxNotificationsFromServer(messages);
       return;
     }
 
@@ -130,12 +132,14 @@ export function NotificationBridge() {
     if (!visible) return;
 
     void syncBroadcastNotificationsFromServer();
+    void syncInboxNotificationsFromServer(messages);
     const poll = window.setInterval(() => {
       void syncBroadcastNotificationsFromServer();
+      void syncInboxNotificationsFromServer(messages);
     }, 45_000);
 
     return () => window.clearInterval(poll);
-  }, [visible]);
+  }, [visible, messages]);
 
   return null;
 }

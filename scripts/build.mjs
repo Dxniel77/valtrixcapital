@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runPrisma } from "./prisma-cli.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -21,7 +22,7 @@ function run(command, args) {
   return result.status ?? 1;
 }
 
-const genStatus = run("npx", ["prisma", "generate"]);
+const genStatus = runPrisma(["generate"], root);
 if (genStatus !== 0) {
   if (existsSync(prismaClient)) {
     console.warn(

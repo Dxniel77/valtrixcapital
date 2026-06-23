@@ -98,6 +98,11 @@ enum SupportTicketCategory {
   OTHER
 }
 
+enum InboxAudience {
+  USER
+  ADMIN
+}
+
 // ------------------------------------------------------------
 // Core
 // ------------------------------------------------------------
@@ -138,6 +143,7 @@ model User {
   commissionsFrom   Commission[] @relation("CommissionSource")
   adminActions    AdminAction[] @relation("AdminActor")
   targetedActions AdminAction[] @relation("AdminTarget")
+  inboxNotifications InboxNotification[]
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -414,4 +420,25 @@ model SupportTicketReply {
   ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt])
+}
+
+model InboxNotification {
+  id        String         @id @default(uuid())
+  audience  InboxAudience
+  userId    String?
+  wallet    String?
+  email     String?
+  kind      String
+  eventKey  String
+  params    Json           @default("{}")
+  href      String?
+  dedupeKey String         @unique
+  createdAt DateTime       @default(now())
+
+  user      User?          @relation(fields: [userId], references: [id])
+
+  @@index([audience, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([wallet, createdAt(sort: Desc)])
+  @@index([email, createdAt(sort: Desc)])
 }

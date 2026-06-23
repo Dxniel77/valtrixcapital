@@ -4,6 +4,10 @@ import type {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sendWithResend } from "@/lib/email/resend";
+import {
+  createInboxNotification,
+  resolveUserIdForTicket,
+} from "@/lib/services/inbox-notifications";
 import { SUPPORT_EMAIL } from "@/lib/support/constants";
 import type { SupportTicketInput } from "@/lib/support/ticket-schema";
 import { ticketCategories } from "@/lib/support/ticket-schema";
@@ -160,6 +164,19 @@ export async function createSupportTicket(
     body: notifyBody,
   });
 
+  void createInboxNotification({
+    audience: "ADMIN",
+    kind: "alert",
+    eventKey: "supportTicketNew",
+    params: {
+      name: input.name,
+      subject: input.subject,
+      ticketId: id,
+    },
+    href: "/admin/support",
+    dedupeKey: `support_ticket_${id}`,
+  });
+
   return serializeTicket(ticket);
 }
 
@@ -239,7 +256,7 @@ export async function replyToSupportTicket(input: {
   });
   if (!existing) return null;
 
-  await prisma.supportTicketReply.create({
+  const reply = await prisma.supportTicketReply.create({
     data: {
       ticketId: input.ticketId,
       body: trimmed,
@@ -275,6 +292,27 @@ export async function replyToSupportTicket(input: {
       ].join("\n"),
     });
   }
+
+  const userId = await resolveUserIdForTicket({
+    wallet: existing.wallet,
+    email: existing.email,
+  });
+
+  void createInboxNotification({
+    audience: "USER",
+    userId,
+    wallet: existing.wallet,
+    email: existing.email,
+    kind: "system",
+    eventKey: "supportReply",
+    params: {
+      ticketId: existing.id,
+      subject: existing.subject,
+      preview: trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed,
+    },
+    href: "/dashboard/support",
+    dedupeKey: `support_reply_${reply.id}`,
+  });
 
   return serializeTicket(ticket);
 }

@@ -1494,7 +1494,11 @@
       "adjustmentCreditBody": "{amount} USDT wurden Ihrem verfügbaren Saldo gutgeschrieben.",
       "adjustmentDebitTitle": "Sollsaldo",
       "adjustmentDebitBody": "{amount} USDT wurden von Ihrem verfügbaren Saldo abgezogen.",
-      "adjustmentNoteSuffix": " Hinweis: {note}"
+      "adjustmentNoteSuffix": " Hinweis: {note}",
+      "supportTicketNewTitle": "Neues Support-Ticket",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "Support-Antwort",
+      "supportReplyBody": "Neue Antwort auf Ticket {ticketId}. Öffne Support zum Lesen."
     }
   },
   "supportPage": {

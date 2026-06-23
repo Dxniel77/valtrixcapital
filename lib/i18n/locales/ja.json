@@ -1494,7 +1494,11 @@
       "adjustmentCreditBody": "{amount} USDT が利用可能な残高に追加されました。",
       "adjustmentDebitTitle": "デビット残高",
       "adjustmentDebitBody": "{amount} USDT が利用可能な残高から差し引かれました。",
-      "adjustmentNoteSuffix": "注: {note}"
+      "adjustmentNoteSuffix": "注: {note}",
+      "supportTicketNewTitle": "新しいサポートチケット",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "サポートからの返信",
+      "supportReplyBody": "チケット {ticketId} に新しい返信があります。サポートを開いて確認してください。"
     }
   },
   "supportPage": {

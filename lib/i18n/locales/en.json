@@ -1480,7 +1480,11 @@
       "adjustmentCreditBody": "{amount} USDT was added to your available balance.",
       "adjustmentDebitTitle": "Balance debited",
       "adjustmentDebitBody": "{amount} USDT was deducted from your available balance.",
-      "adjustmentNoteSuffix": " Note: {note}"
+      "adjustmentNoteSuffix": " Note: {note}",
+      "supportTicketNewTitle": "New support ticket",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "Support replied",
+      "supportReplyBody": "New response on ticket {ticketId}. Open Support to read it."
     }
   },
   "supportPage": {

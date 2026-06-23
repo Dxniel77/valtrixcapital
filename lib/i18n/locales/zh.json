@@ -1433,7 +1433,11 @@
       "adjustmentCreditBody": "已向您的可用余额添加 {amount} USDT。",
       "adjustmentDebitTitle": "借方余额",
       "adjustmentDebitBody": "已从您的可用余额扣除 {amount} USDT。",
-      "adjustmentNoteSuffix": " 备注：{note}"
+      "adjustmentNoteSuffix": " 备注：{note}",
+      "supportTicketNewTitle": "新支持工单",
+      "supportTicketNewBody": "{name}：{subject}",
+      "supportReplyTitle": "支持已回复",
+      "supportReplyBody": "工单 {ticketId} 有新回复。打开支持页面查看。"
     }
   },
   "trade": {

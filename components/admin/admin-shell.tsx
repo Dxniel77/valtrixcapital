@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
+import { AdminNotificationBridge } from "@/components/admin/admin-notification-bridge";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { useAdminSeed, useAdminStore } from "@/lib/admin/store";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { useAdminUsersSync } from "@/lib/hooks/use-admin-users-sync";
@@ -66,6 +68,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <AdminMovementBridge />
+      <AdminNotificationBridge />
       <aside className="sticky top-0 z-30 hidden h-screen w-[244px] shrink-0 flex-col border-r border-border-subtle bg-bg-elevated md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border-subtle px-4">
           <Logo size="sm" showWordmark={false} />
@@ -139,6 +142,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <LanguageSelector className="hidden sm:inline-flex" />
             <ThemeToggle />
+            <NotificationsPanel />
             <AdminMobileNav items={adminNavItems} />
           </div>
         </header>

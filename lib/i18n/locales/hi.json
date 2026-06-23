@@ -1494,7 +1494,11 @@
       "adjustmentCreditBody": "{amount} USDT आपके उपलब्ध शेष में जोड़ा गया था।",
       "adjustmentDebitTitle": "डेबिट शेष",
       "adjustmentDebitBody": "{amount} USDT आपके उपलब्ध शेष राशि से काट लिया गया था।",
-      "adjustmentNoteSuffix": "नोट: {note}"
+      "adjustmentNoteSuffix": "नोट: {note}",
+      "supportTicketNewTitle": "नया सहायता टिकट",
+      "supportTicketNewBody": "{name}: {subject}",
+      "supportReplyTitle": "सहायता ने जवाब दिया",
+      "supportReplyBody": "टिकट {ticketId} पर नया जवाब। पढ़ने के लिए सहायता खोलें।"
     }
   },
   "supportPage": {
