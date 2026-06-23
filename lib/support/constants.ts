@@ -1,1 +1,1 @@
-export const SUPPORT_EMAIL = "support@valtrix.capital";
+export const SUPPORT_EMAIL = "soporte@capitalvaltrix.com";

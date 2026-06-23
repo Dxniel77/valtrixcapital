@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStore } from "@/lib/admin/store";
 import { useTreasuryStore } from "@/lib/admin/treasury-store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { recordTreasuryWithdrawalOnBackend } from "@/lib/admin/treasury-backend";
 import type { StakingNetwork } from "@/lib/staking/store";
 import { CHAIN_META } from "@/lib/wagmi";
 import { bsc, polygon } from "wagmi/chains";
@@ -34,6 +36,7 @@ export function TreasuryWithdrawModal({
   onOpenChange,
 }: TreasuryWithdrawModalProps) {
   const { t } = useI18n();
+  const backend = useBackendAvailable();
   const balanceFor = useTreasuryStore((s) => s.balanceFor);
   const recordWithdrawal = useTreasuryStore((s) => s.recordWithdrawal);
 
@@ -59,7 +62,7 @@ export function TreasuryWithdrawModal({
     }
   }, [open]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!amountValid) {
       toast.error(t("admin.treasury.withdrawInsufficient"));
       return;
@@ -70,36 +73,50 @@ export function TreasuryWithdrawModal({
     }
 
     setSubmitting(true);
-    const result = recordWithdrawal({
-      network,
-      amount,
-      toAddress: toAddress.trim(),
-      txHash: txHash.trim() || undefined,
-      note,
-    });
-    setSubmitting(false);
+    try {
+      if (backend) {
+        await recordTreasuryWithdrawalOnBackend({
+          network,
+          amount,
+          toAddress: toAddress.trim(),
+          txHash: txHash.trim() || undefined,
+          note,
+        });
+      } else {
+        const result = recordWithdrawal({
+          network,
+          amount,
+          toAddress: toAddress.trim(),
+          txHash: txHash.trim() || undefined,
+          note,
+        });
+        if (!result.ok) {
+          toast.error(t("admin.treasury.withdrawInsufficient"));
+          return;
+        }
+      }
 
-    if (!result.ok) {
+      useAdminStore.setState((s) => ({
+        audit: [
+          {
+            id: `aud_${Date.now()}`,
+            action: "TREASURY_WITHDRAW",
+            target: network,
+            detail: `-$${amount.toFixed(2)} USDT → ${toAddress.slice(0, 10)}…`,
+            actor: "admin",
+            timestamp: Date.now(),
+          },
+          ...s.audit,
+        ].slice(0, 200),
+      }));
+
+      toast.success(t("admin.treasury.withdrawRecorded"));
+      onOpenChange(false);
+    } catch {
       toast.error(t("admin.treasury.withdrawInsufficient"));
-      return;
+    } finally {
+      setSubmitting(false);
     }
-
-    useAdminStore.setState((s) => ({
-      audit: [
-        {
-          id: `aud_${Date.now()}`,
-          action: "TREASURY_WITHDRAW",
-          target: network,
-          detail: `-$${amount.toFixed(2)} USDT → ${toAddress.slice(0, 10)}…`,
-          actor: "admin",
-          timestamp: Date.now(),
-        },
-        ...s.audit,
-      ].slice(0, 200),
-    }));
-
-    toast.success(t("admin.treasury.withdrawRecorded"));
-    onOpenChange(false);
   }
 
   return (

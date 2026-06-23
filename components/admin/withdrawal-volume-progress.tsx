@@ -9,6 +9,7 @@ interface WithdrawalVolumeProgressProps {
   items: VolumeProgressItem[];
   unlocked?: boolean;
   compact?: boolean;
+  detailed?: boolean;
   title?: string;
 }
 
@@ -16,6 +17,7 @@ export function WithdrawalVolumeProgress({
   items,
   unlocked = false,
   compact = false,
+  detailed = false,
   title,
 }: WithdrawalVolumeProgressProps) {
   const { t } = useI18n();
@@ -30,7 +32,12 @@ export function WithdrawalVolumeProgress({
         </p>
       ) : null}
       {items.map((item) => (
-        <VolumeBar key={item.key} item={item} compact={compact} />
+        <VolumeBar
+          key={item.key}
+          item={item}
+          compact={compact}
+          detailed={detailed}
+        />
       ))}
       {unlocked ? (
         <p className="flex items-center gap-1.5 text-xs text-success">
@@ -45,18 +52,20 @@ export function WithdrawalVolumeProgress({
 function VolumeBar({
   item,
   compact,
+  detailed,
 }: {
   item: VolumeProgressItem;
   compact?: boolean;
+  detailed?: boolean;
 }) {
   const { t } = useI18n();
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <span
           className={cn(
-            "text-text-secondary",
+            "font-medium text-text-secondary",
             compact ? "text-[10px]" : "text-xs",
           )}
         >
@@ -66,15 +75,13 @@ function VolumeBar({
           className={cn(
             "shrink-0 font-mono",
             compact ? "text-[10px]" : "text-xs",
-            item.met ? "text-success" : "text-text-primary",
+            item.met ? "text-success" : "text-gold",
           )}
         >
-          ${formatNumber(item.current, { decimals: 0 })}
-          <span className="text-text-muted">
-            {" / "}${formatNumber(item.target, { decimals: 0 })}
-          </span>
+          {formatNumber(item.pct, { decimals: 0 })}%
         </span>
       </div>
+
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-full bg-bg-base",
@@ -96,6 +103,86 @@ function VolumeBar({
           }}
         />
       </div>
+
+      {detailed ? (
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border-subtle/80 bg-bg-base/40 p-2.5",
+            compact && "gap-y-0.5 p-2",
+          )}
+        >
+          <Stat
+            label={t("admin.grant.progressGoal")}
+            value={`$${formatNumber(item.target, { decimals: 0 })}`}
+            compact={compact}
+          />
+          <Stat
+            label={t("admin.grant.progressEarned")}
+            value={`$${formatNumber(item.current, { decimals: 0 })}`}
+            compact={compact}
+            highlight={item.current > 0}
+          />
+          <Stat
+            label={t("admin.grant.progressRemaining")}
+            value={`$${formatNumber(item.remaining, { decimals: 0 })}`}
+            compact={compact}
+          />
+          <Stat
+            label={t("admin.grant.progressPct")}
+            value={`${formatNumber(item.pct, { decimals: 0 })}%`}
+            compact={compact}
+            highlight
+          />
+        </div>
+      ) : (
+        <div className="flex justify-end">
+          <span
+            className={cn(
+              "font-mono text-text-muted",
+              compact ? "text-[10px]" : "text-xs",
+            )}
+          >
+            ${formatNumber(item.current, { decimals: 0 })}
+            <span className="text-text-muted/80">
+              {" / "}${formatNumber(item.target, { decimals: 0 })}
+            </span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  compact,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+  highlight?: boolean;
+}) {
+  return (
+    <div>
+      <p
+        className={cn(
+          "uppercase tracking-wider text-text-muted",
+          compact ? "text-[9px]" : "text-[10px]",
+        )}
+      >
+        {label}
+      </p>
+      <p
+        className={cn(
+          "font-mono font-medium",
+          compact ? "text-xs" : "text-sm",
+          highlight ? "text-gold" : "text-text-primary",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

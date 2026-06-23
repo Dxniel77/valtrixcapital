@@ -30,7 +30,7 @@ import { useUsdtDeposit } from "@/lib/hooks/use-usdt-deposit";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import {
   advanceDepositOnServer,
-  confirmDepositOnServer,
+  claimDepositByTxHash,
   registerDepositRequest,
 } from "@/lib/api/client";
 import { CHAIN_META } from "@/lib/wagmi";
@@ -80,6 +80,7 @@ export function StakeDepositModal({
 
   const beginDeposit = useStakingStore((s) => s.beginDeposit);
   const advance = useStakingStore((s) => s.advanceDepositConfirmation);
+  const syncConfirmations = useStakingStore((s) => s.setPendingConfirmations);
   const finalize = useStakingStore((s) => s.finalizePendingDeposit);
   const cancel = useStakingStore((s) => s.cancelPendingDeposit);
   const pending = useStakingStore((s) => s.pendingDeposit);
@@ -194,14 +195,35 @@ export function StakeDepositModal({
     if (!pending) return;
     if (pending.confirmations >= pending.requiredConfirmations) return;
     const id = window.setInterval(() => {
-      advance();
+      if (!backend) {
+        advance();
+      }
       const depositId = pending.serverDepositId ?? pending.id;
-      if (backend && depositId) {
+      if (backend && pending.txHash) {
+        void claimDepositByTxHash({
+          network: pending.network,
+          txHash: pending.txHash,
+        })
+          .then((res) => {
+            const dep = res.deposit as
+              | { status?: string; confirmations?: number }
+              | undefined;
+            if (dep && typeof dep.confirmations === "number") {
+              syncConfirmations(dep.confirmations);
+            }
+            if (dep?.status === "CONFIRMED") {
+              cancel();
+              setStep("success");
+              toast.success(t("staking.deposit.toastConfirmed"));
+            }
+          })
+          .catch(() => undefined);
+      } else if (backend && depositId) {
         void advanceDepositOnServer(depositId).catch(() => undefined);
       }
     }, 450);
     return () => window.clearInterval(id);
-  }, [step, pending, advance, backend]);
+  }, [step, pending, advance, backend, cancel, syncConfirmations, t]);
 
   React.useEffect(() => {
     if (step !== "confirming") return;
@@ -209,14 +231,33 @@ export function StakeDepositModal({
     if (pending.confirmations < pending.requiredConfirmations) return;
 
     async function complete() {
+      if (backend && pending?.txHash) {
+        try {
+          const res = await claimDepositByTxHash({
+            network: pending.network,
+            txHash: pending.txHash,
+          });
+          if (
+            res.deposit &&
+            typeof res.deposit === "object" &&
+            "status" in res.deposit &&
+            (res.deposit as { status: string }).status === "CONFIRMED"
+          ) {
+            cancel();
+            setStep("success");
+            toast.success(t("staking.deposit.toastConfirmed"));
+          }
+          return;
+        } catch {
+          toast.error(t("staking.deposit.confirmingHint", { network: pending.network }));
+          return;
+        }
+      }
+
       const depositId = pending?.serverDepositId ?? pending?.id;
       if (backend && depositId) {
         try {
-          await confirmDepositOnServer(depositId);
-          cancel();
-          setStep("success");
-          toast.success(t("staking.deposit.toastConfirmed"));
-          return;
+          await advanceDepositOnServer(depositId);
         } catch {
           toast.error(t("errors.signInFailed"));
           return;

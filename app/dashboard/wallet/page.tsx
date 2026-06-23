@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
 import { WithdrawModal } from "@/components/wallet/withdraw-modal";
+import { PendingDepositBanner } from "@/components/wallet/claim-deposit-form";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
 import {
@@ -27,16 +28,21 @@ import {
   useStakingStore,
   useStakingStoreHydrated,
 } from "@/lib/staking/store";
+import { usePlatformSettings } from "@/lib/platform/settings-store";
 import {
   WITHDRAWAL_FLOW,
   useWalletStore,
   type Withdrawal,
-  type WithdrawalStatus,
 } from "@/lib/wallet/store";
+import {
+  isWithdrawalPending,
+  resolveWithdrawalUiStatus,
+} from "@/lib/wallet/withdrawal-display";
 import { useReferralsStore } from "@/lib/referrals/store";
 import { useLedger } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { Lock } from "lucide-react";
 
 export default function WalletPage() {
@@ -44,15 +50,15 @@ export default function WalletPage() {
   const hydrated = useStakingStoreHydrated();
   const summary = usePortfolioSummary();
   const earningsBalance = useStakingStore((s) => s.earningsBalance);
+  const { minWithdrawalUsdt } = usePlatformSettings();
   const pendingNetwork = useReferralsStore((s) => s.pendingNetworkEarnings);
   const withdrawals = useWalletStore((s) => s.withdrawals);
   const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
+  const canWithdrawAmount = hydrated && earningsBalance >= minWithdrawalUsdt;
 
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
 
-  const pending = withdrawals.filter(
-    (w) => w.status !== "COMPLETED" && w.status !== "REJECTED",
-  );
+  const pending = withdrawals.filter(isWithdrawalPending);
 
   return (
     <div className="space-y-6">
@@ -71,10 +77,18 @@ export default function WalletPage() {
               variant="primary"
               size="md"
               onClick={() => setWithdrawOpen(true)}
-              disabled={!hydrated || earningsBalance <= 0 || !eligible}
-              title={!eligible ? t(messageKey) : undefined}
+              disabled={!canWithdrawAmount || !eligible}
+              title={
+                !eligible
+                  ? t(messageKey)
+                  : !canWithdrawAmount
+                    ? t("walletPage.withdraw.minError", {
+                        min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
+                      })
+                    : undefined
+              }
             >
-              {!eligible && adminUser?.accountGranted ? (
+              {!eligible ? (
                 <Lock className="h-4 w-4" />
               ) : (
                 <ArrowUpFromLine className="h-4 w-4" />
@@ -116,14 +130,10 @@ export default function WalletPage() {
         />
       </div>
 
-      {!eligible && adminUser?.accountGranted ? (
-        <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm">
-          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-          <div>
-            <p className="font-medium text-warning">{t("walletPage.withdraw.eligibilityTitle")}</p>
-            <p className="mt-1 text-text-secondary">{t(messageKey)}</p>
-          </div>
-        </div>
+      <PendingDepositBanner />
+
+      {adminUser?.accountGranted ? (
+        <SponsoredUnlockProgressCard user={adminUser} />
       ) : null}
 
       {pending.length > 0 ? (
@@ -193,7 +203,8 @@ function AddCapitalCard() {
 function WithdrawalTracker({ w }: { w: Withdrawal }) {
   const { t } = useI18n();
   const meta = CHAIN_META[w.network === "POLYGON" ? polygon.id : bsc.id];
-  const currentIdx = WITHDRAWAL_FLOW.indexOf(w.status);
+  const uiStatus = resolveWithdrawalUiStatus(w);
+  const currentIdx = WITHDRAWAL_FLOW.indexOf(uiStatus);
 
   return (
     <Card className="border-gold/30">
@@ -229,7 +240,9 @@ function WithdrawalTracker({ w }: { w: Withdrawal }) {
 
         <ol className="grid grid-cols-4 gap-1">
           {WITHDRAWAL_FLOW.map((status, i) => {
-            const done = i < currentIdx || w.status === "COMPLETED";
+            const done =
+              i < currentIdx ||
+              (uiStatus === "COMPLETED" && status === "COMPLETED");
             const active = i === currentIdx;
             return (
               <li key={status} className="flex flex-col gap-1.5">
@@ -341,7 +354,11 @@ function RecentTransactionsCard() {
                         minute: "2-digit",
                         timeZone: "UTC",
                       })}
-                      {e.status ? ` · ${t(`walletPage.status.${e.status}`)}` : ""}
+                      {e.category === "WITHDRAWAL"
+                        ? ` · ${t(`walletPage.status.${resolveWithdrawalUiStatus({ status: e.status ?? "REQUESTED", txHash: e.txHash })}`)}`
+                        : e.status
+                          ? ` · ${t(`walletPage.status.${e.status}`)}`
+                          : ""}
                       {e.note?.trim() ? ` · ${e.note.trim()}` : ""}
                     </p>
                   </div>

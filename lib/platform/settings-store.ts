@@ -9,7 +9,7 @@ import {
   BONUS_PER_WIN_BPS,
   MAX_DAILY_YIELD_BPS,
 } from "@/lib/trade/constants";
-import { COMMISSION_RATES_BPS } from "@/lib/referrals/constants";
+import { COMMISSION_RATES_BPS, normalizeCommissionRatesBps } from "@/lib/referrals/constants";
 import {
   MIN_WITHDRAWAL_USDT,
   WITHDRAWAL_FEE_BPS,
@@ -65,7 +65,17 @@ export const usePlatformSettingsStore = create<PlatformSettingsState>()(
 
       updateSettings: (patch) =>
         set((s) => ({
-          settings: { ...s.settings, ...patch },
+          settings: {
+            ...s.settings,
+            ...patch,
+            ...(patch.commissionRatesBps
+              ? {
+                  commissionRatesBps: normalizeCommissionRatesBps(
+                    patch.commissionRatesBps,
+                  ),
+                }
+              : {}),
+          },
         })),
 
       resetSettings: () => set({ settings: DEFAULT_PLATFORM_SETTINGS }),
@@ -84,10 +94,29 @@ export const usePlatformSettingsStore = create<PlatformSettingsState>()(
       partialize: (s) => ({ settings: s.settings }),
       onRehydrateStorage: () => (state) => {
         if (!state || typeof window === "undefined") return;
-        if (window.localStorage.getItem("valtrix.platform.settings.v1")) return;
+        const normalized = normalizeCommissionRatesBps(
+          state.settings.commissionRatesBps,
+        );
+        const ratesChanged =
+          normalized.length !== state.settings.commissionRatesBps.length ||
+          normalized.some(
+            (v, i) => v !== state.settings.commissionRatesBps[i],
+          );
+        if (ratesChanged) {
+          state.settings.commissionRatesBps = normalized;
+        }
+        if (window.localStorage.getItem("valtrix.platform.settings.v1")) {
+          return;
+        }
         const legacy = importLegacyAdminSettings();
         if (!legacy) return;
-        state.settings = { ...DEFAULT_PLATFORM_SETTINGS, ...legacy };
+        state.settings = {
+          ...DEFAULT_PLATFORM_SETTINGS,
+          ...legacy,
+          commissionRatesBps: normalizeCommissionRatesBps(
+            legacy.commissionRatesBps ?? DEFAULT_PLATFORM_SETTINGS.commissionRatesBps,
+          ),
+        };
       },
     },
   ),

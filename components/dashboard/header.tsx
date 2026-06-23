@@ -11,7 +11,9 @@ import { useI18n, useLocaleMeta } from "@/lib/i18n/context";
 import {
   useStakingStore,
   useStakingStoreHydrated,
+  usePortfolioSummary,
 } from "@/lib/staking/store";
+import { useDashboardAccess } from "@/lib/hooks/use-dashboard-access";
 import { cn, formatNumber } from "@/lib/utils";
 
 const COMPACT_HEADER_LOCALES = new Set(["es", "de", "fr", "pt", "hi", "ar"]);
@@ -73,7 +75,7 @@ export function DashboardHeader({
           <ThemeToggle className="h-9 w-9 shrink-0" />
         </div>
 
-        <BalancePill label={t("dashboard.header.balance")} compact={compact} />
+        <BalancePill compact={compact} />
 
         <NotificationsPanel />
 
@@ -83,15 +85,15 @@ export function DashboardHeader({
   );
 }
 
-function BalancePill({
-  label,
-  compact,
-}: {
-  label: string;
-  compact: boolean;
-}) {
+function BalancePill({ compact }: { compact: boolean }) {
+  const { t } = useI18n();
+  const { allowed } = useDashboardAccess();
   const hydrated = useStakingStoreHydrated();
-  const balance = useStakingStore((s) => s.earningsBalance);
+  const earnings = useStakingStore((s) => s.earningsBalance);
+  const { totalCapital } = usePortfolioSummary();
+
+  if (!allowed) return null;
+
   return (
     <Link
       href="/dashboard/wallet"
@@ -99,12 +101,17 @@ function BalancePill({
         "hidden items-center gap-2 rounded-md border border-border-subtle bg-bg-base py-1.5 text-xs hover:border-gold/30",
         compact ? "px-2 sm:inline-flex" : "px-3 sm:inline-flex",
       )}
+      title={
+        totalCapital > 0
+          ? `${t("dashboard.header.capital")}: ${formatNumber(totalCapital, { decimals: 2 })} USDT`
+          : undefined
+      }
     >
       <span className={cn("text-text-muted", compact && "hidden lg:inline")}>
-        {label}
+        {t("dashboard.header.balance")}
       </span>
       <span className="font-mono text-text-primary">
-        {hydrated ? formatNumber(balance, { decimals: 2 }) : "—"}
+        {hydrated ? formatNumber(earnings, { decimals: 2 }) : "—"}
       </span>
       <span className="text-text-muted">USDT</span>
     </Link>

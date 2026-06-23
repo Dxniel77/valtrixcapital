@@ -21,6 +21,13 @@ import { useUsdtDeposit } from "@/lib/hooks/use-usdt-deposit";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { useAdminStore } from "@/lib/admin/store";
 import { useTreasuryStore } from "@/lib/admin/treasury-store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import {
+  advanceTreasuryDepositOnBackend,
+  beginTreasuryDepositOnBackend,
+  syncTreasuryFromBackend,
+} from "@/lib/admin/treasury-backend";
+import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
 import { getDepositAddress } from "@/lib/wallet/deposit-addresses";
 import { CHAIN_META } from "@/lib/wagmi";
 import type { StakingNetwork } from "@/lib/staking/store";
@@ -51,12 +58,15 @@ export function TreasuryDepositModal({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { deposit: sendUsdtDeposit } = useUsdtDeposit();
+  const backend = useBackendAvailable();
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState("1000");
   const [network, setNetwork] = React.useState<StakingNetwork>(() =>
     chainId === polygon.id ? "POLYGON" : "BSC",
   );
+  const [backendDeposit, setBackendDeposit] = React.useState(false);
+  const confirmStartedRef = React.useRef(false);
 
   const beginDeposit = useTreasuryStore((s) => s.beginDeposit);
   const advance = useTreasuryStore((s) => s.advanceDepositConfirmation);
@@ -72,6 +82,8 @@ export function TreasuryDepositModal({
   React.useEffect(() => {
     if (!open) return;
     setStep("form");
+    setBackendDeposit(false);
+    confirmStartedRef.current = false;
   }, [open]);
 
   const amount = Number(amountStr.replace(/,/g, "."));
@@ -101,8 +113,23 @@ export function TreasuryDepositModal({
     setStep("wallet");
 
     try {
-      if (allowOfflineSimulation()) {
+      const useBackend = backend;
+      setBackendDeposit(useBackend);
+
+      if (allowOfflineSimulation() && !useBackend) {
         beginDeposit({ amount, network });
+        window.setTimeout(() => setStep("confirming"), 1600);
+        return;
+      }
+
+      if (allowOfflineSimulation() && useBackend) {
+        const txHash = `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.padEnd(66, "0").slice(0, 66);
+        await beginTreasuryDepositOnBackend({
+          amount,
+          network,
+          txHash,
+          requiredConfirmations: REQUIRED_CONFIRMATIONS,
+        });
         window.setTimeout(() => setStep("confirming"), 1600);
         return;
       }
@@ -120,7 +147,16 @@ export function TreasuryDepositModal({
         toAddress: toAddress as `0x${string}`,
       });
 
-      beginDeposit({ amount, network, txHash });
+      if (useBackend) {
+        await beginTreasuryDepositOnBackend({
+          amount,
+          network,
+          txHash,
+          requiredConfirmations: REQUIRED_CONFIRMATIONS,
+        });
+      } else {
+        beginDeposit({ amount, network, txHash });
+      }
       setStep("confirming");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -139,14 +175,44 @@ export function TreasuryDepositModal({
 
   React.useEffect(() => {
     if (step !== "confirming" || !pending) return;
-    if (pending.confirmations >= pending.requiredConfirmations) return;
-    const id = window.setInterval(() => advance(), 450);
+
+    const id = window.setInterval(() => {
+      if (backendDeposit) {
+        void advanceTreasuryDepositOnBackend(pending.id)
+          .then((deposit) => {
+            if (deposit.status === "CONFIRMED") {
+              cancel();
+              void syncTreasuryFromBackend();
+              setStep("success");
+              toast.success(t("admin.treasury.depositConfirmed"));
+              useAdminStore.setState((s) => ({
+                audit: [
+                  {
+                    id: `aud_${Date.now()}`,
+                    action: "TREASURY_DEPOSIT",
+                    target: network,
+                    detail: `+$${amount.toFixed(2)} USDT · ${shortenHash(deposit.txHash)}`,
+                    actor: "admin",
+                    timestamp: Date.now(),
+                  },
+                  ...s.audit,
+                ].slice(0, 200),
+              }));
+            }
+          })
+          .catch(() => undefined);
+      } else {
+        advance();
+      }
+    }, backendDeposit ? 3_000 : 450);
     return () => window.clearInterval(id);
-  }, [step, pending, advance]);
+  }, [step, pending, advance, backendDeposit, cancel, network, amount, t]);
 
   React.useEffect(() => {
-    if (step !== "confirming" || !pending) return;
+    if (step !== "confirming" || !pending || backendDeposit) return;
     if (pending.confirmations < pending.requiredConfirmations) return;
+    if (confirmStartedRef.current) return;
+    confirmStartedRef.current = true;
 
     const confirmed = finalize();
     if (confirmed) {
@@ -166,7 +232,7 @@ export function TreasuryDepositModal({
       setStep("success");
       toast.success(t("admin.treasury.depositConfirmed"));
     }
-  }, [step, pending, finalize, network, amount, t]);
+  }, [step, pending, finalize, backendDeposit, network, amount, t]);
 
   function handleClose(next: boolean) {
     if (!next) {

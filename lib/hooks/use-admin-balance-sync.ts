@@ -10,9 +10,11 @@ import {
 import { useI18n } from "@/lib/i18n/context";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber } from "@/lib/utils";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 
 /** Applies pending admin balance adjustments to the connected user's staking store. */
 export function useAdminBalanceSync(): void {
+  const backend = useBackendAvailable();
   const { address } = useAccount();
   const adminHydrated = useAdminStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
@@ -22,7 +24,7 @@ export function useAdminBalanceSync(): void {
   const { t } = useI18n();
 
   React.useEffect(() => {
-    if (!adminHydrated || !stakingHydrated || !address) return;
+    if (backend || !adminHydrated || !stakingHydrated || !address) return;
 
     const wallet = address.toLowerCase();
     const pending = balanceAdjustments
@@ -83,6 +85,7 @@ export function useAdminBalanceSync(): void {
     }
   }, [
     adminHydrated,
+    backend,
     stakingHydrated,
     address,
     balanceAdjustments,

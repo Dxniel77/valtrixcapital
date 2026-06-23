@@ -7,10 +7,7 @@ import {
   useLiquidationStore,
   utcDateKey,
 } from "@/lib/liquidation-engine/store";
-import {
-  globalLiquidationMicroAccrual,
-  LIQUIDATION_CADENCE_MS,
-} from "@/lib/liquidation-engine/global-simulation";
+import { globalLiquidationMicroAccrual } from "@/lib/liquidation-engine/global-simulation";
 import { useClientNow } from "@/lib/hooks/use-client-now";
 import { useCountUp } from "@/lib/hooks/use-count-up";
 
@@ -29,24 +26,18 @@ export interface CombinedEngineProfits {
   combinedTodayLive: number;
 }
 
-function useLiveMicroAccrual(): number {
-  const cadence = useLiquidationStore((s) => s.cadence);
-  const txPool = useLiquidationStore((s) => s.txPool);
+function useLiveMicroAccrual(creditedToday: number): number {
   const now = useClientNow(3_000);
   return React.useMemo(() => {
     if (now == null) return 0;
-    return globalLiquidationMicroAccrual(
-      now,
-      LIQUIDATION_CADENCE_MS[cadence],
-      txPool,
-    );
-  }, [now, cadence, txPool]);
+    return globalLiquidationMicroAccrual(now, creditedToday);
+  }, [now, creditedToday]);
 }
 
 export function useCombinedEngineProfits(): CombinedEngineProfits {
   const bot = useCompanyProfits();
   const liquidation = useLiquidationProfits();
-  const microToday = useLiveMicroAccrual();
+  const microToday = useLiveMicroAccrual(liquidation.today);
 
   return React.useMemo(() => {
     const liquidationTodayLive = liquidation.today + microToday;
@@ -68,7 +59,7 @@ export function useCombinedEngineProfits(): CombinedEngineProfits {
 
 export function useLiveLiquidationToday(): number {
   const liquidation = useLiquidationProfits();
-  const microToday = useLiveMicroAccrual();
+  const microToday = useLiveMicroAccrual(liquidation.today);
   return useCountUp(liquidation.today + microToday, 2);
 }
 

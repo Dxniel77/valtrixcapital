@@ -76,24 +76,38 @@ export default function AdminTreasuryPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatTile
           label={t("admin.treasury.totalLiquidity")}
-          value={`$${formatNumber(hydrated ? treasury.totalBalance : 0, { decimals: 0 })}`}
+          value={`$${formatNumber(hydrated ? treasury.totalBalance : 0, { decimals: 2 })}`}
           icon={Landmark}
           accent="gold"
           hint={t("admin.treasury.totalLiquidityHint")}
         />
         <StatTile
+          label={t("admin.treasury.totalLoaded")}
+          value={`$${formatNumber(hydrated ? treasury.adminDeposited : 0, { decimals: 2 })}`}
+          icon={ArrowDownToLine}
+          accent="success"
+          hint={t("admin.treasury.totalLoadedHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.totalPaidOut")}
+          value={`$${formatNumber(hydrated ? treasury.paidOut : 0, { decimals: 2 })}`}
+          icon={ArrowUpFromLine}
+          accent="danger"
+          hint={t("admin.treasury.totalPaidOutHint")}
+        />
+        <StatTile
           label={t("admin.treasury.bscBalance")}
-          value={`$${formatNumber(hydrated ? treasury.bscBalance : 0, { decimals: 0 })}`}
+          value={`$${formatNumber(hydrated ? treasury.bscBalance : 0, { decimals: 2 })}`}
           icon={ArrowDownToLine}
           accent="info"
           hint="BEP-20"
         />
         <StatTile
           label={t("admin.treasury.polygonBalance")}
-          value={`$${formatNumber(hydrated ? treasury.polygonBalance : 0, { decimals: 0 })}`}
+          value={`$${formatNumber(hydrated ? treasury.polygonBalance : 0, { decimals: 2 })}`}
           icon={ArrowDownToLine}
           accent="success"
           hint="Polygon"

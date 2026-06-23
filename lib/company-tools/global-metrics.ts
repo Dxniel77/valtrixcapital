@@ -3,11 +3,21 @@ export const COMPANY_METRICS_LAUNCH_MS = Date.parse(
   "2025-03-15T00:00:00.000Z",
 );
 
-/** Live bot / liquidation tables only show this much history. */
+/** Live bot trading table history window. */
 export const LIVE_FEED_WINDOW_MS = 5 * 60 * 1000;
+
+/** Settlement / liquidation feed — show ~2 minutes of recent settlements. */
+export const LIQUIDATION_FEED_WINDOW_MS = 2 * 60 * 1000;
+
+/** How far back to pull verifiable on-chain txs for the settlement pool. */
+export const LIQUIDATION_TX_POOL_MAX_AGE_MS = 5 * 60 * 1000;
 
 export function liveFeedSlotCount(cadenceMs: number): number {
   return Math.max(1, Math.ceil(LIVE_FEED_WINDOW_MS / cadenceMs));
+}
+
+export function liquidationFeedSlotCount(cadenceMs: number): number {
+  return Math.max(1, Math.ceil(LIQUIDATION_FEED_WINDOW_MS / cadenceMs));
 }
 
 export function utcDateKey(ts = Date.now()): string {

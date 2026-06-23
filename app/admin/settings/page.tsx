@@ -10,15 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
-import { useAdminStore } from "@/lib/admin/store";
 import { usePlatformSettings } from "@/lib/platform/settings-store";
+import { savePlatformSettingsToBackend } from "@/lib/platform/config-sync";
 import { PAIRS } from "@/lib/market/pairs";
 import { cn } from "@/lib/utils";
 
 export default function AdminSettingsPage() {
   const { t } = useI18n();
   const settings = usePlatformSettings();
-  const updateSettings = useAdminStore((s) => s.updateSettings);
+  const [saving, setSaving] = React.useState(false);
 
   const [draft, setDraft] = React.useState(settings);
   const [dirty, setDirty] = React.useState(false);
@@ -47,10 +47,25 @@ export default function AdminSettingsPage() {
     });
   }
 
-  function save() {
-    updateSettings(draft);
-    toast.success(t("admin.settings.saved"));
-    setDirty(false);
+  async function save() {
+    setSaving(true);
+    try {
+      const health = await import("@/lib/api/client").then((m) =>
+        m.fetchBackendHealth(),
+      );
+      if (health.database) {
+        await savePlatformSettingsToBackend(draft);
+      } else {
+        const { useAdminStore } = await import("@/lib/admin/store");
+        useAdminStore.getState().updateSettings(draft);
+      }
+      toast.success(t("admin.settings.saved"));
+      setDirty(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -71,7 +86,7 @@ export default function AdminSettingsPage() {
             >
               <RotateCcw className="h-4 w-4" /> {t("admin.settings.reset")}
             </Button>
-            <Button variant="primary" size="md" onClick={save} disabled={!dirty}>
+            <Button variant="primary" size="md" onClick={() => void save()} disabled={!dirty || saving} loading={saving}>
               <Save className="h-4 w-4" /> {t("admin.settings.save")}
             </Button>
           </div>

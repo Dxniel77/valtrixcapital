@@ -1,5 +1,29 @@
 import { prisma } from "@/lib/db";
+import { normalizeCommissionRatesBps } from "@/lib/referrals/constants";
 import { fromMicro } from "@/lib/utils";
+
+async function resolveCommissionRates(rates: number[]): Promise<number[]> {
+  const next = normalizeCommissionRatesBps(rates);
+  const changed =
+    next.length !== rates.length || next.some((v, i) => v !== rates[i]);
+  if (changed) {
+    await prisma.appConfig.update({
+      where: { id: 1 },
+      data: { commissionRatesBps: next },
+    });
+  }
+  return next;
+}
+
+function normalizeConfigPatch(
+  patch: Partial<Omit<PlatformConfigDto, "updatedAt">>,
+): Partial<Omit<PlatformConfigDto, "updatedAt">> {
+  if (!patch.commissionRatesBps) return patch;
+  return {
+    ...patch,
+    commissionRatesBps: normalizeCommissionRatesBps(patch.commissionRatesBps),
+  };
+}
 
 export interface PlatformConfigDto {
   baseYieldBps: number;
@@ -22,13 +46,15 @@ export async function getPlatformConfig(): Promise<PlatformConfigDto> {
     create: { id: 1 },
   });
 
+  const commissionRatesBps = await resolveCommissionRates(config.commissionRatesBps);
+
   return {
     baseYieldBps: config.baseYieldBps,
     bonusPerWinBps: config.bonusPerWinBps,
     maxTradesPerDay: config.maxTradesPerDay,
     maxDailyYieldBps: config.maxDailyYieldBps,
     withdrawalFeeBps: config.withdrawalFeeBps,
-    commissionRatesBps: config.commissionRatesBps,
+    commissionRatesBps,
     minStake: fromMicro(config.minStake),
     maxStake: fromMicro(config.maxStake),
     minWithdrawal: fromMicro(config.minWithdrawal),
@@ -41,25 +67,30 @@ export async function updatePlatformConfig(
   patch: Partial<Omit<PlatformConfigDto, "updatedAt">>,
 ): Promise<PlatformConfigDto> {
   const { toMicro } = await import("@/lib/utils");
+  const normalizedPatch = normalizeConfigPatch(patch);
 
   const updated = await prisma.appConfig.update({
     where: { id: 1 },
     data: {
-      baseYieldBps: patch.baseYieldBps,
-      bonusPerWinBps: patch.bonusPerWinBps,
-      maxTradesPerDay: patch.maxTradesPerDay,
-      maxDailyYieldBps: patch.maxDailyYieldBps,
-      withdrawalFeeBps: patch.withdrawalFeeBps,
-      commissionRatesBps: patch.commissionRatesBps,
-      minStake: patch.minStake !== undefined ? toMicro(patch.minStake) : undefined,
-      maxStake: patch.maxStake !== undefined ? toMicro(patch.maxStake) : undefined,
+      baseYieldBps: normalizedPatch.baseYieldBps,
+      bonusPerWinBps: normalizedPatch.bonusPerWinBps,
+      maxTradesPerDay: normalizedPatch.maxTradesPerDay,
+      maxDailyYieldBps: normalizedPatch.maxDailyYieldBps,
+      withdrawalFeeBps: normalizedPatch.withdrawalFeeBps,
+      commissionRatesBps: normalizedPatch.commissionRatesBps,
+      minStake: normalizedPatch.minStake !== undefined ? toMicro(normalizedPatch.minStake) : undefined,
+      maxStake: normalizedPatch.maxStake !== undefined ? toMicro(normalizedPatch.maxStake) : undefined,
       minWithdrawal:
-        patch.minWithdrawal !== undefined
-          ? toMicro(patch.minWithdrawal)
+        normalizedPatch.minWithdrawal !== undefined
+          ? toMicro(normalizedPatch.minWithdrawal)
           : undefined,
-      allowedPairs: patch.allowedPairs,
+      allowedPairs: normalizedPatch.allowedPairs,
     },
   });
+
+  const commissionRatesBps = await resolveCommissionRates(
+    updated.commissionRatesBps,
+  );
 
   return {
     baseYieldBps: updated.baseYieldBps,
@@ -67,7 +98,7 @@ export async function updatePlatformConfig(
     maxTradesPerDay: updated.maxTradesPerDay,
     maxDailyYieldBps: updated.maxDailyYieldBps,
     withdrawalFeeBps: updated.withdrawalFeeBps,
-    commissionRatesBps: updated.commissionRatesBps,
+    commissionRatesBps,
     minStake: fromMicro(updated.minStake),
     maxStake: fromMicro(updated.maxStake),
     minWithdrawal: fromMicro(updated.minWithdrawal),

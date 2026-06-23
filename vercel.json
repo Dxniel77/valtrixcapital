@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-yield",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

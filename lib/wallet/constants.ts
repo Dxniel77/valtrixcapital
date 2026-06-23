@@ -6,11 +6,11 @@ export const WITHDRAWAL_FEE_BPS = 400;
 export const WITHDRAWAL_FEE_PCT = WITHDRAWAL_FEE_BPS / 100;
 
 /** Minimum withdrawal in USDT. */
-export const MIN_WITHDRAWAL_USDT = 10;
+export const MIN_WITHDRAWAL_USDT = 1;
 
 /**
- * Treasury / hot-wallet deposit addresses per network. These are demo
- * addresses for the staging build — production values come from env/secrets.
+ * Development-only fallback deposit addresses when env vars are unset.
+ * Production builds require NEXT_PUBLIC_TREASURY_* env addresses.
  */
 export const DEPOSIT_ADDRESSES: Record<StakingNetwork, string> = {
   BSC: "0x7Af2C0bD9C5E1bE0aA4f9d2b3C8E51Df6A0c4B21",

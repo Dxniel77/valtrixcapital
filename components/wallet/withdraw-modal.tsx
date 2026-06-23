@@ -28,7 +28,11 @@ import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
-import { createWithdrawalRequest } from "@/lib/api/client";
+import { createWithdrawalRequest, ApiError, fetchUserPortfolio } from "@/lib/api/client";
+import { hydratePortfolioFromServer } from "@/lib/staking/hydrate-portfolio";
+import type { PortfolioDto, WithdrawalDto } from "@/lib/staking/portfolio-types";
+import { mapServerWithdrawal } from "@/lib/staking/portfolio-types";
+import { useTreasuryLiquidity } from "@/lib/hooks/use-treasury-liquidity";
 import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { Lock } from "lucide-react";
@@ -50,6 +54,7 @@ export function WithdrawModal({
   const requestWithdrawal = useWalletStore((s) => s.requestWithdrawal);
   const backend = useBackendAvailable();
   const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
+  const pool = useTreasuryLiquidity();
   const { minWithdrawalUsdt, withdrawalFeeBps } = usePlatformSettings();
   const withdrawalFeePct = withdrawalFeeBps / 100;
 
@@ -76,9 +81,16 @@ export function WithdrawModal({
   const validAddress = /^0x[a-fA-F0-9]{40}$/.test(destination.trim());
   const amountValid =
     breakdown.amount >= minWithdrawalUsdt && breakdown.amount <= available;
-  const canSubmit = isConnected && amountValid && validAddress && eligible;
+  const canSubmit =
+    isConnected && amountValid && validAddress && eligible;
 
   const [submitting, setSubmitting] = React.useState(false);
+
+  function showTreasuryUnavailableToast() {
+    toast.error(t("walletPage.withdraw.treasuryInsufficientTitle"), {
+      description: t("walletPage.withdraw.treasuryInsufficient"),
+    });
+  }
 
   async function handleSubmit() {
     if (!eligible) {
@@ -106,17 +118,37 @@ export function WithdrawModal({
       return;
     }
 
+    const poolCoversPayout =
+      pool.hasPoolLiquidity &&
+      pool.canCoverPayout(network, breakdown.netAmount);
+    if (!poolCoversPayout) {
+      showTreasuryUnavailableToast();
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (backend) {
-        await createWithdrawalRequest({
+        const res = await createWithdrawalRequest({
           amount: breakdown.amount,
           network,
           toAddress: destination.trim(),
         });
-        useStakingStore.setState((s) => ({
-          earningsBalance: Math.max(0, s.earningsBalance - breakdown.amount),
-        }));
+        const portfolioRes = await fetchUserPortfolio();
+        if (portfolioRes.backend && portfolioRes.portfolio) {
+          hydratePortfolioFromServer(portfolioRes.portfolio as PortfolioDto);
+        } else if (res.withdrawal) {
+          const mapped = mapServerWithdrawal(res.withdrawal as WithdrawalDto);
+          useWalletStore.setState((s) => ({
+            withdrawals: [
+              mapped,
+              ...s.withdrawals.filter((w) => w.id !== mapped.id),
+            ],
+          }));
+          useStakingStore.setState((s) => ({
+            earningsBalance: Math.max(0, s.earningsBalance - breakdown.amount),
+          }));
+        }
       } else if (allowOfflineSimulation()) {
         const res = requestWithdrawal({
           amount: breakdown.amount,
@@ -132,6 +164,10 @@ export function WithdrawModal({
             );
             return;
           }
+          if (res.error === "INSUFFICIENT_TREASURY") {
+            showTreasuryUnavailableToast();
+            return;
+          }
           toast.error(t("walletPage.withdraw.insufficient"));
           return;
         }
@@ -143,6 +179,22 @@ export function WithdrawModal({
       setStep("success");
       toast.success(t("walletPage.withdraw.submitted"));
     } catch (err) {
+      if (err instanceof ApiError && err.payload.code === "PAYOUT_FAILED") {
+        toast.error(t("walletPage.withdraw.payoutFailed"));
+        return;
+      }
+      if (err instanceof ApiError && err.payload.code === "INSUFFICIENT_TREASURY") {
+        showTreasuryUnavailableToast();
+        return;
+      }
+      if (err instanceof ApiError && err.payload.code === "BELOW_MINIMUM") {
+        toast.error(
+          t("walletPage.withdraw.minError", {
+            min: formatNumber(minWithdrawalUsdt, { decimals: 0 }),
+          }),
+        );
+        return;
+      }
       toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
     } finally {
       setSubmitting(false);
@@ -290,12 +342,13 @@ export function WithdrawModal({
                 <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning">
                   <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <p className="font-medium">{t("walletPage.withdraw.eligibilityTitle")}</p>
+                    <p className="font-medium">{t("walletPage.withdraw.eligibilityHeading")}</p>
                     <p className="text-warning/90">{t(messageKey)}</p>
                     <WithdrawalVolumeProgress
                       items={progressItemsForUser(adminUser)}
                       unlocked={adminUser.withdrawalUnlocked}
                       compact
+                      detailed
                     />
                   </div>
                 </div>

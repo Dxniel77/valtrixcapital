@@ -13,8 +13,12 @@ import { useWalletStore } from "@/lib/wallet/store";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import {
   adminUpdateWithdrawalStatus,
+  ApiError,
   fetchPendingWithdrawals,
+  adminRetryWithdrawalPayout,
 } from "@/lib/api/client";
+import { syncTreasuryFromBackend } from "@/lib/admin/treasury-backend";
+import { refreshAdminMovementsFromBackend } from "@/lib/admin/movements-backend";
 import {
   explorerUrl,
   formatNumber,
@@ -112,6 +116,29 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
     }
   }
 
+  async function handleBackendRetry(withdrawalId: string) {
+    try {
+      await adminRetryWithdrawalPayout(withdrawalId);
+      await syncTreasuryFromBackend();
+      await refreshAdminMovementsFromBackend();
+      toast.success(t("admin.withdrawals.completed"));
+      const res = await fetchPendingWithdrawals();
+      setBackendRows(res.withdrawals ?? []);
+    } catch (err) {
+      if (err instanceof ApiError && err.payload.code === "PAYOUT_FAILED") {
+        toast.error(t("walletPage.withdraw.payoutFailed"));
+        return;
+      }
+      if (err instanceof ApiError && err.payload.code === "INSUFFICIENT_TREASURY") {
+        toast.warning(t("admin.treasury.insufficientForPayout"));
+        return;
+      }
+      toast.error(
+        err instanceof Error ? err.message : t("admin.withdrawals.actionFailed"),
+      );
+    }
+  }
+
   async function handleBackendAction(
     withdrawalId: string,
     status: "APPROVED" | "REJECTED" | "SENT" | "CONFIRMED",
@@ -125,20 +152,28 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
         txHash: txHashes[withdrawalId] || undefined,
       });
       if (status === "CONFIRMED") {
-        const ok = deductForPayout(network, netAmount);
-        if (!ok) toast.warning(t("admin.treasury.insufficientForPayout"));
+        await syncTreasuryFromBackend();
+        await refreshAdminMovementsFromBackend();
+        toast.success(t("admin.withdrawals.completed"));
+      } else {
+        toast.success(t("admin.withdrawals.updated"));
       }
       const res = await fetchPendingWithdrawals();
       setBackendRows(res.withdrawals ?? []);
-      toast.success(t("admin.withdrawals.updated"));
     } catch (err) {
+      if (err instanceof ApiError && err.payload.code === "INSUFFICIENT_TREASURY") {
+        toast.warning(t("admin.treasury.insufficientForPayout"));
+        return;
+      }
       toast.error(
         err instanceof Error ? err.message : t("admin.withdrawals.actionFailed"),
       );
     }
   }
 
-  const showEmpty = !loading && localPending.length === 0 && backendRows.length === 0;
+  const showEmpty =
+    !loading &&
+    (backend ? backendRows.length === 0 : localPending.length === 0);
 
   return (
     <div className="space-y-4">
@@ -148,7 +183,8 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
         </p>
       ) : null}
 
-      {localPending.map((m) => (
+      {!backend
+        ? localPending.map((m) => (
         <WithdrawalRow
           key={m.id}
           wallet={m.wallet}
@@ -164,7 +200,8 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
           onComplete={() => handleLocalAction(m, "COMPLETED")}
           onReject={() => handleLocalAction(m, "REJECTED")}
         />
-      ))}
+      ))
+        : null}
 
       {backend
         ? backendRows.slice(0, limit).map((w) => (
@@ -182,6 +219,8 @@ export function PendingWithdrawalsPanel({ limit = 12 }: { limit?: number }) {
               onProcess={() => void handleBackendAction(w.id, "SENT", w.network, w.netAmount)}
               onComplete={() => void handleBackendAction(w.id, "CONFIRMED", w.network, w.netAmount)}
               onReject={() => void handleBackendAction(w.id, "REJECTED", w.network, w.netAmount)}
+              onRetry={() => void handleBackendRetry(w.id)}
+              automatic
             />
           ))
         : null}
@@ -213,6 +252,8 @@ function WithdrawalRow({
   onProcess,
   onComplete,
   onReject,
+  onRetry,
+  automatic = false,
 }: {
   wallet: string;
   amount: number;
@@ -224,10 +265,14 @@ function WithdrawalRow({
   onProcess: () => void;
   onComplete: () => void;
   onReject: () => void;
+  onRetry?: () => void;
+  automatic?: boolean;
 }) {
   const { t } = useI18n();
   const fee = Math.round(amount * 0.04 * 100) / 100;
   const net = Math.round((amount - fee) * 100) / 100;
+  const canComplete =
+    status === "PROCESSING" && /^0x[0-9a-fA-F]{64}$/.test(txHash.trim());
 
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-base/40 p-4 space-y-3">
@@ -251,19 +296,46 @@ function WithdrawalRow({
       />
 
       <div className="flex flex-wrap gap-2">
-        {status === "REQUESTED" ? (
+        {automatic && onRetry ? (
+          <Button size="sm" variant="primary" onClick={onRetry}>
+            <Check className="h-3.5 w-3.5" />
+            {t("admin.withdrawals.retryPayout")}
+          </Button>
+        ) : null}
+        {!automatic && status === "REQUESTED" ? (
           <Button size="sm" variant="outline" onClick={onApprove}>
             {t("admin.withdrawals.approve")}
           </Button>
         ) : null}
-        {status === "REVIEW" ? (
+        {!automatic && status === "REVIEW" ? (
           <Button size="sm" variant="outline" onClick={onProcess}>
             {t("admin.withdrawals.process")}
           </Button>
         ) : null}
-        {status === "PROCESSING" ? (
-          <Button size="sm" variant="primary" onClick={onComplete}>
+        {!automatic && status === "PROCESSING" ? (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={onComplete}
+            disabled={!canComplete}
+            title={
+              canComplete ? undefined : t("admin.withdrawals.txHashRequired")
+            }
+          >
             <Check className="h-3.5 w-3.5" />
+            {t("admin.withdrawals.complete")}
+          </Button>
+        ) : null}
+        {automatic && status === "PROCESSING" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onComplete}
+            disabled={!canComplete}
+            title={
+              canComplete ? undefined : t("admin.withdrawals.txHashRequired")
+            }
+          >
             {t("admin.withdrawals.complete")}
           </Button>
         ) : null}

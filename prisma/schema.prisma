@@ -34,6 +34,11 @@ enum StakeStatus {
   CANCELED
 }
 
+enum StakeSource {
+  ON_CHAIN
+  COMPANY_SPONSORED
+}
+
 enum Direction {
   UP
   DOWN
@@ -67,6 +72,16 @@ enum AdminActionType {
   UPDATE_CONFIG
 }
 
+enum TreasuryDepositStatus {
+  CONFIRMING
+  CONFIRMED
+}
+
+enum TreasuryWithdrawalKind {
+  MANUAL
+  USER_PAYOUT
+}
+
 // ------------------------------------------------------------
 // Core
 // ------------------------------------------------------------
@@ -84,6 +99,12 @@ model User {
   lockedCapital   BigInt    @default(0)
   totalEarned     BigInt    @default(0)
   payoutCap       BigInt    @default(0)
+  accountGranted       Boolean   @default(false)
+  withdrawalUnlocked   Boolean   @default(false)
+  withdrawalRule       Json?
+  unlockDirectVolume   BigInt    @default(0)
+  unlockLevel1Volume   BigInt    @default(0)
+  unlockLevel2Volume   BigInt    @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -113,6 +134,7 @@ model Stake {
   network     Network
   currency    Currency    @default(USDT)
   depositId   String?     @unique
+  source      StakeSource @default(ON_CHAIN)
   status      StakeStatus @default(ACTIVE)
   startedAt   DateTime    @default(now())
   completedAt DateTime?
@@ -136,8 +158,11 @@ model Trade {
   resolvedAt      DateTime?
   result          TradeResult?
   bonusAppliedBps Int          @default(0)
+  capitalSnapshotAtWin BigInt  @default(0)
+  bonusCredited   BigInt       @default(0)
 
   user            User         @relation(fields: [userId], references: [id])
+  commissions     Commission[]
 
   @@index([userId, openedAt])
   @@index([userId, result])
@@ -158,7 +183,7 @@ model DailyYieldRecord {
   user            User         @relation(fields: [userId], references: [id])
   commissions     Commission[]
 
-  @@unique([userId, date])
+  @@index([userId, date])
   @@index([date])
 }
 
@@ -183,15 +208,18 @@ model Commission {
   level           Int
   rateBps         Int
   amount          BigInt
-  sourceYieldId   String
+  sourceYieldId   String?
+  sourceTradeId   String?
   createdAt       DateTime         @default(now())
 
   beneficiary     User             @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
   sourceUser      User             @relation("CommissionSource", fields: [sourceUserId], references: [id])
-  sourceYield     DailyYieldRecord @relation(fields: [sourceYieldId], references: [id])
+  sourceYield     DailyYieldRecord? @relation(fields: [sourceYieldId], references: [id])
+  sourceTrade     Trade?           @relation(fields: [sourceTradeId], references: [id])
 
   @@index([beneficiaryId])
   @@index([sourceUserId])
+  @@index([sourceTradeId])
 }
 
 model Deposit {
@@ -229,6 +257,7 @@ model Withdrawal {
   processedAt DateTime?
 
   user        User             @relation(fields: [userId], references: [id])
+  treasuryPayout TreasuryWithdrawal?
 
   @@index([userId, status])
 }
@@ -262,6 +291,45 @@ model AdminAction {
   @@index([targetUserId])
 }
 
+model TreasuryState {
+  id             Int      @id @default(1)
+  bscBalance     BigInt   @default(0)
+  polygonBalance BigInt   @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model TreasuryDeposit {
+  id                    String                @id @default(uuid())
+  network               Network
+  amount                BigInt
+  txHash                String                @unique
+  confirmations         Int                   @default(0)
+  requiredConfirmations Int
+  status                TreasuryDepositStatus @default(CONFIRMING)
+  recordedBy            String?
+  startedAt             DateTime              @default(now())
+  confirmedAt           DateTime?
+
+  @@index([status, startedAt(sort: Desc)])
+}
+
+model TreasuryWithdrawal {
+  id               String                 @id @default(uuid())
+  network          Network
+  amount           BigInt
+  toAddress        String
+  txHash           String?
+  note             String                 @default("")
+  kind             TreasuryWithdrawalKind @default(MANUAL)
+  userWithdrawalId String?                @unique
+  createdBy        String?
+  createdAt        DateTime               @default(now())
+
+  userWithdrawal   Withdrawal?            @relation(fields: [userWithdrawalId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+}
+
 model AppConfig {
   id                 Int      @id @default(1)
   baseYieldBps       Int      @default(30)
@@ -269,10 +337,10 @@ model AppConfig {
   maxTradesPerDay    Int      @default(7)
   maxDailyYieldBps   Int      @default(100)
   withdrawalFeeBps   Int      @default(400)
-  commissionRatesBps Int[]    @default([700, 300, 200, 100, 100, 50, 50])
+  commissionRatesBps Int[]    @default([2000, 1000, 1000, 1000, 500, 500, 500, 500])
   minStake           BigInt   @default(15000000)
   maxStake           BigInt   @default(100000000000)
-  minWithdrawal      BigInt   @default(10000000)
+  minWithdrawal      BigInt   @default(1000000)
   allowedPairs       String[] @default(["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT", "MATICUSDT"])
   updatedAt          DateTime @updatedAt
 }

@@ -17,8 +17,9 @@ import {
 import { WelcomeModal } from "@/components/user/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import { pushNotification } from "@/lib/notifications/push";
-import { updateCurrentUsername } from "@/lib/api/client";
+import { updateCurrentUsername, ApiError } from "@/lib/api/client";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useSiwe } from "@/lib/hooks/use-siwe";
 import { getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 import {
   markWelcomeSeen,
@@ -26,6 +27,7 @@ import {
   useUserRegistry,
   type UserProfile,
 } from "@/lib/user/store";
+import { normalizeWallet, validateUsername } from "@/lib/user/validation";
 
 interface UsernameSetupDialogProps {
   open: boolean;
@@ -40,7 +42,9 @@ export function UsernameSetupDialog({
 }: UsernameSetupDialogProps) {
   const { t } = useI18n();
   const registerUsername = useUserRegistry((s) => s.registerUsername);
+  const upsertProfileFromServer = useUserRegistry((s) => s.upsertProfileFromServer);
   const backend = useBackendAvailable();
+  const { signIn } = useSiwe();
   const [username, setUsername] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [registeredProfile, setRegisteredProfile] =
@@ -53,30 +57,93 @@ export function UsernameSetupDialog({
     }
   }, [open, wallet]);
 
+  async function saveUsername(trimmed: string) {
+    return updateCurrentUsername(trimmed, getPendingReferralCode());
+  }
+
   async function submit() {
     setSubmitting(true);
-    const result = registerUsername(wallet, username);
-    if (!result.ok) {
+    const trimmed = username.trim();
+    const validationError = validateUsername(trimmed);
+    if (validationError) {
       setSubmitting(false);
-      if (result.error === "TAKEN") {
-        toast.error(t("dashboard.pages.profile.usernameTaken"));
-      } else {
-        toast.error(t("dashboard.pages.profile.usernameInvalid"));
-      }
+      toast.error(t("dashboard.pages.profile.usernameInvalid"));
       return;
     }
 
     if (backend) {
       try {
-        await updateCurrentUsername(
-          result.profile.username,
-          getPendingReferralCode(),
-        );
-      } catch {
-        toast.error(t("errors.signInFailed"));
+        const res = await saveUsername(trimmed);
+        if (!res.user.username) {
+          toast.error(t("dashboard.pages.profile.usernameInvalid"));
+          setSubmitting(false);
+          return;
+        }
+        const profile: UserProfile = {
+          id: res.user.id,
+          wallet: normalizeWallet(res.user.walletAddress),
+          username: res.user.username,
+          joinedAt: Date.now(),
+        };
+        upsertProfileFromServer(profile);
+        syncProfileToAdmin(profile);
+        setSubmitting(false);
+        setRegisteredProfile(profile);
+        return;
+      } catch (err) {
+        if (err instanceof ApiError) {
+          if (err.status === 401) {
+            const signedIn = await signIn();
+            if (signedIn) {
+              try {
+                const retry = await saveUsername(trimmed);
+                if (!retry.user.username) {
+                  toast.error(t("dashboard.pages.profile.usernameInvalid"));
+                  setSubmitting(false);
+                  return;
+                }
+                const profile: UserProfile = {
+                  id: retry.user.id,
+                  wallet: normalizeWallet(retry.user.walletAddress),
+                  username: retry.user.username,
+                  joinedAt: Date.now(),
+                };
+                upsertProfileFromServer(profile);
+                syncProfileToAdmin(profile);
+                setSubmitting(false);
+                setRegisteredProfile(profile);
+                return;
+              } catch {
+                toast.error(t("errors.signInFailed"));
+                setSubmitting(false);
+                return;
+              }
+            }
+            toast.error(t("dashboard.pages.profile.signInRequired"));
+          } else if (err.payload.code === "TAKEN") {
+            toast.error(t("dashboard.pages.profile.usernameTaken"));
+          } else {
+            toast.error(t("dashboard.pages.profile.usernameInvalid"));
+          }
+        } else {
+          toast.error(t("errors.signInFailed"));
+        }
         setSubmitting(false);
         return;
       }
+    }
+
+    const result = registerUsername(wallet, trimmed);
+    if (!result.ok) {
+      setSubmitting(false);
+      if (result.error === "TAKEN") {
+        toast.error(t("dashboard.pages.profile.usernameTaken"));
+      } else if (result.error === "WALLET_REGISTERED") {
+        toast.error(t("dashboard.pages.profile.usernameInvalid"));
+      } else {
+        toast.error(t("dashboard.pages.profile.usernameInvalid"));
+      }
+      return;
     }
 
     syncProfileToAdmin(result.profile);

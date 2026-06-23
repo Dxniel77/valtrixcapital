@@ -11,18 +11,30 @@ import {
 
 import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  BOT_FEED_GRID,
+  CompanyFeedCardHeader,
+  CompanyFeedNetworkBadge,
+  CompanyFeedNumericCell,
+  CompanyFeedPairCell,
+  CompanyFeedRow,
+  CompanyFeedSkeleton,
+  CompanyFeedTableHeader,
+  COMPANY_FEED_LIST_CLASS,
+  formatFeedUsd,
+} from "@/components/dashboard/company-tools/company-tools-feed-table";
 import { useI18n } from "@/lib/i18n/context";
 import {
   useBotStore,
   useBotStoreHydrated,
   useCompanyProfits,
-  botProfitUsd,
+  botTradePnlUsd,
   type BotOperation,
 } from "@/lib/bot/store";
 import { PAIRS } from "@/lib/market/pairs";
 import { useTickers } from "@/lib/market/use-tickers";
-import { cn, formatNumber, networkLabel } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export function BotTradingPanel() {
   const { t } = useI18n();
@@ -88,23 +100,24 @@ export function BotTradingPanel() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t("botPage.feedTitle")}</CardTitle>
-        </CardHeader>
+        <CompanyFeedCardHeader title={t("botPage.feedTitle")} />
         <CardContent>
-          <div className="hidden grid-cols-[1fr_0.7fr_0.9fr_0.9fr_0.8fr_0.7fr_0.6fr] gap-3 border-b border-border-subtle px-3 py-2 text-[10px] uppercase tracking-wider text-text-muted md:grid">
+          <CompanyFeedTableHeader gridClass={BOT_FEED_GRID}>
             <span>{t("botPage.colPair")}</span>
             <span>{t("botPage.colDirection")}</span>
             <span className="text-right">{t("botPage.colPrice")}</span>
             <span className="text-right">{t("botPage.colVolume")}</span>
             <span className="text-right">{t("botPage.colPnl")}</span>
-            <span className="text-right">{t("botPage.colTime")}</span>
             <span className="text-right">{t("botPage.colNetwork")}</span>
-          </div>
+          </CompanyFeedTableHeader>
           {!hydrated ? (
-            <FeedSkeleton />
+            <CompanyFeedSkeleton />
+          ) : operations.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-text-muted">
+              {t("botPage.emptyFeed")}
+            </p>
           ) : (
-            <ul className="divide-y divide-border-subtle">
+            <ul className={COMPANY_FEED_LIST_CLASS}>
               {operations.map((op, idx) => (
                 <BotRow key={op.id} op={op} isNewest={idx === 0} />
               ))}
@@ -112,41 +125,27 @@ export function BotTradingPanel() {
           )}
         </CardContent>
       </Card>
-
-      <div className="space-y-2 rounded-lg border border-border-subtle bg-bg-base/40 px-4 py-3 text-xs text-text-muted">
-        <p>{t("botPage.profitResetHint")}</p>
-        <p>{t("botPage.priceContinuityHint")}</p>
-      </div>
-
-      <p className="text-xs text-text-muted">{t("botPage.disclaimer")}</p>
     </div>
   );
 }
 
-function BotRow({ op, isNewest }: { op: BotOperation; isNewest: boolean }) {
+function BotRow({
+  op,
+  isNewest,
+}: {
+  op: BotOperation;
+  isNewest: boolean;
+}) {
   const { t } = useI18n();
   const pair = PAIRS.find((p) => p.binance === op.pair);
   const up = op.direction === "UP";
-  const profit = botProfitUsd(op);
-  const positive = op.pnlBps >= 0;
+  const pnlUsd = botTradePnlUsd(op);
+  const positive = pnlUsd >= 0;
+  const priceDecimals = pair?.pricePrecision ?? 2;
 
   return (
-    <li
-      className={cn(
-        "grid grid-cols-2 items-center gap-3 px-3 py-2.5 text-sm md:grid-cols-[1fr_0.7fr_0.9fr_0.9fr_0.8fr_0.7fr_0.6fr]",
-        isNewest && "animate-fade-in bg-gold/[0.03]",
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span
-          className="h-6 w-6 shrink-0 rounded-full"
-          style={{ background: `${pair?.color ?? "#888"}33` }}
-          aria-hidden
-        />
-        <span className="font-mono text-text-primary">
-          {pair?.base ?? op.pair.replace("USDT", "")}/USDT
-        </span>
-      </div>
+    <CompanyFeedRow gridClass={BOT_FEED_GRID} isNewest={isNewest}>
+      <CompanyFeedPairCell pair={pair} symbol={op.pair} />
 
       <span
         className={cn(
@@ -158,74 +157,29 @@ function BotRow({ op, isNewest }: { op: BotOperation; isNewest: boolean }) {
         {up ? t("botPage.long") : t("botPage.short")}
       </span>
 
-      <span
-        className="col-span-2 font-mono text-xs text-text-secondary md:col-span-1 md:text-right"
-        title={`${formatNumber(op.entryPrice, { decimals: pair?.pricePrecision ?? 2 })} → ${formatNumber(op.exitPrice, { decimals: pair?.pricePrecision ?? 2 })}`}
+      <CompanyFeedNumericCell
+        title={formatNumber(op.exitPrice, { decimals: priceDecimals })}
       >
-        {formatNumber(op.exitPrice, { decimals: pair?.pricePrecision ?? 2 })}
-      </span>
+        {formatNumber(op.entryPrice, { decimals: priceDecimals })}
+      </CompanyFeedNumericCell>
 
-      <span className="font-mono text-text-secondary md:text-right">
-        ${formatNumber(op.volume, { decimals: 0 })}
-      </span>
+      <CompanyFeedNumericCell>
+        {formatFeedUsd(op.volume, 0)}
+      </CompanyFeedNumericCell>
 
-      <span
-        className={cn(
-          "font-mono md:text-right",
-          positive ? "text-success" : "text-danger",
-        )}
+      <CompanyFeedNumericCell
+        className={positive ? "text-success" : "text-danger"}
       >
         {positive ? "+" : ""}
         {(op.pnlBps / 100).toFixed(2)}%
-        <span className="ml-1 hidden text-text-muted lg:inline">
-          (${formatNumber(profit, { decimals: 0 })})
+        <span className="ml-1.5 text-text-secondary">
+          ({formatFeedUsd(pnlUsd, 2, true)})
         </span>
+      </CompanyFeedNumericCell>
+
+      <span className="hidden md:block md:text-right">
+        <CompanyFeedNetworkBadge network={op.network} />
       </span>
-
-      <span className="hidden font-mono text-xs text-text-muted md:block md:text-right">
-        <RelativeTime ts={op.executedAt} />
-      </span>
-
-      <div className="col-span-2 flex justify-end md:col-span-1">
-        <span
-          className={cn(
-            "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-            op.network === "BSC"
-              ? "bg-warning/15 text-warning"
-              : "bg-info/15 text-info",
-          )}
-        >
-          {networkLabel(op.network)}
-        </span>
-      </div>
-    </li>
-  );
-}
-
-function RelativeTime({ ts }: { ts: number }) {
-  const { t } = useI18n();
-  const [now, setNow] = React.useState(() => Date.now());
-  React.useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  const sec = Math.max(0, Math.floor((now - ts) / 1000));
-  if (sec < 60) return <>{t("botPage.secondsAgo", { n: sec })}</>;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return <>{t("botPage.minutesAgo", { n: min })}</>;
-  const hr = Math.floor(min / 60);
-  return <>{t("botPage.hoursAgo", { n: hr })}</>;
-}
-
-function FeedSkeleton() {
-  return (
-    <ul className="divide-y divide-border-subtle">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <li key={i} className="flex items-center gap-3 px-3 py-3">
-          <div className="h-6 w-6 animate-pulse rounded-full bg-bg-hover" />
-          <div className="h-4 flex-1 animate-pulse rounded bg-bg-hover" />
-        </li>
-      ))}
-    </ul>
+    </CompanyFeedRow>
   );
 }

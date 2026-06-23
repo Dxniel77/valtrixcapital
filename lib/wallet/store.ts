@@ -6,6 +6,8 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { useStakingStore, type StakingNetwork } from "@/lib/staking/store";
 import { getPlatformSettings } from "@/lib/platform/settings-store";
 import { computeWithdrawal } from "./constants";
+import { useTreasuryStore } from "@/lib/admin/treasury-store";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 
 export type WithdrawalStatus =
   | "REQUESTED"
@@ -59,20 +61,6 @@ function makeId(): string {
   return `wd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-function makeTxHash(): string {
-  let out = "0x";
-  const hex = "0123456789abcdef";
-  for (let i = 0; i < 64; i += 1) out += hex[Math.floor(Math.random() * 16)];
-  return out;
-}
-
-/** Simulated dwell time (ms) for each pending status before auto-advancing. */
-const STATUS_DWELL_MS: Partial<Record<WithdrawalStatus, number>> = {
-  REQUESTED: 2_000,
-  REVIEW: 2_000,
-  PROCESSING: 2_000,
-};
-
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
@@ -85,6 +73,11 @@ export const useWalletStore = create<WalletState>()(
         if (breakdown.amount <= 0) return { error: "INVALID_AMOUNT" };
         if (breakdown.amount < minWithdrawalUsdt) return { error: "BELOW_MINIMUM" };
         if (breakdown.amount > available) return { error: "INSUFFICIENT_FUNDS" };
+
+        const poolAvailable = useTreasuryStore.getState().balanceFor(network);
+        if (breakdown.netAmount > poolAvailable) {
+          return { error: "INSUFFICIENT_TREASURY" };
+        }
 
         const now = Date.now();
         const wd: Withdrawal = {
@@ -101,7 +94,6 @@ export const useWalletStore = create<WalletState>()(
           updatedAt: now,
         };
 
-        // Reserve the funds immediately (debit available balance).
         useStakingStore.setState((s) => ({
           earningsBalance: Math.max(0, s.earningsBalance - breakdown.amount),
         }));
@@ -111,32 +103,13 @@ export const useWalletStore = create<WalletState>()(
       },
 
       advanceWithdrawals: () => {
-        const now = Date.now();
-        let changed = false;
-        const withdrawals = get().withdrawals.map((w) => {
-          const idx = WITHDRAWAL_FLOW.indexOf(w.status);
-          if (idx < 0 || w.status === "COMPLETED") return w;
-          const dwell = STATUS_DWELL_MS[w.status];
-          if (dwell == null) return w;
-          if (now - w.updatedAt < dwell) return w;
-          const next = WITHDRAWAL_FLOW[idx + 1];
-          if (!next) return w;
-          changed = true;
-          return {
-            ...w,
-            status: next,
-            updatedAt: now,
-            txHash: next === "COMPLETED" ? makeTxHash() : w.txHash,
-          };
-        });
-        if (changed) set({ withdrawals });
+        /* Payouts require admin confirmation with a real on-chain tx hash. */
       },
 
       rejectWithdrawal: (id, note) => {
         const target = get().withdrawals.find((w) => w.id === id);
         if (!target) return;
         if (target.status === "COMPLETED" || target.status === "REJECTED") return;
-        // Refund the reserved amount back to the available balance.
         useStakingStore.setState((s) => ({
           earningsBalance: s.earningsBalance + target.amount,
         }));
@@ -159,6 +132,11 @@ export const useWalletStore = create<WalletState>()(
           return;
         }
 
+        if (status === "COMPLETED") {
+          const hash = txHash?.trim() || target.txHash?.trim();
+          if (!hash) return;
+        }
+
         const now = Date.now();
         set((s) => ({
           withdrawals: s.withdrawals.map((w) =>
@@ -168,7 +146,7 @@ export const useWalletStore = create<WalletState>()(
                   status,
                   txHash:
                     status === "COMPLETED"
-                      ? txHash?.trim() || w.txHash || makeTxHash()
+                      ? txHash?.trim() || w.txHash
                       : w.txHash,
                   updatedAt: now,
                 }
@@ -190,7 +168,13 @@ export const useWalletStore = create<WalletState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({ withdrawals: s.withdrawals }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly() ? {} : { withdrawals: s.withdrawals },
+      onRehydrateStorage: () => (state) => {
+        if (persistServerOwnedDataOnly() && state) {
+          state.withdrawals = [];
+        }
+      },
     },
   ),
 );
@@ -207,24 +191,5 @@ export function useWalletStoreHydrated(): boolean {
   return hydrated;
 }
 
-import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
-import { allowOfflineSimulation } from "@/lib/runtime-mode";
-
-/** Drives the withdrawal status tracker forward while any are in-flight (local demo only). */
-export function useWithdrawalEngine(): void {
-  const backend = useBackendAvailable();
-  const hydrated = useWalletStoreHydrated();
-  const advance = useWalletStore((s) => s.advanceWithdrawals);
-  const withdrawals = useWalletStore((s) => s.withdrawals);
-
-  const hasPending = withdrawals.some(
-    (w) => w.status !== "COMPLETED" && w.status !== "REJECTED",
-  );
-
-  React.useEffect(() => {
-    if (backend || !allowOfflineSimulation() || !hydrated || !hasPending) return;
-    advance();
-    const id = window.setInterval(advance, 1_500);
-    return () => window.clearInterval(id);
-  }, [backend, hydrated, hasPending, advance]);
-}
+/** No-op: withdrawal progress is driven by admin payout + server sync. */
+export function useWithdrawalEngine(): void {}

@@ -2,7 +2,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { getLocaleOption } from "@/lib/i18n/config";
 import type { DailyYield, InstantCredit } from "@/lib/staking/store";
 import type { CommissionRecord } from "@/lib/referrals/store";
-import { utcDayKey } from "@/lib/trade/store";
+import { utcDayKey } from "@/lib/trade/constants";
 
 export type PosterPeriod = "daily" | "weekly" | "monthly" | "threeMonths";
 
@@ -66,17 +66,19 @@ function slice(
   };
 }
 
+/** Period earnings from credited ledger rows (instant trade-win credits, daily yields, commissions). */
 export function computePeriodEarnings(input: {
   dailyYields: DailyYield[];
   instantCredits: InstantCredit[];
   commissions: CommissionRecord[];
-  /** Today's not-yet-accrued base passive (0.3% only — win bonuses live in instantCredits). */
+  /** Today's not-yet-accrued base passive (0.3% only). */
   todayProjectedYield?: number;
 }): PeriodEarningsDetailed {
   const now = Date.now();
   const today = utcDayKey();
   const startOfToday = new Date();
   startOfToday.setUTCHours(0, 0, 0, 0);
+  const startOfTodayMs = startOfToday.getTime();
 
   const passiveDaily =
     sumYieldsSince(input.dailyYields, today) +
@@ -88,7 +90,7 @@ export function computePeriodEarnings(input: {
     dayKeyDaysAgo(89),
   );
 
-  const opsDaily = sumSinceTimestamp(input.instantCredits, startOfToday.getTime());
+  const opsDaily = sumSinceTimestamp(input.instantCredits, startOfTodayMs);
   const opsWeekly = sumSinceTimestamp(
     input.instantCredits,
     now - 7 * 86_400_000,
@@ -102,7 +104,7 @@ export function computePeriodEarnings(input: {
     now - 90 * 86_400_000,
   );
 
-  const netDaily = sumSinceTimestamp(input.commissions, startOfToday.getTime());
+  const netDaily = sumSinceTimestamp(input.commissions, startOfTodayMs);
   const netWeekly = sumSinceTimestamp(
     input.commissions,
     now - 7 * 86_400_000,
@@ -122,6 +124,24 @@ export function computePeriodEarnings(input: {
     monthly: slice(passiveMonthly, opsMonthly, netMonthly),
     threeMonths: slice(passiveThreeMonths, opsThreeMonths, netThreeMonths),
   };
+}
+
+/** Lifetime credited earnings — same buckets Share uses, full history. */
+export function computeLifetimeCreditedEarnings(input: {
+  dailyYields: DailyYield[];
+  instantCredits: InstantCredit[];
+  networkEarned: number;
+  passiveProjectedToday: number;
+}): EarningsSlice {
+  const base = round(
+    input.dailyYields.reduce((acc, y) => acc + y.creditedAmount, 0) +
+      input.passiveProjectedToday,
+  );
+  const operational = round(
+    input.instantCredits.reduce((acc, c) => acc + c.amount, 0),
+  );
+  const network = round(input.networkEarned);
+  return slice(base, operational, network);
 }
 
 function posterIntlLocale(locale: Locale): string {

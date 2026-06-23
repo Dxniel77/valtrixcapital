@@ -8,10 +8,19 @@ import { useReferralsStore } from "@/lib/referrals/store";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useDebouncedEffect } from "@/lib/hooks/use-debounced-effect";
 import { useDeferredMount } from "@/lib/hooks/use-deferred-mount";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 
-/** Mirrors live user ledger events into the admin movements feed. */
+/** Mirrors live user ledger events into the admin movements feed (offline demo only). */
 export function AdminMovementBridge() {
+  if (!allowOfflineSimulation()) return null;
+
+  return <AdminMovementBridgeInner />;
+}
+
+function AdminMovementBridgeInner() {
   const ready = useDeferredMount(2000);
+  const backend = useBackendAvailable();
   const { address } = useAccount();
   const syncLiveMovements = useAdminStore((s) => s.syncLiveMovements);
 
@@ -25,7 +34,7 @@ export function AdminMovementBridge() {
 
   useDebouncedEffect(
     () => {
-      if (!ready || !address) return;
+      if (!ready || !address || backend) return;
       const wallet = address;
       const movements = [];
 
@@ -113,6 +122,7 @@ export function AdminMovementBridge() {
     [
       ready,
       address,
+      backend,
       syncLiveMovements,
       stakesLen,
       pendingDepositId,

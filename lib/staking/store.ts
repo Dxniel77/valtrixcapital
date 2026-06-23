@@ -4,14 +4,21 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 import { getPlatformSettings } from "@/lib/platform/settings-store";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 import { utcDayKey, type Position } from "@/lib/trade/constants";
 import {
-  PASSIVE_YIELD_DELAY_MS,
+  getPassiveYieldDelayMs,
+  getYieldAccrualIntervalMs,
   PAYOUT_CAP_MULTIPLIER,
   REQUIRED_CONFIRMATIONS,
   STAKE_MAX_USDT,
   STAKE_MIN_USDT,
 } from "@/lib/staking/constants";
+import {
+  countPassivePeriodsDue,
+  MAX_PASSIVE_CATCHUP_PERIODS,
+  passiveCreditUsdtForPeriod,
+} from "@/lib/yield/passive-accrual";
 
 export type StakingNetwork = "BSC" | "POLYGON";
 export type StakeStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "FAILED";
@@ -60,11 +67,11 @@ export interface PendingDeposit {
 }
 
 export {
-  PASSIVE_YIELD_DELAY_MS,
+  getPassiveYieldDelayMs,
   PAYOUT_CAP_MULTIPLIER,
   REQUIRED_CONFIRMATIONS,
-  STAKE_MAX_USDT,
   STAKE_MIN_USDT,
+  STAKE_MAX_USDT,
 } from "@/lib/staking/constants";
 
 export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
@@ -95,6 +102,7 @@ interface StakingState {
     serverDepositId?: string;
   }) => PendingDeposit;
   advanceDepositConfirmation: () => void;
+  setPendingConfirmations: (confirmations: number) => void;
   finalizePendingDeposit: () => Stake | null;
   cancelPendingDeposit: () => void;
 
@@ -177,6 +185,20 @@ export const useStakingStore = create<StakingState>()(
         });
       },
 
+      setPendingConfirmations: (confirmations) => {
+        const pending = get().pendingDeposit;
+        if (!pending) return;
+        set({
+          pendingDeposit: {
+            ...pending,
+            confirmations: Math.min(
+              Math.max(0, confirmations),
+              pending.requiredConfirmations,
+            ),
+          },
+        });
+      },
+
       finalizePendingDeposit: () => {
         const pending = get().pendingDeposit;
         if (!pending) return null;
@@ -200,59 +222,97 @@ export const useStakingStore = create<StakingState>()(
 
       cancelPendingDeposit: () => set({ pendingDeposit: null }),
 
-      catchupAccruals: (positions) => {
-        const today = utcDayKey();
+      catchupAccruals: (_positions) => {
+        const now = Date.now();
+        const intervalMs = getYieldAccrualIntervalMs();
         const state = get();
-        if (state.stakes.length === 0) {
-          if (state.lastAccrualDay !== today) set({ lastAccrualDay: today });
+        const activeStakes = state.stakes.filter((s) => s.status === "ACTIVE");
+        if (activeStakes.length === 0) {
+          set({ lastAccrualDay: utcDayKey() });
           return;
         }
-        const existingDays = new Set(state.dailyYields.map((y) => y.date));
-        const targets = enumerateAccrualDays(state.stakes, today).filter(
-          (d) => !existingDays.has(d),
+
+        const firstEligibleAtMs = Math.min(
+          ...activeStakes.map(
+            (s) => (s.confirmedAt ?? s.createdAt) + getPassiveYieldDelayMs(),
+          ),
         );
-        if (targets.length === 0) {
-          if (state.lastAccrualDay !== today) set({ lastAccrualDay: today });
+        if (now < firstEligibleAtMs) return;
+
+        const lastYield = state.dailyYields.reduce<DailyYield | null>(
+          (latest, row) =>
+            !latest || row.createdAt > latest.createdAt ? row : latest,
+          null,
+        );
+
+        const periodsDue = Math.min(
+          countPassivePeriodsDue({
+            nowMs: now,
+            firstEligibleAtMs,
+            lastAccrualAtMs: lastYield?.createdAt ?? null,
+            intervalMs,
+          }),
+          MAX_PASSIVE_CATCHUP_PERIODS,
+        );
+        if (periodsDue <= 0) {
+          set({ lastAccrualDay: utcDayKey() });
           return;
         }
+
+        const capital = activeStakes
+          .filter((s) => stakeEligibleForPassiveYieldNow(s))
+          .reduce((acc, s) => acc + s.amount, 0);
+        if (capital <= 0) {
+          set({ lastAccrualDay: utcDayKey() });
+          return;
+        }
+
+        const { baseYieldBps } = getPlatformSettings();
+        const periodCredit = passiveCreditUsdtForPeriod(
+          capital,
+          baseYieldBps,
+          intervalMs,
+        );
+        if (periodCredit <= 0) {
+          set({ lastAccrualDay: utcDayKey() });
+          return;
+        }
+
         const newRecords: DailyYield[] = [];
         let earnings = state.earningsBalance;
         let totalEarned = state.totalEarned;
-        for (const date of targets) {
-          const capital = capitalActiveOn(state.stakes, date);
-          if (capital <= 0) continue;
-          const dayPositions = positions.filter(
-            (p) => utcDayKey(p.openedAt) === date && p.status !== "OPEN",
-          );
-          const wins = dayPositions.filter((p) => p.status === "WIN").length;
-          const losses = dayPositions.filter((p) => p.status === "LOSS").length;
-          const rate = computeDailyRate(wins);
-          const rawCredit = (capital * rate.totalRateBps) / 10_000;
+        let lastAccrualAtMs =
+          lastYield?.createdAt ?? firstEligibleAtMs - intervalMs;
+
+        for (let i = 0; i < periodsDue; i += 1) {
           const applied = applyEarningsCredit(
             { stakes: state.stakes, totalEarned },
-            rawCredit,
+            periodCredit,
           );
-          if (applied <= 0) continue;
-          const record: DailyYield = {
+          if (applied <= 0) break;
+
+          lastAccrualAtMs += intervalMs;
+          newRecords.push({
             id: makeId("yld"),
-            date,
+            date: utcDayKey(lastAccrualAtMs),
             capitalSnapshot: capital,
-            baseRateBps: rate.baseRateBps,
-            bonusRateBps: rate.bonusRateBps,
-            totalRateBps: rate.totalRateBps,
-            wins,
-            losses,
+            baseRateBps: baseYieldBps,
+            bonusRateBps: 0,
+            totalRateBps: baseYieldBps,
+            wins: 0,
+            losses: 0,
             creditedAmount: applied,
-            createdAt: Date.now(),
-          };
-          newRecords.push(record);
+            createdAt: lastAccrualAtMs,
+          });
           earnings += applied;
           totalEarned += applied;
         }
+
         if (newRecords.length === 0) {
-          if (state.lastAccrualDay !== today) set({ lastAccrualDay: today });
+          set({ lastAccrualDay: utcDayKey() });
           return;
         }
+
         const merged = [...newRecords, ...state.dailyYields].sort((a, b) =>
           a.date < b.date ? 1 : -1,
         );
@@ -262,7 +322,7 @@ export const useStakingStore = create<StakingState>()(
           earningsBalance: earnings,
           totalEarned,
           stakes: stakesIfCapReached(state.stakes, totalEarned),
-          lastAccrualDay: today,
+          lastAccrualDay: utcDayKey(),
         });
       },
 
@@ -370,17 +430,35 @@ export const useStakingStore = create<StakingState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({
-        stakes: s.stakes,
-        dailyYields: s.dailyYields,
-        instantCredits: s.instantCredits,
-        balanceAdjustments: s.balanceAdjustments,
-        creditedPositionIds: s.creditedPositionIds,
-        earningsBalance: s.earningsBalance,
-        totalEarned: s.totalEarned,
-        pendingDeposit: s.pendingDeposit,
-        lastAccrualDay: s.lastAccrualDay,
-      }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly()
+          ? {}
+          : {
+              stakes: s.stakes,
+              dailyYields: s.dailyYields,
+              instantCredits: s.instantCredits,
+              balanceAdjustments: s.balanceAdjustments,
+              creditedPositionIds: s.creditedPositionIds,
+              earningsBalance: s.earningsBalance,
+              totalEarned: s.totalEarned,
+              lastAccrualDay: s.lastAccrualDay,
+            },
+      version: 3,
+      migrate: (persisted, version) => {
+        if (persistServerOwnedDataOnly()) return initial;
+        const state = persisted as Partial<StakingState>;
+        if (version < 2) {
+          return { ...state, pendingDeposit: null };
+        }
+        return persisted;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.pendingDeposit = null;
+        if (persistServerOwnedDataOnly()) {
+          Object.assign(state, initial);
+        }
+      },
     },
   ),
 );
@@ -419,49 +497,10 @@ function sumStakes(stakes: Stake[]): number {
   return activeCapital(stakes);
 }
 
-function endOfUtcDayMs(dayKey: string): number {
-  const [y, m, d] = dayKey.split("-").map(Number);
-  return Date.UTC(y, m - 1, d, 23, 59, 59, 999);
-}
-
-export function stakeEligibleForPassiveYield(
-  stake: Stake,
-  dayKey: string,
-): boolean {
-  if (stake.status !== "ACTIVE") return false;
-  const confirmed = stake.confirmedAt ?? stake.createdAt;
-  return confirmed + PASSIVE_YIELD_DELAY_MS <= endOfUtcDayMs(dayKey);
-}
-
 export function stakeEligibleForPassiveYieldNow(stake: Stake): boolean {
   if (stake.status !== "ACTIVE") return false;
   const confirmed = stake.confirmedAt ?? stake.createdAt;
-  return confirmed + PASSIVE_YIELD_DELAY_MS <= Date.now();
-}
-
-function enumerateAccrualDays(stakes: Stake[], today: string): string[] {
-  if (stakes.length === 0) return [];
-  const firstEligibleMs = Math.min(
-    ...stakes.map(
-      (s) => (s.confirmedAt ?? s.createdAt) + PASSIVE_YIELD_DELAY_MS,
-    ),
-  );
-  const out: string[] = [];
-  const cursor = new Date(firstEligibleMs);
-  cursor.setUTCHours(0, 0, 0, 0);
-  while (utcDayKey(cursor.getTime()) < today) {
-    out.push(utcDayKey(cursor.getTime()));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return out;
-}
-
-function capitalActiveOn(stakes: Stake[], dayKey: string): number {
-  let total = 0;
-  for (const s of stakes) {
-    if (stakeEligibleForPassiveYield(s, dayKey)) total += s.amount;
-  }
-  return total;
+  return confirmed + getPassiveYieldDelayMs() <= Date.now();
 }
 
 export function computeDailyRate(wins: number): {

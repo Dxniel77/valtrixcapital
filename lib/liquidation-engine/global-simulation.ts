@@ -8,6 +8,7 @@ import {
   slotTimestamp,
   utcDateKey,
 } from "@/lib/company-tools/global-metrics";
+import { liquidationDailyRevenue } from "@/lib/company-tools/engine-daily-budget";
 import { createSeededRng } from "@/lib/company-tools/seeded-rng";
 import { allowSyntheticChainTx } from "@/lib/runtime-mode";
 import type {
@@ -119,52 +120,44 @@ export function buildGlobalLiquidationFeed(
   return events.reverse();
 }
 
-function feeForSlot(
-  slotIndex: number,
-  cadenceMs: number,
-  txPool: LiquidationChainTx[] = [],
-): number {
-  const executedAt = slotTimestamp(slotIndex, cadenceMs);
-  const feeDay = utcDateKey(executedAt);
-  const amountUsdt = settlementAmountForSlot(slotIndex, txPool);
-  return deterministicSettlementFee(amountUsdt, slotIndex, feeDay);
-}
-
 const dailyFeeMemo = new Map<string, number>();
 const dailyTxMemo = new Map<string, number>();
 
-export function globalLiquidationDailyStats(
+function liquidationTxCountForDay(
   dayKey: string,
   cadenceMs: number,
-  now = Date.now(),
-  txPool: LiquidationChainTx[] = [],
-): { fees: number; txs: number } {
+  now: number,
+): number {
   const todayKey = utcDateKey(now);
-  const memoKey = `${dayKey}:${cadenceMs}:${txPool.length}`;
-  if (dayKey < todayKey && dailyFeeMemo.has(memoKey) && dailyTxMemo.has(memoKey)) {
-    return { fees: dailyFeeMemo.get(memoKey)!, txs: dailyTxMemo.get(memoKey)! };
-  }
-
   const bounds = daySlotBounds(dayKey, cadenceMs);
-  if (!bounds) {
-    if (dayKey < todayKey) {
-      dailyFeeMemo.set(memoKey, 0);
-      dailyTxMemo.set(memoKey, 0);
-    }
-    return { fees: 0, txs: 0 };
-  }
+  if (!bounds) return 0;
 
   const launchSlot = launchSlotIndex(cadenceMs);
   const lastSlot =
     dayKey === todayKey
       ? Math.min(bounds.last, slotIndexAt(now, cadenceMs))
       : bounds.last;
-  let fees = 0;
-  let txs = 0;
-  for (let slot = Math.max(bounds.first, launchSlot); slot <= lastSlot; slot += 1) {
-    fees += feeForSlot(slot, cadenceMs, txPool);
-    txs += 1;
+  return Math.max(0, lastSlot - Math.max(bounds.first, launchSlot) + 1);
+}
+
+export function globalLiquidationDailyStats(
+  dayKey: string,
+  cadenceMs: number,
+  now = Date.now(),
+  _txPool: LiquidationChainTx[] = [],
+): { fees: number; txs: number } {
+  const todayKey = utcDateKey(now);
+  const memoKey = `${dayKey}:budget`;
+  if (dayKey < todayKey && dailyFeeMemo.has(memoKey)) {
+    return {
+      fees: dailyFeeMemo.get(memoKey)!,
+      txs: dailyTxMemo.get(memoKey) ?? 0,
+    };
   }
+
+  const fees = liquidationDailyRevenue(dayKey, now);
+  const txs =
+    dayKey === todayKey ? liquidationTxCountForDay(dayKey, cadenceMs, now) : 0;
 
   if (dayKey < todayKey) {
     dailyFeeMemo.set(memoKey, fees);
@@ -206,25 +199,15 @@ export function computeGlobalLiquidationProfits(
 
 export function globalLiquidationMicroAccrual(
   now: number,
-  cadenceMs: number,
-  txPool: LiquidationChainTx[] = [],
+  creditedToday: number,
 ): number {
   const todayKey = utcDateKey(now);
-  const bounds = daySlotBounds(todayKey, cadenceMs);
-  if (!bounds) return 0;
-
-  const currentSlot = slotIndexAt(now, cadenceMs);
-  const launchSlot = launchSlotIndex(cadenceMs);
-  if (currentSlot < launchSlot) return 0;
-
-  const progress = (now % cadenceMs) / cadenceMs;
-  const nextSlot = currentSlot + 1;
-  const nextFee = feeForSlot(nextSlot, cadenceMs, txPool);
-  return nextFee * progress * 0.35;
+  const exact = liquidationDailyRevenue(todayKey, now);
+  return Math.max(0, Math.round((exact - creditedToday) * 100) / 100);
 }
 
 export const LIQUIDATION_CADENCE_MS: Record<LiquidationCadence, number> = {
-  fast: 2_000,
+  fast: 2_500,
   normal: 3_500,
-  slow: 6_000,
+  slow: 5_000,
 };

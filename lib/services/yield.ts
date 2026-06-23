@@ -1,84 +1,63 @@
 import { prisma } from "@/lib/db";
 import { getPlatformConfig } from "@/lib/services/config";
 import { refreshUserPayoutCap } from "@/lib/services/stakes";
+import {
+  backfillMissedReferralCommissions,
+  distributeReferralCommissions,
+} from "@/lib/services/commissions";
+import { commissionableAmountMicro } from "@/lib/services/sponsored-capital";
+import {
+  countPassivePeriodsDue,
+  MAX_PASSIVE_CATCHUP_PERIODS,
+  passiveCreditMicroForPeriod,
+} from "@/lib/yield/passive-accrual";
+import {
+  getPassiveYieldDelayMs,
+  getYieldAccrualIntervalMs,
+} from "@/lib/yield/timing";
 
-const PASSIVE_YIELD_DELAY_MS = 24 * 60 * 60 * 1000;
 const PAYOUT_CAP_MULTIPLIER = 2;
+
+function isRealStake(source: string, depositId: string | null): boolean {
+  return source === "ON_CHAIN" || depositId != null;
+}
+
+type YieldStakeRow = {
+  amount: bigint;
+  source: string;
+  depositId: string | null;
+  startedAt: Date;
+  deposit: { confirmedAt: Date | null } | null;
+  status: string;
+};
+
+/** Company-sponsored leader accounts accrue passive yield only on real deposits. */
+function stakesForPassiveYield(
+  stakes: YieldStakeRow[],
+  accountGranted: boolean,
+): YieldStakeRow[] {
+  if (!accountGranted) return stakes;
+  return stakes.filter((s) => isRealStake(s.source, s.depositId));
+}
 
 function utcDayKey(ts = Date.now()): string {
   return new Date(ts).toISOString().slice(0, 10);
 }
 
-function endOfUtcDayMs(dayKey: string): number {
-  const [y, m, d] = dayKey.split("-").map(Number);
-  return Date.UTC(y, m - 1, d, 23, 59, 59, 999);
+function stakeConfirmedAt(
+  stake: Pick<YieldStakeRow, "startedAt" | "deposit">,
+): number {
+  return (stake.deposit?.confirmedAt ?? stake.startedAt).getTime();
 }
 
-function stakeEligibleForPassiveYield(
-  confirmedAt: Date,
-  dayKey: string,
-): boolean {
-  return confirmedAt.getTime() + PASSIVE_YIELD_DELAY_MS <= endOfUtcDayMs(dayKey);
+function stakeEligibleNow(confirmedAtMs: number, nowMs: number): boolean {
+  return confirmedAtMs + getPassiveYieldDelayMs() <= nowMs;
 }
 
-function enumerateAccrualDays(
-  stakes: Array<{ startedAt: Date; deposit: { confirmedAt: Date | null } | null }>,
-  today: string,
-): string[] {
-  if (stakes.length === 0) return [];
-  const firstEligibleMs = Math.min(
-    ...stakes.map(
-      (s) =>
-        (s.deposit?.confirmedAt ?? s.startedAt).getTime() +
-        PASSIVE_YIELD_DELAY_MS,
-    ),
+function firstPassiveEligibleAtMs(stakes: YieldStakeRow[]): number {
+  return Math.min(
+    ...stakes.map((s) => stakeConfirmedAt(s) + getPassiveYieldDelayMs()),
   );
-  const out: string[] = [];
-  const cursor = new Date(firstEligibleMs);
-  cursor.setUTCHours(0, 0, 0, 0);
-  while (utcDayKey(cursor.getTime()) < today) {
-    out.push(utcDayKey(cursor.getTime()));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return out;
-}
-
-function capitalActiveOn(
-  stakes: Array<{
-    amount: bigint;
-    startedAt: Date;
-    deposit: { confirmedAt: Date | null } | null;
-    status: string;
-  }>,
-  dayKey: string,
-): bigint {
-  let total = 0n;
-  for (const s of stakes) {
-    if (s.status !== "ACTIVE") continue;
-    const confirmed = s.deposit?.confirmedAt ?? s.startedAt;
-    if (stakeEligibleForPassiveYield(confirmed, dayKey)) {
-      total += s.amount;
-    }
-  }
-  return total;
-}
-
-function computeDailyRate(
-  wins: number,
-  config: Awaited<ReturnType<typeof getPlatformConfig>>,
-) {
-  const safeWins = Math.max(0, Math.min(wins, config.maxTradesPerDay));
-  const bonusRateBps = safeWins * config.bonusPerWinBps;
-  const totalRateBps = Math.min(
-    config.baseYieldBps + bonusRateBps,
-    config.maxDailyYieldBps,
-  );
-  return {
-    baseRateBps: config.baseYieldBps,
-    bonusRateBps,
-    totalRateBps,
-    wins: safeWins,
-  };
 }
 
 function applyEarningsCredit(
@@ -97,31 +76,19 @@ export interface YieldRunResult {
   recordsCreated: number;
 }
 
-export async function accrueDailyYieldsForAllUsers(): Promise<YieldRunResult> {
-  const config = await getPlatformConfig();
-  const today = utcDayKey();
-  let usersProcessed = 0;
-  let recordsCreated = 0;
-
-  const users = await prisma.user.findMany({
-    where: { isActive: true },
-    select: { id: true },
-  });
-
-  for (const { id: userId } of users) {
-    const created = await accrueDailyYieldsForUser(userId, config, today);
-    if (created > 0) usersProcessed += 1;
-    recordsCreated += created;
-  }
-
-  return { usersProcessed, recordsCreated };
-}
-
-async function accrueDailyYieldsForUser(
+/**
+ * Credits base passive yield (0.3%) on a rolling interval (default 24h) after the
+ * initial delay from stake/deposit confirmation. Trade-win bonuses (+0.1% each)
+ * are paid instantly as operational credits — not included here.
+ */
+export async function accruePassiveYieldForUser(
   userId: string,
-  config: Awaited<ReturnType<typeof getPlatformConfig>>,
-  today: string,
+  config?: Awaited<ReturnType<typeof getPlatformConfig>>,
 ): Promise<number> {
+  const platformConfig = config ?? (await getPlatformConfig());
+  const intervalMs = getYieldAccrualIntervalMs();
+  const now = Date.now();
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -133,54 +100,70 @@ async function accrueDailyYieldsForUser(
   });
   if (!user || user.stakes.length === 0) return 0;
 
-  const existing = await prisma.dailyYieldRecord.findMany({
-    where: { userId },
-    select: { date: true },
-  });
-  const existingDays = new Set(
-    existing.map((r) => r.date.toISOString().slice(0, 10)),
-  );
+  const passiveStakes = stakesForPassiveYield(user.stakes, user.accountGranted);
+  if (passiveStakes.length === 0) return 0;
 
-  const targets = enumerateAccrualDays(user.stakes, today).filter(
-    (d) => !existingDays.has(d),
+  const firstEligibleAtMs = firstPassiveEligibleAtMs(passiveStakes);
+  if (now < firstEligibleAtMs) return 0;
+
+  const eligibleStakes = passiveStakes.filter((s) =>
+    stakeEligibleNow(stakeConfirmedAt(s), now),
   );
-  if (targets.length === 0) return 0;
+  if (eligibleStakes.length === 0) return 0;
+
+  const capital = eligibleStakes.reduce((acc, s) => acc + s.amount, 0n);
+  if (capital <= 0n) return 0;
+
+  const lastRecord = await prisma.dailyYieldRecord.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+
+  const periodsDue = Math.min(
+    countPassivePeriodsDue({
+      nowMs: now,
+      firstEligibleAtMs,
+      lastAccrualAtMs: lastRecord?.createdAt.getTime() ?? null,
+      intervalMs,
+    }),
+    MAX_PASSIVE_CATCHUP_PERIODS,
+  );
+  if (periodsDue <= 0) return 0;
+
+  const periodCredit = passiveCreditMicroForPeriod(
+    capital,
+    platformConfig.baseYieldBps,
+    intervalMs,
+  );
+  if (periodCredit <= 0n) return 0;
+
+  const payoutCap =
+    user.payoutCap > 0n
+      ? user.payoutCap
+      : user.lockedCapital * BigInt(PAYOUT_CAP_MULTIPLIER);
 
   let recordsCreated = 0;
   let earningsBalance = user.earningsBalance;
   let totalEarned = user.totalEarned;
-  const payoutCap =
-    user.payoutCap > 0n ? user.payoutCap : user.lockedCapital * BigInt(PAYOUT_CAP_MULTIPLIER);
+  let lastAccrualAtMs =
+    lastRecord?.createdAt.getTime() ?? firstEligibleAtMs - intervalMs;
 
-  for (const dateKey of targets) {
-    const capital = capitalActiveOn(user.stakes, dateKey);
-    if (capital <= 0n) continue;
+  for (let i = 0; i < periodsDue; i += 1) {
+    const applied = applyEarningsCredit(totalEarned, payoutCap, periodCredit);
+    if (applied <= 0n) break;
 
-    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
-    const dayEnd = new Date(`${dateKey}T23:59:59.999Z`);
-
-    const trades = await prisma.trade.findMany({
-      where: {
-        userId,
-        openedAt: { gte: dayStart, lte: dayEnd },
-        result: { not: null },
-      },
-      select: { result: true },
-    });
-    const wins = trades.filter((t) => t.result === "WIN").length;
-    const rate = computeDailyRate(wins, config);
-    const rawCredit = (capital * BigInt(rate.totalRateBps)) / 10_000n;
-    const applied = applyEarningsCredit(totalEarned, payoutCap, rawCredit);
-    if (applied <= 0n) continue;
+    lastAccrualAtMs += intervalMs;
+    const recordDate = utcDayKey(lastAccrualAtMs);
 
     const record = await prisma.dailyYieldRecord.create({
       data: {
         userId,
-        date: new Date(`${dateKey}T12:00:00.000Z`),
-        baseRateBps: rate.baseRateBps,
-        winsCount: rate.wins,
-        bonusRateBps: rate.bonusRateBps,
-        totalRateBps: rate.totalRateBps,
+        date: new Date(`${recordDate}T12:00:00.000Z`),
+        baseRateBps: platformConfig.baseYieldBps,
+        winsCount: 0,
+        bonusRateBps: 0,
+        totalRateBps: platformConfig.baseYieldBps,
         capitalSnapshot: capital,
         creditedAmount: applied,
       },
@@ -190,7 +173,16 @@ async function accrueDailyYieldsForUser(
     totalEarned += applied;
     recordsCreated += 1;
 
-    await distributeCommissions(record.id, userId, applied, config.commissionRatesBps);
+    const payableMicro = await commissionableAmountMicro(userId, applied);
+    if (payableMicro > 0n) {
+      await distributeReferralCommissions({
+        sourceUserId: userId,
+        amountMicro: applied,
+        ratesBps: platformConfig.commissionRatesBps,
+        sourceYieldId: record.id,
+        payableMicro,
+      });
+    }
   }
 
   if (recordsCreated > 0) {
@@ -212,61 +204,29 @@ async function accrueDailyYieldsForUser(
   return recordsCreated;
 }
 
-async function distributeCommissions(
-  sourceYieldId: string,
-  sourceUserId: string,
-  yieldMicro: bigint,
-  ratesBps: number[],
-): Promise<void> {
-  let currentId: string | null = sourceUserId;
+export async function accrueDailyYieldsForAllUsers(): Promise<YieldRunResult> {
+  const config = await getPlatformConfig();
+  let usersProcessed = 0;
+  let recordsCreated = 0;
 
-  for (let level = 1; level <= ratesBps.length; level += 1) {
-    if (!currentId) break;
+  const users = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true },
+  });
 
-    const source: { referrerId: string | null } | null =
-      await prisma.user.findUnique({
-        where: { id: currentId },
-        select: { referrerId: true },
-      });
-    const referrerId: string | null = source?.referrerId ?? null;
-    if (!referrerId) break;
-
-    const rateBps = ratesBps[level - 1] ?? 0;
-    if (rateBps <= 0) {
-      currentId = referrerId;
-      continue;
-    }
-
-    const amount = (yieldMicro * BigInt(rateBps)) / 10_000n;
-    if (amount <= 0n) {
-      currentId = referrerId;
-      continue;
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.commission.create({
-        data: {
-          beneficiaryId: referrerId,
-          sourceUserId,
-          level,
-          rateBps,
-          amount,
-          sourceYieldId,
-        },
-      });
-      await tx.user.update({
-        where: { id: referrerId },
-        data: {
-          earningsBalance: { increment: amount },
-          totalEarned: { increment: amount },
-        },
-      });
-    });
-
-    currentId = referrerId;
+  for (const { id: userId } of users) {
+    const created = await accruePassiveYieldForUser(userId, config);
+    if (created > 0) usersProcessed += 1;
+    recordsCreated += created;
   }
+
+  return { usersProcessed, recordsCreated };
 }
 
-export async function runDailyYieldCron(): Promise<YieldRunResult> {
-  return accrueDailyYieldsForAllUsers();
+export async function runDailyYieldCron(): Promise<
+  YieldRunResult & { yieldsBackfilled: number; tradesBackfilled: number }
+> {
+  const result = await accrueDailyYieldsForAllUsers();
+  const backfill = await backfillMissedReferralCommissions();
+  return { ...result, ...backfill };
 }

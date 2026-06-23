@@ -57,6 +57,40 @@ export async function POST(req: Request) {
   const url = new URL(req.url);
   const adminAction = url.searchParams.get("admin");
 
+  if (adminAction === "retry-payout") {
+    const auth = await requireAdminSession();
+    if (auth.error) return auth.error;
+    if (!(await isDatabaseAvailable())) {
+      return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    }
+
+    let body: { withdrawalId?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+    }
+    if (!body.withdrawalId) {
+      return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+    }
+
+    try {
+      const { processAutomaticWithdrawalPayout } = await import(
+        "@/lib/services/withdrawal-payout"
+      );
+      const { txHash } = await processAutomaticWithdrawalPayout(body.withdrawalId);
+      return NextResponse.json({ ok: true, txHash });
+    } catch (err) {
+      if (err instanceof WithdrawalServiceError) {
+        return NextResponse.json(
+          { error: err.message, code: err.code },
+          { status: err.code === "PAYOUT_FAILED" ? 502 : 400 },
+        );
+      }
+      throw err;
+    }
+  }
+
   if (adminAction === "status") {
     const auth = await requireAdminSession();
     if (auth.error) return auth.error;
@@ -88,7 +122,14 @@ export async function POST(req: Request) {
       if (err instanceof WithdrawalServiceError) {
         return NextResponse.json(
           { error: err.message, code: err.code },
-          { status: err.code === "NOT_FOUND" ? 404 : 400 },
+          {
+            status:
+              err.code === "NOT_FOUND"
+                ? 404
+                : err.code === "INSUFFICIENT_TREASURY"
+                  ? 409
+                  : 400,
+          },
         );
       }
       throw err;
@@ -111,6 +152,16 @@ export async function POST(req: Request) {
 
   const config = await readConfig();
 
+  if (parsed.amount < config.minWithdrawal) {
+    return NextResponse.json(
+      {
+        error: `Minimum withdrawal is ${config.minWithdrawal} USDT`,
+        code: "BELOW_MINIMUM",
+      },
+      { status: 400 },
+    );
+  }
+
   try {
     const withdrawal = await createWithdrawal({
       userId: auth.session.dbUserId,
@@ -121,15 +172,21 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, withdrawal });
   } catch (err) {
-    if (err instanceof WithdrawalServiceError) {
-      const status =
-        err.code === "INSUFFICIENT_BALANCE"
-          ? 409
-          : err.code === "INACTIVE"
-            ? 403
-            : 400;
-      return NextResponse.json({ error: err.message, code: err.code }, { status });
-    }
+      if (err instanceof WithdrawalServiceError) {
+        const status =
+          err.code === "INSUFFICIENT_BALANCE"
+            ? 409
+            : err.code === "INSUFFICIENT_TREASURY"
+              ? 409
+              : err.code === "PAYOUT_FAILED"
+                ? 502
+              : err.code === "INACTIVE"
+                ? 403
+                : err.code === "WITHDRAWAL_LOCKED"
+                  ? 403
+                : 400;
+        return NextResponse.json({ error: err.message, code: err.code }, { status });
+      }
     throw err;
   }
 }

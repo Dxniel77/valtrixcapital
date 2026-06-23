@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Layers,
   Lock,
-  Sparkles,
   TrendingUp,
   Unlock,
   Wallet as WalletIcon,
@@ -145,21 +144,17 @@ function EmptyState() {
       <div className="absolute inset-0 -z-10 bg-hero-radial opacity-40" />
       <div className="absolute inset-0 -z-10 grid-bg opacity-30" />
       <div className="max-w-2xl">
-        <Badge variant="gold" className="mb-4">
-          <Sparkles className="h-3 w-3" />
-          {t("staking.portfolio.emptyBadge")}
-        </Badge>
         <h2 className="font-display text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
           {t("staking.portfolio.emptyTitle")}
         </h2>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-text-secondary md:text-base">
           {t("staking.portfolio.emptyDesc")}
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <StartStakingCTA size="lg" />
+        <div className="mt-6 flex flex-col gap-4">
+          <StartStakingCTA size="lg" className="self-start" />
           <Link
             href="/dashboard/trade"
-            className="text-sm text-text-secondary underline-offset-4 hover:text-gold hover:underline"
+            className="block max-w-xl whitespace-pre-line text-sm leading-relaxed text-text-secondary underline-offset-4 hover:text-gold hover:underline"
           >
             {t("staking.portfolio.emptyOrTrade")}
           </Link>

@@ -26,8 +26,13 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminMovementBridge } from "@/components/admin/admin-movement-bridge";
-import { useAdminSeed } from "@/lib/admin/store";
+import { useAdminSeed, useAdminStore } from "@/lib/admin/store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { useAdminUsersSync } from "@/lib/hooks/use-admin-users-sync";
+import { usePlatformConfigSync } from "@/lib/hooks/use-platform-config-sync";
+import { useAdminMovementsSync } from "@/lib/hooks/use-admin-movements-sync";
+import { useAdminAuditSync } from "@/lib/hooks/use-admin-audit-sync";
+import { useTreasurySync } from "@/lib/hooks/use-treasury-sync";
 
 export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
@@ -47,8 +52,14 @@ export const adminNavItems = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const backend = useBackendAvailable();
+  const liveDataSynced = useAdminStore((s) => s.liveDataSynced);
   useAdminSeed();
   useAdminUsersSync();
+  usePlatformConfigSync();
+  useAdminMovementsSync();
+  useAdminAuditSync();
+  useTreasurySync();
 
   return (
     <div className="flex min-h-screen bg-bg-base">
@@ -115,7 +126,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </span>
           </div>
           <div className="hidden md:block">
-            <span className="text-sm text-text-muted">{t("admin.headerNote")}</span>
+            <span className="text-sm text-text-muted">
+              {backend && liveDataSynced
+                ? t("admin.headerLive")
+                : backend
+                  ? t("admin.headerSyncing")
+                  : t("admin.headerOffline")}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSelector className="hidden sm:inline-flex" />

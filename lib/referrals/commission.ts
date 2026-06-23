@@ -23,6 +23,7 @@ export function simulateDownlineDailyYield(capital: number, seed: number): numbe
 
 export function buildLevelStats(
   members: DownlineMember[],
+  ratesBps = getPlatformSettings().commissionRatesBps,
 ): ReferralLevelStats[] {
   const stats: ReferralLevelStats[] = [];
   for (let level = 1; level <= REFERRAL_LEVELS; level += 1) {
@@ -30,7 +31,7 @@ export function buildLevelStats(
     const active = atLevel.filter((m) => m.isActive);
     stats.push({
       level,
-      rateBps: rateBpsForLevel(level),
+      rateBps: ratesBps[level - 1] ?? 0,
       total: atLevel.length,
       active: active.length,
       earned: atLevel.reduce((s, m) => s + m.commissionsPaidToYou, 0),

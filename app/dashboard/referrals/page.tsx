@@ -13,32 +13,32 @@ import { ShareButtons } from "@/components/referrals/share-buttons";
 import { NetworkMembersPanel } from "@/components/referrals/network-members-panel";
 import { useI18n } from "@/lib/i18n/context";
 import {
-  referralLink,
   useReferralLevelStats,
   useReferralsStore,
   useReferralsStoreHydrated,
 } from "@/lib/referrals/store";
+import { useReferralInvite } from "@/lib/referrals/use-referral-invite";
 import { useMyReferrer } from "@/lib/referrals/use-my-referrer";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useReferralsServerLoaded } from "@/lib/hooks/use-referrals-sync";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 
 export default function ReferralsPage() {
   const { t } = useI18n();
   const { address } = useAccount();
   const hydrated = useReferralsStoreHydrated();
+  const backend = useBackendAvailable();
+  const networkLoaded = useReferralsServerLoaded();
 
-  const ensureCode = useReferralsStore((s) => s.ensureCode);
-  const code = useReferralsStore((s) => s.referralCode);
   const commissions = useReferralsStore((s) => s.commissions);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const downline = useReferralsStore((s) => s.downline);
   const levelStats = useReferralLevelStats();
   const myReferrer = useMyReferrer();
+  const invite = useReferralInvite(address);
 
-  React.useEffect(() => {
-    if (hydrated) ensureCode(address);
-  }, [hydrated, address, ensureCode]);
-
-  const link = code ? referralLink(code) : "";
+  const link = invite.eligible ? invite.link : "";
+  const code = invite.eligible ? invite.code : null;
   const totalMembers = downline.length;
   const activeMembers = downline.filter((m) => m.isActive).length;
   const directReferrals = downline.filter((m) => m.level === 1).length;
@@ -107,13 +107,23 @@ export default function ReferralsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <InviteCard link={link} code={code} hydrated={hydrated} />
+        <InviteCard
+          link={link}
+          code={code}
+          hydrated={hydrated}
+          loading={invite.loading}
+          eligible={invite.eligible}
+        />
         <LevelsCard levelStats={levelStats} />
       </div>
 
       <CommissionLedgerCard commissions={commissions} />
 
-      <NetworkMembersPanel members={downline} levelStats={levelStats} />
+      <NetworkMembersPanel
+        members={downline}
+        levelStats={levelStats}
+        loading={backend && hydrated && !networkLoaded}
+      />
     </div>
   );
 }
@@ -122,60 +132,83 @@ function InviteCard({
   link,
   code,
   hydrated,
+  loading,
+  eligible,
 }: {
   link: string;
   code: string | null;
   hydrated: boolean;
+  loading: boolean;
+  eligible: boolean;
 }) {
   const { t } = useI18n();
+  const showInvite = hydrated && !loading && eligible;
+
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
         <CardTitle>{t("referralsPage.inviteTitle")}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="flex shrink-0 flex-col items-center gap-2">
-            <div className="rounded-xl border border-border-subtle bg-white p-3">
-              {hydrated && link ? (
-                <QRCodeSVG
-                  value={link}
-                  size={132}
-                  bgColor="#ffffff"
-                  fgColor="#0A0A0F"
-                  level="M"
-                />
-              ) : (
-                <div className="h-[132px] w-[132px] animate-pulse rounded bg-bg-hover" />
-              )}
-            </div>
-            <span className="text-xs text-text-muted">
-              {t("referralsPage.scanToJoin")}
-            </span>
+        {!showInvite ? (
+          <div className="rounded-lg border border-dashed border-border-subtle bg-bg-base/40 px-4 py-8 text-center">
+            {loading || !hydrated ? (
+              <div className="mx-auto h-4 w-48 animate-pulse rounded bg-bg-hover" />
+            ) : (
+              <>
+                <p className="text-sm font-medium text-text-primary">
+                  {t("referralsPage.linkDisabledTitle")}
+                </p>
+                <p className="mt-2 text-sm text-text-muted">
+                  {t("referralsPage.linkDisabledHint")}
+                </p>
+              </>
+            )}
           </div>
+        ) : (
+          <div className="flex flex-col gap-6 sm:flex-row">
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <div className="rounded-xl border border-border-subtle bg-white p-3">
+                {link ? (
+                  <QRCodeSVG
+                    value={link}
+                    size={132}
+                    bgColor="#ffffff"
+                    fgColor="#0A0A0F"
+                    level="M"
+                  />
+                ) : (
+                  <div className="h-[132px] w-[132px] animate-pulse rounded bg-bg-hover" />
+                )}
+              </div>
+              <span className="text-xs text-text-muted">
+                {t("referralsPage.scanToJoin")}
+              </span>
+            </div>
 
-          <div className="min-w-0 flex-1 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
-                {t("referralsPage.yourCode")}
-              </label>
-              <div className="flex h-11 items-center rounded-md border border-border-subtle bg-bg-base px-3 font-mono text-lg text-gold">
-                {hydrated ? (code ?? "—") : "—"}
+            <div className="min-w-0 flex-1 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
+                  {t("referralsPage.yourCode")}
+                </label>
+                <div className="flex h-11 items-center rounded-md border border-border-subtle bg-bg-base px-3 font-mono text-lg text-gold">
+                  {code ?? "—"}
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
-                {t("referralsPage.yourLink")}
-              </label>
-              <div className="flex h-11 items-center overflow-hidden rounded-md border border-border-subtle bg-bg-base px-3">
-                <span className="truncate font-mono text-sm text-text-secondary">
-                  {hydrated && link ? link : "…"}
-                </span>
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-text-muted">
+                  {t("referralsPage.yourLink")}
+                </label>
+                <div className="flex h-11 items-center overflow-hidden rounded-md border border-border-subtle bg-bg-base px-3">
+                  <span className="truncate font-mono text-sm text-text-secondary">
+                    {link || "…"}
+                  </span>
+                </div>
               </div>
+              <ShareButtons link={link} disabled={!link} />
             </div>
-            <ShareButtons link={link} />
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -62,6 +62,16 @@ export async function fetchCurrentUser() {
       registrationSource: "referral" | "direct";
       referrerWallet: string | null;
       referrerUsername: string | null;
+      directReferrals: number;
+      role: "USER" | "ADMIN";
+      accountGranted: boolean;
+      withdrawalUnlocked: boolean;
+      withdrawalRule: import("@/lib/admin/withdrawal-eligibility").WithdrawalRule | null;
+      realCapital: number;
+      companyCapital: number;
+      directSalesVolume: number;
+      levelVolumes: number[];
+      createdAt: string;
     } | null;
   }>("/api/users/me");
 }
@@ -118,6 +128,21 @@ export async function adminAdjustBalance(
   });
 }
 
+export async function adminSetUserActive(userId: string, isActive: boolean) {
+  return apiFetch<{
+    ok: true;
+    user: {
+      id: string;
+      walletAddress: string;
+      username: string | null;
+      isActive: boolean;
+    };
+  }>(`/api/admin/users/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  });
+}
+
 export async function fetchAdminUsers() {
   return apiFetch<{
     backend: boolean;
@@ -134,6 +159,18 @@ export async function fetchAdminUsers() {
       referrerWallet: string | null;
       referrerUsername: string | null;
       directReferrals: number;
+      accountGranted: boolean;
+      withdrawalUnlocked: boolean;
+      withdrawalRule: {
+        mode: "direct_sales" | "network_levels" | "either";
+        directSalesMin: number;
+        level1VolumeMin: number;
+        level2VolumeMin: number;
+      } | null;
+      realCapital: number;
+      companyCapital: number;
+      directSalesVolume: number;
+      levelVolumes: number[];
       createdAt: string;
     }>;
   }>("/api/admin/users");
@@ -153,6 +190,35 @@ export async function fetchAdminMovements(limit = 500) {
       note?: string;
     }>;
   }>(`/api/admin/movements?limit=${limit}`);
+}
+
+export async function fetchAdminReportsSummary(from: string, to: string) {
+  return apiFetch<{
+    ok: true;
+    fromMs: number;
+    toMs: number;
+    summary: {
+      inflow: number;
+      outflow: number;
+      net: number;
+      pendingOutflow: number;
+      depositCount: number;
+      withdrawalCount: number;
+      yieldPaid: number;
+      tradeBonusPaid: number;
+      referralCommissionPaid: number;
+      withdrawalFeesEarned: number;
+      withdrawalFees: Array<{
+        id: string;
+        wallet: string;
+        gross: number;
+        fee: number;
+        net: number;
+        network: string;
+        processedAt: number;
+      }>;
+    };
+  }>(`/api/admin/reports/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
 }
 
 export async function fetchUserTrades() {
@@ -277,10 +343,33 @@ export async function createWithdrawalRequest(input: {
   amount: number;
   toAddress: string;
 }) {
-  return apiFetch<{ ok: true; withdrawal: unknown }>("/api/withdrawals", {
+  return apiFetch<{
+    ok: true;
+    withdrawal: {
+      id: string;
+      network: "BSC" | "POLYGON";
+      amount: number;
+      fee: number;
+      netAmount: number;
+      toAddress: string;
+      status: string;
+      txHash: string | null;
+      requestedAt: string;
+      processedAt: string | null;
+    };
+  }>("/api/withdrawals", {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export async function fetchTreasuryLiquidity() {
+  return apiFetch<{
+    backend: boolean;
+    bscBalance: number;
+    polygonBalance: number;
+    totalBalance: number;
+  }>("/api/treasury/liquidity");
 }
 
 export async function registerDepositRequest(input: {
@@ -297,6 +386,52 @@ export async function registerDepositRequest(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export async function claimDepositByTxHash(input: {
+  network: "BSC" | "POLYGON";
+  txHash: string;
+}) {
+  return apiFetch<{ ok: true; deposit: unknown }>("/api/deposits/claim", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function fetchReferralSnapshot() {
+  return apiFetch<{
+    backend: boolean;
+    snapshot: {
+      downline: Array<{
+        id: string;
+        level: number;
+        wallet: string;
+        displayName: string;
+        isActive: boolean;
+        capital: number;
+        realCapital: number;
+        realDepositVolume: number;
+        accountGranted: boolean;
+        joinedAt: number;
+        commissionsPaidToYou: number;
+        directReferrals: number;
+        networkReferrals: number;
+        totalEarned: number;
+      }>;
+      commissions: Array<{
+        id: string;
+        level: number;
+        sourceWallet: string;
+        sourceYieldId: string | null;
+        sourceTradeId: string | null;
+        yieldDate: string;
+        rateBps: number;
+        amount: number;
+        createdAt: number;
+      }>;
+      totalCommissions: number;
+    } | null;
+  }>("/api/referrals/me");
 }
 
 export async function fetchPendingWithdrawals() {
@@ -331,6 +466,16 @@ export async function adminUpdateWithdrawalStatus(input: {
   );
 }
 
+export async function adminRetryWithdrawalPayout(withdrawalId: string) {
+  return apiFetch<{ ok: true; txHash: string }>(
+    "/api/withdrawals?admin=retry-payout",
+    {
+      method: "POST",
+      body: JSON.stringify({ withdrawalId }),
+    },
+  );
+}
+
 export async function fetchPlatformConfig() {
   return apiFetch<{
     backend: boolean;
@@ -345,6 +490,204 @@ export async function fetchPlatformConfig() {
       maxStake: number;
       minWithdrawal: number;
       allowedPairs: string[];
+      updatedAt?: string;
     } | null;
   }>("/api/config/platform");
+}
+
+export async function updatePlatformConfig(
+  patch: Partial<{
+    baseYieldBps: number;
+    bonusPerWinBps: number;
+    maxTradesPerDay: number;
+    maxDailyYieldBps: number;
+    withdrawalFeeBps: number;
+    commissionRatesBps: number[];
+    minStake: number;
+    maxStake: number;
+    minWithdrawal: number;
+    allowedPairs: string[];
+  }>,
+) {
+  return apiFetch<{
+    ok: true;
+    config: NonNullable<Awaited<ReturnType<typeof fetchPlatformConfig>>["config"]>;
+  }>("/api/config/platform", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function adminUpdateUserReferrer(
+  userId: string,
+  referrerQuery: string | null,
+) {
+  return apiFetch<{
+    ok: true;
+    user: {
+      id: string;
+      walletAddress: string;
+      referrerWallet: string | null;
+      referrerUsername: string | null;
+      registrationSource: "referral" | "direct";
+    };
+  }>(`/api/admin/users/${userId}/referrer`, {
+    method: "PATCH",
+    body: JSON.stringify({ referrerQuery }),
+  });
+}
+
+export async function adminProvisionUser(input: {
+  walletAddress: string;
+  username?: string | null;
+  referrerWallet?: string | null;
+  withdrawalRule?: {
+    mode: "direct_sales" | "network_levels" | "either";
+    directSalesMin: number;
+    level1VolumeMin: number;
+    level2VolumeMin: number;
+  };
+  initialActiveCapital?: number;
+}) {
+  return apiFetch<{
+    ok: true;
+    user: {
+      id: string;
+      walletAddress: string;
+      username: string | null;
+      referrerWallet: string | null;
+    };
+  }>("/api/admin/users/provision", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function fetchAdminAudit(limit = 200) {
+  return apiFetch<{
+    backend: boolean;
+    audit: Array<{
+      id: string;
+      action: string;
+      payload: unknown;
+      actor: string;
+      target: string | null;
+      timestamp: number;
+    }>;
+  }>(`/api/admin/audit?limit=${limit}`);
+}
+
+export async function fetchAdminTreasury() {
+  return apiFetch<{
+    backend: boolean;
+    treasury: {
+      balances: {
+        bscBalance: number;
+        polygonBalance: number;
+        totalBalance: number;
+      };
+      totals: {
+        adminDeposited: number;
+        paidOut: number;
+      };
+      deposits: Array<{
+        id: string;
+        network: "BSC" | "POLYGON";
+        amount: number;
+        txHash: string;
+        confirmations: number;
+        requiredConfirmations: number;
+        status: "CONFIRMING" | "CONFIRMED";
+        startedAt: string;
+        confirmedAt: string | null;
+      }>;
+      withdrawals: Array<{
+        id: string;
+        network: "BSC" | "POLYGON";
+        amount: number;
+        toAddress: string;
+        txHash: string | null;
+        note: string;
+        kind: "MANUAL" | "USER_PAYOUT";
+        userWithdrawalId: string | null;
+        createdAt: string;
+      }>;
+    } | null;
+  }>("/api/admin/treasury");
+}
+
+export async function adminCreateTreasuryDeposit(input: {
+  network: "BSC" | "POLYGON";
+  amount: number;
+  txHash: string;
+  requiredConfirmations: number;
+  status?: "CONFIRMING" | "CONFIRMED";
+  confirmations?: number;
+}) {
+  return apiFetch<{
+    ok: true;
+    deposit: {
+      id: string;
+      network: "BSC" | "POLYGON";
+      amount: number;
+      txHash: string;
+      confirmations: number;
+      requiredConfirmations: number;
+      status: "CONFIRMING" | "CONFIRMED";
+      startedAt: string;
+      confirmedAt: string | null;
+    };
+  }>("/api/admin/treasury/deposits", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function adminUpdateTreasuryDeposit(
+  depositId: string,
+  input: { confirmations?: number; confirm?: boolean },
+) {
+  return apiFetch<{
+    ok: true;
+    deposit: {
+      id: string;
+      network: "BSC" | "POLYGON";
+      amount: number;
+      txHash: string;
+      confirmations: number;
+      requiredConfirmations: number;
+      status: "CONFIRMING" | "CONFIRMED";
+      startedAt: string;
+      confirmedAt: string | null;
+    };
+  }>(`/api/admin/treasury/deposits/${depositId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function adminRecordTreasuryWithdrawal(input: {
+  network: "BSC" | "POLYGON";
+  amount: number;
+  toAddress: string;
+  txHash?: string;
+  note?: string;
+}) {
+  return apiFetch<{
+    ok: true;
+    withdrawal: {
+      id: string;
+      network: "BSC" | "POLYGON";
+      amount: number;
+      toAddress: string;
+      txHash: string | null;
+      note: string;
+      kind: "MANUAL" | "USER_PAYOUT";
+      userWithdrawalId: string | null;
+      createdAt: string;
+    };
+  }>("/api/admin/treasury/withdrawals", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

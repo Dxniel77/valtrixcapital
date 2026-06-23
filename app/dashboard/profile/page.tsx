@@ -117,7 +117,7 @@ export default function ProfilePage() {
                   {t("dashboard.overview.adminPanel")}
                 </p>
                 <p className="text-xs text-text-secondary">
-                  {t("admin.headerNote")}
+                  {t("admin.headerLive")}
                 </p>
               </div>
             </div>

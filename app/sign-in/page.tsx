@@ -13,7 +13,8 @@ import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
 import { useUserRegistry } from "@/lib/user/store";
-import { setPendingReferralCode } from "@/lib/referrals/pending-sponsor";
+import { setPendingReferralCode, clearPendingReferralCode } from "@/lib/referrals/pending-sponsor";
+import { validateReferralCode } from "@/lib/referrals/validate-client";
 import { startNavigationProgress } from "@/lib/navigation/progress-events";
 import { ShieldCheck, Wallet, KeyRound, UserRound, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
@@ -30,9 +31,27 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
   const refCode = searchParams.get("ref");
+  const [refNotice, setRefNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (refCode) setPendingReferralCode(refCode);
+    if (!refCode) {
+      setRefNotice(null);
+      return;
+    }
+
+    void validateReferralCode(refCode).then((status) => {
+      if (status.eligible) {
+        setPendingReferralCode(refCode);
+        setRefNotice(null);
+        return;
+      }
+      clearPendingReferralCode();
+      setRefNotice(
+        status.reason === "not_found"
+          ? "signIn.refInvalid"
+          : "signIn.refInactive",
+      );
+    });
   }, [refCode]);
 
   const { t } = useI18n();
@@ -86,6 +105,11 @@ export default function SignInPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
+            {refNotice ? (
+              <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                {t(refNotice)}
+              </div>
+            ) : null}
             <WalletConnectNotice />
             <p className="text-xs text-text-muted">{t("walletConnect.mobileHint")}</p>
             <Step

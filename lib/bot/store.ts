@@ -10,11 +10,12 @@ import {
   BOT_CADENCE_MS,
   botProfitUsd,
   buildGlobalBotFeed,
-  computeGlobalBotProfits,
 } from "@/lib/bot/global-simulation";
+import { useEngineBotProfits } from "@/lib/company-tools/engine-profit-store";
 import { LIVE_FEED_WINDOW_MS, liveFeedSlotCount } from "@/lib/company-tools/global-metrics";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 
-export { botProfitUsd } from "@/lib/bot/global-simulation";
+export { botProfitUsd, botTradePnlUsd } from "@/lib/bot/global-simulation";
 
 export type BotNetwork = "BSC" | "POLYGON";
 export type BotDirection = "UP" | "DOWN";
@@ -599,14 +600,21 @@ export const useBotStore = create<BotState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({
-        cadence: s.cadence,
-        running: s.running,
-        recentTxPool: s.recentTxPool,
-        recentTxPoolUpdatedAt: s.recentTxPoolUpdatedAt,
-      }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly()
+          ? {}
+          : {
+              cadence: s.cadence,
+              running: s.running,
+              recentTxPool: s.recentTxPool,
+              recentTxPoolUpdatedAt: s.recentTxPoolUpdatedAt,
+            },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        if (persistServerOwnedDataOnly()) {
+          Object.assign(state, initial);
+          return;
+        }
         state.running = true;
         state.operations = [];
         state.dailyProfits = {};
@@ -652,29 +660,7 @@ export function useBotStoreHydrated(): boolean {
 
 /** Company profit — identical for every user (UTC slot ledger). */
 export function useCompanyProfits() {
-  const cadence = useBotStore((s) => s.cadence);
-  const [profits, setProfits] = React.useState(() =>
-    computeGlobalBotProfits(Date.now(), BOT_CADENCE_MS[cadence]),
-  );
-
-  React.useEffect(() => {
-    const ms = BOT_CADENCE_MS[cadence];
-    const tick = () => {
-      const next = computeGlobalBotProfits(Date.now(), ms);
-      setProfits((prev) =>
-        prev.today === next.today &&
-        prev.week === next.week &&
-        prev.allTime === next.allTime
-          ? prev
-          : next,
-      );
-    };
-    tick();
-    const id = window.setInterval(tick, 3_000);
-    return () => window.clearInterval(id);
-  }, [cadence]);
-
-  return profits;
+  return useEngineBotProfits();
 }
 
 export function useBotFeedEngine(): void {

@@ -1,6 +1,17 @@
 import type { Network } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getPlatformConfig } from "@/lib/services/config";
 import { fromMicro, toMicro } from "@/lib/utils";
+import {
+  assertTreasuryLiquidityForPayout,
+  deductTreasuryForUserPayoutInTx,
+  TreasuryServiceError,
+} from "@/lib/services/treasury";
+import {
+  processAutomaticWithdrawalPayout,
+  rejectWithdrawalAfterFailedPayout,
+  WithdrawalPayoutError,
+} from "@/lib/services/withdrawal-payout";
 
 export class WithdrawalServiceError extends Error {
   constructor(
@@ -9,7 +20,10 @@ export class WithdrawalServiceError extends Error {
       | "NOT_FOUND"
       | "INVALID_AMOUNT"
       | "INSUFFICIENT_BALANCE"
-      | "INACTIVE",
+      | "INACTIVE"
+      | "INSUFFICIENT_TREASURY"
+      | "PAYOUT_FAILED"
+      | "WITHDRAWAL_LOCKED",
   ) {
     super(message);
     this.name = "WithdrawalServiceError";
@@ -69,6 +83,20 @@ export async function createWithdrawal(input: {
   const user = await prisma.user.findUnique({ where: { id: input.userId } });
   if (!user) throw new WithdrawalServiceError("User not found", "NOT_FOUND");
   if (!user.isActive) throw new WithdrawalServiceError("Account inactive", "INACTIVE");
+  if (user.accountGranted && !user.withdrawalUnlocked) {
+    throw new WithdrawalServiceError(
+      "Withdrawals locked until requirements are met",
+      "WITHDRAWAL_LOCKED",
+    );
+  }
+
+  const config = await getPlatformConfig();
+  if (input.amount < config.minWithdrawal) {
+    throw new WithdrawalServiceError(
+      `Minimum withdrawal is ${config.minWithdrawal} USDT`,
+      "INVALID_AMOUNT",
+    );
+  }
 
   const amountMicro = toMicro(input.amount);
   const feeMicro = (amountMicro * BigInt(input.feeBps)) / 10_000n;
@@ -76,6 +104,22 @@ export async function createWithdrawal(input: {
 
   if (user.earningsBalance < amountMicro) {
     throw new WithdrawalServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
+  }
+
+  const netAmount = fromMicro(netMicro);
+  try {
+    await assertTreasuryLiquidityForPayout(input.network, netAmount);
+  } catch (err) {
+    if (
+      err instanceof TreasuryServiceError &&
+      err.code === "INSUFFICIENT_FUNDS"
+    ) {
+      throw new WithdrawalServiceError(
+        "Insufficient treasury liquidity for payout",
+        "INSUFFICIENT_TREASURY",
+      );
+    }
+    throw err;
   }
 
   const created = await prisma.$transaction(async (tx) => {
@@ -97,7 +141,26 @@ export async function createWithdrawal(input: {
     });
   });
 
-  return serializeWithdrawal(created);
+  try {
+    await processAutomaticWithdrawalPayout(created.id);
+  } catch (err) {
+    await rejectWithdrawalAfterFailedPayout(created.id);
+    if (err instanceof WithdrawalPayoutError) {
+      if (err.code === "INSUFFICIENT_TREASURY") {
+        throw new WithdrawalServiceError(err.message, "INSUFFICIENT_TREASURY");
+      }
+      throw new WithdrawalServiceError(err.message, "PAYOUT_FAILED");
+    }
+    throw new WithdrawalServiceError(
+      err instanceof Error ? err.message : "Automatic payout failed",
+      "PAYOUT_FAILED",
+    );
+  }
+
+  const confirmed = await prisma.withdrawal.findUniqueOrThrow({
+    where: { id: created.id },
+  });
+  return serializeWithdrawal(confirmed);
 }
 
 export async function listUserWithdrawals(userId: string): Promise<WithdrawalDto[]> {
@@ -139,12 +202,22 @@ export async function updateWithdrawalStatus(input: {
     throw new WithdrawalServiceError("Withdrawal not found", "NOT_FOUND");
   }
 
+  if (input.status === "CONFIRMED") {
+    const payoutHash = input.txHash?.trim() || existing.txHash?.trim();
+    if (!payoutHash) {
+      throw new WithdrawalServiceError(
+        "Transaction hash required to confirm payout",
+        "INVALID_AMOUNT",
+      );
+    }
+  }
+
   const updated = await prisma.$transaction(async (tx) => {
     const row = await tx.withdrawal.update({
       where: { id: existing.id },
       data: {
         status: input.status,
-        txHash: input.txHash ?? existing.txHash,
+        txHash: input.txHash?.trim() || existing.txHash,
         processedAt:
           input.status === "CONFIRMED" || input.status === "REJECTED"
             ? new Date()
@@ -156,9 +229,33 @@ export async function updateWithdrawalStatus(input: {
       await tx.user.update({
         where: { id: existing.userId },
         data: {
-          earningsBalance: existing.user.earningsBalance + existing.amount,
+          earningsBalance: { increment: existing.amount },
         },
       });
+    }
+
+    if (input.status === "CONFIRMED") {
+      try {
+        await deductTreasuryForUserPayoutInTx(tx, {
+          userWithdrawalId: existing.id,
+          network: existing.network,
+          netAmount: fromMicro(existing.netAmount),
+          toAddress: existing.toAddress,
+          txHash: input.txHash ?? existing.txHash,
+          createdBy: input.adminUserId,
+        });
+      } catch (err) {
+        if (
+          err instanceof TreasuryServiceError &&
+          err.code === "INSUFFICIENT_FUNDS"
+        ) {
+          throw new WithdrawalServiceError(
+            "Insufficient treasury liquidity for payout",
+            "INSUFFICIENT_TREASURY",
+          );
+        }
+        throw err;
+      }
     }
 
     await tx.adminAction.create({
@@ -170,7 +267,8 @@ export async function updateWithdrawalStatus(input: {
         payload: {
           withdrawalId: existing.id,
           status: input.status,
-          txHash: input.txHash ?? null,
+          txHash:
+            input.txHash?.trim() || existing.txHash?.trim() || null,
         },
       },
     });

@@ -5,12 +5,19 @@ import { Bot, Cpu, Layers } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n/context";
 import { useCombinedEngineProfits, useLiveCombinedToday } from "@/lib/company-tools/combined-profits";
+import { useEngineProfitsReady } from "@/lib/company-tools/engine-profit-store";
 import { formatNumber } from "@/lib/utils";
+
+function profitLabel(value: number, ready: boolean, decimals = 0): string {
+  if (!ready) return "—";
+  return `$${formatNumber(value, { decimals })}`;
+}
 
 export function CompanyRevenueSummary() {
   const { t } = useI18n();
   const profits = useCombinedEngineProfits();
   const liveToday = useLiveCombinedToday();
+  const ready = useEngineProfitsReady();
 
   const items = [
     {
@@ -57,7 +64,7 @@ export function CompanyRevenueSummary() {
                   {it.label}
                 </p>
                 <p className="font-mono text-base text-text-primary sm:text-lg">
-                  ${formatNumber(it.value, { decimals: it.decimals })}
+                  {profitLabel(it.value, ready, it.decimals)}
                 </p>
               </div>
             ))}
@@ -71,7 +78,7 @@ export function CompanyRevenueSummary() {
               {t("companyToolsPage.tabBot")}
             </div>
             <p className="font-mono text-sm text-text-primary">
-              ${formatNumber(profits.botToday, { decimals: 0 })}{" "}
+              {profitLabel(profits.botToday, ready)}{" "}
               <span className="text-xs text-text-muted">
                 {t("companyToolsPage.revenueTodayShort")}
               </span>
@@ -83,7 +90,7 @@ export function CompanyRevenueSummary() {
               {t("companyToolsPage.tabLiquidation")}
             </div>
             <p className="font-mono text-sm text-text-primary">
-              ${formatNumber(profits.liquidationTodayLive, { decimals: 2 })}{" "}
+              {profitLabel(profits.liquidationTodayLive, ready, 2)}{" "}
               <span className="text-xs text-text-muted">
                 {t("companyToolsPage.revenueTodayShort")}
               </span>

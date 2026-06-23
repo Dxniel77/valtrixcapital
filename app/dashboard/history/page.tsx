@@ -30,6 +30,7 @@ import {
 } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import { resolveWithdrawalUiStatus } from "@/lib/wallet/withdrawal-display";
 
 type FilterKey = "ALL" | LedgerCategory;
 
@@ -368,10 +369,17 @@ function LedgerDetail({ e }: { e: LedgerEntry }) {
     );
   }
   if (e.category === "WITHDRAWAL") {
+    const uiStatus = resolveWithdrawalUiStatus({
+      status: e.status ?? "REQUESTED",
+      txHash: e.txHash,
+    });
     return (
       <span className="text-xs text-text-muted">
-        {t("walletPage.status." + (e.status ?? "REQUESTED"))}
+        {t("walletPage.status." + uiStatus)}
         {e.fee ? ` · ${t("historyPage.feeLabel")} $${formatNumber(e.fee, { decimals: 2 })}` : ""}
+        {!e.txHash?.trim() && uiStatus !== "REJECTED"
+          ? ` · ${t("historyPage.payoutPending")}`
+          : ""}
       </span>
     );
   }

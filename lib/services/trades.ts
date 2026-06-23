@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { getPlatformConfig } from "@/lib/services/config";
 import type { TradeDto } from "@/lib/trade/trade-types";
 import { fromMicro } from "@/lib/utils";
+import { reconcileUserWinBonuses } from "@/lib/services/trade-bonuses";
+import { distributeReferralCommissions } from "@/lib/services/commissions";
+import { commissionableAmountMicro } from "@/lib/services/sponsored-capital";
 
 const SIMULTANEOUS_TIER_MID_MIN = 501;
 const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -63,6 +66,8 @@ function serializeTrade(trade: Trade): TradeDto {
     resolvedAt: trade.resolvedAt?.getTime() ?? null,
     status: trade.result ?? "OPEN",
     bonusAppliedBps: trade.bonusAppliedBps,
+    capitalSnapshotAtWin: fromMicro(trade.capitalSnapshotAtWin),
+    bonusCredited: fromMicro(trade.bonusCredited),
   };
 }
 
@@ -78,6 +83,8 @@ function applyEarningsCredit(
 }
 
 export async function listUserTrades(userId: string, limit = 500): Promise<TradeDto[]> {
+  await reconcileUserWinBonuses(userId);
+
   const rows = await prisma.trade.findMany({
     where: { userId },
     orderBy: { openedAt: "desc" },
@@ -193,6 +200,10 @@ export async function resolveTrade(input: {
       ? (user.lockedCapital * BigInt(config.bonusPerWinBps)) / 10_000n
       : 0n;
   const applied = applyEarningsCredit(user.totalEarned, payoutCap, bonusMicro);
+  const payableMicro =
+    applied > 0n
+      ? await commissionableAmountMicro(user.id, applied)
+      : 0n;
 
   const updated = await prisma.$transaction(async (tx) => {
     const row = await tx.trade.update({
@@ -202,6 +213,8 @@ export async function resolveTrade(input: {
         exitPrice: input.exitPrice,
         resolvedAt: now,
         bonusAppliedBps: config.bonusPerWinBps,
+        capitalSnapshotAtWin: user.lockedCapital,
+        bonusCredited: applied,
       },
     });
 
@@ -225,6 +238,16 @@ export async function resolveTrade(input: {
 
     return row;
   });
+
+  if (payableMicro > 0n) {
+    await distributeReferralCommissions({
+      sourceUserId: user.id,
+      amountMicro: applied,
+      ratesBps: config.commissionRatesBps,
+      sourceTradeId: updated.id,
+      payableMicro,
+    });
+  }
 
   return serializeTrade(updated);
 }

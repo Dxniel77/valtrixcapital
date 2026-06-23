@@ -12,6 +12,25 @@ export interface CashFlowSummary {
   commissionPaid: number;
 }
 
+const PAID_WITHDRAWAL_STATUSES = new Set([
+  "COMPLETED",
+  "CONFIRMED",
+  "SENT",
+]);
+
+const PENDING_WITHDRAWAL_STATUSES = new Set([
+  "REQUESTED",
+  "APPROVED",
+  "PENDING",
+  "CONFIRMING",
+]);
+
+const CONFIRMED_DEPOSIT_STATUSES = new Set(["CONFIRMED", "COMPLETED"]);
+
+function isTreasuryUserPayoutDuplicate(m: AdminMovement): boolean {
+  return m.type === "WITHDRAWAL" && m.id.startsWith("twd_");
+}
+
 export function computeCashFlow(
   movements: AdminMovement[],
   fromMs: number,
@@ -31,13 +50,18 @@ export function computeCashFlow(
 
   for (const m of filtered) {
     if (m.type === "DEPOSIT") {
+      if (!CONFIRMED_DEPOSIT_STATUSES.has(m.status)) continue;
       inflow += m.amount;
       depositCount += 1;
     } else if (m.type === "WITHDRAWAL") {
+      if (isTreasuryUserPayoutDuplicate(m)) continue;
       withdrawalCount += 1;
-      if (m.status === "COMPLETED") {
+      if (PAID_WITHDRAWAL_STATUSES.has(m.status)) {
         outflow += m.amount;
-      } else if (m.status !== "REJECTED") {
+      } else if (
+        m.status !== "REJECTED" &&
+        PENDING_WITHDRAWAL_STATUSES.has(m.status)
+      ) {
         pendingOutflow += m.amount;
       }
     } else if (m.type === "YIELD") {

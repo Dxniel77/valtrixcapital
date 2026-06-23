@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin/withdrawal-eligibility";
 import { enrichDemoUser, recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 import {
   findSponsorUser,
   recountDirectReferrals,
@@ -43,6 +44,8 @@ export interface AdminUser {
   status: AdminUserStatus;
   network: AdminNetwork;
   capital: number;
+  realCapital: number;
+  companyCapital: number;
   balance: number;
   totalEarned: number;
   referrals: number;
@@ -114,9 +117,9 @@ interface AdminState {
   }) => void;
   grantAccount: (input: {
     wallet: string;
-    alias: string;
     rule: WithdrawalRule;
     uplineWallet?: string | null;
+    initialActiveCapital?: number;
   }) => AdminUser | null;
   updateUserSponsor: (
     id: string,
@@ -137,7 +140,7 @@ interface AdminState {
       levelVolumes: number[];
     },
   ) => void;
-  setUserStatus: (id: string, status: AdminUserStatus) => void;
+  setUserStatus: (id: string, status: AdminUserStatus, wallet?: string) => void;
   adjustBalance: (
     id: string,
     delta: number,
@@ -148,6 +151,8 @@ interface AdminState {
   updateSettings: (patch: Partial<AdminSettings>) => void;
   recordMovement: (movement: AdminMovement) => void;
   syncLiveMovements: (movements: AdminMovement[]) => void;
+  replaceMovementsFromBackend: (movements: AdminMovement[]) => void;
+  setAuditFromBackend: (audit: AuditEntry[]) => void;
   processWithdrawalMovement: (
     movementId: string,
     status: string,
@@ -195,6 +200,8 @@ function buildDemoUsers(): AdminUser[] {
           status: active ? "ACTIVE" : "INACTIVE",
           network: Math.random() > 0.5 ? "BSC" : "POLYGON",
           capital,
+          realCapital: capital,
+          companyCapital: 0,
           balance: Math.round(totalEarned * (0.2 + Math.random() * 0.5) * 100) / 100,
           totalEarned,
           referrals: Math.floor(Math.random() * 24),
@@ -366,6 +373,8 @@ export const useAdminStore = create<AdminState>()(
               status: "ACTIVE",
               network: "BSC",
               capital: 0,
+              realCapital: 0,
+              companyCapital: 0,
               balance: 0,
               totalEarned: 0,
               referrals: 0,
@@ -375,7 +384,7 @@ export const useAdminStore = create<AdminState>()(
                 : null,
               registrationSource: resolvedUpline ? "referral" : "direct",
               joinedAt: profile.joinedAt,
-              accountGranted: true,
+              accountGranted: false,
               withdrawalUnlocked: false,
               withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
               directSalesVolume: 0,
@@ -389,16 +398,28 @@ export const useAdminStore = create<AdminState>()(
         }));
       },
 
-      grantAccount: ({ wallet, alias, rule, uplineWallet = null }) => {
+      grantAccount: ({
+        wallet,
+        rule,
+        uplineWallet = null,
+        initialActiveCapital = 0,
+      }) => {
+        const displayAlias = wallet.slice(0, 6) + "…" + wallet.slice(-4);
+        const capitalCredit =
+          Number.isFinite(initialActiveCapital) && initialActiveCapital > 0
+            ? initialActiveCapital
+            : 0;
         const key = wallet.toLowerCase();
         const existing = get().users.find((u) => u.wallet.toLowerCase() === key);
         if (existing) {
           const updated = recomputeWithdrawalUnlock({
             ...existing,
-            alias,
             accountGranted: true,
             withdrawalRule: rule,
             uplineWallet: uplineWallet ?? existing.uplineWallet,
+            capital: existing.capital + capitalCredit,
+            companyCapital: existing.companyCapital + capitalCredit,
+            realCapital: existing.realCapital,
           });
           set((s) => ({
             users: recountDirectReferrals(
@@ -408,7 +429,7 @@ export const useAdminStore = create<AdminState>()(
               {
                 id: makeId("aud"),
                 action: "ACCOUNT_GRANTED",
-                target: alias,
+                target: displayAlias,
                 detail: `Cuenta con reglas de retiro actualizada`,
                 actor: "admin",
                 timestamp: Date.now(),
@@ -421,12 +442,14 @@ export const useAdminStore = create<AdminState>()(
 
         const user = recomputeWithdrawalUnlock({
           id: makeId("usr"),
-          alias,
+          alias: displayAlias,
           wallet,
           role: "USER",
           status: "ACTIVE",
           network: "BSC",
-          capital: 0,
+          capital: capitalCredit,
+          realCapital: 0,
+          companyCapital: capitalCredit,
           balance: 0,
           totalEarned: 0,
           referrals: 0,
@@ -450,7 +473,7 @@ export const useAdminStore = create<AdminState>()(
             {
               id: makeId("aud"),
               action: "ACCOUNT_GRANTED",
-              target: alias,
+              target: displayAlias,
               detail: "Nueva cuenta con condiciones de retiro",
               actor: "admin",
               timestamp: Date.now(),
@@ -578,11 +601,21 @@ export const useAdminStore = create<AdminState>()(
         }));
       },
 
-      setUserStatus: (id, status) => {
-        const user = get().users.find((u) => u.id === id);
+      setUserStatus: (id, status, wallet) => {
+        const state = get();
+        const walletKey = wallet?.toLowerCase();
+        const user =
+          state.users.find((u) => u.id === id) ??
+          (walletKey
+            ? state.users.find((u) => u.wallet.toLowerCase() === walletKey)
+            : undefined);
         if (!user) return;
         set((s) => ({
-          users: s.users.map((u) => (u.id === id ? { ...u, status } : u)),
+          users: s.users.map((u) =>
+            u.wallet.toLowerCase() === user.wallet.toLowerCase()
+              ? { ...u, id, status }
+              : u,
+          ),
           audit: [
             {
               id: makeId("aud"),
@@ -611,7 +644,12 @@ export const useAdminStore = create<AdminState>()(
           users: s.users.map((u) => {
             if (u.id !== id) return u;
             if (isStaking) {
-              return { ...u, capital: u.capital + delta };
+              return {
+                ...u,
+                capital: u.capital + delta,
+                companyCapital: u.companyCapital + (u.accountGranted ? delta : 0),
+                realCapital: u.realCapital + (u.accountGranted ? 0 : delta),
+              };
             }
             return {
               ...u,
@@ -718,6 +756,19 @@ export const useAdminStore = create<AdminState>()(
         });
       },
 
+      replaceMovementsFromBackend: (movements) => {
+        set({
+          movements: [...movements]
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 500),
+          liveDataSynced: true,
+        });
+      },
+
+      setAuditFromBackend: (audit) => {
+        set({ audit: audit.slice(0, 200) });
+      },
+
       processWithdrawalMovement: (movementId, status, _txHash) => {
         const movement = get().movements.find((m) => m.id === movementId);
         if (!movement || movement.type !== "WITHDRAWAL") return { ok: false };
@@ -776,14 +827,26 @@ export const useAdminStore = create<AdminState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({
-        users: s.users,
-        movements: s.movements,
-        balanceAdjustments: s.balanceAdjustments,
-        audit: s.audit,
-        seeded: s.seeded,
-        liveDataSynced: s.liveDataSynced,
-      }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly()
+          ? {}
+          : {
+              users: s.users,
+              movements: s.movements,
+              balanceAdjustments: s.balanceAdjustments,
+              audit: s.audit,
+              seeded: s.seeded,
+              liveDataSynced: s.liveDataSynced,
+            },
+      onRehydrateStorage: () => (state) => {
+        if (!persistServerOwnedDataOnly() || !state) return;
+        state.users = [];
+        state.movements = [];
+        state.balanceAdjustments = [];
+        state.audit = [];
+        state.seeded = false;
+        state.liveDataSynced = false;
+      },
       migrate: (persisted) => {
         const prev = persisted as {
           settings?: Partial<PlatformSettings>;

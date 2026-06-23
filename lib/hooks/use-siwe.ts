@@ -4,6 +4,7 @@ import * as React from "react";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { buildSiweMessage } from "@/lib/auth/siwe";
 import { getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
+import { clearUserSessionData } from "@/lib/session/clear-user-data";
 import { t } from "@/lib/i18n";
 
 export interface SessionUser {
@@ -20,16 +21,22 @@ export function useSiwe() {
   const [user, setUser] = React.useState<SessionUser | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [checked, setChecked] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const res = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
       const data = await res.json();
       setUser(data.user);
       return data.user as SessionUser | null;
     } catch {
       setUser(null);
       return null;
+    } finally {
+      setChecked(true);
     }
   }, []);
 
@@ -45,7 +52,10 @@ export function useSiwe() {
     setLoading(true);
     setError(null);
     try {
-      const nonceRes = await fetch("/api/auth/nonce", { cache: "no-store" });
+      const nonceRes = await fetch("/api/auth/nonce", {
+        cache: "no-store",
+        credentials: "include",
+      });
       const { nonce } = await nonceRes.json();
       const message = buildSiweMessage({
         address,
@@ -61,6 +71,7 @@ export function useSiwe() {
       const referralCode = getPendingReferralCode() ?? undefined;
       const verifyRes = await fetch("/api/auth/verify", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, signature, nonce, referralCode }),
       });
@@ -84,12 +95,13 @@ export function useSiwe() {
   const signOut = React.useCallback(async () => {
     setLoading(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
       setUser(null);
+      clearUserSessionData();
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { user, loading, error, signIn, signOut, refresh };
+  return { user, loading, error, signIn, signOut, refresh, checked };
 }

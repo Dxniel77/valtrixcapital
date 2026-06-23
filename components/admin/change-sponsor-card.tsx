@@ -9,10 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
-import {
-  useAdminStore,
-  type AdminUser,
-} from "@/lib/admin/store";
+import { changeAdminUserSponsor } from "@/lib/admin/change-user-sponsor";
+import { useAdminStore, type AdminUser } from "@/lib/admin/store";
 import {
   findSponsorUser,
   resolveSponsorQuery,
@@ -22,7 +20,6 @@ import { cn, shortenAddress } from "@/lib/utils";
 export function ChangeSponsorCard({ user }: { user: AdminUser }) {
   const { t } = useI18n();
   const users = useAdminStore((s) => s.users);
-  const updateUserSponsor = useAdminStore((s) => s.updateUserSponsor);
 
   const currentSponsor = React.useMemo(
     () => findSponsorUser(users, user.uplineWallet),
@@ -40,19 +37,22 @@ export function ChangeSponsorCard({ user }: { user: AdminUser }) {
     ? resolveSponsorQuery(users, query)
     : null;
 
-  function apply(nextQuery: string | null) {
+  async function apply(nextQuery: string | null) {
     setSubmitting(true);
-    const result = updateUserSponsor(user.id, nextQuery);
-    setSubmitting(false);
-
-    if (!result.ok) {
-      const key = `admin.userDetail.sponsorErrors.${result.error}`;
-      toast.error(t(key));
-      return;
+    try {
+      const result = await changeAdminUserSponsor(user.id, nextQuery);
+      if (!result.ok) {
+        const key = `admin.userDetail.sponsorErrors.${result.error}`;
+        toast.error(t(key));
+        return;
+      }
+      toast.success(t("admin.userDetail.sponsorUpdated"));
+      setQuery("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setSubmitting(false);
     }
-
-    toast.success(t("admin.userDetail.sponsorUpdated"));
-    setQuery("");
   }
 
   return (
@@ -129,7 +129,7 @@ export function ChangeSponsorCard({ user }: { user: AdminUser }) {
             size="sm"
             loading={submitting}
             disabled={!preview || preview.id === user.id}
-            onClick={() => apply(query)}
+            onClick={() => void apply(query)}
           >
             {t("admin.userDetail.sponsorSave")}
           </Button>
@@ -138,7 +138,7 @@ export function ChangeSponsorCard({ user }: { user: AdminUser }) {
               variant="outline"
               size="sm"
               loading={submitting}
-              onClick={() => apply(null)}
+              onClick={() => void apply(null)}
             >
               {t("admin.userDetail.sponsorClear")}
             </Button>

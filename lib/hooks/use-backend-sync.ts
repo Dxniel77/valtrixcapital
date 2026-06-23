@@ -16,6 +16,8 @@ import { useReferralsStore } from "@/lib/referrals/store";
 import { pushNotification } from "@/lib/notifications/push";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 import { usePageVisible } from "@/lib/hooks/use-page-visible";
+import { useUserRegistry } from "@/lib/user/store";
+import { normalizeWallet } from "@/lib/user/validation";
 
 /**
  * Shared backend-availability cache.
@@ -84,6 +86,7 @@ export function useBackendUserSync(): void {
   const visible = usePageVisible();
   const applyBalanceAdjustment = useStakingStore((s) => s.applyBalanceAdjustment);
   const setMyReferrer = useReferralsStore((s) => s.setMyReferrer);
+  const upsertProfile = useUserRegistry((s) => s.upsertProfileFromServer);
   const { t } = useI18n();
   const lastSyncRef = React.useRef(0);
   const appliedIdsRef = React.useRef(new Set<string>());
@@ -95,21 +98,36 @@ export function useBackendUserSync(): void {
 
     async function sync() {
       try {
-        const [me, portfolioRes] = await Promise.all([
-          fetchCurrentUser(),
-          fetchUserPortfolio(),
-          syncTradesFromServer(),
-        ]);
+        const me = await fetchCurrentUser();
         if (cancelled || !me.backend || !me.user) return;
 
+        const portfolioRes = await fetchUserPortfolio();
+        await syncTradesFromServer();
+
+        if (me.user.username) {
+          upsertProfile({
+            id: me.user.id,
+            wallet: normalizeWallet(me.user.walletAddress),
+            username: me.user.username,
+            joinedAt: Date.now(),
+          });
+        }
+
+        const currentReferrer = useReferralsStore.getState().myReferrer;
         if (me.user.referrerWallet) {
-          setMyReferrer({
+          const nextReferrer = {
             wallet: me.user.referrerWallet,
             displayName:
               me.user.referrerUsername?.trim() ||
               shortenAddress(me.user.referrerWallet),
-          });
-        } else {
+          };
+          if (
+            currentReferrer?.wallet !== nextReferrer.wallet ||
+            currentReferrer.displayName !== nextReferrer.displayName
+          ) {
+            setMyReferrer(nextReferrer);
+          }
+        } else if (currentReferrer !== null) {
           setMyReferrer(null);
         }
 
@@ -201,5 +219,5 @@ export function useBackendUserSync(): void {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [backend, address, visible, applyBalanceAdjustment, setMyReferrer, t]);
+  }, [backend, address, visible, applyBalanceAdjustment, setMyReferrer, upsertProfile, t]);
 }

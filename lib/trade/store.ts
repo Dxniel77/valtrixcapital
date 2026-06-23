@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useShallow } from "zustand/react/shallow";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { activeCapital, useStakingStore } from "@/lib/staking/store";
@@ -15,6 +14,7 @@ import {
   usePlatformSettingsStore,
   type PlatformSettings,
 } from "@/lib/platform/settings-store";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 import {
   MAX_TRADES_PER_DAY,
   utcDayKey,
@@ -155,7 +155,16 @@ export const useTradeStore = create<TradeState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({ positions: s.positions, utcDay: s.utcDay }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly()
+          ? {}
+          : { positions: s.positions, utcDay: s.utcDay },
+      onRehydrateStorage: () => (state) => {
+        if (persistServerOwnedDataOnly() && state) {
+          state.positions = [];
+          state.utcDay = utcDayKey();
+        }
+      },
     },
   ),
 );
@@ -175,19 +184,16 @@ export interface DailySummary {
 
 /** React hook that returns a memoized daily summary derived from the store. */
 export function useDailySummary(): DailySummary {
-  const positionOutcomes = useTradeStore(
-    useShallow((s) =>
-      s.positions.map((p) => ({
-        status: p.status,
-        openedAt: p.openedAt,
-      })),
-    ),
-  );
+  // Select the stable store array reference (NOT a freshly-mapped array): a
+  // `useShallow` selector that `.map`s into new objects produces a new snapshot
+  // on every call, which makes useSyncExternalStore loop forever (React #185)
+  // as soon as there is at least one position. Derive in useMemo instead.
+  const positions = useTradeStore((s) => s.positions);
   const capital = useStakingStore((s) => activeCapital(s.stakes));
   const settings = usePlatformSettingsStore((s) => s.settings);
   return React.useMemo(
-    () => deriveDailySummary(positionOutcomes, capital, settings),
-    [positionOutcomes, capital, settings],
+    () => deriveDailySummary(positions, capital, settings),
+    [positions, capital, settings],
   );
 }
 

@@ -63,7 +63,9 @@ export function MovementTable({
               <TD>
                 <Badge
                   variant={
-                    m.status === "COMPLETED" || m.status === "ACTIVE"
+                    m.status === "COMPLETED" ||
+                    m.status === "ACTIVE" ||
+                    m.status === "CONFIRMED"
                       ? "success"
                       : "warning"
                   }

@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { AdminNetwork } from "@/lib/admin/store";
 import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 
 export type TreasuryDepositStatus = "CONFIRMING" | "CONFIRMED";
 
@@ -32,6 +33,8 @@ export interface TreasuryWithdrawal {
 interface TreasuryState {
   bscBalance: number;
   polygonBalance: number;
+  adminDeposited: number;
+  paidOut: number;
   deposits: TreasuryDeposit[];
   withdrawals: TreasuryWithdrawal[];
   pendingDeposit: TreasuryDeposit | null;
@@ -54,6 +57,15 @@ interface TreasuryState {
     note?: string;
   }) => { ok: true; withdrawal: TreasuryWithdrawal } | { ok: false; error: string };
   deductForPayout: (network: AdminNetwork, amount: number) => boolean;
+  hydrateFromBackend: (input: {
+    bscBalance: number;
+    polygonBalance: number;
+    adminDeposited?: number;
+    paidOut?: number;
+    deposits: TreasuryDeposit[];
+    withdrawals: TreasuryWithdrawal[];
+  }) => void;
+  setPendingDeposit: (deposit: TreasuryDeposit | null) => void;
 }
 
 function makeId(prefix: string): string {
@@ -74,6 +86,8 @@ export const useTreasuryStore = create<TreasuryState>()(
     (set, get) => ({
       bscBalance: 0,
       polygonBalance: 0,
+      adminDeposited: 0,
+      paidOut: 0,
       deposits: [],
       withdrawals: [],
       pendingDeposit: null,
@@ -180,6 +194,20 @@ export const useTreasuryStore = create<TreasuryState>()(
         });
         return true;
       },
+
+      hydrateFromBackend: (input) => {
+        set({
+          bscBalance: input.bscBalance,
+          polygonBalance: input.polygonBalance,
+          adminDeposited: input.adminDeposited ?? 0,
+          paidOut: input.paidOut ?? 0,
+          deposits: input.deposits,
+          withdrawals: input.withdrawals,
+          pendingDeposit: null,
+        });
+      },
+
+      setPendingDeposit: (deposit) => set({ pendingDeposit: deposit }),
     }),
     {
       name: "valtrix.treasury.v1",
@@ -192,12 +220,27 @@ export const useTreasuryStore = create<TreasuryState>()(
             }
           : window.localStorage,
       ),
-      partialize: (s) => ({
-        bscBalance: s.bscBalance,
-        polygonBalance: s.polygonBalance,
-        deposits: s.deposits,
-        withdrawals: s.withdrawals,
-      }),
+      partialize: (s) =>
+        persistServerOwnedDataOnly()
+          ? {}
+          : {
+              bscBalance: s.bscBalance,
+              polygonBalance: s.polygonBalance,
+              adminDeposited: s.adminDeposited,
+              paidOut: s.paidOut,
+              deposits: s.deposits,
+              withdrawals: s.withdrawals,
+            },
+      onRehydrateStorage: () => (state) => {
+        if (!persistServerOwnedDataOnly() || !state) return;
+        state.bscBalance = 0;
+        state.polygonBalance = 0;
+        state.adminDeposited = 0;
+        state.paidOut = 0;
+        state.deposits = [];
+        state.withdrawals = [];
+        state.pendingDeposit = null;
+      },
     },
   ),
 );
@@ -217,12 +260,16 @@ export function useTreasuryStoreHydrated(): boolean {
 export function useTreasurySummary() {
   const bscBalance = useTreasuryStore((s) => s.bscBalance);
   const polygonBalance = useTreasuryStore((s) => s.polygonBalance);
+  const adminDeposited = useTreasuryStore((s) => s.adminDeposited);
+  const paidOut = useTreasuryStore((s) => s.paidOut);
   return React.useMemo(
     () => ({
       bscBalance,
       polygonBalance,
       totalBalance: bscBalance + polygonBalance,
+      adminDeposited,
+      paidOut,
     }),
-    [bscBalance, polygonBalance],
+    [bscBalance, polygonBalance, adminDeposited, paidOut],
   );
 }

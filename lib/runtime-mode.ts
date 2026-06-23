@@ -1,8 +1,8 @@
 /**
  * Runtime mode helpers (inlined at build time via NODE_ENV).
  *
- * Production builds must use Postgres-backed APIs only — no client-side demo
- * seeds, simulated balances, or synthetic on-chain transaction hashes.
+ * Production (`next build` / `next start`) uses Postgres-backed APIs only.
+ * Demo seeds, simulated balances, and offline financial engines are disabled.
  */
 
 /** True when running a production build (`next build` / `next start`). */

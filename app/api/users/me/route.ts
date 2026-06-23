@@ -6,6 +6,7 @@ import {
   applyReferrerIfMissing,
   findUserByWalletWithReferrer,
   serializeUserWithReferrer,
+  serializeUserWithReferrerAsync,
   updateUsername,
   upsertUserByWallet,
 } from "@/lib/services/users";
@@ -41,7 +42,7 @@ export async function GET() {
 
   return NextResponse.json({
     backend: true,
-    user: serializeUserWithReferrer(user),
+    user: await serializeUserWithReferrerAsync(user),
   });
 }
 
@@ -60,20 +61,22 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  if (!auth.session.dbUserId) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
-
   if (!parsed.username && !parsed.referralCode) {
     return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  if (parsed.username) {
-    await updateUsername(auth.session.dbUserId, parsed.username);
+  let dbUserId = auth.session.dbUserId;
+  if (!dbUserId) {
+    const created = await upsertUserByWallet(auth.session.address, {
+      referrerCode: parsed.referralCode ?? null,
+    });
+    dbUserId = created.id;
+  } else if (parsed.referralCode) {
+    await applyReferrerIfMissing(dbUserId, parsed.referralCode);
   }
 
-  if (parsed.referralCode) {
-    await applyReferrerIfMissing(auth.session.dbUserId, parsed.referralCode);
+  if (parsed.username) {
+    await updateUsername(dbUserId, parsed.username);
   }
 
   const withReferrer = await findUserByWalletWithReferrer(auth.session.address);
@@ -82,6 +85,6 @@ export async function PATCH(req: Request) {
   }
 
   return NextResponse.json({
-    user: serializeUserWithReferrer(withReferrer),
+    user: await serializeUserWithReferrerAsync(withReferrer),
   });
 }

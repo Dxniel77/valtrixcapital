@@ -5,7 +5,11 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useStakingStore, useStakingStoreHydrated } from "@/lib/staking/store";
 import { utcDayKey } from "@/lib/trade/store";
-import { getPlatformSettings } from "@/lib/platform/settings-store";
+import {
+  getPlatformSettings,
+  usePlatformSettingsStore,
+} from "@/lib/platform/settings-store";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import {
   MIN_ACTIVE_CAPITAL_USDT,
   REFERRAL_LEVELS,
@@ -16,6 +20,7 @@ import {
   simulateDownlineDailyYield,
 } from "./commission";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
+import { persistServerOwnedDataOnly } from "@/lib/persist/production-guard";
 
 export interface DownlineMember {
   id: string;
@@ -24,6 +29,9 @@ export interface DownlineMember {
   displayName: string;
   isActive: boolean;
   capital: number;
+  realCapital: number;
+  realDepositVolume: number;
+  accountGranted: boolean;
   joinedAt: number;
   commissionsPaidToYou: number;
   directReferrals: number;
@@ -35,7 +43,8 @@ export interface CommissionRecord {
   id: string;
   level: number;
   sourceWallet: string;
-  sourceYieldId: string;
+  sourceYieldId: string | null;
+  sourceTradeId?: string | null;
   yieldDate: string;
   rateBps: number;
   amount: number;
@@ -64,15 +73,22 @@ interface ReferralsState {
   totalCommissions: number;
   pendingNetworkEarnings: number;
   lastNetworkPayoutDay: string | null;
+  /** True after the first Postgres snapshot loads (production network view). */
+  serverSnapshotLoaded: boolean;
 
   ensureCode: (walletAddress?: string) => string;
   setMyReferrer: (referrer: MyReferrer | null) => void;
   seedDemoNetwork: () => void;
+  reset: () => void;
+  hydrateFromServer: (snapshot: {
+    downline: DownlineMember[];
+    commissions: CommissionRecord[];
+    totalCommissions: number;
+  }) => void;
   processCommissionsForYields: (
     yields: { id: string; date: string; creditedAmount: number }[],
   ) => void;
   payoutNetworkEarnings: () => number;
-  reset: () => void;
 }
 
 const initial = {
@@ -84,6 +100,7 @@ const initial = {
   totalCommissions: 0,
   pendingNetworkEarnings: 0,
   lastNetworkPayoutDay: null as string | null,
+  serverSnapshotLoaded: false,
 };
 
 function makeId(prefix: string): string {
@@ -134,6 +151,9 @@ function buildDemoDownline(): DownlineMember[] {
         displayName: `Investor${seed}`,
         isActive,
         capital: invested,
+        realCapital: invested,
+        realDepositVolume: invested,
+        accountGranted: false,
         joinedAt: Date.now() - seed * 86_400_000 * 3,
         commissionsPaidToYou: 0,
         directReferrals: isActive ? directReferrals : 0,
@@ -183,6 +203,10 @@ export const useReferralsStore = create<ReferralsState>()(
             downline: current.map((m, i) => ({
               ...m,
               displayName: m.displayName ?? `Investor${i + 1}`,
+              realCapital: m.realCapital ?? m.capital ?? 0,
+              realDepositVolume:
+                m.realDepositVolume ?? m.realCapital ?? m.capital ?? 0,
+              accountGranted: m.accountGranted ?? false,
               directReferrals: m.directReferrals ?? (m.level === 1 ? 1 : 0),
               networkReferrals:
                 m.networkReferrals ?? Math.max(0, REFERRAL_LEVELS - m.level),
@@ -193,6 +217,18 @@ export const useReferralsStore = create<ReferralsState>()(
           });
         }
       },
+
+      hydrateFromServer: (snapshot) => {
+        set({
+          downline: snapshot.downline,
+          commissions: snapshot.commissions,
+          totalCommissions: snapshot.totalCommissions,
+          pendingNetworkEarnings: 0,
+          serverSnapshotLoaded: true,
+        });
+      },
+
+      reset: () => set(initial),
 
       processCommissionsForYields: (yields) => {
         if (yields.length === 0) return;
@@ -212,11 +248,16 @@ export const useReferralsStore = create<ReferralsState>()(
 
           for (const member of downline) {
             if (!member.isActive || member.capital <= 0) continue;
+            if (member.realCapital <= 0) continue;
+            const commissionRatio =
+              member.capital > 0 ? member.realCapital / member.capital : 0;
+            if (commissionRatio <= 0) continue;
             const downlineYield = simulateDownlineDailyYield(
               member.capital,
               member.level * 7 + member.wallet.length,
             );
-            const amount = commissionFromYield(downlineYield, member.level);
+            const amount =
+              commissionFromYield(downlineYield, member.level) * commissionRatio;
             if (amount <= 0) continue;
 
             newCommissions.push({
@@ -278,8 +319,6 @@ export const useReferralsStore = create<ReferralsState>()(
         });
         return credited;
       },
-
-      reset: () => set(initial),
     }),
     {
       name: "valtrix.referrals.v2",
@@ -295,13 +334,29 @@ export const useReferralsStore = create<ReferralsState>()(
       partialize: (s) => ({
         referralCode: s.referralCode,
         myReferrer: s.myReferrer,
-        downline: s.downline,
-        commissions: s.commissions,
-        processedYieldIds: s.processedYieldIds,
-        totalCommissions: s.totalCommissions,
-        pendingNetworkEarnings: s.pendingNetworkEarnings,
-        lastNetworkPayoutDay: s.lastNetworkPayoutDay,
+        ...(persistServerOwnedDataOnly()
+          ? {}
+          : {
+              downline: s.downline,
+              commissions: s.commissions,
+              processedYieldIds: s.processedYieldIds,
+              totalCommissions: s.totalCommissions,
+              pendingNetworkEarnings: s.pendingNetworkEarnings,
+              lastNetworkPayoutDay: s.lastNetworkPayoutDay,
+            }),
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (persistServerOwnedDataOnly()) {
+          state.downline = [];
+          state.commissions = [];
+          state.processedYieldIds = [];
+          state.totalCommissions = 0;
+          state.pendingNetworkEarnings = 0;
+          state.lastNetworkPayoutDay = null;
+          state.serverSnapshotLoaded = false;
+        }
+      },
     },
   ),
 );
@@ -320,7 +375,13 @@ export function useReferralsStoreHydrated(): boolean {
 
 export function useReferralLevelStats(): ReferralLevelStats[] {
   const downline = useReferralsStore((s) => s.downline);
-  return React.useMemo(() => buildLevelStats(downline), [downline]);
+  const commissionRatesBps = usePlatformSettingsStore(
+    (s) => s.settings.commissionRatesBps,
+  );
+  return React.useMemo(
+    () => buildLevelStats(downline, commissionRatesBps),
+    [downline, commissionRatesBps],
+  );
 }
 
 export function referralLink(code: string, origin?: string): string {
@@ -336,6 +397,7 @@ export function referralLink(code: string, origin?: string): string {
  * each active downline member's simulated daily yield.
  */
 export function useCommissionEngine(): void {
+  const backend = useBackendAvailable();
   const hydrated = useReferralsStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
   const yieldSignature = useStakingStore(
@@ -347,7 +409,7 @@ export function useCommissionEngine(): void {
   const process = useReferralsStore((s) => s.processCommissionsForYields);
 
   React.useEffect(() => {
-    if (!hydrated || !stakingHydrated || !yieldSignature) return;
+    if (backend || !hydrated || !stakingHydrated || !yieldSignature) return;
     const dailyYields = useStakingStore.getState().dailyYields;
     process(
       dailyYields.map((y) => ({
@@ -356,21 +418,32 @@ export function useCommissionEngine(): void {
         creditedAmount: y.creditedAmount,
       })),
     );
-  }, [hydrated, stakingHydrated, yieldSignature, process]);
+  }, [backend, hydrated, stakingHydrated, yieldSignature, process]);
 }
 
 /** Pays accumulated network commissions to withdrawable balance every UTC day. */
 export function useNetworkPayoutEngine(): void {
+  const backend = useBackendAvailable();
   const hydrated = useReferralsStoreHydrated();
   const stakingHydrated = useStakingStoreHydrated();
   const payout = useReferralsStore((s) => s.payoutNetworkEarnings);
-  const pending = useReferralsStore((s) => s.pendingNetworkEarnings);
-  const dailyYields = useStakingStore((s) => s.dailyYields);
+  const pendingNetworkEarnings = useReferralsStore(
+    (s) => s.pendingNetworkEarnings,
+  );
 
   React.useEffect(() => {
-    if (!hydrated || !stakingHydrated) return;
+    if (backend || !allowOfflineSimulation() || !hydrated || !stakingHydrated) {
+      return;
+    }
+    if (pendingNetworkEarnings <= 0) return;
     payout();
     const id = window.setInterval(payout, 60_000);
     return () => window.clearInterval(id);
-  }, [hydrated, stakingHydrated, payout, pending, dailyYields]);
+  }, [
+    backend,
+    hydrated,
+    stakingHydrated,
+    payout,
+    pendingNetworkEarnings,
+  ]);
 }

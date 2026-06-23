@@ -28,6 +28,7 @@ interface UserRegistryState {
   getProfile: (wallet: string | undefined) => UserProfile | null;
   isUsernameTaken: (username: string, exceptWallet?: string) => boolean;
   registerUsername: (wallet: string, username: string) => RegisterResult;
+  upsertProfileFromServer: (profile: UserProfile) => void;
   markWelcomeSeen: (wallet: string) => void;
   hasSeenWelcome: (wallet: string | undefined) => boolean;
 }
@@ -90,6 +91,33 @@ export const useUserRegistry = create<UserRegistryState>()(
         }));
 
         return { ok: true, profile };
+      },
+
+      upsertProfileFromServer: (profile) => {
+        const walletKey = normalizeWallet(profile.wallet);
+        const usernameKey = normalizeUsernameKey(profile.username);
+        const existing = get().profilesByWallet[walletKey];
+        if (
+          existing &&
+          existing.id === profile.id &&
+          existing.username === profile.username.trim()
+        ) {
+          return;
+        }
+        set((state) => ({
+          profilesByWallet: {
+            ...state.profilesByWallet,
+            [walletKey]: {
+              ...profile,
+              wallet: walletKey,
+              joinedAt: existing?.joinedAt ?? profile.joinedAt,
+            },
+          },
+          usernameIndex: {
+            ...state.usernameIndex,
+            [usernameKey]: walletKey,
+          },
+        }));
       },
 
       markWelcomeSeen: (wallet) => {

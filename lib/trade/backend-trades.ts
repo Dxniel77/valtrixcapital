@@ -1,5 +1,6 @@
 "use client";
 
+import { refreshReferralsSnapshot } from "@/lib/hooks/use-referrals-sync";
 import { ApiError, fetchCurrentUser, fetchUserTrades, openTradeOnServer, resolveTradeOnServer } from "@/lib/api/client";
 import {
   hydrateTradesFromServer,
@@ -8,6 +9,7 @@ import {
 import type { TradeDto } from "@/lib/trade/trade-types";
 import { useTradeStore } from "@/lib/trade/store";
 import { useStakingStore } from "@/lib/staking/store";
+import { syncOperationalCreditsFromTrades } from "@/lib/staking/operational-credits";
 
 export async function syncTradesFromServer(): Promise<TradeDto[]> {
   const res = await fetchUserTrades();
@@ -42,11 +44,8 @@ export async function resolveTradeWithBackend(
   }));
 
   if (res.trade.status === "WIN") {
-    useStakingStore.setState((s) => ({
-      creditedPositionIds: s.creditedPositionIds.includes(tradeId)
-        ? s.creditedPositionIds
-        : [...s.creditedPositionIds, tradeId],
-    }));
+    const trades = await syncTradesFromServer();
+    syncOperationalCreditsFromTrades(trades);
 
     try {
       const me = await fetchCurrentUser();
@@ -59,6 +58,8 @@ export async function resolveTradeWithBackend(
     } catch {
       // portfolio sync will catch up
     }
+
+    void refreshReferralsSnapshot();
   }
 
   return res.trade;

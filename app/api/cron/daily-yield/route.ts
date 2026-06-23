@@ -5,7 +5,7 @@ import { runDailyYieldCron } from "@/lib/services/yield";
 export const dynamic = "force-dynamic";
 
 /**
- * Daily yield accrual cron endpoint.
+ * Passive yield accrual cron (schedule in vercel.json; interval via YIELD_ACCRUAL_INTERVAL_MS).
  * Secure with CRON_SECRET header in production.
  */
 export async function POST(req: Request) {

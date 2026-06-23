@@ -7,6 +7,7 @@ import {
   slotTimestamp,
   utcDateKey,
 } from "@/lib/company-tools/global-metrics";
+import { botDailyRevenue } from "@/lib/company-tools/engine-daily-budget";
 import { createSeededRng } from "@/lib/company-tools/seeded-rng";
 import { allowSyntheticChainTx } from "@/lib/runtime-mode";
 import type {
@@ -58,15 +59,16 @@ function samplePnlBps(rng: ReturnType<typeof createSeededRng>): number {
   return Math.round((rng.next() - BOT_PNL_BIAS) * BOT_PNL_SPREAD_BPS);
 }
 
-export function botProfitUsd(op: Pick<BotOperation, "volume" | "pnlBps">): number {
-  return Math.max(0, (op.volume * op.pnlBps) / 10_000);
+/** Signed per-trade P/L in USD for the live feed (not scaled). */
+export function botTradePnlUsd(
+  op: Pick<BotOperation, "volume" | "pnlBps">,
+): number {
+  return Math.round(((op.volume * op.pnlBps) / 10_000) * 100) / 100;
 }
 
-function profitForSlot(slotIndex: number): number {
-  const rng = createSeededRng(slotIndex * 1_104_879 + 12_345);
-  const volume = sampleVolume(rng);
-  const pnlBps = samplePnlBps(rng);
-  return Math.max(0, (volume * pnlBps) / 10_000);
+/** Scaled positive profit credited to company aggregate totals only. */
+export function botProfitUsd(op: Pick<BotOperation, "volume" | "pnlBps">): number {
+  return Math.max(0, botTradePnlUsd(op));
 }
 
 function deriveOperationPrices(
@@ -193,34 +195,19 @@ const dailyProfitMemo = new Map<string, number>();
 
 export function globalBotDailyProfit(
   dayKey: string,
-  cadenceMs: number,
+  _cadenceMs: number,
   now = Date.now(),
 ): number {
   const todayKey = utcDateKey(now);
-  const memoKey = `${dayKey}:${cadenceMs}`;
+  const memoKey = `${dayKey}:budget`;
   if (dayKey < todayKey) {
     const cached = dailyProfitMemo.get(memoKey);
     if (cached != null) return cached;
   }
 
-  const bounds = daySlotBounds(dayKey, cadenceMs);
-  if (!bounds) {
-    if (dayKey < todayKey) dailyProfitMemo.set(memoKey, 0);
-    return 0;
-  }
-
-  const launchSlot = launchSlotIndex(cadenceMs);
-  const lastSlot =
-    dayKey === todayKey
-      ? Math.min(bounds.last, slotIndexAt(now, cadenceMs))
-      : bounds.last;
-  let total = 0;
-  for (let slot = Math.max(bounds.first, launchSlot); slot <= lastSlot; slot += 1) {
-    total += profitForSlot(slot);
-  }
-
-  if (dayKey < todayKey) dailyProfitMemo.set(memoKey, total);
-  return total;
+  const amount = botDailyRevenue(dayKey, now);
+  if (dayKey < todayKey) dailyProfitMemo.set(memoKey, amount);
+  return amount;
 }
 
 export function computeGlobalBotProfits(

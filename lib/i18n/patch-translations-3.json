@@ -1,0 +1,54 @@
+{
+  "ar": {
+    "admin.grant.title": "منح حساب",
+    "admin.grant.subtitle": "منح وصول للمستخدم مع شروط سحب مخصصة.",
+    "admin.grant.formTitle": "حساب جديد",
+    "admin.grant.walletLabel": "المحفظة",
+    "admin.grant.aliasLabel": "المستخدم",
+    "admin.grant.aliasPlaceholder": "اسم.المستخدم",
+    "admin.grant.modeLabel": "شرط السحب",
+    "admin.grant.modeDirect": "مبيعات مباشرة",
+    "admin.grant.modeNetwork": "المستويان 1 و2",
+    "admin.grant.modeEither": "أي منهما (OR)",
+    "admin.grant.directMinLabel": "الحد الأدنى للمبيعات المباشرة",
+    "admin.grant.l1MinLabel": "الحد الأدنى لحجم L1",
+    "admin.grant.l2MinLabel": "الحد الأدنى لحجم L2",
+    "admin.grant.hint": "يمكن للمستخدم التداول بشكل طبيعي. يتم تفعيل السحوبات تلقائياً عند تحقيق الشرط.",
+    "admin.grant.submit": "منح الحساب",
+    "admin.grant.invalidWallet": "محفظة غير صالحة",
+    "admin.grant.invalidAlias": "أدخل اسم مستخدم",
+    "admin.grant.success": "تم منح الحساب"
+  },
+  "ja": {
+    "admin.grant.title": "アカウント付与",
+    "admin.grant.subtitle": "カスタム出金条件付きでユーザーにアクセスを付与します。",
+    "admin.grant.formTitle": "新規アカウント",
+    "admin.grant.walletLabel": "ウォレット",
+    "admin.grant.aliasLabel": "ユーザー名",
+    "admin.grant.aliasPlaceholder": "ユーザー名",
+    "admin.grant.modeLabel": "出金条件",
+    "admin.grant.modeDirect": "直接販売",
+    "admin.grant.modeNetwork": "レベル1と2",
+    "admin.grant.modeEither": "いずれか（OR）",
+    "admin.grant.directMinLabel": "直接販売の最小値",
+    "admin.grant.l1MinLabel": "L1ボリューム最小",
+    "admin.grant.l2MinLabel": "L2ボリューム最小",
+    "admin.grant.hint": "ユーザーは通常どおり取引できます。条件を満たすと出金が自動的に有効になります。",
+    "admin.grant.submit": "アカウントを付与",
+    "admin.grant.invalidWallet": "無効なウォレット",
+    "admin.grant.invalidAlias": "ユーザー名を入力してください",
+    "admin.grant.success": "アカウントを付与しました"
+  },
+  "pt": {
+    "admin.grant.title": "Conceder conta",
+    "admin.grant.modeDirect": "Vendas diretas",
+    "admin.grant.modeNetwork": "Níveis 1 e 2",
+    "admin.grant.success": "Conta concedida",
+    "admin.grant.reset": "Limpar",
+    "admin.grant.aliasLabel": "Usuário",
+    "admin.grant.previewAlias": "Usuário"
+  },
+  "hi": {
+    "walletPage.deposit.registerDeposit": "जमा पंजीकृत करें"
+  }
+}

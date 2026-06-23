@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { fromMicro } from "@/lib/utils";
-import { listUserDeposits } from "@/lib/services/deposits";
+import { finalizeReadyPendingDeposits, listUserDeposits } from "@/lib/services/deposits";
 import { listUserStakes } from "@/lib/services/stakes";
+import { reconcileUserWinBonuses } from "@/lib/services/trade-bonuses";
+import { accruePassiveYieldForUser } from "@/lib/services/yield";
 import { listUserWithdrawals } from "@/lib/services/withdrawals";
 import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
 import type {
@@ -34,6 +36,10 @@ function pendingFromDeposit(d: {
 }
 
 export async function getUserPortfolio(userId: string): Promise<PortfolioDto> {
+  await finalizeReadyPendingDeposits(userId);
+  await reconcileUserWinBonuses(userId);
+  await accruePassiveYieldForUser(userId);
+
   const [user, stakes, deposits, dailyRows, withdrawals] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
     listUserStakes(userId),

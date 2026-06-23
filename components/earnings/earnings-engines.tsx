@@ -1,5 +1,6 @@
 "use client";
 
+import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { useYieldEngine } from "@/lib/staking/store";
 import {
   useCommissionEngine,
@@ -8,12 +9,17 @@ import {
 import { useOperationalCreditEngine } from "@/lib/staking/operational";
 import { useWithdrawalEngine } from "@/lib/wallet/store";
 
-/** Runs all client-side earnings schedulers for the dashboard. */
-export function EarningsEngines() {
+function OfflineEarningsEngines() {
   useYieldEngine();
   useCommissionEngine();
   useNetworkPayoutEngine();
   useOperationalCreditEngine();
   useWithdrawalEngine();
   return null;
+}
+
+/** Runs client-side earnings schedulers (development / offline demo only). */
+export function EarningsEngines() {
+  if (!allowOfflineSimulation()) return null;
+  return <OfflineEarningsEngines />;
 }

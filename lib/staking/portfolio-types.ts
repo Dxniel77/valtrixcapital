@@ -5,6 +5,7 @@ import type {
   StakingNetwork,
 } from "@/lib/staking/store";
 import type { Withdrawal, WithdrawalStatus } from "@/lib/wallet/store";
+import { resolveWithdrawalUiStatus } from "@/lib/wallet/withdrawal-display";
 
 export interface StakeDto {
   id: string;
@@ -52,19 +53,28 @@ export interface PortfolioDto {
   withdrawals: WithdrawalDto[];
 }
 
-function mapWithdrawalStatus(status: string): WithdrawalStatus {
+function mapWithdrawalStatus(
+  status: string,
+  txHash: string | null,
+): WithdrawalStatus {
+  let mapped: WithdrawalStatus;
   switch (status) {
     case "APPROVED":
-      return "REVIEW";
+      mapped = "REVIEW";
+      break;
     case "SENT":
-      return "PROCESSING";
+      mapped = "PROCESSING";
+      break;
     case "CONFIRMED":
-      return "COMPLETED";
+      mapped = "COMPLETED";
+      break;
     case "REJECTED":
-      return "REJECTED";
+      mapped = "REJECTED";
+      break;
     default:
-      return "REQUESTED";
+      mapped = "REQUESTED";
   }
+  return resolveWithdrawalUiStatus({ status: mapped, txHash });
 }
 
 export function mapServerWithdrawal(w: WithdrawalDto): Withdrawal {
@@ -76,7 +86,7 @@ export function mapServerWithdrawal(w: WithdrawalDto): Withdrawal {
     netAmount: w.netAmount,
     network: w.network,
     destination: w.toAddress,
-    status: mapWithdrawalStatus(w.status),
+    status: mapWithdrawalStatus(w.status, w.txHash),
     txHash: w.txHash,
     createdAt: new Date(w.requestedAt).getTime(),
     updatedAt: new Date(w.processedAt ?? w.requestedAt).getTime(),

@@ -6,11 +6,18 @@ import { Check, Copy, Send, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
 
-export function ShareButtons({ link }: { link: string }) {
+export function ShareButtons({
+  link,
+  disabled = false,
+}: {
+  link: string;
+  disabled?: boolean;
+}) {
   const { t } = useI18n();
   const [copied, setCopied] = React.useState(false);
 
   async function copy() {
+    if (disabled || !link) return;
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -29,7 +36,7 @@ export function ShareButtons({ link }: { link: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="primary" size="md" onClick={copy}>
+      <Button variant="primary" size="md" onClick={copy} disabled={disabled || !link}>
         {copied ? (
           <Check className="h-4 w-4" />
         ) : (
@@ -37,18 +44,36 @@ export function ShareButtons({ link }: { link: string }) {
         )}
         {copied ? t("referralsPage.copiedShort") : t("referralsPage.copyLink")}
       </Button>
-      <Button asChild variant="outline" size="md">
-        <a href={telegram} target="_blank" rel="noreferrer">
+      <Button asChild variant="outline" size="md" disabled={disabled || !link}>
+        <a
+          href={disabled || !link ? undefined : telegram}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={disabled || !link}
+          tabIndex={disabled || !link ? -1 : undefined}
+        >
           <Send className="h-4 w-4" /> Telegram
         </a>
       </Button>
-      <Button asChild variant="outline" size="md">
-        <a href={whatsapp} target="_blank" rel="noreferrer">
+      <Button asChild variant="outline" size="md" disabled={disabled || !link}>
+        <a
+          href={disabled || !link ? undefined : whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={disabled || !link}
+          tabIndex={disabled || !link ? -1 : undefined}
+        >
           <Share2 className="h-4 w-4" /> WhatsApp
         </a>
       </Button>
-      <Button asChild variant="ghost" size="md">
-        <a href={twitter} target="_blank" rel="noreferrer">
+      <Button asChild variant="ghost" size="md" disabled={disabled || !link}>
+        <a
+          href={disabled || !link ? undefined : twitter}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={disabled || !link}
+          tabIndex={disabled || !link ? -1 : undefined}
+        >
           <Share2 className="h-4 w-4" /> X
         </a>
       </Button>

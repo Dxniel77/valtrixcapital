@@ -7,7 +7,6 @@ import { usePlatformSettings } from "@/lib/platform/settings-store";
 import { utcDayKey } from "@/lib/trade/constants";
 import { useTradeStore } from "@/lib/trade/store";
 import {
-  activeCapital,
   computeDailyRate,
   PAYOUT_CAP_MULTIPLIER,
   stakeEligibleForPassiveYieldNow,
@@ -64,6 +63,26 @@ export function grossEarnedTotal(breakdown: CapEarningsBreakdown): number {
   );
 }
 
+/** Operaciones line on the portfolio progress card. */
+export function portfolioOperationalDisplay(
+  breakdown: Pick<
+    CapEarningsBreakdown,
+    "operationalEarned" | "operationalPendingToday"
+  >,
+): number {
+  return round2(breakdown.operationalEarned + breakdown.operationalPendingToday);
+}
+
+/** Pasivo line on the portfolio progress card. */
+export function portfolioPassiveDisplay(
+  breakdown: Pick<
+    CapEarningsBreakdown,
+    "passiveEarned" | "passiveProjectedToday"
+  >,
+): number {
+  return round2(breakdown.passiveEarned + breakdown.passiveProjectedToday);
+}
+
 export interface TodayYieldPreview {
   date: string;
   capital: number;
@@ -101,7 +120,7 @@ export function reconcileCapEarnings(input: {
   const fromParts = round2(
     passiveEarned + operationalEarned + networkEarned,
   );
-  const creditedTotalEarned = Math.max(input.storedTotalEarned, fromParts);
+  const creditedTotalEarned = fromParts;
 
   return {
     passiveEarned: round2(passiveEarned),
@@ -161,41 +180,15 @@ export function deriveSummary(input: {
   };
 }
 
-function pendingOperationalCredit(
-  stakes: Stake[],
-  creditedPositionIds: string[],
-  positions: { id: string; status: string }[],
-  bonusPerWinBps: number,
-): number {
-  const capital = activeCapital(stakes);
-  if (capital <= 0) return 0;
-  const bonusPerWin = (capital * bonusPerWinBps) / 10_000;
-  const pendingWins = positions.filter(
-    (p) => p.status === "WIN" && !creditedPositionIds.includes(p.id),
-  ).length;
-  return pendingWins * bonusPerWin;
-}
-
 export function usePortfolioSummary(): PortfolioSummary {
   const stakes = useStakingStore((s) => s.stakes);
   const storedTotalEarned = useStakingStore((s) => s.totalEarned);
   const earningsBalance = useStakingStore((s) => s.earningsBalance);
   const dailyYields = useStakingStore((s) => s.dailyYields);
   const instantCredits = useStakingStore((s) => s.instantCredits);
-  const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
-  const positionOutcomes = useTradeStore(
-    useShallow((s) =>
-      s.positions.map((p) => ({
-        id: p.id,
-        status: p.status,
-        openedAt: p.openedAt,
-      })),
-    ),
-  );
   const preview = useTodayYieldPreview();
-  const { bonusPerWinBps } = usePlatformSettings();
 
   return React.useMemo(() => {
     const reconciled = reconcileCapEarnings({
@@ -209,18 +202,12 @@ export function usePortfolioSummary(): PortfolioSummary {
     const passiveProjectedToday = todayAlreadyAccrued
       ? 0
       : preview.projectedBaseAmount;
-    const operationalPendingToday = pendingOperationalCredit(
-      stakes,
-      creditedPositionIds,
-      positionOutcomes,
-      bonusPerWinBps,
-    );
     const breakdown: CapEarningsBreakdown = {
       passiveEarned: reconciled.passiveEarned,
       operationalEarned: reconciled.operationalEarned,
       networkEarned: reconciled.networkEarned,
       passiveProjectedToday: round2(passiveProjectedToday),
-      operationalPendingToday: round2(operationalPendingToday),
+      operationalPendingToday: 0,
     };
     const totalWithdrawn = withdrawals
       .filter((w) => w.status !== "REJECTED")
@@ -239,12 +226,9 @@ export function usePortfolioSummary(): PortfolioSummary {
     earningsBalance,
     dailyYields,
     instantCredits,
-    creditedPositionIds,
     totalCommissions,
     withdrawals,
-    positionOutcomes,
     preview.projectedBaseAmount,
-    bonusPerWinBps,
   ]);
 }
 

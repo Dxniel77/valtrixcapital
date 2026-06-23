@@ -38,7 +38,9 @@ import {
   fetchAdminUsers,
   fetchBackendHealth,
 } from "@/lib/api/client";
+import { toggleAdminUserStatus } from "@/lib/admin/toggle-user-status";
 import { getReferrerInfo } from "@/lib/admin/sponsor";
+import { SponsoredUnlockProgressSummary } from "@/components/admin/sponsored-unlock-progress-summary";
 
 const PERIODS: LeaderPeriod[] = ["week", "month", "3months"];
 type RegistrationFilter = "all" | RegistrationSource;
@@ -47,7 +49,6 @@ export default function AdminUsersPage() {
   const { t } = useI18n();
   const users = useAdminStore((s) => s.users);
   const movements = useAdminStore((s) => s.movements);
-  const setUserStatus = useAdminStore((s) => s.setUserStatus);
 
   const [query, setQuery] = React.useState("");
   const [period, setPeriod] = React.useState<LeaderPeriod>("week");
@@ -55,6 +56,7 @@ export default function AdminUsersPage() {
   const [registrationFilter, setRegistrationFilter] =
     React.useState<RegistrationFilter>("all");
   const [editing, setEditing] = React.useState<AdminUser | null>(null);
+  const [statusBusyId, setStatusBusyId] = React.useState<string | null>(null);
 
   const billingRows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -177,27 +179,45 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[1480px] table-fixed">
+          <colgroup>
+            <col className="w-10" />
+            <col className="w-[200px]" />
+            <col className="w-[120px]" />
+            <col className="w-[140px]" />
+            <col className="w-16" />
+            <col className="w-20" />
+            <col className="w-20" />
+            <col className="w-20" />
+            {Array.from({ length: 8 }, (_, i) => (
+              <col key={i} className="w-14" />
+            ))}
+            <col className="w-20" />
+            <col className="w-[148px]" />
+            <col className="w-24" />
+            <col className="w-[148px]" />
+          </colgroup>
           <thead>
             <THeadRow>
-              <TH>#</TH>
-              <TH>{t("admin.users.colUser")}</TH>
-              <TH>{t("admin.users.colRegistration")}</TH>
-              <TH>{t("admin.users.colReferredBy")}</TH>
-              <TH className="text-right">{t("admin.users.colDirectRefs")}</TH>
-              <TH className="text-right">{t("admin.leaders.colOperational")}</TH>
-              <TH className="text-right">{t("admin.leaders.colNetwork")}</TH>
-              <TH className="text-right">{t("admin.leaders.colPassive")}</TH>
+              <TH className="px-2">#</TH>
+              <TH className="px-3">{t("admin.users.colUser")}</TH>
+              <TH className="px-2">{t("admin.users.colRegistration")}</TH>
+              <TH className="px-2">{t("admin.users.colReferredBy")}</TH>
+              <TH className="px-2 text-right">{t("admin.users.colDirectRefs")}</TH>
+              <TH className="px-2 text-right">{t("admin.leaders.colOperational")}</TH>
+              <TH className="px-2 text-right">{t("admin.leaders.colNetwork")}</TH>
+              <TH className="px-2 text-right">{t("admin.leaders.colPassive")}</TH>
               {Array.from({ length: 8 }, (_, i) => (
-                <TH key={i} className="text-right">
+                <TH key={i} className="px-2 text-right">
                   L{i + 1}
                 </TH>
               ))}
-              <TH className="text-right">
+              <TH className="px-2 text-right">
                 <span className="text-gold">{t("admin.leaders.colTotal")}</span>
               </TH>
-              <TH>{t("admin.users.colStatus")}</TH>
-              <TH className="text-right">{t("admin.users.colActions")}</TH>
+              <TH className="px-2">{t("admin.users.colUnlockProgress")}</TH>
+              <TH className="px-2">{t("admin.users.colStatus")}</TH>
+              <TH className="px-2 text-right">{t("admin.users.colActions")}</TH>
             </THeadRow>
           </thead>
           <TBody>
@@ -212,52 +232,53 @@ export default function AdminUsersPage() {
                     sponsored && "bg-warning/[0.06] hover:bg-warning/[0.09]",
                   )}
                 >
-                  <TD className="font-mono text-xs text-text-muted">{idx + 1}</TD>
-                  <TD>
-                    <p className="font-medium text-text-primary">
+                  <TD className="px-2 font-mono text-xs text-text-muted">{idx + 1}</TD>
+                  <TD className="px-3">
+                    <p className="truncate font-medium text-text-primary">
                       {u.alias}
                       {u.role === "ADMIN" ? (
-                        <Badge variant="gold" className="ml-2">
+                        <Badge variant="gold" className="ml-1.5">
                           {t("admin.users.adminBadge")}
                         </Badge>
                       ) : null}
                       {sponsored ? (
-                        <Badge variant="warning" className="ml-2">
+                        <Badge variant="warning" className="ml-1.5">
                           {t("admin.users.sponsoredBadge")}
                         </Badge>
                       ) : null}
                     </p>
-                    <p className="font-mono text-xs text-text-muted">
+                    <p className="truncate font-mono text-xs text-text-muted">
                       {shortenAddress(u.wallet)}
                     </p>
                   </TD>
-                  <TD>
+                  <TD className="px-2">
                     <Badge
                       variant={
                         u.registrationSource === "referral" ? "gold" : "outline"
                       }
+                      className="whitespace-nowrap text-[10px]"
                     >
                       {u.registrationSource === "referral"
                         ? t("admin.users.registrationReferral")
                         : t("admin.users.registrationDirect")}
                     </Badge>
                   </TD>
-                  <TD>
+                  <TD className="px-2">
                     {referrer ? (
-                      <div>
+                      <div className="min-w-0">
                         {referrer.adminUserId ? (
                           <Link
                             href={`/admin/users/${referrer.adminUserId}`}
-                            className="text-sm font-medium text-gold hover:underline"
+                            className="block truncate text-sm font-medium text-gold hover:underline"
                           >
                             {referrer.displayName}
                           </Link>
                         ) : (
-                          <p className="text-sm font-medium text-text-primary">
+                          <p className="truncate text-sm font-medium text-text-primary">
                             {referrer.displayName}
                           </p>
                         )}
-                        <p className="font-mono text-xs text-text-muted">
+                        <p className="truncate font-mono text-xs text-text-muted">
                           {shortenAddress(referrer.wallet)}
                         </p>
                       </div>
@@ -267,33 +288,46 @@ export default function AdminUsersPage() {
                       </span>
                     )}
                   </TD>
-                  <TD className="text-right font-mono">{u.referrals}</TD>
-                  <TD className="text-right font-mono text-xs">
+                  <TD className="px-2 text-right font-mono">{u.referrals}</TD>
+                  <TD className="px-2 text-right font-mono text-xs">
                     ${formatNumber(row.operational, { decimals: 0 })}
                   </TD>
-                  <TD className="text-right font-mono text-xs">
+                  <TD className="px-2 text-right font-mono text-xs">
                     ${formatNumber(row.network, { decimals: 0 })}
                   </TD>
-                  <TD className="text-right font-mono text-xs">
+                  <TD className="px-2 text-right font-mono text-xs">
                     ${formatNumber(row.passive, { decimals: 0 })}
                   </TD>
-                  {row.byLevel.map((l) => (
-                    <TD key={l.level} className="text-right font-mono text-xs text-text-muted">
-                      ${formatNumber(l.amount, { decimals: 0 })}
-                    </TD>
-                  ))}
-                  <TD className="text-right font-mono font-medium text-gold">
+                  {Array.from({ length: 8 }, (_, i) => {
+                    const lvl = i + 1;
+                    const cell = row.byLevel.find((l) => l.level === lvl);
+                    return (
+                      <TD
+                        key={lvl}
+                        className="px-2 text-right font-mono text-xs text-text-muted"
+                      >
+                        ${formatNumber(cell?.amount ?? 0, { decimals: 0 })}
+                      </TD>
+                    );
+                  })}
+                  <TD className="px-2 text-right font-mono font-medium text-gold">
                     ${formatNumber(billingPeriodTotal(row), { decimals: 0 })}
                   </TD>
-                  <TD>
-                    <Badge variant={u.status === "ACTIVE" ? "success" : "default"}>
+                  <TD className="px-2 align-top">
+                    <SponsoredUnlockProgressSummary user={u} />
+                  </TD>
+                  <TD className="px-2">
+                    <Badge
+                      variant={u.status === "ACTIVE" ? "success" : "default"}
+                      className="whitespace-nowrap text-[10px]"
+                    >
                       {u.status === "ACTIVE"
                         ? t("admin.users.active")
                         : t("admin.users.inactive")}
                     </Badge>
                   </TD>
-                  <TD>
-                    <div className="flex items-center justify-end gap-1">
+                  <TD className="px-2">
+                    <div className="flex items-center justify-end gap-0.5">
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/admin/users/${u.id}`}>
                           <Eye className="h-3.5 w-3.5" />
@@ -309,12 +343,24 @@ export default function AdminUsersPage() {
                       <Button
                         variant={u.status === "ACTIVE" ? "outline" : "primary"}
                         size="sm"
+                        loading={statusBusyId === u.id}
+                        disabled={statusBusyId !== null && statusBusyId !== u.id}
                         onClick={() => {
-                          setUserStatus(
-                            u.id,
-                            u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                          );
-                          toast.success(t("admin.users.statusUpdated"));
+                          setStatusBusyId(u.id);
+                          void toggleAdminUserStatus(u)
+                            .then(() => {
+                              toast.success(t("admin.users.statusUpdated"));
+                            })
+                            .catch((err) => {
+                              toast.error(
+                                err instanceof Error
+                                  ? err.message
+                                  : t("errors.signInFailed"),
+                              );
+                            })
+                            .finally(() => {
+                              setStatusBusyId(null);
+                            });
                         }}
                       >
                         {u.status === "ACTIVE"
@@ -395,6 +441,8 @@ function AdjustBalanceModal({
           onClose();
           return;
         }
+        toast.error(t("admin.userDetail.sponsorErrors.NOT_FOUND"));
+        return;
       }
 
       adjustBalance(user.id, delta, note, target);

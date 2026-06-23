@@ -11,11 +11,13 @@ import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 interface NetworkMembersPanelProps {
   members: DownlineMember[];
   levelStats: ReferralLevelStats[];
+  loading?: boolean;
 }
 
 export function NetworkMembersPanel({
   members,
   levelStats,
+  loading = false,
 }: NetworkMembersPanelProps) {
   const { t } = useI18n();
   const [expandedLevel, setExpandedLevel] = React.useState<number | null>(1);
@@ -29,6 +31,12 @@ export function NetworkMembersPanel({
     }
     return map;
   }, [members]);
+
+  const memberLevels = React.useMemo(() => {
+    const populated = levelStats.filter((lvl) => lvl.total > 0);
+    if (populated.length > 0) return populated;
+    return levelStats.filter((lvl) => lvl.level === 1);
+  }, [levelStats]);
 
   const directCount = members.filter((m) => m.level === 1).length;
   const networkCount = members.length - directCount;
@@ -59,7 +67,17 @@ export function NetworkMembersPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {levelStats.map((lvl) => {
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-11 animate-pulse rounded-lg border border-border-subtle bg-bg-base/40"
+              />
+            ))}
+          </div>
+        ) : (
+          memberLevels.map((lvl) => {
           const levelMembers = byLevel.get(lvl.level) ?? [];
           const open = expandedLevel === lvl.level;
           return (
@@ -207,7 +225,8 @@ export function NetworkMembersPanel({
               ) : null}
             </div>
           );
-        })}
+        })
+        )}
       </CardContent>
     </Card>
   );

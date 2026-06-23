@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
 import { WelcomeModal } from "@/components/user/welcome-modal";
 import { pushNotification } from "@/lib/notifications/push";
 import { useI18n } from "@/lib/i18n/context";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useSiwe } from "@/lib/hooks/use-siwe";
 import {
   markWelcomeSeen,
   useUserRegistry,
@@ -14,7 +17,11 @@ import {
 
 export function UsernameGate({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
+  const router = useRouter();
+  const pathname = usePathname();
   const { address, isConnected } = useAccount();
+  const backend = useBackendAvailable();
+  const { user: sessionUser, checked: sessionChecked } = useSiwe();
   const getProfile = useUserRegistry((s) => s.getProfile);
   const hasSeenWelcome = useUserRegistry((s) => s.hasSeenWelcome);
   const [hydrated, setHydrated] = React.useState(false);
@@ -41,6 +48,17 @@ export function UsernameGate({ children }: { children: React.ReactNode }) {
   }, [address, getProfile, hasSeenWelcome, hydrated]);
 
   const needsUsername = hydrated && isConnected && !!address && !profile;
+  const needsSignIn =
+    needsUsername && backend && sessionChecked && !sessionUser;
+
+  React.useEffect(() => {
+    if (!needsSignIn) return;
+    const next = pathname.startsWith("/") ? pathname : "/dashboard";
+    router.replace(`/sign-in?next=${encodeURIComponent(next)}`);
+  }, [needsSignIn, pathname, router]);
+
+  const showUsernameSetup =
+    needsUsername && (!backend || (sessionChecked && !!sessionUser));
 
   function handleWelcomeDismiss() {
     if (!profile) return;
@@ -63,7 +81,7 @@ export function UsernameGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {needsUsername ? (
+      {showUsernameSetup ? (
         <UsernameSetupDialog
           open
           wallet={address}

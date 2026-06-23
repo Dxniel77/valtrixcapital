@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Layers,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navKeys = [
   { href: "/dashboard/history", key: "history", icon: History },
   { href: "/dashboard/referrals", key: "referrals", icon: Users },
   { href: "/dashboard/share", key: "share", icon: Sparkles },
+  { href: "/dashboard/wallet", key: "wallet", icon: Wallet },
   { href: "/dashboard/profile", key: "profile", icon: User },
   { href: "/dashboard/support", key: "support", icon: Headphones },
 ] as const;

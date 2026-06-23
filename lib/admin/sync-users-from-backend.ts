@@ -1,6 +1,7 @@
+import type { WithdrawalRule } from "@/lib/admin/withdrawal-eligibility";
 import {
-  DEFAULT_WITHDRAWAL_RULE,
-} from "@/lib/admin/withdrawal-eligibility";
+  parseWithdrawalRuleJson,
+} from "@/lib/admin/grant-rules";
 import { recomputeWithdrawalUnlock } from "@/lib/admin/user-fields";
 import { recountDirectReferrals, findSponsorUser } from "@/lib/admin/sponsor";
 import type { AdminUser } from "@/lib/admin/store";
@@ -19,6 +20,13 @@ export interface BackendAdminUserDto {
   referrerWallet: string | null;
   referrerUsername: string | null;
   directReferrals: number;
+  accountGranted: boolean;
+  withdrawalUnlocked: boolean;
+  withdrawalRule: WithdrawalRule | null;
+  realCapital: number;
+  companyCapital: number;
+  directSalesVolume: number;
+  levelVolumes: number[];
   createdAt: string;
 }
 
@@ -31,6 +39,8 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     status: db.isActive ? "ACTIVE" : "INACTIVE",
     network: "BSC",
     capital: db.lockedCapital,
+    realCapital: db.realCapital,
+    companyCapital: db.companyCapital,
     balance: db.earningsBalance,
     totalEarned: db.totalEarned,
     referrals: db.directReferrals,
@@ -38,11 +48,11 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     referrerUsername: db.referrerUsername,
     registrationSource: db.registrationSource,
     joinedAt: Date.parse(db.createdAt) || Date.now(),
-    accountGranted: false,
-    withdrawalUnlocked: false,
-    withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
-    directSalesVolume: 0,
-    levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
+    accountGranted: db.accountGranted,
+    withdrawalUnlocked: db.withdrawalUnlocked,
+    withdrawalRule: db.withdrawalRule ?? parseWithdrawalRuleJson(null),
+    directSalesVolume: db.directSalesVolume,
+    levelVolumes: db.levelVolumes.length > 0 ? db.levelVolumes : [0, 0, 0, 0, 0, 0, 0, 0],
     operationalEarned: 0,
     networkEarned: 0,
     passiveEarned: 0,
@@ -77,10 +87,9 @@ export function mergeBackendUsers(
     byWallet.set(key, {
       ...fromDb,
       alias: fromDb.alias || local.alias,
-      accountGranted: local.accountGranted || fromDb.accountGranted,
-      withdrawalRule: local.accountGranted
-        ? local.withdrawalRule
-        : fromDb.withdrawalRule,
+      accountGranted: fromDb.accountGranted,
+      withdrawalUnlocked: fromDb.withdrawalUnlocked,
+      withdrawalRule: fromDb.withdrawalRule,
       uplineWallet,
       referrerUsername:
         fromDb.referrerUsername ??
@@ -91,13 +100,19 @@ export function mergeBackendUsers(
       operationalEarned: local.operationalEarned,
       networkEarned: local.networkEarned,
       passiveEarned: local.passiveEarned,
-      levelVolumes: local.levelVolumes.some((v) => v > 0)
-        ? local.levelVolumes
-        : fromDb.levelVolumes,
+      levelVolumes: fromDb.levelVolumes.some((v) => v > 0)
+        ? fromDb.levelVolumes
+        : local.levelVolumes.some((v) => v > 0)
+          ? local.levelVolumes
+          : fromDb.levelVolumes,
       directSalesVolume:
-        local.directSalesVolume > 0
-          ? local.directSalesVolume
-          : fromDb.directSalesVolume,
+        fromDb.directSalesVolume > 0
+          ? fromDb.directSalesVolume
+          : local.directSalesVolume > 0
+            ? local.directSalesVolume
+            : fromDb.directSalesVolume,
+      realCapital: fromDb.realCapital,
+      companyCapital: fromDb.companyCapital,
     });
   }
 

@@ -2,16 +2,35 @@
 
 import * as React from "react";
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bot, Cpu } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
-import { BotTradingPanel } from "@/components/dashboard/company-tools/bot-trading-panel";
-import { LiquidationEnginePanel } from "@/components/dashboard/company-tools/liquidation-engine-panel";
 import { CompanyRevenueSummary } from "@/components/dashboard/company-tools/company-revenue-summary";
+import {
+  CompanyToolsPageSkeleton,
+  CompanyToolsPanelSkeleton,
+} from "@/components/dashboard/company-tools/company-tools-skeleton";
 import { useI18n } from "@/lib/i18n/context";
 import { startNavigationProgress } from "@/lib/navigation/progress-events";
 import { cn } from "@/lib/utils";
+
+const BotTradingPanel = dynamic(
+  () =>
+    import("@/components/dashboard/company-tools/bot-trading-panel").then(
+      (mod) => mod.BotTradingPanel,
+    ),
+  { loading: () => <CompanyToolsPanelSkeleton /> },
+);
+
+const LiquidationEnginePanel = dynamic(
+  () =>
+    import("@/components/dashboard/company-tools/liquidation-engine-panel").then(
+      (mod) => mod.LiquidationEnginePanel,
+    ),
+  { loading: () => <CompanyToolsPanelSkeleton /> },
+);
 
 type CompanyToolsTab = "bot" | "liquidation";
 
@@ -24,20 +43,6 @@ function CompanyToolsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
-
-  const tabs: {
-    id: CompanyToolsTab;
-    label: string;
-    icon: typeof Bot;
-  }[] = [
-    { id: "bot", label: t("companyToolsPage.tabBot"), icon: Bot },
-    {
-      id: "liquidation",
-      label: t("companyToolsPage.tabLiquidation"),
-      icon: Cpu,
-    },
-  ];
-
   function selectTab(next: CompanyToolsTab) {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "bot") {
@@ -52,6 +57,19 @@ function CompanyToolsContent() {
       { scroll: false },
     );
   }
+
+  const tabs: {
+    id: CompanyToolsTab;
+    label: string;
+    icon: typeof Bot;
+  }[] = [
+    { id: "bot", label: t("companyToolsPage.tabBot"), icon: Bot },
+    {
+      id: "liquidation",
+      label: t("companyToolsPage.tabLiquidation"),
+      icon: Cpu,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -91,14 +109,8 @@ function CompanyToolsContent() {
         })}
       </div>
 
-      <div role="tabpanel" className={tab === "bot" ? undefined : "hidden"}>
-        <BotTradingPanel />
-      </div>
-      <div
-        role="tabpanel"
-        className={tab === "liquidation" ? undefined : "hidden"}
-      >
-        <LiquidationEnginePanel />
+      <div role="tabpanel">
+        {tab === "bot" ? <BotTradingPanel /> : <LiquidationEnginePanel />}
       </div>
     </div>
   );
@@ -106,7 +118,7 @@ function CompanyToolsContent() {
 
 export default function CompanyToolsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<CompanyToolsPageSkeleton />}>
       <CompanyToolsContent />
     </Suspense>
   );

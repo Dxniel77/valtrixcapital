@@ -12,6 +12,7 @@ import {
   TrendingUp,
   UserPlus,
   Wallet,
+  Coins,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStore } from "@/lib/admin/store";
+import { grantAdminAccount } from "@/lib/admin/grant-account-action";
 import {
   DEFAULT_WITHDRAWAL_RULE,
   type WithdrawalRule,
@@ -86,11 +88,10 @@ function ruleSummary(
 
 export function GrantAccountForm() {
   const { t } = useI18n();
-  const grantAccount = useAdminStore((s) => s.grantAccount);
   const users = useAdminStore((s) => s.users);
+  const [submitting, setSubmitting] = React.useState(false);
 
   const [wallet, setWallet] = React.useState("");
-  const [alias, setAlias] = React.useState("");
   const [upline, setUpline] = React.useState("");
   const [mode, setMode] = React.useState<WithdrawalRuleMode>("either");
   const [directMin, setDirectMin] = React.useState(
@@ -102,11 +103,17 @@ export function GrantAccountForm() {
   const [l2Min, setL2Min] = React.useState(
     String(DEFAULT_WITHDRAWAL_RULE.level2VolumeMin),
   );
+  const [activeCapital, setActiveCapital] = React.useState("");
 
   const walletOk = isValidWallet(wallet);
-  const aliasOk = alias.trim().length >= 2;
   const uplineOk = !upline.trim() || isValidWallet(upline);
-  const canSubmit = walletOk && aliasOk && uplineOk;
+  const activeCapitalNum = activeCapital.trim()
+    ? Number(activeCapital.replace(/,/g, "."))
+    : 0;
+  const activeCapitalOk =
+    activeCapital.trim() === "" ||
+    (Number.isFinite(activeCapitalNum) && activeCapitalNum >= 0);
+  const canSubmit = walletOk && uplineOk && activeCapitalOk;
 
   const rule: WithdrawalRule = {
     mode,
@@ -145,35 +152,42 @@ export function GrantAccountForm() {
 
   function reset() {
     setWallet("");
-    setAlias("");
     setUpline("");
     setMode("either");
     setDirectMin(String(DEFAULT_WITHDRAWAL_RULE.directSalesMin));
     setL1Min(String(DEFAULT_WITHDRAWAL_RULE.level1VolumeMin));
     setL2Min(String(DEFAULT_WITHDRAWAL_RULE.level2VolumeMin));
+    setActiveCapital("");
   }
 
-  function submit() {
+  async function submit() {
     if (!walletOk) {
       toast.error(t("admin.grant.invalidWallet"));
-      return;
-    }
-    if (!aliasOk) {
-      toast.error(t("admin.grant.invalidAlias"));
       return;
     }
     if (!uplineOk) {
       toast.error(t("admin.grant.invalidUpline"));
       return;
     }
-    grantAccount({
-      wallet: wallet.trim(),
-      alias: alias.trim(),
-      uplineWallet: upline.trim() || null,
-      rule,
-    });
-    toast.success(t("admin.grant.success"));
-    reset();
+    if (!activeCapitalOk) {
+      toast.error(t("admin.grant.invalidActiveCapital"));
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await grantAdminAccount({
+        wallet: wallet.trim(),
+        uplineWallet: upline.trim() || null,
+        rule,
+        initialActiveCapital: activeCapitalNum > 0 ? activeCapitalNum : 0,
+      });
+      toast.success(t("admin.grant.success"));
+      reset();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const showDirect = mode === "direct_sales" || mode === "either";
@@ -200,36 +214,27 @@ export function GrantAccountForm() {
           <section className="space-y-4">
             <SectionHeading step={1} title={t("admin.grant.identitySection")} />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("admin.grant.walletLabel")} required>
-                <div className="relative">
-                  <Wallet className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                  <Input
-                    value={wallet}
-                    onChange={(e) => setWallet(e.target.value)}
-                    placeholder="0x…"
-                    className={cn(
-                      "pl-9 font-mono text-sm",
-                      wallet && (walletOk ? "border-success/40" : "border-danger/40"),
-                    )}
-                  />
-                  {walletOk ? (
-                    <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-success" />
-                  ) : null}
-                </div>
-              </Field>
-
-              <Field label={t("admin.grant.aliasLabel")} required>
+            <Field
+              label={t("admin.grant.walletLabel")}
+              hint={t("admin.grant.walletHint")}
+              required
+            >
+              <div className="relative max-w-xl">
+                <Wallet className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <Input
-                  value={alias}
-                  onChange={(e) => setAlias(e.target.value)}
-                  placeholder={t("admin.grant.aliasPlaceholder")}
+                  value={wallet}
+                  onChange={(e) => setWallet(e.target.value)}
+                  placeholder="0x…"
                   className={cn(
-                    alias && (aliasOk ? "border-success/40" : "border-danger/40"),
+                    "pl-9 font-mono text-sm",
+                    wallet && (walletOk ? "border-success/40" : "border-danger/40"),
                   )}
                 />
-              </Field>
-            </div>
+                {walletOk ? (
+                  <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-success" />
+                ) : null}
+              </div>
+            </Field>
 
             <Field label={t("admin.grant.uplineLabel")} hint={t("admin.grant.uplineHint")}>
               <div className="relative">
@@ -243,6 +248,29 @@ export function GrantAccountForm() {
                     upline && (uplineOk ? "border-success/40" : "border-danger/40"),
                   )}
                 />
+              </div>
+            </Field>
+
+            <Field
+              label={t("admin.grant.activeCapitalLabel")}
+              hint={t("admin.grant.activeCapitalHint")}
+            >
+              <div className="relative max-w-sm">
+                <Coins className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Input
+                  value={activeCapital}
+                  onChange={(e) => setActiveCapital(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0"
+                  className={cn(
+                    "pl-9 pr-14 font-mono",
+                    activeCapital &&
+                      (activeCapitalOk ? "border-success/40" : "border-danger/40"),
+                  )}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
+                  USDT
+                </span>
               </div>
             </Field>
           </section>
@@ -344,8 +372,9 @@ export function GrantAccountForm() {
             <Button
               variant="primary"
               size="md"
-              onClick={submit}
-              disabled={!canSubmit}
+              onClick={() => void submit()}
+              disabled={!canSubmit || submitting}
+              loading={submitting}
               className="min-w-[160px]"
             >
               <UserPlus className="h-4 w-4" />
@@ -366,13 +395,17 @@ export function GrantAccountForm() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <PreviewRow
-              label={t("admin.grant.previewAlias")}
-              value={alias.trim() || "—"}
-            />
-            <PreviewRow
               label={t("admin.grant.previewWallet")}
               value={walletOk ? shortenAddress(wallet) : wallet.trim() || "—"}
               mono
+            />
+            <PreviewRow
+              label={t("admin.grant.previewActiveCapital")}
+              value={
+                activeCapitalOk && activeCapitalNum > 0
+                  ? `$${formatNumber(activeCapitalNum, { decimals: 0 })} USDT`
+                  : "—"
+              }
             />
             <PreviewRow
               label={t("admin.grant.previewRule")}
@@ -383,6 +416,7 @@ export function GrantAccountForm() {
                 title={t("admin.grant.progressTitle")}
                 items={previewProgressItems}
                 unlocked={previewUnlocked}
+                detailed
               />
             </div>
             <div className="flex items-center gap-2 pt-1">
@@ -430,6 +464,7 @@ export function GrantAccountForm() {
                           items={progressItemsForUser(u)}
                           unlocked={u.withdrawalUnlocked}
                           compact
+                          detailed
                         />
                       </div>
                     </Link>

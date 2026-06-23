@@ -34,8 +34,12 @@ export function isWalletConnectConfigured(): boolean {
 }
 
 /** WalletConnect Cloud project id — required for mobile wallets. */
-export const WALLET_CONNECT_PROJECT_ID =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() || "valtrix-dev";
+export const WALLET_CONNECT_PROJECT_ID = (() => {
+  const id = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() ?? "";
+  if (isWalletConnectConfigured()) return id;
+  if (process.env.NODE_ENV === "production") return id;
+  return "valtrix-dev";
+})();
 
 export function createWagmiConfig(appUrl = resolveAppUrl()) {
   const origin = appUrl.replace(/\/$/, "");

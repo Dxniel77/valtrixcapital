@@ -18,6 +18,10 @@ import {
 } from "@/lib/admin/treasury-store";
 import { formatNumber } from "@/lib/utils";
 import { utcDateKey } from "@/lib/admin/movements";
+import {
+  auditDetailMissingOnChainTx,
+  localizeAuditDetail,
+} from "@/lib/admin/audit-format";
 
 export default function AdminOverviewPage() {
   const { t } = useI18n();
@@ -145,8 +149,14 @@ export default function AdminOverviewPage() {
                         })}
                       </span>
                     </div>
-                    <p className="text-xs text-text-muted">
-                      {a.target} · {a.detail}
+                    <p
+                      className={
+                        auditDetailMissingOnChainTx(a.detail)
+                          ? "text-xs font-medium text-amber-600 dark:text-amber-400"
+                          : "text-xs text-text-muted"
+                      }
+                    >
+                      {a.target} · {localizeAuditDetail(a.detail, t)}
                     </p>
                   </li>
                 ))}

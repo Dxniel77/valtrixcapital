@@ -1,0 +1,90 @@
+{
+  "de": {
+    "walletPage.withdraw.payoutFailed": "USDT konnte nicht automatisch gesendet werden. Ihr Guthaben wurde wiederhergestellt — versuchen Sie es in Kürze erneut.",
+    "historyPage.payoutPending": "warte auf On-Chain-Auszahlung",
+    "admin.headerLive": "Live-Plattformdaten",
+    "admin.headerSyncing": "Admin-Daten werden synchronisiert…",
+    "admin.headerOffline": "Datenbank nicht verfügbar",
+    "admin.withdrawals.retryPayout": "Automatische Auszahlung wiederholen",
+    "admin.withdrawals.txHashRequired": "Geben Sie den On-Chain-Auszahlungs-Hash ein, bevor Sie als bezahlt markieren",
+    "admin.audit.noOnChainTx": "keine On-Chain-Tx",
+    "admin.audit.autoPayoutTag": "auto"
+  },
+  "fr": {
+    "walletPage.withdraw.payoutFailed": "Impossible d'envoyer l'USDT automatiquement. Votre solde a été restauré — réessayez sous peu.",
+    "historyPage.payoutPending": "en attente de paiement on-chain",
+    "admin.headerLive": "Données de plateforme en direct",
+    "admin.headerSyncing": "Synchronisation des données admin…",
+    "admin.headerOffline": "Base de données indisponible",
+    "admin.withdrawals.retryPayout": "Réessayer le paiement automatique",
+    "admin.withdrawals.txHashRequired": "Saisissez le hash de transaction on-chain avant de marquer comme payé",
+    "admin.audit.noOnChainTx": "pas de tx on-chain",
+    "admin.audit.autoPayoutTag": "auto"
+  },
+  "it": {
+    "walletPage.withdraw.payoutFailed": "Impossibile inviare USDT automaticamente. Il saldo è stato ripristinato — riprova a breve.",
+    "historyPage.payoutPending": "in attesa di pagamento on-chain",
+    "admin.headerLive": "Dati piattaforma in tempo reale",
+    "admin.headerSyncing": "Sincronizzazione dati admin…",
+    "admin.headerOffline": "Database non disponibile",
+    "admin.withdrawals.retryPayout": "Riprova pagamento automatico",
+    "admin.withdrawals.txHashRequired": "Inserisci l'hash on-chain del pagamento prima di segnare come pagato",
+    "admin.audit.noOnChainTx": "nessuna tx on-chain",
+    "admin.audit.autoPayoutTag": "auto"
+  },
+  "pt": {
+    "walletPage.withdraw.payoutFailed": "Não foi possível enviar USDT automaticamente. Seu saldo foi restaurado — tente novamente em breve.",
+    "historyPage.payoutPending": "aguardando pagamento on-chain",
+    "admin.headerLive": "Dados da plataforma ao vivo",
+    "admin.headerSyncing": "Sincronizando dados admin…",
+    "admin.headerOffline": "Banco de dados indisponível",
+    "admin.withdrawals.retryPayout": "Repetir pagamento automático",
+    "admin.withdrawals.txHashRequired": "Informe o hash on-chain do pagamento antes de marcar como pago",
+    "admin.audit.noOnChainTx": "sem tx on-chain",
+    "admin.audit.autoPayoutTag": "auto"
+  },
+  "ar": {
+    "walletPage.withdraw.payoutFailed": "تعذر إرسال USDT تلقائيًا. تمت استعادة رصيدك — حاول مرة أخرى قريبًا.",
+    "historyPage.payoutPending": "في انتظار الدفع على السلسلة",
+    "admin.headerLive": "بيانات المنصة المباشرة",
+    "admin.headerSyncing": "جارٍ مزامنة بيانات المسؤول…",
+    "admin.headerOffline": "قاعدة البيانات غير متاحة",
+    "admin.withdrawals.retryPayout": "إعادة محاولة الدفع التلقائي",
+    "admin.withdrawals.txHashRequired": "أدخل hash الدفع على السلسلة قبل وضع علامة مدفوع",
+    "admin.audit.noOnChainTx": "لا tx على السلسلة",
+    "admin.audit.autoPayoutTag": "تلقائي"
+  },
+  "zh": {
+    "walletPage.withdraw.payoutFailed": "无法自动发送 USDT。您的余额已恢复 — 请稍后重试。",
+    "historyPage.payoutPending": "等待链上支付",
+    "admin.headerLive": "平台实时数据",
+    "admin.headerSyncing": "正在同步管理数据…",
+    "admin.headerOffline": "数据库不可用",
+    "admin.withdrawals.retryPayout": "重试自动支付",
+    "admin.withdrawals.txHashRequired": "标记为已支付前请输入链上支付交易哈希",
+    "admin.audit.noOnChainTx": "无链上交易",
+    "admin.audit.autoPayoutTag": "自动"
+  },
+  "hi": {
+    "walletPage.withdraw.payoutFailed": "USDT स्वचालित रूप से नहीं भेजा जा सका। आपका बैलेंस बहाल कर दिया गया — कृपया थोड़ी देर बाद पुनः प्रयास करें।",
+    "historyPage.payoutPending": "ऑन-चेन भुगतान की प्रतीक्षा",
+    "admin.headerLive": "लाइव प्लेटफ़ॉर्म डेटा",
+    "admin.headerSyncing": "एडमिन डेटा सिंक हो रहा है…",
+    "admin.headerOffline": "डेटाबेस उपलब्ध नहीं",
+    "admin.withdrawals.retryPayout": "स्वचालित भुगतान पुनः प्रयास करें",
+    "admin.withdrawals.txHashRequired": "भुगतान के रूप में चिह्नित करने से पहले ऑन-चेन भुगतान हैश दर्ज करें",
+    "admin.audit.noOnChainTx": "कोई ऑन-चेन tx नहीं",
+    "admin.audit.autoPayoutTag": "ऑटो"
+  },
+  "ja": {
+    "walletPage.withdraw.payoutFailed": "USDTを自動送信できませんでした。残高は復元されました — しばらくしてから再試行してください。",
+    "historyPage.payoutPending": "オンチェーン支払い待ち",
+    "admin.headerLive": "ライブプラットフォームデータ",
+    "admin.headerSyncing": "管理データを同期中…",
+    "admin.headerOffline": "データベース利用不可",
+    "admin.withdrawals.retryPayout": "自動支払いを再試行",
+    "admin.withdrawals.txHashRequired": "支払済みにする前にオンチェーン支払いトランザクションハッシュを入力してください",
+    "admin.audit.noOnChainTx": "オンチェーンtxなし",
+    "admin.audit.autoPayoutTag": "自動"
+  }
+}

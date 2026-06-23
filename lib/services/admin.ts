@@ -69,6 +69,7 @@ export async function adjustUserBalance(input: {
           amount: deltaMicro,
           network: "BSC",
           status: "ACTIVE",
+          source: "COMPANY_SPONSORED",
         },
       });
 
@@ -160,7 +161,7 @@ export async function setUserActive(input: {
 }
 
 export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[]> {
-  const [deposits, withdrawals, yields, commissions, adjustments] =
+  const [deposits, withdrawals, yields, commissions, adjustments, treasuryDeposits, treasuryWithdrawals] =
     await Promise.all([
       prisma.deposit.findMany({
         orderBy: { detectedAt: "desc" },
@@ -192,6 +193,19 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
           target: { select: { walletAddress: true } },
         },
       }),
+      prisma.treasuryDeposit.findMany({
+        orderBy: { startedAt: "desc" },
+        take: limit,
+      }),
+      prisma.treasuryWithdrawal.findMany({
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        include: {
+          userWithdrawal: {
+            include: { user: { select: { walletAddress: true } } },
+          },
+        },
+      }),
     ]);
 
   const rows: AdminMovementDto[] = [];
@@ -204,7 +218,7 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
       amount: fromMicro(d.amount),
       network: d.network,
       status: d.status,
-      timestamp: d.detectedAt.getTime(),
+      timestamp: (d.confirmedAt ?? d.detectedAt).getTime(),
     });
   }
 
@@ -262,6 +276,34 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
     });
   }
 
+  for (const d of treasuryDeposits) {
+    rows.push({
+      id: `tdep_${d.id}`,
+      type: "DEPOSIT",
+      wallet: "treasury",
+      amount: fromMicro(d.amount),
+      network: d.network,
+      status: d.status,
+      timestamp: (d.confirmedAt ?? d.startedAt).getTime(),
+      note: `Treasury inflow · ${d.txHash}`,
+    });
+  }
+
+  for (const w of treasuryWithdrawals) {
+    if (w.kind === "USER_PAYOUT") continue;
+
+    rows.push({
+      id: `twd_${w.id}`,
+      type: "WITHDRAWAL",
+      wallet: "treasury",
+      amount: fromMicro(w.amount),
+      network: w.network,
+      status: "COMPLETED",
+      timestamp: w.createdAt.getTime(),
+      note: w.note || "Treasury outflow",
+    });
+  }
+
   return rows.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
 }
 
@@ -310,4 +352,17 @@ export async function getAdminActorId(walletAddress: string): Promise<string | n
     select: { id: true },
   });
   return user?.id ?? null;
+}
+
+/** First seeded admin user id from `ADMIN_WALLETS` (for system audit entries). */
+export async function getDefaultAdminActorId(): Promise<string | null> {
+  const wallets = (process.env.ADMIN_WALLETS ?? "")
+    .split(",")
+    .map((w) => w.trim())
+    .filter(Boolean);
+  for (const wallet of wallets) {
+    const id = await getAdminActorId(wallet);
+    if (id) return id;
+  }
+  return null;
 }

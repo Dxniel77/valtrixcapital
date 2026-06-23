@@ -16,6 +16,7 @@ import { LocaleProvider, useRainbowKitLocale } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ReferralCapture } from "@/components/referrals/referral-capture";
 import { NavigationProgress } from "@/components/navigation/navigation-progress";
+import { ProductionPersistGuard } from "@/components/backend/production-persist-guard";
 
 function buildRainbowTheme(mode: "light" | "dark"): Theme {
   const base =
@@ -112,6 +113,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <LocaleProvider>
             <RainbowKitThemed>
+              <ProductionPersistGuard />
               <NavigationProgress />
               <React.Suspense fallback={null}>
                 <ReferralCapture />

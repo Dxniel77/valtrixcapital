@@ -1,0 +1,564 @@
+import type { Network, Prisma, TreasuryDepositStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { normalizeWallet } from "@/lib/auth/admins";
+import { fromMicro, toMicro } from "@/lib/utils";
+import {
+  getTxConfirmationCount,
+  verifyAdminTreasuryDeposit,
+} from "@/lib/services/deposit-verification";
+import { isProductionRuntime } from "@/lib/runtime-mode";
+import type { StakingNetwork } from "@/lib/staking/store";
+
+export const TREASURY_USER_DEPOSIT_MARKER = "USER_DEPOSIT";
+
+export class TreasuryServiceError extends Error {
+  constructor(
+    message: string,
+    readonly code:
+      | "NOT_FOUND"
+      | "INVALID_AMOUNT"
+      | "INSUFFICIENT_FUNDS"
+      | "INVALID_ADDRESS"
+      | "ALREADY_CONFIRMED"
+      | "TX_NOT_VERIFIED",
+  ) {
+    super(message);
+    this.name = "TreasuryServiceError";
+  }
+}
+
+export interface TreasuryBalancesDto {
+  bscBalance: number;
+  polygonBalance: number;
+  totalBalance: number;
+}
+
+export interface TreasuryPoolTotalsDto {
+  adminDeposited: number;
+  paidOut: number;
+}
+
+export interface TreasuryDepositDto {
+  id: string;
+  network: Network;
+  amount: number;
+  txHash: string;
+  confirmations: number;
+  requiredConfirmations: number;
+  status: TreasuryDepositStatus;
+  startedAt: string;
+  confirmedAt: string | null;
+}
+
+export interface TreasuryWithdrawalDto {
+  id: string;
+  network: Network;
+  amount: number;
+  toAddress: string;
+  txHash: string | null;
+  note: string;
+  kind: "MANUAL" | "USER_PAYOUT";
+  userWithdrawalId: string | null;
+  createdAt: string;
+}
+
+export interface TreasurySnapshotDto {
+  balances: TreasuryBalancesDto;
+  totals: TreasuryPoolTotalsDto;
+  deposits: TreasuryDepositDto[];
+  withdrawals: TreasuryWithdrawalDto[];
+}
+
+type TreasuryTx = Prisma.TransactionClient;
+
+const adminPoolDepositWhere = {
+  status: "CONFIRMED" as const,
+  NOT: { recordedBy: TREASURY_USER_DEPOSIT_MARKER },
+};
+
+function balanceField(network: Network): "bscBalance" | "polygonBalance" {
+  return network === "POLYGON" ? "polygonBalance" : "bscBalance";
+}
+
+function isAdminPoolDeposit(recordedBy: string | null | undefined): boolean {
+  return recordedBy !== TREASURY_USER_DEPOSIT_MARKER;
+}
+
+async function sumConfirmedAdminDepositsByNetwork(): Promise<
+  Record<Network, bigint>
+> {
+  const rows = await prisma.treasuryDeposit.groupBy({
+    by: ["network"],
+    where: adminPoolDepositWhere,
+    _sum: { amount: true },
+  });
+
+  const out: Record<Network, bigint> = { BSC: 0n, POLYGON: 0n };
+  for (const row of rows) {
+    out[row.network] = row._sum.amount ?? 0n;
+  }
+  return out;
+}
+
+async function sumWithdrawalsByNetwork(): Promise<Record<Network, bigint>> {
+  const rows = await prisma.treasuryWithdrawal.groupBy({
+    by: ["network"],
+    _sum: { amount: true },
+  });
+
+  const out: Record<Network, bigint> = { BSC: 0n, POLYGON: 0n };
+  for (const row of rows) {
+    out[row.network] = row._sum.amount ?? 0n;
+  }
+  return out;
+}
+
+function netPoolBalance(deposits: bigint, withdrawals: bigint): bigint {
+  return deposits > withdrawals ? deposits - withdrawals : 0n;
+}
+
+/** Recomputes payout pool from admin loads minus all treasury outflows. */
+export async function reconcileTreasuryState(): Promise<TreasuryBalancesDto> {
+  const [deposits, withdrawals] = await Promise.all([
+    sumConfirmedAdminDepositsByNetwork(),
+    sumWithdrawalsByNetwork(),
+  ]);
+
+  const bscBalance = netPoolBalance(deposits.BSC, withdrawals.BSC);
+  const polygonBalance = netPoolBalance(deposits.POLYGON, withdrawals.POLYGON);
+
+  await prisma.treasuryState.upsert({
+    where: { id: 1 },
+    update: { bscBalance, polygonBalance },
+    create: { id: 1, bscBalance, polygonBalance },
+  });
+
+  const bsc = fromMicro(bscBalance);
+  const polygon = fromMicro(polygonBalance);
+  return {
+    bscBalance: bsc,
+    polygonBalance: polygon,
+    totalBalance: bsc + polygon,
+  };
+}
+
+export async function getTreasuryLiquidity(): Promise<TreasuryBalancesDto> {
+  return reconcileTreasuryState();
+}
+
+export async function assertTreasuryLiquidityForPayout(
+  network: Network,
+  netAmount: number,
+): Promise<void> {
+  if (!Number.isFinite(netAmount) || netAmount <= 0) {
+    throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
+  }
+
+  const balances = await getTreasuryLiquidity();
+  const available =
+    network === "POLYGON" ? balances.polygonBalance : balances.bscBalance;
+  if (netAmount > available) {
+    throw new TreasuryServiceError(
+      "Insufficient treasury liquidity for payout",
+      "INSUFFICIENT_FUNDS",
+    );
+  }
+}
+
+function serializeDeposit(row: {
+  id: string;
+  network: Network;
+  amount: bigint;
+  txHash: string;
+  confirmations: number;
+  requiredConfirmations: number;
+  status: TreasuryDepositStatus;
+  startedAt: Date;
+  confirmedAt: Date | null;
+}): TreasuryDepositDto {
+  return {
+    id: row.id,
+    network: row.network,
+    amount: fromMicro(row.amount),
+    txHash: row.txHash,
+    confirmations: row.confirmations,
+    requiredConfirmations: row.requiredConfirmations,
+    status: row.status,
+    startedAt: row.startedAt.toISOString(),
+    confirmedAt: row.confirmedAt?.toISOString() ?? null,
+  };
+}
+
+function serializeWithdrawal(row: {
+  id: string;
+  network: Network;
+  amount: bigint;
+  toAddress: string;
+  txHash: string | null;
+  note: string;
+  kind: "MANUAL" | "USER_PAYOUT";
+  userWithdrawalId: string | null;
+  createdAt: Date;
+}): TreasuryWithdrawalDto {
+  return {
+    id: row.id,
+    network: row.network,
+    amount: fromMicro(row.amount),
+    toAddress: row.toAddress,
+    txHash: row.txHash,
+    note: row.note,
+    kind: row.kind,
+    userWithdrawalId: row.userWithdrawalId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+async function computePoolTotals(): Promise<TreasuryPoolTotalsDto> {
+  const [adminDeposits, paidOutRows] = await Promise.all([
+    prisma.treasuryDeposit.aggregate({
+      where: adminPoolDepositWhere,
+      _sum: { amount: true },
+    }),
+    prisma.treasuryWithdrawal.aggregate({
+      _sum: { amount: true },
+    }),
+  ]);
+
+  return {
+    adminDeposited: fromMicro(adminDeposits._sum.amount ?? 0n),
+    paidOut: fromMicro(paidOutRows._sum.amount ?? 0n),
+  };
+}
+
+export async function getTreasurySnapshot(
+  limit = 100,
+): Promise<TreasurySnapshotDto> {
+  const [balances, totals, deposits, withdrawals] = await Promise.all([
+    reconcileTreasuryState(),
+    computePoolTotals(),
+    prisma.treasuryDeposit.findMany({
+      where: { NOT: { recordedBy: TREASURY_USER_DEPOSIT_MARKER } },
+      orderBy: { startedAt: "desc" },
+      take: limit,
+    }),
+    prisma.treasuryWithdrawal.findMany({
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    }),
+  ]);
+
+  return {
+    balances,
+    totals,
+    deposits: deposits.map(serializeDeposit),
+    withdrawals: withdrawals.map(serializeWithdrawal),
+  };
+}
+
+async function incrementPoolBalanceInTx(
+  tx: TreasuryTx,
+  network: Network,
+  amountMicro: bigint,
+): Promise<void> {
+  const field = balanceField(network);
+  await tx.treasuryState.upsert({
+    where: { id: 1 },
+    update: { [field]: { increment: amountMicro } },
+    create: { id: 1, [field]: amountMicro },
+  });
+}
+
+async function decrementPoolBalanceInTx(
+  tx: TreasuryTx,
+  network: Network,
+  amountMicro: bigint,
+): Promise<void> {
+  const field = balanceField(network);
+  const state = await tx.treasuryState.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1 },
+  });
+  if (state[field] < amountMicro) {
+    throw new TreasuryServiceError("Insufficient treasury funds", "INSUFFICIENT_FUNDS");
+  }
+  await tx.treasuryState.update({
+    where: { id: 1 },
+    data: { [field]: { decrement: amountMicro } },
+  });
+}
+
+export async function createTreasuryDeposit(input: {
+  network: Network;
+  amount: number;
+  txHash: string;
+  requiredConfirmations: number;
+  recordedBy?: string;
+  status?: TreasuryDepositStatus;
+  confirmations?: number;
+}): Promise<TreasuryDepositDto> {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
+  }
+
+  let amount = input.amount;
+  let txHash = input.txHash.toLowerCase();
+  let status = input.status ?? "CONFIRMING";
+  let confirmations = input.confirmations ?? 0;
+
+  if (isProductionRuntime()) {
+    if (!input.recordedBy) {
+      throw new TreasuryServiceError(
+        "Admin wallet required to verify treasury deposit",
+        "INVALID_ADDRESS",
+      );
+    }
+
+    const verified = await verifyAdminTreasuryDeposit({
+      network: input.network as StakingNetwork,
+      txHash,
+      expectedFrom: normalizeWallet(input.recordedBy),
+      waitForMining: true,
+    });
+    if (!verified) {
+      throw new TreasuryServiceError(
+        "Could not verify USDT transfer to treasury",
+        "TX_NOT_VERIFIED",
+      );
+    }
+
+    amount = verified.amount;
+    confirmations = await getTxConfirmationCount(
+      input.network as StakingNetwork,
+      txHash,
+    );
+    if (confirmations >= input.requiredConfirmations) {
+      status = "CONFIRMED";
+    } else {
+      status = "CONFIRMING";
+    }
+  }
+
+  const amountMicro = toMicro(amount);
+
+  if (status === "CONFIRMED") {
+    const row = await prisma.$transaction(async (tx) => {
+      const deposit = await tx.treasuryDeposit.create({
+        data: {
+          network: input.network,
+          amount: amountMicro,
+          txHash: txHash,
+          confirmations: input.requiredConfirmations,
+          requiredConfirmations: input.requiredConfirmations,
+          status: "CONFIRMED",
+          recordedBy: input.recordedBy ?? null,
+          confirmedAt: new Date(),
+        },
+      });
+
+      if (isAdminPoolDeposit(deposit.recordedBy)) {
+        await incrementPoolBalanceInTx(tx, input.network, amountMicro);
+      }
+
+      return deposit;
+    });
+    return serializeDeposit(row);
+  }
+
+  const row = await prisma.treasuryDeposit.create({
+    data: {
+      network: input.network,
+      amount: amountMicro,
+      txHash,
+      confirmations,
+      requiredConfirmations: input.requiredConfirmations,
+      status: "CONFIRMING",
+      recordedBy: input.recordedBy ?? null,
+    },
+  });
+  return serializeDeposit(row);
+}
+
+export async function updateTreasuryDeposit(input: {
+  depositId: string;
+  confirmations?: number;
+  confirm?: boolean;
+}): Promise<TreasuryDepositDto> {
+  const existing = await prisma.treasuryDeposit.findUnique({
+    where: { id: input.depositId },
+  });
+  if (!existing) {
+    throw new TreasuryServiceError("Deposit not found", "NOT_FOUND");
+  }
+  if (existing.status === "CONFIRMED") {
+    throw new TreasuryServiceError("Deposit already confirmed", "ALREADY_CONFIRMED");
+  }
+
+  let confirmations = input.confirmations ?? existing.confirmations;
+
+  if (isProductionRuntime()) {
+    confirmations = await getTxConfirmationCount(
+      existing.network as StakingNetwork,
+      existing.txHash,
+    );
+  }
+
+  const shouldConfirm =
+    input.confirm === true ||
+    confirmations >= existing.requiredConfirmations;
+
+  if (!shouldConfirm) {
+    const row = await prisma.treasuryDeposit.update({
+      where: { id: existing.id },
+      data: { confirmations },
+    });
+    return serializeDeposit(row);
+  }
+
+  if (isProductionRuntime()) {
+    if (!existing.recordedBy) {
+      throw new TreasuryServiceError(
+        "Admin wallet required to verify treasury deposit",
+        "INVALID_ADDRESS",
+      );
+    }
+    const verified = await verifyAdminTreasuryDeposit({
+      network: existing.network as StakingNetwork,
+      txHash: existing.txHash,
+      expectedFrom: normalizeWallet(existing.recordedBy),
+      waitForMining: false,
+    });
+    if (!verified) {
+      throw new TreasuryServiceError(
+        "Could not verify USDT transfer to treasury",
+        "TX_NOT_VERIFIED",
+      );
+    }
+    if (confirmations < existing.requiredConfirmations) {
+      const row = await prisma.treasuryDeposit.update({
+        where: { id: existing.id },
+        data: { confirmations },
+      });
+      return serializeDeposit(row);
+    }
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    const deposit = await tx.treasuryDeposit.update({
+      where: { id: existing.id },
+      data: {
+        confirmations: existing.requiredConfirmations,
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+      },
+    });
+
+    if (isAdminPoolDeposit(deposit.recordedBy)) {
+      await incrementPoolBalanceInTx(tx, existing.network, existing.amount);
+    }
+
+    return deposit;
+  });
+
+  return serializeDeposit(row);
+}
+
+export async function recordTreasuryWithdrawal(input: {
+  network: Network;
+  amount: number;
+  toAddress: string;
+  txHash?: string | null;
+  note?: string;
+  createdBy?: string;
+}): Promise<TreasuryWithdrawalDto> {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
+  }
+  if (!/^0x[0-9a-fA-F]{40}$/.test(input.toAddress)) {
+    throw new TreasuryServiceError("Invalid address", "INVALID_ADDRESS");
+  }
+
+  const amountMicro = toMicro(input.amount);
+
+  const row = await prisma.$transaction(async (tx) => {
+    await decrementPoolBalanceInTx(tx, input.network, amountMicro);
+
+    return tx.treasuryWithdrawal.create({
+      data: {
+        network: input.network,
+        amount: amountMicro,
+        toAddress: input.toAddress.toLowerCase(),
+        txHash: input.txHash?.trim() || null,
+        note: input.note?.trim() ?? "",
+        kind: "MANUAL",
+        createdBy: input.createdBy ?? null,
+      },
+    });
+  });
+
+  return serializeWithdrawal(row);
+}
+
+/** Treasury payout debit — must run inside the caller's transaction. */
+export async function deductTreasuryForUserPayoutInTx(
+  tx: TreasuryTx,
+  input: {
+    userWithdrawalId: string;
+    network: Network;
+    netAmount: number;
+    toAddress: string;
+    txHash?: string | null;
+    createdBy?: string;
+  },
+): Promise<void> {
+  const existingPayout = await tx.treasuryWithdrawal.findUnique({
+    where: { userWithdrawalId: input.userWithdrawalId },
+  });
+  if (existingPayout) return;
+
+  if (!Number.isFinite(input.netAmount) || input.netAmount <= 0) {
+    throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
+  }
+
+  const amountMicro = toMicro(input.netAmount);
+  await decrementPoolBalanceInTx(tx, input.network, amountMicro);
+
+  await tx.treasuryWithdrawal.create({
+    data: {
+      network: input.network,
+      amount: amountMicro,
+      toAddress: input.toAddress.toLowerCase(),
+      txHash: input.txHash?.trim() || null,
+      note: "User withdrawal payout",
+      kind: "USER_PAYOUT",
+      userWithdrawalId: input.userWithdrawalId,
+      createdBy: input.createdBy ?? null,
+    },
+  });
+}
+
+/** Deducts treasury liquidity when a user withdrawal is confirmed on-chain. */
+export async function deductTreasuryForUserPayout(input: {
+  userWithdrawalId: string;
+  network: Network;
+  netAmount: number;
+  toAddress: string;
+  txHash?: string | null;
+  createdBy?: string;
+}): Promise<TreasuryWithdrawalDto> {
+  const existingPayout = await prisma.treasuryWithdrawal.findUnique({
+    where: { userWithdrawalId: input.userWithdrawalId },
+  });
+  if (existingPayout) {
+    return serializeWithdrawal(existingPayout);
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    await deductTreasuryForUserPayoutInTx(tx, input);
+    return tx.treasuryWithdrawal.findUniqueOrThrow({
+      where: { userWithdrawalId: input.userWithdrawalId },
+    });
+  });
+
+  return serializeWithdrawal(row);
+}

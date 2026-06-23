@@ -53,7 +53,8 @@
     "noAttempts": "Sin intentos diarios — reinicio a las 00:00 UTC.",
     "hedgeBlocked": "No puedes abrir la dirección contraria mientras tengas una posición activa en este par.",
     "simultaneousLimit": "Límite de operaciones simultáneas alcanzado ({open}/{max}). Cierra una posición activa para abrir otra.",
-    "tradeSuccess": "{side} {pair} · {price} · {duration}m"
+    "tradeSuccess": "{side} {pair} · {price} · {duration}m",
+    "backendRequired": "Servicio temporalmente no disponible. Inténtalo de nuevo en unos minutos."
   },
   "nav": {
     "features": "Funciones",
@@ -87,7 +88,7 @@
       "activeCapital": "Capital activo",
       "todayYield": "Rendimiento hoy",
       "winsToday": "Victorias hoy",
-      "toCap": "Hasta el límite del 200%"
+      "toCap": "Meta 200%"
     },
     "mockTrade": {
       "quickTrade": "Operación rápida",
@@ -244,7 +245,9 @@
     "step3Hint": "Nombre único para identificarte en Valtrix. No se puede repetir.",
     "step3Done": "Usuario registrado",
     "nonCustodial": "No custodial",
-    "nonCustodialDesc": "Tus claves permanecen en tu billetera. Solo verificamos un mensaje firmado."
+    "nonCustodialDesc": "Tus claves permanecen en tu billetera. Solo verificamos un mensaje firmado.",
+    "refInactive": "Este enlace de referido aún no está activo. El patrocinador debe tener al menos $15 en capital activo. Puedes iniciar sesión sin patrocinador.",
+    "refInvalid": "Este enlace de referido no es válido. Puedes iniciar sesión sin patrocinador."
   },
   "dashboard": {
     "nav": {
@@ -255,13 +258,14 @@
       "history": "Historial",
       "referrals": "Referidos",
       "share": "Compartir",
-      "wallet": "Depositar",
+      "wallet": "Billetera",
       "profile": "Perfil",
       "support": "Soporte"
     },
     "header": {
       "search": "Buscar pares, operaciones, usuarios…",
-      "balance": "Saldo",
+      "balance": "Balance disponible",
+      "capital": "Capital",
       "notifications": "Notificaciones",
       "openMenu": "Abrir menú"
     },
@@ -284,7 +288,7 @@
       "activeCapital": "Capital activo",
       "todayYield": "Rendimiento hoy",
       "winsToday": "Victorias hoy",
-      "toCap": "Hasta el límite del 200%",
+      "toCap": "Meta 200%",
       "stakesHint": "2 activos activos",
       "stakesHintN": "{n} activos activos",
       "stakesHintEmpty": "Aún sin capital · empieza tu",
@@ -411,6 +415,7 @@
         "setupPlaceholder": "ej. carlos.m",
         "setupHint": "3–20 caracteres · letras, números, punto y guion bajo",
         "setupConfirm": "Confirmar usuario",
+        "signInRequired": "Inicia sesión con tu wallet antes de elegir un usuario.",
         "usernameTaken": "Este usuario ya está en uso",
         "usernameInvalid": "Usuario no válido",
         "usernameSaved": "Usuario registrado correctamente",
@@ -448,7 +453,7 @@
     "startStaking": "Depositar USDT",
     "deposit": {
       "title": "Depositar fondos",
-      "subtitle": "Bloquea USDT en BSC o Polygon. Elige monto y red, luego confirma en tu billetera conectada.",
+      "subtitle": "Selecciona la red y el monto que deseas depositar. Luego confirma la transacción en tu billetera.",
       "amountLabel": "Cantidad",
       "range": "Mín ${min} · Máx ${max}",
       "maxBtn": "MÁX",
@@ -497,20 +502,20 @@
       "emptyBadge": "Semana 3 · El capital trabaja",
       "emptyTitle": "Aún no tienes capital activo",
       "emptyDesc": "Bloquea USDT entre $15 y $100,000 en BSC o Polygon. Tu capital genera rendimiento diario hasta duplicarse (200% ROI).",
-      "emptyOrTrade": "o juega tus 7 operaciones del día primero →",
+      "emptyOrTrade": "Realiza hasta 7 operaciones diarias en BTC, ETH, SOL, XRP, BNB y MATIC.\nMovimientos de mercado en marcos de 1 a 5 minutos",
       "emptyBullets": {
         "minTitle": "Desde $15",
         "minDesc": "Sin paquetes fijos. Tú decides la cantidad.",
         "yieldTitle": "0,3% – 1% diario",
         "yieldDesc": "Base más bono por victoria en tus 7 operaciones.",
         "lockTitle": "Límite 200%",
-        "lockDesc": "Cada se desbloquea al duplicar el capital."
+        "lockDesc": "Cada capital activo mantiene participación dentro del ecosistema hasta alcanzar un objetivo operativo del 200%."
       },
       "activeCapital": "Capital activo",
       "activeStakes": "{n} activos activos",
       "totalEarned": "Total ganado",
-      "earningsHint": "Bruto hacia el 200% (no se reduce al retirar)",
-      "progressCap": "Avance al 200%",
+      "earningsHint": "Progreso al 200% (No se reduce al retirar)",
+      "progressCap": "Meta 200%",
       "capRemaining": "${amount} objeto por alcanzar",
       "capRemainingShort": "${amount} objeto por alcanzar",
       "daysActive": "Días activo",
@@ -572,12 +577,14 @@
     "networkTree": "Árbol de red por nivel",
     "ledgerTitle": "Libro de comisiones",
     "ledgerCount": "{n} registro(s)",
-    "ledgerEmpty": "Las comisiones aparecerán aquí cuando tu red genere rendimiento diario.",
+    "ledgerEmpty": "Las comisiones aparecerán aquí cuando tu red genere ingresos por operaciones ganadoras o rendimiento diario.",
     "copyLink": "Copiar enlace",
     "copiedShort": "Copiado",
     "copied": "Enlace de referido copiado",
     "copyFailed": "No se pudo copiar el enlace",
     "shareText": "Únete a Valtrix Capital y haz crecer tu capital on-chain",
+    "linkDisabledTitle": "Enlace de referido no disponible",
+    "linkDisabledHint": "Invierte al menos $15 en capital activo para desbloquear tu enlace de referido. Se activa automáticamente al hacer stake.",
     "active": "Activo",
     "inactive": "Inactivo",
     "directReferrals": "Referidos directos",
@@ -613,6 +620,8 @@
     "winRate": "Tasa de acierto",
     "winRateHint": "Operaciones ganadoras",
     "feedTitle": "Operaciones en vivo",
+    "feedHint": "Precios de mercado en vivo · referencias on-chain verificables",
+    "emptyFeed": "Conectando al feed de bot trading…",
     "pause": "Pausar",
     "resume": "Reanudar",
     "cadenceFast": "Rápido",
@@ -620,11 +629,12 @@
     "cadenceSlow": "Lento",
     "colPair": "Par",
     "colDirection": "Dirección",
-    "colPrice": "Precio",
+    "colPrice": "Entrada",
     "colVolume": "Volumen",
     "colPnl": "P/L %",
     "colTime": "Hora",
     "colNetwork": "Red",
+    "colTx": "TX verificable",
     "long": "LARGO",
     "short": "CORTO",
     "secondsAgo": "hace {n}s",
@@ -682,12 +692,17 @@
     "withdrawCta": "Retirar",
     "availableBalance": "Saldo disponible",
     "availableHint": "Operatividad al instante · retirable cuando quieras",
-    "pendingNetwork": "Red pendiente",
-    "pendingNetworkHint": "Comisiones de red · se acreditan cada 24 h (00:00 UTC)",
+    "pendingNetwork": "Red",
+    "pendingNetworkHint": "Comisiones de red",
     "totalEarned": "Total ganado",
     "totalEarnedHint": "Rendimiento + comisiones",
     "activeCapital": "Capital activo",
     "activeCapitalHint": "Objetivo: 200% ROI",
+    "sponsoredProgress": {
+      "title": "Progreso para desbloquear retiros",
+      "lockedHint": "Solo cuentan depósitos reales de tus referidos. El capital patrocinado por la empresa no suma.",
+      "unlockedHint": "Cumpliste los requisitos. Ya puedes retirar tus ganancias."
+    },
     "deposit": {
       "title": "Depositar fondos",
       "description": "Elige monto y red, luego confirma la transferencia de USDT en tu billetera conectada.",
@@ -703,7 +718,20 @@
       "contractLabel": "Contrato USDT",
       "warning": "Envía solo USDT en la red {network} a esta dirección. Otros activos o redes se perderán.",
       "addCapital": "Depositar USDT",
-      "viewAddresses": "Ver direcciones de depósito"
+      "viewAddresses": "Ver direcciones de depósito",
+      "pendingTitle": "Depósito en confirmación",
+      "pendingDesc": "${amount} USDT en {network} · {current}/{required} confirmaciones — se completará automáticamente.",
+      "claimTitle": "¿Ya enviaste USDT?",
+      "claimDesc": "Si transferiste manualmente a la wallet oficial, pega aquí el hash de la transacción para acreditar tu capital activo.",
+      "claimPlaceholder": "0x… hash de transacción",
+      "claimSubmit": "Acreditar mi depósito",
+      "claimSuccess": "Depósito acreditado al capital activo.",
+      "claimFailed": "No se pudo acreditar el depósito. Inténtalo de nuevo o contacta soporte.",
+      "claimNotVerified": "Transferencia no encontrada. Verifica red, hash y que el USDT se envió desde tu wallet conectada a la dirección oficial.",
+      "claimOwnedByOther": "Esta transacción ya está vinculada a otra cuenta.",
+      "claimInvalidAmount": "El monto está fuera del rango permitido ($15 – $100,000).",
+      "claimInvalidHash": "Introduce un hash válido (0x + 64 caracteres hex).",
+      "registerDeposit": "Registrar depósito"
     },
     "tracker": {
       "title": "Retiro en proceso",
@@ -717,7 +745,12 @@
       "REJECTED": "Rechazado",
       "ACTIVE": "Activo",
       "PENDING": "Pendiente",
-      "FAILED": "Fallido"
+      "FAILED": "Fallido",
+      "CONFIRMED": "Confirmado",
+      "APPROVED": "Aprobado",
+      "SENT": "Enviado",
+      "CONFIRMING": "Confirmando",
+      "INSTANT": "Instantáneo"
     },
     "category": {
       "DEPOSIT": "Depósito",
@@ -735,8 +768,8 @@
     "withdraw": {
       "title": "Retirar ganancias",
       "subtitle": "Se aplica una comisión fija del 4% sobre el monto retirado.",
-      "successTitle": "Retiro solicitado",
-      "successSubtitle": "Sigue el estado en tu billetera.",
+      "successTitle": "Retiro enviado",
+      "successSubtitle": "El USDT se transfirió automáticamente a tu billetera.",
       "amountLabel": "Monto a retirar",
       "available": "Disponible: ${amount}",
       "networkLabel": "Red",
@@ -749,15 +782,21 @@
       "minError": "Mínimo ${min} USDT",
       "insufficient": "Saldo insuficiente",
       "invalidAddress": "Dirección inválida",
-      "submitted": "Retiro enviado a revisión",
-      "successHeadline": "¡Solicitud recibida!",
-      "successBody": "Enviaremos ${amount} USDT a {address} tras la revisión. Suele tardar unos minutos.",
+      "submitted": "Retiro enviado — revisa tu billetera",
+      "successHeadline": "¡Pago enviado!",
+      "successBody": "Se enviaron ${amount} USDT automáticamente a {address}. Puede tardar un minuto en aparecer en tu billetera.",
+      "payoutFailed": "No se pudo enviar el USDT automáticamente. Tu saldo fue restaurado — inténtalo de nuevo en unos momentos.",
       "done": "Listo",
       "eligibilityOpen": "Retiros disponibles.",
       "eligibilityUnlocked": "Has cumplido las condiciones. Puedes retirar tus ganancias.",
-      "eligibilityLocked": "Tu cuenta está activa, pero los retiros se habilitan al cumplir ventas directas o volumen en niveles 1 y 2.",
+      "eligibilityLocked": "Completa tu meta de desbloqueo con ventas directas reales de tus referidos. El capital patrocinado por la empresa no cuenta.",
+      "eligibilityHeading": "Retiros",
       "eligibilityTitle": "Retiros bloqueados",
-      "eligibilityProgress": "Ventas directas: ${direct} / ${directMin} · N1: ${l1} / ${l1Min} · N2: ${l2} / ${l2Min}"
+      "eligibilityProgress": "Ventas directas: ${direct} / ${directMin} · N1: ${l1} / ${l1Min} · N2: ${l2} / ${l2Min}",
+      "treasuryEmptyTitle": "Retiros pausados",
+      "treasuryEmpty": "El pool de pagos de la empresa no tiene liquidez. Los retiros se habilitarán cuando el administrador cargue fondos.",
+      "treasuryInsufficientTitle": "Retiro en espera",
+      "treasuryInsufficient": "El retiro no puede ser procesado por el momento. Vuelve a intentarlo más tarde."
     }
   },
   "share": {
@@ -834,6 +873,7 @@
     "colAmount": "Monto",
     "colRef": "Referencia",
     "feeLabel": "comisión",
+    "payoutPending": "pendiente de pago on-chain",
     "dailyCredit": "Crédito diario",
     "downloadEarnings": "Ganancias",
     "downloadWithdrawals": "Retiros",
@@ -876,6 +916,9 @@
   "admin": {
     "backToApp": "Volver a la app",
     "headerNote": "Panel de administración · datos de demostración",
+    "headerLive": "Datos en vivo de la plataforma",
+    "headerSyncing": "Sincronizando datos de admin…",
+    "headerOffline": "Base de datos no disponible",
     "nav": {
       "overview": "Resumen",
       "treasury": "Tesorería",
@@ -918,7 +961,10 @@
       "SPONSOR_CHANGED": "Patrocinador actualizado",
       "TREASURY_DEPOSIT": "Depósito en tesorería",
       "TREASURY_WITHDRAW": "Retiro de tesorería",
-      "WITHDRAWAL_PROCESSED": "Retiro procesado"
+      "WITHDRAWAL_PROCESSED": "Retiro procesado",
+      "WITHDRAWAL_APPROVED": "Retiro actualizado",
+      "WITHDRAWAL_REJECTED": "Retiro rechazado",
+      "WITHDRAWAL_AUTO_PAID": "Retiro automático pagado"
     },
     "overview": {
       "title": "Resumen",
@@ -944,8 +990,12 @@
       "manageCta": "Gestionar tesorería",
       "depositCta": "Añadir USDT",
       "withdrawCta": "Retirar USDT",
-      "totalLiquidity": "Saldo en tesorería",
-      "totalLiquidityHint": "Disponible para pagos",
+      "totalLiquidity": "Saldo del pool de pagos",
+      "totalLiquidityHint": "Disponible para pagar retiros (cargas del admin menos pagos)",
+      "totalLoaded": "Total cargado por admin",
+      "totalLoadedHint": "USDT añadidos al pool desde tesorería",
+      "totalPaidOut": "Total pagado",
+      "totalPaidOutHint": "Retiros de usuarios y retiros manuales de tesorería",
       "bscBalance": "Liquidez BSC",
       "polygonBalance": "Liquidez Polygon",
       "coverage": "Cobertura",
@@ -986,16 +1036,18 @@
       "noWithdrawals": "Aún no hay retiros de tesorería."
     },
     "withdrawals": {
-      "title": "Retiros de usuarios pendientes",
+      "title": "Retiros automáticos atascados",
       "approve": "Aprobar",
       "process": "Marcar en proceso",
       "complete": "Marcar pagado",
+      "retryPayout": "Reintentar pago automático",
       "reject": "Rechazar",
       "updated": "Retiro actualizado",
       "completed": "Retiro marcado como pagado",
       "rejected": "Retiro rechazado — saldo reembolsado",
       "actionFailed": "No se pudo actualizar el retiro",
-      "txHashPlaceholder": "Hash de la transacción de pago (opcional)"
+      "txHashPlaceholder": "Hash de la transacción de pago (obligatorio para marcar pagado)",
+      "txHashRequired": "Introduce el hash on-chain del pago antes de marcar como pagado"
     },
     "users": {
       "title": "Usuarios",
@@ -1008,6 +1060,7 @@
       "colBalance": "Saldo",
       "colReferrals": "Referidos",
       "colDirectRefs": "Directos",
+      "colUnlockProgress": "Progreso de desbloqueo",
       "colStatus": "Estado",
       "colActions": "Acciones",
       "sponsoredBadge": "Patrocinada",
@@ -1106,7 +1159,9 @@
       "colAction": "Acción",
       "colTarget": "Objetivo",
       "colDetail": "Detalle",
-      "colActor": "Autor"
+      "colActor": "Autor",
+      "noOnChainTx": "sin tx en cadena",
+      "autoPayoutTag": "automático"
     },
     "grant": {
       "title": "Dar cuenta",
@@ -1116,11 +1171,15 @@
       "identitySection": "Datos del usuario",
       "rulesSection": "Reglas de retiro",
       "walletLabel": "Billetera",
+      "walletHint": "El usuario elige su propio nombre cuando inicia sesión.",
       "aliasLabel": "Usuario",
       "aliasPlaceholder": "nombre.usuario",
       "uplineLabel": "Patrocinador (opcional)",
       "uplinePlaceholder": "0x… billetera del upline",
       "uplineHint": "Vincula la cuenta a un patrocinador en la red.",
+      "activeCapitalLabel": "Capital activo inicial",
+      "activeCapitalHint": "USDT acreditados como capital activo patrocinado por la empresa. El usuario puede operar y ganar rendimiento diario, pero este monto no cuenta para desbloquear retiros ni genera comisiones al upline hasta que el usuario deposite dinero real.",
+      "invalidActiveCapital": "Ingresa un monto válido (0 o mayor)",
       "modeLabel": "Condición para retirar",
       "modeDirect": "Ventas directas",
       "modeDirectDesc": "Habilita retiros cuando las ventas directas alcancen el mínimo en USDT.",
@@ -1142,6 +1201,7 @@
       "previewTitle": "Vista previa",
       "previewAlias": "Usuario",
       "previewWallet": "Billetera",
+      "previewActiveCapital": "Capital activo",
       "previewRule": "Condición",
       "previewDirect": "Ventas directas ≥ ${amount} USDT",
       "previewNetwork": "N1 ≥ ${l1} y N2 ≥ ${l2} USDT",
@@ -1152,6 +1212,10 @@
       "progressDirect": "Ventas directas",
       "progressL1": "Volumen N1",
       "progressL2": "Volumen N2",
+      "progressGoal": "Meta",
+      "progressEarned": "Logrado",
+      "progressRemaining": "Restante",
+      "progressPct": "Progreso",
       "progressUnlocked": "Meta cumplida — retiro habilitado"
     },
     "lookup": {
@@ -1191,7 +1255,7 @@
     },
     "reports": {
       "title": "Reportes",
-      "subtitle": "Descarga reportes CSV de la plataforma.",
+      "subtitle": "Flujo de caja, rendimientos pagados e ingresos por comisiones de retiro.",
       "users": "Usuarios",
       "usersDesc": "Listado completo con capital, saldo y estado de retiro.",
       "movements": "Movimientos",
@@ -1274,7 +1338,24 @@
       "deposits": "Depósitos",
       "withdrawals": "Retiros",
       "yieldPaid": "Rendimiento pagado",
-      "commissionPaid": "Comisiones pagadas"
+      "tradeBonusPaid": "Bonos por operaciones",
+      "commissionPaid": "Comisiones de red pagadas",
+      "withdrawalFeesEarned": "Comisiones de retiro (empresa)",
+      "loading": "Cargando reporte…",
+      "fallbackHint": "Reporte en vivo no disponible — mostrando movimientos en caché. Actualiza o vuelve a desplegar si los totales siguen en cero."
+    },
+    "withdrawalFees": {
+      "title": "Ingresos por comisiones de retiro",
+      "subtitle": "Comisión retenida por la empresa en cada retiro completado.",
+      "totalFees": "Total de comisiones",
+      "withdrawalCount": "Retiros completados",
+      "colDate": "Fecha",
+      "colWallet": "Usuario",
+      "colGross": "Bruto",
+      "colFee": "Comisión",
+      "colNet": "Neto pagado",
+      "colNetwork": "Red",
+      "empty": "No hay retiros completados en este periodo."
     }
   },
   "notifications": {

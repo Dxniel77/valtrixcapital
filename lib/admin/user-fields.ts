@@ -12,6 +12,8 @@ export interface AdminUserShape {
   status: "ACTIVE" | "INACTIVE";
   network: "BSC" | "POLYGON";
   capital: number;
+  realCapital: number;
+  companyCapital: number;
   balance: number;
   totalEarned: number;
   referrals: number;
@@ -63,6 +65,7 @@ export function enrichDemoUser(
 
 export function recomputeWithdrawalUnlock(user: AdminUserShape): AdminUserShape {
   if (!user.accountGranted) return user;
+  if (user.withdrawalUnlocked) return user;
   return {
     ...user,
     withdrawalUnlocked: shouldUnlockWithdrawals(user),

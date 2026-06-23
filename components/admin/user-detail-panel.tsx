@@ -12,9 +12,8 @@ import type { UserDetailSnapshot } from "@/lib/admin/analytics";
 import { useAdminStore } from "@/lib/admin/store";
 import { exportUserDetailCsv } from "@/lib/admin/exports";
 import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
+import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
-import { progressItemsForUser } from "@/lib/admin/withdrawal-progress";
-import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
 export function UserDetailPanel({
@@ -169,19 +168,7 @@ export function UserDetailPanel({
       <ChangeSponsorCard user={user} />
 
       {isSponsored ? (
-        <Card className="border-warning/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {t("admin.grant.progressTitle")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WithdrawalVolumeProgress
-              items={progressItemsForUser(user)}
-              unlocked={user.withdrawalUnlocked}
-            />
-          </CardContent>
-        </Card>
+        <SponsoredUnlockProgressCard user={user} />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">

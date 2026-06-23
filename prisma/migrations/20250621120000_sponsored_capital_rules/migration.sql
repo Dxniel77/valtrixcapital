@@ -1,0 +1,12 @@
+-- CreateEnum
+CREATE TYPE "StakeSource" AS ENUM ('ON_CHAIN', 'COMPANY_SPONSORED');
+
+-- AlterTable
+ALTER TABLE "Stake" ADD COLUMN "source" "StakeSource" NOT NULL DEFAULT 'ON_CHAIN';
+
+UPDATE "Stake" SET "source" = 'COMPANY_SPONSORED' WHERE "depositId" IS NULL;
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "unlockDirectVolume" BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN "unlockLevel1Volume" BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN "unlockLevel2Volume" BIGINT NOT NULL DEFAULT 0;

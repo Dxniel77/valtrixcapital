@@ -6,7 +6,7 @@ import { normalizeWallet } from "@/lib/auth/admins";
 import { resolveUserRole } from "@/lib/auth/resolve-role";
 import { createSession } from "@/lib/auth/session";
 import { isDatabaseAvailable } from "@/lib/db/available";
-import { upsertUserByWallet } from "@/lib/services/users";
+import { applyReferrerIfMissing, upsertUserByWallet } from "@/lib/services/users";
 import { fromMicro } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
@@ -51,6 +51,10 @@ export async function POST(req: Request) {
     dbUser = await upsertUserByWallet(address, {
       referrerCode: parsed.referralCode ?? null,
     });
+    if (dbUser && parsed.referralCode) {
+      const linked = await applyReferrerIfMissing(dbUser.id, parsed.referralCode);
+      if (linked) dbUser = linked;
+    }
     userId = dbUser.id;
   }
 
