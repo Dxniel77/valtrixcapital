@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   LifeBuoy,
@@ -8,13 +9,13 @@ import {
   Mail,
   MessageSquare,
   RefreshCw,
-  Send,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SupportReplyComposer } from "@/components/support/support-reply-composer";
+import { SupportThreadBubble } from "@/components/support/support-thread";
 import { useI18n } from "@/lib/i18n/context";
 import {
   adminFetchSupportTicket,
@@ -40,6 +41,8 @@ const STATUS_VARIANT: Record<
 
 export function SupportTicketsPanel() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const deepLinkId = searchParams.get("tkt");
   const backend = useBackendAvailable();
   const [filter, setFilter] = React.useState<string>("active");
   const [tickets, setTickets] = React.useState<SupportTicketDto[]>([]);
@@ -48,6 +51,7 @@ export function SupportTicketsPanel() {
   const [loading, setLoading] = React.useState(true);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [reply, setReply] = React.useState("");
+  const [files, setFiles] = React.useState<File[]>([]);
   const [notifyUser, setNotifyUser] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -73,7 +77,9 @@ export function SupportTicketsPanel() {
         rows = rows.filter((tk) => tk.status === "open" || tk.status === "pending");
       }
       setTickets(rows);
-      if (selectedId && !rows.some((tk) => tk.id === selectedId)) {
+      if (deepLinkId && rows.some((tk) => tk.id === deepLinkId)) {
+        setSelectedId(deepLinkId);
+      } else if (selectedId && !rows.some((tk) => tk.id === selectedId)) {
         setSelectedId(null);
         setDetail(null);
       }
@@ -99,7 +105,8 @@ export function SupportTicketsPanel() {
 
   React.useEffect(() => {
     void loadTickets();
-  }, [backend, filter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, filter, deepLinkId]);
 
   React.useEffect(() => {
     if (!selectedId) {
@@ -125,9 +132,8 @@ export function SupportTicketsPanel() {
     }
   }
 
-  async function handleReply(e: React.FormEvent) {
-    e.preventDefault();
-    if (!detail || !reply.trim()) return;
+  async function handleReply() {
+    if (!detail || (!reply.trim() && files.length === 0)) return;
 
     setSubmitting(true);
     try {
@@ -135,12 +141,14 @@ export function SupportTicketsPanel() {
         ticketId: detail.id,
         message: reply.trim(),
         notifyUser,
+        files,
       });
       setDetail(res.ticket);
       setTickets((prev) =>
         prev.map((tk) => (tk.id === res.ticket.id ? res.ticket : tk)),
       );
       setReply("");
+      setFiles([]);
       toast.success(
         notifyUser
           ? t("admin.support.replySentEmail")
@@ -328,14 +336,15 @@ export function SupportTicketsPanel() {
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                  <ThreadBubble
+                  <SupportThreadBubble
                     label={detail.name}
                     body={detail.message}
                     time={detail.createdAt}
                     staff={false}
+                    attachments={detail.attachments}
                   />
                   {detail.replies.map((item) => (
-                    <ThreadBubble
+                    <SupportThreadBubble
                       key={item.id}
                       label={
                         item.isStaff
@@ -345,26 +354,21 @@ export function SupportTicketsPanel() {
                       body={item.body}
                       time={item.createdAt}
                       staff={item.isStaff}
+                      attachments={item.attachments}
                     />
                   ))}
                 </div>
 
-                <form
+                <SupportReplyComposer
+                  value={reply}
+                  onChange={setReply}
+                  files={files}
+                  onFilesChange={setFiles}
                   onSubmit={handleReply}
-                  className="border-t border-border-subtle p-4 space-y-3"
-                >
-                  <label className="text-xs uppercase tracking-wider text-text-muted">
-                    {t("admin.support.replyLabel")}
-                  </label>
-                  <textarea
-                    value={reply}
-                    onChange={(e) => setReply(e.target.value)}
-                    rows={4}
-                    maxLength={4000}
-                    placeholder={t("admin.support.replyPlaceholder")}
-                    className="w-full resize-y rounded-md border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-gold focus:outline-none"
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  submitting={submitting}
+                  placeholder={t("admin.support.replyPlaceholder")}
+                  submitLabel={t("admin.support.sendReply")}
+                  extra={
                     <label className="flex items-center gap-2 text-xs text-text-secondary">
                       <input
                         type="checkbox"
@@ -375,21 +379,8 @@ export function SupportTicketsPanel() {
                       <Mail className="h-3.5 w-3.5" />
                       {t("admin.support.notifyUser")}
                     </label>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      disabled={submitting || !reply.trim()}
-                    >
-                      {submitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                      {t("admin.support.sendReply")}
-                    </Button>
-                  </div>
-                </form>
+                  }
+                />
               </div>
             )}
           </Card>
@@ -425,42 +416,6 @@ function Meta({
           {value}
         </p>
       )}
-    </div>
-  );
-}
-
-function ThreadBubble({
-  label,
-  body,
-  time,
-  staff,
-}: {
-  label: string;
-  body: string;
-  time: number;
-  staff: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-lg border px-3 py-2",
-        staff
-          ? "border-gold/30 bg-gold/5"
-          : "border-border-subtle bg-bg-hover/40",
-      )}
-    >
-      <div className="flex items-center justify-between gap-2 text-xs text-text-muted">
-        <span className="font-medium text-text-secondary">{label}</span>
-        <span>
-          {new Date(time).toLocaleString("es-ES", {
-            timeZone: "UTC",
-            hour12: false,
-          })}
-        </span>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-text-primary whitespace-pre-wrap">
-        {body}
-      </p>
     </div>
   );
 }

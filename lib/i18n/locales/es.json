@@ -882,9 +882,9 @@
     "downloadOperational": "Operativa"
   },
   "supportPage": {
-    "subtitle": "Abre un ticket o escríbenos por correo. Respuesta en menos de 24 h.",
+    "subtitle": "Abre un ticket, sigue la conversación en el chat o escríbenos por correo.",
     "ticketTitle": "Abrir ticket de soporte",
-    "ticketDesc": "Describe tu consulta y el equipo te responderá por correo.",
+    "ticketDesc": "Describe tu consulta. Podrás seguir la conversación aquí y adjuntar archivos.",
     "nameLabel": "Nombre",
     "emailLabel": "Correo",
     "walletLabel": "Billetera (opcional)",
@@ -914,6 +914,22 @@
     "emailCopied": "Correo copiado",
     "emailCopyFailed": "No se pudo copiar el correo",
     "emailCopyLabel": "Copiar correo",
+    "myTicketsTitle": "Mis tickets",
+    "myTicketsDesc": "Conversaciones con soporte. Selecciona un ticket para ver el hilo completo.",
+    "noTickets": "Aún no tienes tickets. Crea uno para empezar.",
+    "selectTicket": "Selecciona un ticket o crea uno nuevo.",
+    "loadFailed": "No se pudieron cargar los tickets.",
+    "backendOffline": "Base de datos no disponible.",
+    "loading": "Cargando…",
+    "refresh": "Actualizar",
+    "replyLabel": "Tu respuesta",
+    "replyPlaceholder": "Escribe tu mensaje…",
+    "sendReply": "Enviar",
+    "replySent": "Mensaje enviado.",
+    "actionFailed": "No se pudo completar la acción.",
+    "attachFiles": "Adjuntar archivos",
+    "staffReply": "Equipo de soporte",
+    "ticketClosedHint": "Este ticket está cerrado o resuelto. Abre uno nuevo si necesitas más ayuda.",
     "categories": {
       "deposit": "Depósito",
       "withdrawal": "Retiro",
@@ -1440,7 +1456,9 @@
       "supportTicketNewTitle": "Nuevo ticket de soporte",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Respuesta de soporte",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "Usuario respondió en soporte",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "trade": {

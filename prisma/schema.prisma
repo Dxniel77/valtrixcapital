@@ -144,6 +144,7 @@ model User {
   adminActions    AdminAction[] @relation("AdminActor")
   targetedActions AdminAction[] @relation("AdminTarget")
   inboxNotifications InboxNotification[]
+  supportTickets     SupportTicket[]
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -393,6 +394,7 @@ model PlatformBroadcast {
 
 model SupportTicket {
   id        String                @id
+  userId    String?
   name      String
   email     String
   wallet    String?
@@ -403,10 +405,15 @@ model SupportTicket {
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 
-  replies   SupportTicketReply[]
+  user        User?                      @relation(fields: [userId], references: [id])
+  replies     SupportTicketReply[]
+  attachments SupportTicketAttachment[]
 
   @@index([status, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([wallet])
+  @@index([email])
 }
 
 model SupportTicketReply {
@@ -417,9 +424,28 @@ model SupportTicketReply {
   adminId   String?
   createdAt DateTime @default(now())
 
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket      SupportTicket               @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments SupportTicketAttachment[]
 
   @@index([ticketId, createdAt])
+}
+
+model SupportTicketAttachment {
+  id             String   @id @default(uuid())
+  ticketId       String?
+  replyId        String?
+  uploaderWallet String
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  data           Bytes
+  createdAt      DateTime @default(now())
+
+  ticket SupportTicket?      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  reply  SupportTicketReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([replyId])
 }
 
 model InboxNotification {

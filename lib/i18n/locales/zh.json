@@ -928,6 +928,22 @@
     "emailCopied": "邮箱地址已复制",
     "emailCopyFailed": "无法复制邮箱地址",
     "emailCopyLabel": "复制邮箱",
+    "myTicketsTitle": "我的工单",
+    "myTicketsDesc": "支持对话。选择工单查看完整聊天记录。",
+    "noTickets": "暂无工单。创建工单开始。",
+    "selectTicket": "选择工单或创建新工单。",
+    "loadFailed": "无法加载工单。",
+    "backendOffline": "数据库不可用。",
+    "loading": "加载中…",
+    "refresh": "刷新",
+    "replyLabel": "您的回复",
+    "replyPlaceholder": "输入消息…",
+    "sendReply": "发送",
+    "replySent": "消息已发送。",
+    "actionFailed": "操作失败。",
+    "attachFiles": "附加文件",
+    "staffReply": "支持团队",
+    "ticketClosedHint": "此工单已关闭或已解决。",
     "categories": {
       "deposit": "订金",
       "withdrawal": "提款",
@@ -1454,7 +1470,9 @@
       "supportTicketNewTitle": "新支持工单",
       "supportTicketNewBody": "{name}：{subject}",
       "supportReplyTitle": "支持已回复",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "用户在支持中回复",
+      "supportUserReplyBody": "{name}：{preview}"
     }
   },
   "trade": {

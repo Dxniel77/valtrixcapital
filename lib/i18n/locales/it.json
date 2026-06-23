@@ -1506,7 +1506,9 @@
       "supportTicketNewTitle": "Nuovo ticket di supporto",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Risposta del supporto",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "L'utente ha risposto al supporto",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "supportPage": {
@@ -1542,6 +1544,22 @@
     "emailCopied": "Email copiata",
     "emailCopyFailed": "Impossibile copiare l'email",
     "emailCopyLabel": "Copia email",
+    "myTicketsTitle": "I miei ticket",
+    "myTicketsDesc": "Conversazioni di supporto. Seleziona un ticket per il thread completo.",
+    "noTickets": "Nessun ticket ancora. Creane uno per iniziare.",
+    "selectTicket": "Seleziona un ticket o creane uno nuovo.",
+    "loadFailed": "Impossibile caricare i ticket.",
+    "backendOffline": "Database non disponibile.",
+    "loading": "Caricamento…",
+    "refresh": "Aggiorna",
+    "replyLabel": "La tua risposta",
+    "replyPlaceholder": "Scrivi il messaggio…",
+    "sendReply": "Invia",
+    "replySent": "Messaggio inviato.",
+    "actionFailed": "Azione non riuscita.",
+    "attachFiles": "Allega file",
+    "staffReply": "Team di supporto",
+    "ticketClosedHint": "Questo ticket è chiuso o risolto.",
     "categories": {
       "deposit": "Depositare",
       "withdrawal": "Ritiro",

@@ -1506,7 +1506,9 @@
       "supportTicketNewTitle": "新しいサポートチケット",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "サポートからの返信",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "ユーザーがサポートに返信",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "supportPage": {
@@ -1542,6 +1544,22 @@
     "emailCopied": "メールアドレスをコピーしました",
     "emailCopyFailed": "メールアドレスをコピーできませんでした",
     "emailCopyLabel": "メールをコピー",
+    "myTicketsTitle": "マイチケット",
+    "myTicketsDesc": "サポートの会話。チケットを選んでスレッド全体を表示。",
+    "noTickets": "チケットはまだありません。新規作成してください。",
+    "selectTicket": "チケットを選択するか新規作成してください。",
+    "loadFailed": "チケットを読み込めませんでした。",
+    "backendOffline": "データベースが利用できません。",
+    "loading": "読み込み中…",
+    "refresh": "更新",
+    "replyLabel": "返信",
+    "replyPlaceholder": "メッセージを入力…",
+    "sendReply": "送信",
+    "replySent": "メッセージを送信しました。",
+    "actionFailed": "操作に失敗しました。",
+    "attachFiles": "ファイルを添付",
+    "staffReply": "サポートチーム",
+    "ticketClosedHint": "このチケットはクローズまたは解決済みです。",
     "categories": {
       "deposit": "デポジット",
       "withdrawal": "出金",

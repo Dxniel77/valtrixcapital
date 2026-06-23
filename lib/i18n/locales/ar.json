@@ -1506,7 +1506,9 @@
       "supportTicketNewTitle": "تذكرة دعم جديدة",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "رد من الدعم",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "رد المستخدم في الدعم",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "supportPage": {
@@ -1542,6 +1544,22 @@
     "emailCopied": "تم نسخ البريد",
     "emailCopyFailed": "تعذر نسخ البريد",
     "emailCopyLabel": "نسخ البريد",
+    "myTicketsTitle": "تذاكري",
+    "myTicketsDesc": "محادثات الدعم. اختر تذكرة لعرض المحادثة كاملة.",
+    "noTickets": "لا توجد تذاكر بعد. أنشئ تذكرة للبدء.",
+    "selectTicket": "اختر تذكرة أو أنشئ واحدة جديدة.",
+    "loadFailed": "تعذر تحميل التذاكر.",
+    "backendOffline": "قاعدة البيانات غير متاحة.",
+    "loading": "جارٍ التحميل…",
+    "refresh": "تحديث",
+    "replyLabel": "ردك",
+    "replyPlaceholder": "اكتب رسالتك…",
+    "sendReply": "إرسال",
+    "replySent": "تم إرسال الرسالة.",
+    "actionFailed": "فشلت العملية.",
+    "attachFiles": "إرفاق ملفات",
+    "staffReply": "فريق الدعم",
+    "ticketClosedHint": "هذه التذكرة مغلقة أو محلولة.",
     "categories": {
       "deposit": "إيداع",
       "withdrawal": "انسحاب",

@@ -1506,7 +1506,9 @@
       "supportTicketNewTitle": "नया सहायता टिकट",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "सहायता ने जवाब दिया",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "उपयोगकर्ता ने सहायता में जवाब दिया",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "supportPage": {
@@ -1542,6 +1544,22 @@
     "emailCopied": "ईमेल पता कॉपी हो गया",
     "emailCopyFailed": "ईमेल कॉपी नहीं हो सका",
     "emailCopyLabel": "ईमेल कॉपी करें",
+    "myTicketsTitle": "मेरे टिकट",
+    "myTicketsDesc": "सहायता वार्तालाप। पूरा थ्रेड देखने के लिए टिकट चुनें।",
+    "noTickets": "अभी कोई टिकट नहीं। शुरू करने के लिए एक बनाएं।",
+    "selectTicket": "टिकट चुनें या नया बनाएं।",
+    "loadFailed": "टिकट लोड नहीं हो सके।",
+    "backendOffline": "डेटाबेस उपलब्ध नहीं।",
+    "loading": "लोड हो रहा है…",
+    "refresh": "रीफ़्रेश",
+    "replyLabel": "आपका जवाब",
+    "replyPlaceholder": "संदेश लिखें…",
+    "sendReply": "भेजें",
+    "replySent": "संदेश भेजा गया।",
+    "actionFailed": "कार्रवाई विफल।",
+    "attachFiles": "फ़ाइलें संलग्न करें",
+    "staffReply": "सहायता टीम",
+    "ticketClosedHint": "यह टिकट बंद या हल है।",
     "categories": {
       "deposit": "जमा",
       "withdrawal": "निकासी",

@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { requireAdminSession } from "@/lib/auth/require-admin";
+import { requireSession } from "@/lib/auth/require-session";
 import { isDatabaseAvailable } from "@/lib/db/available";
-import { replyToSupportTicket } from "@/lib/services/support-tickets";
+import { userReplyToSupportTicket } from "@/lib/services/support-tickets";
 import { MAX_SUPPORT_ATTACHMENTS_PER_MESSAGE } from "@/lib/support/constants";
 
 export const dynamic = "force-dynamic";
-
-const bodySchema = z.object({
-  message: z.string().trim().min(2).max(4000),
-  notifyUser: z.boolean().optional().default(true),
-});
 
 function filesFromForm(form: FormData): File[] {
   const files = form
@@ -23,7 +17,7 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireAdminSession();
+  const auth = await requireSession();
   if (auth.error) return auth.error;
 
   const { id } = await ctx.params;
@@ -34,34 +28,29 @@ export async function POST(
 
   const contentType = req.headers.get("content-type") ?? "";
   let message = "";
-  let notifyUser = true;
   let files: File[] = [];
 
   if (contentType.includes("multipart/form-data")) {
     const form = await req.formData();
     message = String(form.get("message") ?? "").trim();
-    notifyUser = String(form.get("notifyUser") ?? "true") !== "false";
     files = filesFromForm(form);
   } else {
-    let parsed;
     try {
-      parsed = bodySchema.parse(await req.json());
+      const body = (await req.json()) as { message?: string };
+      message = String(body.message ?? "").trim();
     } catch {
       return NextResponse.json({ error: "Invalid body" }, { status: 400 });
     }
-    message = parsed.message;
-    notifyUser = parsed.notifyUser;
   }
 
   if (message.length < 2 && files.length === 0) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return NextResponse.json({ error: "Message or attachment required" }, { status: 400 });
   }
 
-  const ticket = await replyToSupportTicket({
+  const ticket = await userReplyToSupportTicket({
     ticketId: id,
-    adminId: auth.session.sub,
+    session: auth.session,
     body: message,
-    notifyUser,
     files,
   });
 

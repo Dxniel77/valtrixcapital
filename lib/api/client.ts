@@ -20,12 +20,14 @@ export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
   const res = await fetch(path, {
     ...init,
     cache: "no-store",
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(init?.headers ?? {}),
     },
   });
@@ -607,12 +609,22 @@ export async function fetchAdminAudit(limit = 200) {
   }>(`/api/admin/audit?limit=${limit}`);
 }
 
+export interface SupportAttachmentDto {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: number;
+  url: string;
+}
+
 export interface SupportTicketReplyDto {
   id: string;
   body: string;
   isStaff: boolean;
   adminId: string | null;
   createdAt: number;
+  attachments: SupportAttachmentDto[];
 }
 
 export interface SupportTicketDto {
@@ -627,6 +639,7 @@ export interface SupportTicketDto {
   createdAt: number;
   updatedAt: number;
   replies: SupportTicketReplyDto[];
+  attachments: SupportAttachmentDto[];
 }
 
 export async function adminFetchSupportTickets(status?: string) {
@@ -658,7 +671,15 @@ export async function adminReplySupportTicket(input: {
   ticketId: string;
   message: string;
   notifyUser?: boolean;
+  files?: File[];
 }) {
+  const form = new FormData();
+  form.set("message", input.message);
+  form.set("notifyUser", String(input.notifyUser ?? true));
+  for (const file of input.files ?? []) {
+    form.append("files", file);
+  }
+
   return apiFetch<{
     ok: true;
     ticket: SupportTicketDto;
@@ -666,12 +687,43 @@ export async function adminReplySupportTicket(input: {
     `/api/admin/support/tickets/${encodeURIComponent(input.ticketId)}/reply`,
     {
       method: "POST",
-      body: JSON.stringify({
-        message: input.message,
-        notifyUser: input.notifyUser ?? true,
-      }),
+      body: form,
     },
   );
+}
+
+export async function fetchUserSupportTickets() {
+  return apiFetch<{
+    backend: boolean;
+    tickets: SupportTicketDto[];
+  }>("/api/support/tickets");
+}
+
+export async function fetchUserSupportTicket(id: string) {
+  return apiFetch<{
+    backend: boolean;
+    ticket: SupportTicketDto;
+  }>(`/api/support/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function userReplySupportTicket(input: {
+  ticketId: string;
+  message: string;
+  files?: File[];
+}) {
+  const form = new FormData();
+  form.set("message", input.message);
+  for (const file of input.files ?? []) {
+    form.append("files", file);
+  }
+
+  return apiFetch<{
+    ok: true;
+    ticket: SupportTicketDto;
+  }>(`/api/support/tickets/${encodeURIComponent(input.ticketId)}/reply`, {
+    method: "POST",
+    body: form,
+  });
 }
 
 export async function fetchAdminTreasury() {

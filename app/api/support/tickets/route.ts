@@ -1,12 +1,36 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireSession } from "@/lib/auth/require-session";
 import { isDatabaseAvailable } from "@/lib/db/available";
 import { t } from "@/lib/i18n";
 import { clientIp, rateLimit } from "@/lib/security/rate-limit";
-import { createSupportTicket } from "@/lib/services/support-tickets";
+import {
+  createSupportTicket,
+  listUserSupportTickets,
+} from "@/lib/services/support-tickets";
 import { ticketSchema } from "@/lib/support/ticket-schema";
+import { MAX_SUPPORT_ATTACHMENTS_PER_MESSAGE } from "@/lib/support/constants";
 
 export const dynamic = "force-dynamic";
+
+function filesFromForm(form: FormData): File[] {
+  const files = form
+    .getAll("files")
+    .filter((item): item is File => item instanceof File && item.size > 0);
+  return files.slice(0, MAX_SUPPORT_ATTACHMENTS_PER_MESSAGE);
+}
+
+export async function GET() {
+  const auth = await requireSession();
+  if (auth.error) return auth.error;
+
+  if (!(await isDatabaseAvailable())) {
+    return NextResponse.json({ backend: false, tickets: [] });
+  }
+
+  const tickets = await listUserSupportTickets(auth.session);
+  return NextResponse.json({ backend: true, tickets });
+}
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
@@ -27,27 +51,61 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: t("api.backendUnavailable") }, { status: 503 });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
-  }
-
+  const auth = await requireSession();
+  const session = auth.session;
+  const contentType = req.headers.get("content-type") ?? "";
   let parsed;
-  try {
-    parsed = ticketSchema.parse(body);
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: t("api.validationFailed"), details: err.flatten() },
-        { status: 400 },
-      );
+  let files: File[] = [];
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    const payload = {
+      name: String(form.get("name") ?? ""),
+      email: String(form.get("email") ?? ""),
+      wallet: String(form.get("wallet") ?? ""),
+      category: String(form.get("category") ?? ""),
+      subject: String(form.get("subject") ?? ""),
+      message: String(form.get("message") ?? ""),
+    };
+    files = filesFromForm(form);
+    try {
+      parsed = ticketSchema.parse(payload);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: t("api.validationFailed"), details: err.flatten() },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
     }
-    return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+  } else {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+    }
+
+    try {
+      parsed = ticketSchema.parse(body);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: t("api.validationFailed"), details: err.flatten() },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
+    }
   }
 
-  const ticket = await createSupportTicket(parsed);
+  const ticket = await createSupportTicket({
+    ...parsed,
+    userId: session?.dbUserId ?? null,
+    uploaderWallet: session?.address ?? (parsed.wallet?.trim() || undefined),
+    files: session ? files : [],
+  });
 
   return NextResponse.json({
     ok: true,

@@ -8,6 +8,17 @@ import {
   createInboxNotification,
   resolveUserIdForTicket,
 } from "@/lib/services/inbox-notifications";
+import {
+  saveSupportAttachments,
+  type SupportAttachmentDto,
+} from "@/lib/services/support-attachments";
+import { findUserByWallet } from "@/lib/services/users";
+import {
+  ticketBelongsToSession,
+  userTicketOrFilters,
+} from "@/lib/services/support-access";
+import { normalizeWallet } from "@/lib/auth/admins";
+import type { SessionUser } from "@/lib/auth/require-session";
 import { t } from "@/lib/i18n";
 import { SUPPORT_EMAIL } from "@/lib/support/constants";
 import type { SupportTicketInput } from "@/lib/support/ticket-schema";
@@ -48,12 +59,33 @@ const STATUS_TO_DB: Record<string, SupportTicketStatus> = {
   closed: "CLOSED",
 };
 
+type AttachmentRow = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: Date;
+};
+
+type TicketInclude = {
+  replies?: Array<{
+    id: string;
+    body: string;
+    isStaff: boolean;
+    adminId: string | null;
+    createdAt: Date;
+    attachments?: AttachmentRow[];
+  }>;
+  attachments?: AttachmentRow[];
+};
+
 export interface SupportTicketReplyDto {
   id: string;
   body: string;
   isStaff: boolean;
   adminId: string | null;
   createdAt: number;
+  attachments: SupportAttachmentDto[];
 }
 
 export interface SupportTicketDto {
@@ -68,10 +100,18 @@ export interface SupportTicketDto {
   createdAt: number;
   updatedAt: number;
   replies: SupportTicketReplyDto[];
+  attachments: SupportAttachmentDto[];
 }
 
-function newTicketId(): string {
-  return `tkt_${Date.now().toString(36)}`;
+function serializeAttachment(row: AttachmentRow): SupportAttachmentDto {
+  return {
+    id: row.id,
+    fileName: row.fileName,
+    mimeType: row.mimeType,
+    sizeBytes: row.sizeBytes,
+    createdAt: row.createdAt.getTime(),
+    url: `/api/support/attachments/${row.id}`,
+  };
 }
 
 function serializeReply(
@@ -81,6 +121,7 @@ function serializeReply(
     isStaff: boolean;
     adminId: string | null;
     createdAt: Date;
+    attachments?: AttachmentRow[];
   },
 ): SupportTicketReplyDto {
   return {
@@ -89,6 +130,7 @@ function serializeReply(
     isStaff: reply.isStaff,
     adminId: reply.adminId,
     createdAt: reply.createdAt.getTime(),
+    attachments: (reply.attachments ?? []).map(serializeAttachment),
   };
 }
 
@@ -104,13 +146,8 @@ function serializeTicket(
     status: SupportTicketStatus;
     createdAt: Date;
     updatedAt: Date;
-    replies?: Array<{
-      id: string;
-      body: string;
-      isStaff: boolean;
-      adminId: string | null;
-      createdAt: Date;
-    }>;
+    replies?: TicketInclude["replies"];
+    attachments?: AttachmentRow[];
   },
 ): SupportTicketDto {
   return {
@@ -125,26 +162,65 @@ function serializeTicket(
     createdAt: ticket.createdAt.getTime(),
     updatedAt: ticket.updatedAt.getTime(),
     replies: (ticket.replies ?? []).map(serializeReply),
+    attachments: (ticket.attachments ?? []).map(serializeAttachment),
   };
 }
 
+const ticketWithThreadInclude = {
+  attachments: { orderBy: { createdAt: "asc" as const } },
+  replies: {
+    orderBy: { createdAt: "asc" as const },
+    include: {
+      attachments: { orderBy: { createdAt: "asc" as const } },
+    },
+  },
+};
+
+function newTicketId(): string {
+  return `tkt_${Date.now().toString(36)}`;
+}
+
+export { ticketBelongsToSession } from "@/lib/services/support-access";
+
 export async function createSupportTicket(
-  input: SupportTicketInput,
+  input: SupportTicketInput & {
+    userId?: string | null;
+    files?: File[];
+    uploaderWallet?: string;
+  },
 ): Promise<SupportTicketDto> {
   const id = newTicketId();
-  const wallet = input.wallet?.trim() || null;
+  const wallet = input.wallet?.trim()
+    ? normalizeWallet(input.wallet.trim())
+    : input.uploaderWallet
+      ? normalizeWallet(input.uploaderWallet)
+      : null;
 
   const ticket = await prisma.supportTicket.create({
     data: {
       id,
+      userId: input.userId ?? null,
       name: input.name,
-      email: input.email,
+      email: input.email.trim().toLowerCase(),
       wallet,
       category: CATEGORY_TO_DB[input.category],
       subject: input.subject,
       message: input.message,
       status: "OPEN",
     },
+    include: ticketWithThreadInclude,
+  });
+
+  if (input.files?.length && input.uploaderWallet) {
+    await saveSupportAttachments(input.files, {
+      ticketId: id,
+      uploaderWallet: input.uploaderWallet,
+    });
+  }
+
+  const full = await prisma.supportTicket.findUnique({
+    where: { id },
+    include: ticketWithThreadInclude,
   });
 
   const notifyBody = [
@@ -179,11 +255,11 @@ export async function createSupportTicket(
       title: t("notifications.events.supportTicketNewTitle"),
       body: t("notifications.events.supportTicketNewBody", ticketNewParams),
     },
-    href: "/admin/support",
+    href: `/admin/support?tkt=${id}`,
     dedupeKey: `support_ticket_${id}`,
   });
 
-  return serializeTicket(ticket);
+  return serializeTicket(full ?? ticket);
 }
 
 export async function listSupportTickets(input?: {
@@ -201,9 +277,42 @@ export async function listSupportTickets(input?: {
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
+      attachments: { orderBy: { createdAt: "asc" } },
       replies: {
         orderBy: { createdAt: "asc" },
         take: 1,
+        include: { attachments: { orderBy: { createdAt: "asc" } } },
+      },
+    },
+  });
+
+  return rows.map(serializeTicket);
+}
+
+export async function listUserSupportTickets(
+  session: SessionUser,
+  input?: { limit?: number },
+): Promise<SupportTicketDto[]> {
+  const limit = Math.min(Math.max(input?.limit ?? 50, 1), 100);
+  const wallet = normalizeWallet(session.address);
+  const user =
+    session.dbUserId
+      ? await prisma.user.findUnique({ where: { id: session.dbUserId } })
+      : await findUserByWallet(wallet);
+
+  const orFilters = userTicketOrFilters(session);
+  if (user?.email) orFilters.push({ email: user.email.toLowerCase() });
+
+  const rows = await prisma.supportTicket.findMany({
+    where: { OR: orFilters },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    include: {
+      attachments: { orderBy: { createdAt: "asc" } },
+      replies: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: { attachments: { orderBy: { createdAt: "asc" } } },
       },
     },
   });
@@ -214,14 +323,23 @@ export async function listSupportTickets(input?: {
 export async function getSupportTicket(id: string): Promise<SupportTicketDto | null> {
   const ticket = await prisma.supportTicket.findUnique({
     where: { id },
-    include: {
-      replies: {
-        orderBy: { createdAt: "asc" },
-      },
-    },
+    include: ticketWithThreadInclude,
   });
 
   if (!ticket) return null;
+  return serializeTicket(ticket);
+}
+
+export async function getUserSupportTicket(
+  id: string,
+  session: SessionUser,
+): Promise<SupportTicketDto | null> {
+  const ticket = await prisma.supportTicket.findUnique({
+    where: { id },
+    include: ticketWithThreadInclude,
+  });
+  if (!ticket) return null;
+  if (!(await ticketBelongsToSession(ticket, session))) return null;
   return serializeTicket(ticket);
 }
 
@@ -236,11 +354,7 @@ export async function updateSupportTicketStatus(
     const ticket = await prisma.supportTicket.update({
       where: { id },
       data: { status: dbStatus },
-      include: {
-        replies: {
-          orderBy: { createdAt: "asc" },
-        },
-      },
+      include: ticketWithThreadInclude,
     });
     return serializeTicket(ticket);
   } catch {
@@ -253,9 +367,10 @@ export async function replyToSupportTicket(input: {
   adminId: string;
   body: string;
   notifyUser?: boolean;
+  files?: File[];
 }): Promise<SupportTicketDto | null> {
   const trimmed = input.body.trim();
-  if (trimmed.length < 2) return null;
+  if (trimmed.length < 2 && !input.files?.length) return null;
 
   const existing = await prisma.supportTicket.findUnique({
     where: { id: input.ticketId },
@@ -265,11 +380,19 @@ export async function replyToSupportTicket(input: {
   const reply = await prisma.supportTicketReply.create({
     data: {
       ticketId: input.ticketId,
-      body: trimmed,
+      body: trimmed || "—",
       isStaff: true,
       adminId: input.adminId,
     },
   });
+
+  if (input.files?.length) {
+    await saveSupportAttachments(input.files, {
+      ticketId: input.ticketId,
+      replyId: reply.id,
+      uploaderWallet: input.adminId,
+    });
+  }
 
   const ticket = await prisma.supportTicket.update({
     where: { id: input.ticketId },
@@ -277,11 +400,7 @@ export async function replyToSupportTicket(input: {
       status: existing.status === "OPEN" ? "PENDING" : existing.status,
       updatedAt: new Date(),
     },
-    include: {
-      replies: {
-        orderBy: { createdAt: "asc" },
-      },
-    },
+    include: ticketWithThreadInclude,
   });
 
   if (input.notifyUser) {
@@ -305,7 +424,7 @@ export async function replyToSupportTicket(input: {
   });
 
   const preview =
-    trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed;
+    trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed || "Attachment";
   const replyParams = {
     ticketId: existing.id,
     subject: existing.subject,
@@ -323,8 +442,74 @@ export async function replyToSupportTicket(input: {
       title: t("notifications.events.supportReplyTitle"),
       body: t("notifications.events.supportReplyBody", replyParams),
     },
-    href: "/dashboard/support",
+    href: `/dashboard/support?tkt=${existing.id}`,
     dedupeKey: `support_reply_${reply.id}`,
+  });
+
+  return serializeTicket(ticket);
+}
+
+export async function userReplyToSupportTicket(input: {
+  ticketId: string;
+  session: SessionUser;
+  body: string;
+  files?: File[];
+}): Promise<SupportTicketDto | null> {
+  const trimmed = input.body.trim();
+  if (trimmed.length < 2 && !input.files?.length) return null;
+
+  const existing = await prisma.supportTicket.findUnique({
+    where: { id: input.ticketId },
+  });
+  if (!existing) return null;
+  if (!(await ticketBelongsToSession(existing, input.session))) return null;
+  if (existing.status === "CLOSED") return null;
+
+  const reply = await prisma.supportTicketReply.create({
+    data: {
+      ticketId: input.ticketId,
+      body: trimmed || "—",
+      isStaff: false,
+      adminId: null,
+    },
+  });
+
+  if (input.files?.length) {
+    await saveSupportAttachments(input.files, {
+      ticketId: input.ticketId,
+      replyId: reply.id,
+      uploaderWallet: input.session.address,
+    });
+  }
+
+  const ticket = await prisma.supportTicket.update({
+    where: { id: input.ticketId },
+    data: {
+      status: existing.status === "RESOLVED" ? "OPEN" : "PENDING",
+      updatedAt: new Date(),
+    },
+    include: ticketWithThreadInclude,
+  });
+
+  const preview =
+    trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed || "Attachment";
+  const replyParams = {
+    name: existing.name,
+    subject: existing.subject,
+    ticketId: existing.id,
+    preview,
+  };
+  void createInboxNotification({
+    audience: "ADMIN",
+    kind: "alert",
+    eventKey: "supportUserReply",
+    params: {
+      ...replyParams,
+      title: t("notifications.events.supportUserReplyTitle"),
+      body: t("notifications.events.supportUserReplyBody", replyParams),
+    },
+    href: `/admin/support?tkt=${existing.id}`,
+    dedupeKey: `support_user_reply_${reply.id}`,
   });
 
   return serializeTicket(ticket);

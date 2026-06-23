@@ -1506,7 +1506,9 @@
       "supportTicketNewTitle": "Neues Support-Ticket",
       "supportTicketNewBody": "{name}: {subject}",
       "supportReplyTitle": "Support-Antwort",
-      "supportReplyBody": "Re: {subject} — {preview}"
+      "supportReplyBody": "Re: {subject} — {preview}",
+      "supportUserReplyTitle": "Nutzer antwortete im Support",
+      "supportUserReplyBody": "{name}: {preview}"
     }
   },
   "supportPage": {
@@ -1542,6 +1544,22 @@
     "emailCopied": "E-Mail-Adresse kopiert",
     "emailCopyFailed": "E-Mail konnte nicht kopiert werden",
     "emailCopyLabel": "E-Mail kopieren",
+    "myTicketsTitle": "Meine Tickets",
+    "myTicketsDesc": "Support-Unterhaltungen. Wähle ein Ticket für den vollständigen Verlauf.",
+    "noTickets": "Noch keine Tickets. Erstelle eines, um zu starten.",
+    "selectTicket": "Wähle ein Ticket oder erstelle ein neues.",
+    "loadFailed": "Tickets konnten nicht geladen werden.",
+    "backendOffline": "Datenbank nicht verfügbar.",
+    "loading": "Laden…",
+    "refresh": "Aktualisieren",
+    "replyLabel": "Deine Antwort",
+    "replyPlaceholder": "Nachricht schreiben…",
+    "sendReply": "Senden",
+    "replySent": "Nachricht gesendet.",
+    "actionFailed": "Aktion fehlgeschlagen.",
+    "attachFiles": "Dateien anhängen",
+    "staffReply": "Support-Team",
+    "ticketClosedHint": "Dieses Ticket ist geschlossen oder gelöst.",
     "categories": {
       "deposit": "Kaution",
       "withdrawal": "Rückzug",
