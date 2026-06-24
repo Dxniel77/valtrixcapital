@@ -74,6 +74,26 @@ export async function getCompanyCapitalMicro(userId: string): Promise<bigint> {
   return company;
 }
 
+/** Stakes used to size trade-win bonuses (company capital only for sponsored leaders). */
+export function stakesForOperationalBonus<
+  T extends { source: string; depositId: string | null },
+>(stakes: T[], accountGranted: boolean): T[] {
+  if (!accountGranted) return stakes;
+  return stakes.filter((s) => !isRealStake(s.source, s.depositId));
+}
+
+/** Active capital base for a trade-win bonus at resolve time. */
+export async function getOperationalBonusCapitalMicro(
+  userId: string,
+  accountGranted: boolean,
+): Promise<bigint> {
+  if (!accountGranted) {
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    return user.lockedCapital;
+  }
+  return getCompanyCapitalMicro(userId);
+}
+
 /**
  * Share of earnings that may generate upline commissions.
  * Only real deposited capital counts — company-sponsored capital is excluded.

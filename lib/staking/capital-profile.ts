@@ -15,3 +15,24 @@ export function hasRealDepositedCapital(input: {
 export function showDailyEarningsBar(input: { hasActiveCapital: boolean }): boolean {
   return input.hasActiveCapital;
 }
+
+/** Sponsored leaders accrue operational bonuses on company capital (visible, no upline share). */
+export function canAccrueSponsoredOperational(input: {
+  accountGranted: boolean;
+  companyCapital: number;
+  capitalProfileSynced: boolean;
+}): boolean {
+  if (!input.accountGranted) return false;
+  if (!input.capitalProfileSynced) return input.companyCapital > 0;
+  return input.companyCapital > 0;
+}
+
+export function canAccrueOperationalEarnings(input: {
+  accountGranted: boolean;
+  realCapital: number;
+  companyCapital: number;
+  capitalProfileSynced: boolean;
+}): boolean {
+  if (canAccrueSponsoredOperational(input)) return true;
+  return hasRealDepositedCapital(input);
+}

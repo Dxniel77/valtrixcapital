@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getPlatformConfig } from "@/lib/services/config";
 import { distributeReferralCommissions } from "@/lib/services/commissions";
-import { commissionableAmountMicro, isRealStake } from "@/lib/services/sponsored-capital";
+import {
+  commissionableAmountMicro,
+  stakesForOperationalBonus,
+} from "@/lib/services/sponsored-capital";
 
 const PAYOUT_CAP_MULTIPLIER = 2;
 
@@ -38,9 +41,7 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
 
   if (wins.length === 0) return;
 
-  const bonusStakes = user.accountGranted
-    ? stakes.filter((s) => isRealStake(s.source, s.depositId))
-    : stakes;
+  const bonusStakes = stakesForOperationalBonus(stakes, user.accountGranted);
 
   const stakeEvents = bonusStakes
     .map((stake) => ({
@@ -114,6 +115,9 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
 
   if (!needsUserUpdate && !needsTradeUpdate) return;
 
+  const prevOperational = wins.reduce((acc, w) => acc + w.bonusCredited, 0n);
+  const operationalDelta = operationalTotal - prevOperational;
+
   await prisma.$transaction(async (tx) => {
     for (const row of tradeUpdates) {
       await tx.trade.update({
@@ -125,13 +129,20 @@ export async function reconcileUserWinBonuses(userId: string): Promise<void> {
       });
     }
 
-    if (needsUserUpdate) {
+    if (needsUserUpdate || operationalDelta !== 0n) {
       await tx.user.update({
         where: { id: userId },
-        data: { totalEarned: cappedTotal },
+        data: {
+          totalEarned: cappedTotal,
+          ...(operationalDelta !== 0n
+            ? { earningsBalance: user.earningsBalance + operationalDelta }
+            : {}),
+        },
       });
     }
   });
+
+  if (user.accountGranted) return;
 
   for (let i = 0; i < wins.length; i += 1) {
     const delta = tradeUpdates[i].bonusCredited - wins[i].bonusCredited;

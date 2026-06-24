@@ -8,7 +8,7 @@ import { useStakingStoreHydrated } from "@/lib/staking/yield-engine";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { bonusPerWinAmount } from "@/lib/staking/operational-credits";
-import { hasRealDepositedCapital } from "@/lib/staking/capital-profile";
+import { canAccrueOperationalEarnings } from "@/lib/staking/capital-profile";
 
 function capitalAtTime(stakes: Stake[], atMs: number): number {
   return stakes
@@ -18,6 +18,16 @@ function capitalAtTime(stakes: Stake[], atMs: number): number {
       return confirmed <= atMs;
     })
     .reduce((acc, s) => acc + s.amount, 0);
+}
+
+function operationalBonusCapital(
+  stakes: Stake[],
+  atMs: number,
+  accountGranted: boolean,
+  companyCapital: number,
+): number {
+  if (accountGranted) return companyCapital;
+  return capitalAtTime(stakes, atMs);
 }
 
 /**
@@ -32,6 +42,7 @@ export function useOperationalCreditEngine(): void {
   const stakes = useStakingStore((s) => s.stakes);
   const creditedPositionIds = useStakingStore((s) => s.creditedPositionIds);
   const realCapital = useStakingStore((s) => s.realCapital);
+  const companyCapital = useStakingStore((s) => s.companyCapital);
   const accountGranted = useStakingStore((s) => s.accountGranted);
   const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
   const creditTradeWin = useStakingStore((s) => s.creditTradeWin);
@@ -40,8 +51,9 @@ export function useOperationalCreditEngine(): void {
   React.useEffect(() => {
     if (backend || !allowOfflineSimulation() || !tradeHydrated || !stakingHydrated) return;
 
-    const earningsEligible = hasRealDepositedCapital({
+    const earningsEligible = canAccrueOperationalEarnings({
       realCapital,
+      companyCapital,
       capitalProfileSynced,
       accountGranted,
     });
@@ -51,7 +63,12 @@ export function useOperationalCreditEngine(): void {
       if (p.status !== "WIN" || !p.resolvedAt) continue;
       if (creditedPositionIds.includes(p.id)) continue;
 
-      const capital = capitalAtTime(stakes, p.resolvedAt);
+      const capital = operationalBonusCapital(
+        stakes,
+        p.resolvedAt,
+        accountGranted,
+        companyCapital,
+      );
       const bonusPerWin = bonusPerWinAmount(capital, bonusPerWinBps);
       if (bonusPerWin <= 0) continue;
 
@@ -67,6 +84,7 @@ export function useOperationalCreditEngine(): void {
     creditTradeWin,
     bonusPerWinBps,
     realCapital,
+    companyCapital,
     accountGranted,
     capitalProfileSynced,
   ]);

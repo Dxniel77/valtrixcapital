@@ -5,7 +5,10 @@ import type { TradeDto } from "@/lib/trade/trade-types";
 import { fromMicro } from "@/lib/utils";
 import { reconcileUserWinBonuses } from "@/lib/services/trade-bonuses";
 import { distributeReferralCommissions } from "@/lib/services/commissions";
-import { commissionableAmountMicro, getRealCapitalMicro } from "@/lib/services/sponsored-capital";
+import {
+  commissionableAmountMicro,
+  getOperationalBonusCapitalMicro,
+} from "@/lib/services/sponsored-capital";
 
 const SIMULTANEOUS_TIER_MID_MIN = 501;
 const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -191,9 +194,10 @@ export async function resolveTrade(input: {
   }
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
-  const capitalMicro = user.accountGranted
-    ? await getRealCapitalMicro(user.id)
-    : user.lockedCapital;
+  const capitalMicro = await getOperationalBonusCapitalMicro(
+    user.id,
+    user.accountGranted,
+  );
   const payoutCap =
     user.payoutCap > 0n
       ? user.payoutCap
@@ -204,7 +208,7 @@ export async function resolveTrade(input: {
       : 0n;
   const applied = applyEarningsCredit(user.totalEarned, payoutCap, bonusMicro);
   const payableMicro =
-    applied > 0n
+    applied > 0n && !user.accountGranted
       ? await commissionableAmountMicro(user.id, applied)
       : 0n;
 
