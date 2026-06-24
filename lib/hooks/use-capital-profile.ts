@@ -23,16 +23,7 @@ export function useHasRealDepositedCapital(): boolean {
 }
 
 export function useShowDailyEarningsBar(): boolean {
-  const realCapital = useStakingStore((s) => s.realCapital);
-  const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
-  const accountGranted = useStakingStore((s) => s.accountGranted);
-  const hasActiveCapital = useStakingStore((s) =>
+  return useStakingStore((s) =>
     s.stakes.some((stake) => stake.status === "ACTIVE"),
   );
-  return showDailyEarningsBar({
-    realCapital,
-    capitalProfileSynced,
-    accountGranted,
-    hasActiveCapital,
-  });
 }

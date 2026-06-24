@@ -189,16 +189,8 @@ export function usePortfolioSummary(): PortfolioSummary {
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const withdrawals = useWalletStore((s) => s.withdrawals);
   const preview = useTodayYieldPreview();
-  const realCapital = useStakingStore((s) => s.realCapital);
-  const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
-  const accountGranted = useStakingStore((s) => s.accountGranted);
   const hasActiveCapital = stakes.some((s) => s.status === "ACTIVE");
-  const showEarningsUi = showDailyEarningsBar({
-    realCapital,
-    capitalProfileSynced,
-    accountGranted,
-    hasActiveCapital,
-  });
+  const showEarningsUi = showDailyEarningsBar({ hasActiveCapital });
 
   return React.useMemo(() => {
     const reconciled = reconcileCapEarnings({
@@ -257,16 +249,8 @@ export function useTodayYieldPreview(): TodayYieldPreview {
       return { wins, losses };
     }),
   );
-  const realCapital = useStakingStore((s) => s.realCapital);
-  const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
-  const accountGranted = useStakingStore((s) => s.accountGranted);
   const hasActiveCapital = stakes.some((s) => s.status === "ACTIVE");
-  const showEarningsUi = showDailyEarningsBar({
-    realCapital,
-    capitalProfileSynced,
-    accountGranted,
-    hasActiveCapital,
-  });
+  const showEarningsUi = showDailyEarningsBar({ hasActiveCapital });
   return React.useMemo(() => {
     const today = utcDayKey();
     let capital = stakes
