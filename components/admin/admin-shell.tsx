@@ -11,6 +11,7 @@ import {
   Landmark,
   LayoutDashboard,
   LifeBuoy,
+  Menu,
   Network,
   Search,
   Settings,
@@ -56,6 +57,7 @@ export const adminNavItems = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
   const backend = useBackendAvailable();
   const liveDataSynced = useAdminStore((s) => s.liveDataSynced);
   useAdminSeed();
@@ -122,6 +124,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
+      <AdminMobileNav
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        items={adminNavItems}
+      />
+
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-elevated/80 px-4 backdrop-blur md:px-6">
           <div className="flex items-center gap-2 md:hidden">
@@ -143,7 +151,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <LanguageSelector className="hidden sm:inline-flex" />
             <ThemeToggle />
             <NotificationsPanel />
-            <AdminMobileNav items={adminNavItems} />
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="rounded-md border border-border-subtle p-2 text-text-secondary md:hidden"
+              aria-label={t("admin.mobileNav.open")}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
