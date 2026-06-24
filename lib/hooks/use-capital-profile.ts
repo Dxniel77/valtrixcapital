@@ -2,7 +2,7 @@
 
 import { useShallow } from "zustand/react/shallow";
 import { useStakingStore } from "@/lib/staking/store";
-import { hasRealDepositedCapital } from "@/lib/staking/capital-profile";
+import { hasRealDepositedCapital, showDailyEarningsBar } from "@/lib/staking/capital-profile";
 
 export function useCapitalProfile() {
   return useStakingStore(
@@ -20,4 +20,19 @@ export function useHasRealDepositedCapital(): boolean {
   const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
   const accountGranted = useStakingStore((s) => s.accountGranted);
   return hasRealDepositedCapital({ realCapital, capitalProfileSynced, accountGranted });
+}
+
+export function useShowDailyEarningsBar(): boolean {
+  const realCapital = useStakingStore((s) => s.realCapital);
+  const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
+  const accountGranted = useStakingStore((s) => s.accountGranted);
+  const hasActiveCapital = useStakingStore((s) =>
+    s.stakes.some((stake) => stake.status === "ACTIVE"),
+  );
+  return showDailyEarningsBar({
+    realCapital,
+    capitalProfileSynced,
+    accountGranted,
+    hasActiveCapital,
+  });
 }

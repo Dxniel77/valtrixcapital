@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
 import { useI18n } from "@/lib/i18n/context";
-import { useHasRealDepositedCapital } from "@/lib/hooks/use-capital-profile";
+import { useShowDailyEarningsBar } from "@/lib/hooks/use-capital-profile";
 import {
   PAYOUT_CAP_MULTIPLIER,
   useStakingStore,
@@ -43,7 +43,7 @@ export default function PortfolioPage() {
   const dailyYields = useStakingStore((s) => s.dailyYields);
   const summary = usePortfolioSummary();
   const preview = useTodayYieldPreview();
-  const hasRealCapital = useHasRealDepositedCapital();
+  const showEarningsBar = useShowDailyEarningsBar();
 
   const hasCapital = hydrated && stakes.length > 0;
 
@@ -83,14 +83,14 @@ export default function PortfolioPage() {
             <StatTile
               label={t("staking.portfolio.totalEarned")}
               value={
-                hasRealCapital
+                showEarningsBar
                   ? `$${formatNumber(summary.totalEarned, { decimals: 2 })}`
                   : "—"
               }
               icon={TrendingUp}
               accent="success"
               delta={
-                hasRealCapital && summary.totalCapital > 0
+                showEarningsBar && summary.totalCapital > 0
                   ? {
                       value:
                         (summary.totalEarned / summary.totalCapital) * 100,
@@ -98,26 +98,26 @@ export default function PortfolioPage() {
                   : undefined
               }
               hint={
-                hasRealCapital
+                showEarningsBar
                   ? t("staking.portfolio.earningsHint")
-                  : t("staking.portfolio.earningsDepositRequired")
+                  : t("dashboard.overview.capStakeFirst")
               }
             />
             <StatTile
               label={t("staking.portfolio.progressCap")}
               value={
-                hasRealCapital
+                showEarningsBar
                   ? `${formatNumber(summary.capProgressPct, { decimals: 1 })}%`
                   : "—"
               }
               icon={summary.isCapReached ? Unlock : Lock}
               accent="silver"
               hint={
-                hasRealCapital
+                showEarningsBar
                   ? t("staking.portfolio.capRemaining", {
                       amount: formatNumber(summary.remainingToCap, { decimals: 0 }),
                     })
-                  : t("staking.portfolio.earningsDepositRequired")
+                  : t("dashboard.overview.capStakeFirst")
               }
             />
             <StatTile
@@ -130,17 +130,15 @@ export default function PortfolioPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {hasRealCapital ? (
+            {showEarningsBar ? (
               <>
                 <PayoutCapCard summary={summary} preview={preview} />
                 <TodayPreviewCard preview={preview} />
               </>
-            ) : (
-              <SponsoredEarningsCallout className="lg:col-span-3" />
-            )}
+            ) : null}
           </div>
 
-          {hasRealCapital ? (
+          {showEarningsBar ? (
             <DailyYieldsCard yields={dailyYields} />
           ) : null}
 
@@ -225,28 +223,6 @@ function EmptyBullet({
       </div>
       <p className="text-xs text-text-secondary">{desc}</p>
     </li>
-  );
-}
-
-function SponsoredEarningsCallout({ className }: { className?: string }) {
-  const { t } = useI18n();
-  return (
-    <Card className={className}>
-      <CardContent className="space-y-3 p-6 text-center">
-        <Badge variant="info">{t("dashboard.overview.sponsoredBadge")}</Badge>
-        <h3 className="font-display text-base font-semibold text-text-primary">
-          {t("staking.portfolio.sponsoredEarningsTitle")}
-        </h3>
-        <p className="text-sm text-text-secondary">
-          {t("staking.portfolio.sponsoredEarningsDesc")}
-        </p>
-        <Button asChild variant="outline" size="md" className="mx-auto w-full max-w-xs">
-          <Link href="/dashboard/wallet#add-funds">
-            {t("walletPage.deposit.viewAddresses")}
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
   );
 }
 

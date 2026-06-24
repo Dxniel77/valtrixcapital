@@ -41,7 +41,7 @@ import {
   type DailyYield,
 } from "@/lib/staking/store";
 import { useI18n } from "@/lib/i18n/context";
-import { useHasRealDepositedCapital } from "@/lib/hooks/use-capital-profile";
+import { useShowDailyEarningsBar } from "@/lib/hooks/use-capital-profile";
 
 export function DashboardOverview() {
   const { t } = useI18n();
@@ -51,7 +51,7 @@ export function DashboardOverview() {
   const preview = useTodayYieldPreview();
   const hydrated = useStakingStoreHydrated();
   const yields = useStakingStore(useShallow((s) => s.dailyYields.slice(0, 7)));
-  const hasRealCapital = useHasRealDepositedCapital();
+  const showEarningsBar = useShowDailyEarningsBar();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
 
@@ -115,18 +115,18 @@ export function DashboardOverview() {
         <StatTile
           label={t("dashboard.overview.todayYield")}
           value={
-            hasRealCapital
+            showEarningsBar
               ? `${(preview.totalRateBps / 100).toFixed(2)}%`
               : "—"
           }
           delta={
-            hasRealCapital ? { value: preview.bonusRateBps / 100 } : undefined
+            showEarningsBar ? { value: preview.bonusRateBps / 100 } : undefined
           }
           icon={Activity}
           accent="success"
           hint={
-            !hasRealCapital
-              ? t("dashboard.overview.earningsDepositRequired")
+            !showEarningsBar
+              ? t("dashboard.overview.capStakeFirst")
               : hasCapital
                 ? `$${formatNumber(preview.projectedAmount, { decimals: 2 })} ${t("dashboard.overview.projected")}`
                 : `${(preview.totalRateBps / 100).toFixed(2)}% ${t("dashboard.overview.capHint")}`
@@ -136,15 +136,15 @@ export function DashboardOverview() {
         <StatTile
           label={t("dashboard.overview.toCap")}
           value={
-            hasRealCapital
+            showEarningsBar
               ? `${formatNumber(portfolio.capProgressPct, { decimals: 1 })}%`
               : "—"
           }
           icon={portfolio.isCapReached ? Unlock : Lock}
           accent="silver"
           hint={
-            !hasRealCapital
-              ? t("dashboard.overview.earningsDepositRequired")
+            !showEarningsBar
+              ? t("dashboard.overview.capStakeFirst")
               : hasCapital
                 ? t("dashboard.overview.capRemaining", {
                     amount: formatNumber(portfolio.remainingToCap, {
@@ -157,7 +157,7 @@ export function DashboardOverview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {hasRealCapital ? (
+        {showEarningsBar ? (
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -186,7 +186,7 @@ export function DashboardOverview() {
             </CardHeader>
             <CardContent>
               <p className="py-10 text-center text-sm text-text-secondary">
-                {t("dashboard.overview.earningsDepositRequired")}
+                {t("dashboard.overview.capStakeFirst")}
               </p>
             </CardContent>
           </Card>
@@ -197,11 +197,9 @@ export function DashboardOverview() {
             <CapitalCalloutSkeleton />
           ) : !hasCapital ? (
             <CapitalCallout />
-          ) : hasRealCapital ? (
+          ) : showEarningsBar ? (
             <PayoutMiniCard portfolio={portfolio} />
-          ) : (
-            <SponsoredCapitalCallout />
-          )}
+          ) : null}
           <DailyAttemptsCard
             wins={summary.wins}
             losses={summary.losses}
@@ -278,31 +276,6 @@ function CapitalCallout() {
             </Link>
           </Button>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SponsoredCapitalCallout() {
-  const { t } = useI18n();
-  return (
-    <Card>
-      <CardContent className="space-y-3 p-5">
-        <Badge variant="info">
-          <Sparkles className="h-3 w-3" />
-          {t("dashboard.overview.sponsoredBadge")}
-        </Badge>
-        <h3 className="font-display text-base font-semibold text-text-primary">
-          {t("dashboard.overview.sponsoredTitle")}
-        </h3>
-        <p className="text-xs text-text-secondary">
-          {t("dashboard.overview.sponsoredDesc")}
-        </p>
-        <Button asChild variant="outline" size="md" className="w-full">
-          <Link href="/dashboard/wallet#add-funds">
-            {t("walletPage.deposit.viewAddresses")}
-          </Link>
-        </Button>
       </CardContent>
     </Card>
   );

@@ -15,7 +15,7 @@ import {
   type Stake,
 } from "@/lib/staking/store";
 import { useWalletStore } from "@/lib/wallet/store";
-import { hasRealDepositedCapital } from "@/lib/staking/capital-profile";
+import { showDailyEarningsBar } from "@/lib/staking/capital-profile";
 
 export interface CapEarningsBreakdown {
   /** Passive yield already credited (daily accruals). */
@@ -192,10 +192,12 @@ export function usePortfolioSummary(): PortfolioSummary {
   const realCapital = useStakingStore((s) => s.realCapital);
   const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
   const accountGranted = useStakingStore((s) => s.accountGranted);
-  const earningsEligible = hasRealDepositedCapital({
+  const hasActiveCapital = stakes.some((s) => s.status === "ACTIVE");
+  const showEarningsUi = showDailyEarningsBar({
     realCapital,
     capitalProfileSynced,
     accountGranted,
+    hasActiveCapital,
   });
 
   return React.useMemo(() => {
@@ -208,11 +210,11 @@ export function usePortfolioSummary(): PortfolioSummary {
     const today = utcDayKey();
     const todayAlreadyAccrued = dailyYields.some((y) => y.date === today);
     const passiveProjectedToday =
-      earningsEligible && !todayAlreadyAccrued ? preview.projectedBaseAmount : 0;
+      showEarningsUi && !todayAlreadyAccrued ? preview.projectedBaseAmount : 0;
     const breakdown: CapEarningsBreakdown = {
-      passiveEarned: earningsEligible ? reconciled.passiveEarned : 0,
-      operationalEarned: earningsEligible ? reconciled.operationalEarned : 0,
-      networkEarned: earningsEligible ? reconciled.networkEarned : 0,
+      passiveEarned: showEarningsUi ? reconciled.passiveEarned : 0,
+      operationalEarned: showEarningsUi ? reconciled.operationalEarned : 0,
+      networkEarned: showEarningsUi ? reconciled.networkEarned : 0,
       passiveProjectedToday: round2(passiveProjectedToday),
       operationalPendingToday: 0,
     };
@@ -236,7 +238,7 @@ export function usePortfolioSummary(): PortfolioSummary {
     totalCommissions,
     withdrawals,
     preview.projectedBaseAmount,
-    earningsEligible,
+    showEarningsUi,
   ]);
 }
 
@@ -258,18 +260,19 @@ export function useTodayYieldPreview(): TodayYieldPreview {
   const realCapital = useStakingStore((s) => s.realCapital);
   const capitalProfileSynced = useStakingStore((s) => s.capitalProfileSynced);
   const accountGranted = useStakingStore((s) => s.accountGranted);
-  const earningsEligible = hasRealDepositedCapital({
+  const hasActiveCapital = stakes.some((s) => s.status === "ACTIVE");
+  const showEarningsUi = showDailyEarningsBar({
     realCapital,
     capitalProfileSynced,
     accountGranted,
+    hasActiveCapital,
   });
   return React.useMemo(() => {
     const today = utcDayKey();
     let capital = stakes
       .filter((s) => stakeEligibleForPassiveYieldNow(s))
       .reduce((acc, s) => acc + s.amount, 0);
-    if (!earningsEligible) capital = 0;
-    else if (accountGranted && realCapital > 0) capital = Math.min(capital, realCapital);
+    if (!showEarningsUi) capital = 0;
     const { wins, losses } = todayTradeStats;
     const rate = computeDailyRate(wins);
     const projectedBaseAmount = (capital * rate.baseRateBps) / 10_000;
@@ -286,5 +289,5 @@ export function useTodayYieldPreview(): TodayYieldPreview {
       wins,
       losses,
     };
-  }, [stakes, todayTradeStats, earningsEligible, accountGranted, realCapital]);
+  }, [stakes, todayTradeStats, showEarningsUi]);
 }
