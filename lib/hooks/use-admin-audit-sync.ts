@@ -5,32 +5,7 @@ import { fetchAdminAudit } from "@/lib/api/client";
 import { useAdminStore, type AuditEntry } from "@/lib/admin/store";
 import { loadBackendAvailability } from "@/lib/hooks/use-backend-sync";
 import { shortenAddress } from "@/lib/utils";
-import { formatAuditPayload } from "@/lib/admin/audit-format";
-
-function auditActionLabel(
-  action: string,
-  payload: Record<string, unknown> | null,
-): string {
-  if (action === "APPROVE_WITHDRAWAL" && payload?.automatic === true) {
-    return "WITHDRAWAL_AUTO_PAID";
-  }
-  switch (action) {
-    case "ACTIVATE":
-      return "USER_ACTIVATED";
-    case "DEACTIVATE":
-      return "USER_DEACTIVATED";
-    case "ADJUST_BALANCE":
-      return "BALANCE_ADJUSTED";
-    case "APPROVE_WITHDRAWAL":
-      return "WITHDRAWAL_APPROVED";
-    case "REJECT_WITHDRAWAL":
-      return "WITHDRAWAL_REJECTED";
-    case "UPDATE_CONFIG":
-      return "SETTINGS_UPDATED";
-    default:
-      return action;
-  }
-}
+import { formatAuditPayload, auditActionLabel } from "@/lib/admin/audit-format";
 
 function mapBackendAuditRow(
   row: Awaited<ReturnType<typeof fetchAdminAudit>>["audit"][number],

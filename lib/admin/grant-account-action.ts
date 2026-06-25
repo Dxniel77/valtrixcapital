@@ -12,6 +12,7 @@ export async function grantAdminAccount(input: {
   rule: WithdrawalRule;
   uplineWallet?: string | null;
   initialActiveCapital?: number;
+  requirementDeadlineDays?: number;
 }): Promise<void> {
   const health = await fetchBackendHealth();
   if (health.database) {
@@ -20,6 +21,7 @@ export async function grantAdminAccount(input: {
       referrerWallet: input.uplineWallet ?? null,
       withdrawalRule: input.rule,
       initialActiveCapital: input.initialActiveCapital ?? 0,
+      requirementDeadlineDays: input.requirementDeadlineDays,
     });
     const { users } = await fetchAdminUsers();
     useAdminStore.getState().mergeUsersFromBackend(users);

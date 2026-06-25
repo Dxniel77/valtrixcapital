@@ -580,6 +580,7 @@ export async function adminProvisionUser(input: {
     level2VolumeMin: number;
   };
   initialActiveCapital?: number;
+  requirementDeadlineDays?: number;
 }) {
   return apiFetch<{
     ok: true;

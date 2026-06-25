@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/daily-yield",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sponsorship-expiration",
+      "schedule": "0 8 * * *"
     }
   ]
 }

@@ -125,6 +125,8 @@ interface AdminState {
     id: string,
     sponsorQuery: string | null,
   ) => { ok: true } | { ok: false; error: SponsorUpdateError };
+  updateUserProfile: (id: string, patch: { username?: string }) => void;
+  removeUser: (id: string) => void;
   updateWithdrawalRule: (id: string, rule: WithdrawalRule) => void;
   syncLiveUserMetrics: (
     wallet: string,
@@ -512,10 +514,12 @@ export const useAdminStore = create<AdminState>()(
             )?.alias ?? user.uplineWallet)
           : "—";
 
+        const referrerUsername = uplineWallet ? sponsorAlias : null;
+
         set((s) => ({
           users: recountDirectReferrals(
             s.users.map((u) =>
-              u.id === id ? { ...u, uplineWallet } : u,
+              u.id === id ? { ...u, uplineWallet, referrerUsername } : u,
             ),
           ),
           audit: [
@@ -535,6 +539,34 @@ export const useAdminStore = create<AdminState>()(
         }));
 
         return { ok: true };
+      },
+
+      updateUserProfile: (id, patch) => {
+        const user = get().users.find((u) => u.id === id);
+        if (!user) return;
+
+        const trimmed = patch.username?.trim();
+        if (!trimmed) return;
+
+        const walletKey = user.wallet.toLowerCase();
+
+        set((s) => ({
+          users: s.users.map((u) => {
+            if (u.id === id) {
+              return { ...u, alias: trimmed };
+            }
+            if (u.uplineWallet?.toLowerCase() === walletKey) {
+              return { ...u, referrerUsername: trimmed };
+            }
+            return u;
+          }),
+        }));
+      },
+
+      removeUser: (id) => {
+        set((s) => ({
+          users: recountDirectReferrals(s.users.filter((u) => u.id !== id)),
+        }));
       },
 
       updateWithdrawalRule: (id, rule) => {

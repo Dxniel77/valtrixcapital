@@ -70,6 +70,34 @@ enum AdminActionType {
   APPROVE_WITHDRAWAL
   REJECT_WITHDRAWAL
   UPDATE_CONFIG
+  UPDATE_SPONSOR_TERMS
+  UPDATE_USER_PROFILE
+  PROCESS_ACCOUNT_DELETION
+  UPDATE_SPONSORSHIP
+}
+
+enum SponsorTermsStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum AccountDeletionStatus {
+  REQUESTED
+  GRACE_PERIOD
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum SponsorshipPeriodStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  RENEWED
+  SUSPENDED
+  REQUIREMENTS_MET
+  REQUIREMENTS_FAILED
 }
 
 enum TreasuryDepositStatus {
@@ -145,6 +173,10 @@ model User {
   targetedActions AdminAction[] @relation("AdminTarget")
   inboxNotifications InboxNotification[]
   supportTickets     SupportTicket[]
+  sponsorTermsAcceptances SponsorTermsAcceptance[]
+  sponsorTermsCreated     SponsorTermsVersion[]    @relation("TermsCreator")
+  deletionRequest         AccountDeletionRequest?
+  sponsorshipPeriods      SponsorshipPeriod[]
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -467,4 +499,90 @@ model InboxNotification {
   @@index([userId, createdAt(sort: Desc)])
   @@index([wallet, createdAt(sort: Desc)])
   @@index([email, createdAt(sort: Desc)])
+}
+
+model SponsorTermsVersion {
+  id          String             @id @default(uuid())
+  version     Int
+  title       String
+  content     String             @db.Text
+  status      SponsorTermsStatus @default(DRAFT)
+  effectiveAt DateTime?
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  createdBy   User                      @relation("TermsCreator", fields: [createdById], references: [id])
+  acceptances SponsorTermsAcceptance[]
+
+  @@unique([version])
+  @@index([status, effectiveAt(sort: Desc)])
+}
+
+model SponsorTermsAcceptance {
+  id             String   @id @default(uuid())
+  userId         String
+  termsVersionId String
+  acceptedAt     DateTime @default(now())
+  ipAddress      String?
+  userAgent      String?
+
+  user         User                @relation(fields: [userId], references: [id])
+  termsVersion SponsorTermsVersion @relation(fields: [termsVersionId], references: [id])
+
+  @@unique([userId, termsVersionId])
+  @@index([userId])
+  @@index([termsVersionId])
+}
+
+model AccountDeletionRequest {
+  id            String                @id @default(uuid())
+  userId        String                @unique
+  status        AccountDeletionStatus @default(REQUESTED)
+  reason        String?
+  requestedAt   DateTime              @default(now())
+  scheduledFor  DateTime?
+  processedAt   DateTime?
+  processedById String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([status, requestedAt(sort: Desc)])
+}
+
+model SponsorshipDurationRule {
+  id             String   @id @default(uuid())
+  minAmountMicro BigInt
+  durationDays   Int
+  label          String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  periods SponsorshipPeriod[]
+
+  @@index([isActive, minAmountMicro(sort: Desc)])
+}
+
+model SponsorshipPeriod {
+  id                String                  @id @default(uuid())
+  userId            String
+  ruleId            String?
+  amountMicro       BigInt
+  startDate         DateTime                @default(now())
+  endDate           DateTime
+  status            SponsorshipPeriodStatus @default(ACTIVE)
+  requirementsMetAt DateTime?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  user User                     @relation(fields: [userId], references: [id])
+  rule SponsorshipDurationRule? @relation(fields: [ruleId], references: [id])
+
+  @@index([userId, status])
+  @@index([endDate])
+  @@index([status, endDate])
 }

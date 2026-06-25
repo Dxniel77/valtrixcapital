@@ -173,6 +173,7 @@ export function DailyTransactionsPanel({
           <MovementTable
             rows={rows}
             emptyMessage={t("admin.movements.dailyEmpty")}
+            paginate={limit == null}
           />
         ) : null}
       </CardContent>

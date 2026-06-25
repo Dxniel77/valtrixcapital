@@ -230,6 +230,18 @@ export async function evaluateAndPersistWithdrawalUnlock(
     where: { id: userId },
     data: { withdrawalUnlocked: true },
   });
+
+  await prisma.sponsorshipPeriod.updateMany({
+    where: {
+      userId,
+      status: { in: ["ACTIVE", "EXPIRING_SOON"] },
+    },
+    data: {
+      status: "REQUIREMENTS_MET",
+      requirementsMetAt: new Date(),
+    },
+  });
+
   return true;
 }
 

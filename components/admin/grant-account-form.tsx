@@ -33,6 +33,14 @@ import {
 } from "@/lib/admin/withdrawal-progress";
 import { WithdrawalVolumeProgress } from "@/components/admin/withdrawal-volume-progress";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
+import { apiFetch } from "@/lib/api/client";
+
+interface DurationRule {
+  minAmount: number;
+  durationDays: number;
+  label: string | null;
+  isActive: boolean;
+}
 
 const MODES: {
   value: WithdrawalRuleMode;
@@ -104,6 +112,14 @@ export function GrantAccountForm() {
     String(DEFAULT_WITHDRAWAL_RULE.level2VolumeMin),
   );
   const [activeCapital, setActiveCapital] = React.useState("");
+  const [requirementDays, setRequirementDays] = React.useState("");
+  const [durationRules, setDurationRules] = React.useState<DurationRule[]>([]);
+
+  React.useEffect(() => {
+    void apiFetch<{ rules: DurationRule[] }>("/api/admin/sponsorship/rules")
+      .then((data) => setDurationRules(data.rules.filter((r) => r.isActive)))
+      .catch(() => setDurationRules([]));
+  }, []);
 
   const walletOk = isValidWallet(wallet);
   const uplineOk = !upline.trim() || isValidWallet(upline);
@@ -113,7 +129,6 @@ export function GrantAccountForm() {
   const activeCapitalOk =
     activeCapital.trim() === "" ||
     (Number.isFinite(activeCapitalNum) && activeCapitalNum >= 0);
-  const canSubmit = walletOk && uplineOk && activeCapitalOk;
 
   const rule: WithdrawalRule = {
     mode,
@@ -150,6 +165,38 @@ export function GrantAccountForm() {
 
   const previewUnlocked = existingWalletUser?.withdrawalUnlocked ?? false;
 
+  const sponsorshipDurationDays = React.useMemo(() => {
+    if (activeCapitalNum <= 0 || durationRules.length === 0) return null;
+    const match = [...durationRules]
+      .filter((r) => r.minAmount <= activeCapitalNum)
+      .sort((a, b) => b.minAmount - a.minAmount)[0];
+    return match?.durationDays ?? 30;
+  }, [activeCapitalNum, durationRules]);
+
+  React.useEffect(() => {
+    if (sponsorshipDurationDays !== null) {
+      setRequirementDays(String(sponsorshipDurationDays));
+    }
+  }, [sponsorshipDurationDays]);
+
+  const requirementDaysNum = Number(requirementDays);
+  const requirementDaysOk =
+    requirementDays.trim() === "" ||
+    (Number.isFinite(requirementDaysNum) &&
+      requirementDaysNum >= 1 &&
+      requirementDaysNum <= 3650);
+  const effectiveRequirementDays =
+    requirementDaysOk && requirementDaysNum >= 1 ? requirementDaysNum : null;
+
+  const requirementDeadlineDate = React.useMemo(() => {
+    if (!effectiveRequirementDays) return null;
+    const end = new Date();
+    end.setDate(end.getDate() + effectiveRequirementDays);
+    return end;
+  }, [effectiveRequirementDays]);
+
+  const canSubmit = walletOk && uplineOk && activeCapitalOk && requirementDaysOk;
+
   function reset() {
     setWallet("");
     setUpline("");
@@ -158,6 +205,7 @@ export function GrantAccountForm() {
     setL1Min(String(DEFAULT_WITHDRAWAL_RULE.level1VolumeMin));
     setL2Min(String(DEFAULT_WITHDRAWAL_RULE.level2VolumeMin));
     setActiveCapital("");
+    setRequirementDays("");
   }
 
   async function submit() {
@@ -180,6 +228,10 @@ export function GrantAccountForm() {
         uplineWallet: upline.trim() || null,
         rule,
         initialActiveCapital: activeCapitalNum > 0 ? activeCapitalNum : 0,
+        requirementDeadlineDays:
+          activeCapitalNum > 0 && effectiveRequirementDays
+            ? effectiveRequirementDays
+            : undefined,
       });
       toast.success(t("admin.grant.success"));
       reset();
@@ -272,7 +324,33 @@ export function GrantAccountForm() {
                   USDT
                 </span>
               </div>
+              {effectiveRequirementDays !== null ? (
+                <p className="text-xs text-gold">
+                  {t("admin.grant.requirementDeadlineHint", {
+                    days: effectiveRequirementDays,
+                  })}
+                </p>
+              ) : null}
             </Field>
+
+            {activeCapitalNum > 0 ? (
+              <Field
+                label={t("admin.grant.requirementDaysLabel")}
+                hint={t("admin.grant.requirementDaysHint")}
+              >
+                <Input
+                  value={requirementDays}
+                  onChange={(e) => setRequirementDays(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="90"
+                  className={cn(
+                    "max-w-xs font-mono",
+                    requirementDays &&
+                      (requirementDaysOk ? "border-success/40" : "border-danger/40"),
+                  )}
+                />
+              </Field>
+            ) : null}
           </section>
 
           <section className="space-y-4">
@@ -363,7 +441,11 @@ export function GrantAccountForm() {
             <div className="flex gap-2 rounded-lg border border-border-subtle/80 bg-bg-base/50 p-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
               <p className="text-xs leading-relaxed text-text-secondary">
-                {t("admin.grant.hint")}
+                {activeCapitalNum > 0 && effectiveRequirementDays
+                  ? t("admin.grant.requirementDeadlineWarning", {
+                      days: effectiveRequirementDays,
+                    })
+                  : t("admin.grant.hint")}
               </p>
             </div>
           </section>
@@ -411,6 +493,24 @@ export function GrantAccountForm() {
               label={t("admin.grant.previewRule")}
               value={ruleSummary(rule, t)}
             />
+            {effectiveRequirementDays && activeCapitalNum > 0 ? (
+              <>
+                <PreviewRow
+                  label={t("admin.grant.previewRequirementDays")}
+                  value={t("admin.grant.previewRequirementDaysValue", {
+                    days: effectiveRequirementDays,
+                  })}
+                />
+                <PreviewRow
+                  label={t("admin.grant.previewRequirementDeadline")}
+                  value={
+                    requirementDeadlineDate
+                      ? requirementDeadlineDate.toLocaleDateString()
+                      : "—"
+                  }
+                />
+              </>
+            ) : null}
             <div className="border-t border-border-subtle pt-3">
               <WithdrawalVolumeProgress
                 title={t("admin.grant.progressTitle")}

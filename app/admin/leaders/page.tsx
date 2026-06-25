@@ -16,6 +16,8 @@ import {
 import { exportLeadersCsv } from "@/lib/admin/exports";
 import { fetchAdminLeaders } from "@/lib/api/client";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useTablePagination } from "@/lib/hooks/use-table-pagination";
+import { TablePagination } from "@/components/admin/table-pagination";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
 function mapApiRow(
@@ -105,6 +107,9 @@ export default function AdminLeadersPage() {
       cancelled = true;
     };
   }, [backend, period]);
+
+  const pagination = useTablePagination(rows, { resetKey: period });
+  const rowOffset = (pagination.page - 1) * pagination.pageSize;
 
   return (
     <div className="space-y-6">
@@ -201,6 +206,7 @@ export default function AdminLeadersPage() {
           {t("admin.leaders.empty")}
         </div>
       ) : (
+        <div className="space-y-0">
         <Table>
           <thead>
             <THeadRow>
@@ -216,13 +222,13 @@ export default function AdminLeadersPage() {
             </THeadRow>
           </thead>
           <TBody>
-            {rows.map((row, i) => (
+            {pagination.paginatedItems.map((row, i) => (
               <TR key={row.user.id}>
                 <TD>
-                  {i < 3 ? (
-                    <Badge variant="gold">{i + 1}</Badge>
+                  {rowOffset + i < 3 ? (
+                    <Badge variant="gold">{rowOffset + i + 1}</Badge>
                   ) : (
-                    <span className="font-mono text-text-muted">{i + 1}</span>
+                    <span className="font-mono text-text-muted">{rowOffset + i + 1}</span>
                   )}
                 </TD>
                 <TD>
@@ -268,6 +274,18 @@ export default function AdminLeadersPage() {
             ))}
           </TBody>
         </Table>
+        <TablePagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          rangeStart={pagination.rangeStart}
+          rangeEnd={pagination.rangeEnd}
+          pageSize={pagination.pageSize}
+          pageSizeOptions={pagination.pageSizeOptions}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
+        </div>
       )}
     </div>
   );

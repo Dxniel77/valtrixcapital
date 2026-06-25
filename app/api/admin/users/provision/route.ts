@@ -11,6 +11,7 @@ import {
   ProvisionUserException,
   adminProvisionUser,
 } from "@/lib/services/users";
+import { createSponsorshipPeriod } from "@/lib/services/sponsorship-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ const bodySchema = z.object({
   referrerWallet: z.string().nullable().optional(),
   withdrawalRule: withdrawalRuleSchema.optional(),
   initialActiveCapital: z.number().min(0).optional(),
+  requirementDeadlineDays: z.number().int().min(1).max(3650).optional(),
 });
 
 export async function POST(req: Request) {
@@ -67,6 +69,14 @@ export async function POST(req: Request) {
         delta: capital,
         note: "Initial active capital (granted account)",
         target: "STAKING",
+      });
+
+      await createSponsorshipPeriod({
+        userId: user.id,
+        amountUsd: capital,
+        createdById: adminId,
+        notes: "Initial sponsorship on account grant",
+        requirementDeadlineDays: parsed.requirementDeadlineDays,
       });
     }
 

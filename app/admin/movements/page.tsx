@@ -133,6 +133,7 @@ function AdminMovementsContent() {
         <MovementTable
           rows={rows}
           emptyMessage={t("admin.movements.dailyEmpty")}
+          resetKey={`${scope}|${dayKey}|${filter}|${query}`}
         />
       </div>
     </div>

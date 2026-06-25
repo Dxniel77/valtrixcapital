@@ -364,6 +364,14 @@ export function adminActionLabel(action: AdminActionType): string {
       return "WITHDRAWAL_REJECTED";
     case "UPDATE_CONFIG":
       return "SETTINGS_UPDATED";
+    case "UPDATE_USER_PROFILE":
+      return "USER_PROFILE_UPDATED";
+    case "UPDATE_SPONSORSHIP":
+      return "SPONSORSHIP_UPDATED";
+    case "UPDATE_SPONSOR_TERMS":
+      return "SPONSOR_TERMS_UPDATED";
+    case "PROCESS_ACCOUNT_DELETION":
+      return "ACCOUNT_DELETION_PROCESSED";
     default:
       return action;
   }

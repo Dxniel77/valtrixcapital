@@ -41,6 +41,8 @@ import {
 import { toggleAdminUserStatus } from "@/lib/admin/toggle-user-status";
 import { getReferrerInfo } from "@/lib/admin/sponsor";
 import { SponsoredUnlockProgressSummary } from "@/components/admin/sponsored-unlock-progress-summary";
+import { TablePagination } from "@/components/admin/table-pagination";
+import { useTablePagination } from "@/lib/hooks/use-table-pagination";
 
 const PERIODS: LeaderPeriod[] = ["week", "month", "3months"];
 type RegistrationFilter = "all" | RegistrationSource;
@@ -88,6 +90,11 @@ export default function AdminUsersPage() {
       return billingPeriodTotal(b) - billingPeriodTotal(a);
     });
   }, [users, movements, period, query, sponsoredOnly, registrationFilter]);
+
+  const pagination = useTablePagination(billingRows, {
+    resetKey: `${query}|${period}|${sponsoredOnly}|${registrationFilter}`,
+  });
+  const rowOffset = (pagination.page - 1) * pagination.pageSize;
 
   const periodLabel = (p: LeaderPeriod) => {
     if (p === "week") return t("admin.leaders.week");
@@ -221,7 +228,7 @@ export default function AdminUsersPage() {
             </THeadRow>
           </thead>
           <TBody>
-            {billingRows.map((row, idx) => {
+            {pagination.paginatedItems.map((row, idx) => {
               const u = row.user;
               const sponsored = u.accountGranted;
               const referrer = getReferrerInfo(u, users);
@@ -232,7 +239,7 @@ export default function AdminUsersPage() {
                     sponsored && "bg-warning/[0.06] hover:bg-warning/[0.09]",
                   )}
                 >
-                  <TD className="px-2 font-mono text-xs text-text-muted">{idx + 1}</TD>
+                  <TD className="px-2 font-mono text-xs text-text-muted">{rowOffset + idx + 1}</TD>
                   <TD className="px-3">
                     <p className="truncate font-medium text-text-primary">
                       {u.alias}
@@ -374,6 +381,18 @@ export default function AdminUsersPage() {
             })}
           </TBody>
         </Table>
+        <TablePagination
+          className="px-1"
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          rangeStart={pagination.rangeStart}
+          rangeEnd={pagination.rangeEnd}
+          pageSize={pagination.pageSize}
+          pageSizeOptions={pagination.pageSizeOptions}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
       </div>
 
       <AdjustBalanceModal user={editing} onClose={() => setEditing(null)} />

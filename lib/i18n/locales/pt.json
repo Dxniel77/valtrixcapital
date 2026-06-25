@@ -920,7 +920,9 @@
       "notifications": "Notificações",
       "support": "Tickets de suporte",
       "audit": "Auditoria",
-      "treasury": "Tesouraria"
+      "treasury": "Tesouraria",
+      "sponsorTerms": "Sponsor terms",
+      "sponsorship": "Sponsorship calendar"
     },
     "notifications": {
       "title": "Enviar notificações",
@@ -985,7 +987,14 @@
       "WITHDRAWAL_PROCESSED": "Retirada processada",
       "WITHDRAWAL_APPROVED": "Retirada atualizada",
       "WITHDRAWAL_REJECTED": "Retirada rejeitada",
-      "WITHDRAWAL_AUTO_PAID": "Retirada automática paga"
+      "WITHDRAWAL_AUTO_PAID": "Retirada automática paga",
+      "USER_PROFILE_UPDATED": "Account profile updated",
+      "ACCOUNT_DELETED": "Account deleted",
+      "ACCOUNT_DELETION_APPROVED": "Account deletion approved",
+      "ACCOUNT_DELETION_CANCELLED": "Account deletion cancelled",
+      "ACCOUNT_DELETION_PROCESSED": "Account deletion processed",
+      "SPONSORSHIP_UPDATED": "Sponsorship updated",
+      "SPONSOR_TERMS_UPDATED": "Sponsor terms updated"
     },
     "overview": {
       "title": "Resumo",
@@ -1172,7 +1181,15 @@
       "progressEarned": "Alcançado",
       "progressRemaining": "Restante",
       "progressPct": "Progresso",
-      "progressUnlocked": "Meta atingida – retiradas habilitadas"
+      "progressUnlocked": "Meta atingida – retiradas habilitadas",
+      "sponsorshipDuration": "Sponsorship duration: {days} days (based on calendar rules)",
+      "requirementDeadlineHint": "Auto-filled from calendar: {days} days to meet requirements",
+      "requirementDaysLabel": "Days to meet requirements",
+      "requirementDaysHint": "How long the user has to reach the withdrawal goal before the account is disabled.",
+      "requirementDeadlineWarning": "The user must meet the withdrawal condition within {days} days. If not met, the account will be automatically disabled.",
+      "previewRequirementDays": "Time limit",
+      "previewRequirementDaysValue": "{days} days",
+      "previewRequirementDeadline": "Deadline"
     },
     "lookup": {
       "title": "Pesquisa de usuário",
@@ -1388,7 +1405,96 @@
     },
     "headerLive": "Dados da plataforma ao vivo",
     "headerSyncing": "Sincronizando dados admin…",
-    "headerOffline": "Banco de dados indisponível"
+    "headerOffline": "Banco de dados indisponível",
+    "sponsorTerms": {
+      "title": "Sponsor terms & conditions",
+      "subtitle": "Create and publish terms that sponsored accounts must accept.",
+      "createTitle": "New version",
+      "versionsTitle": "All versions",
+      "titlePlaceholder": "Terms title",
+      "contentPlaceholder": "Write the full terms and conditions text…",
+      "saveDraft": "Save draft",
+      "publishNow": "Save & publish",
+      "publish": "Publish",
+      "saveChanges": "Save changes",
+      "updated": "Terms updated",
+      "saved": "Terms saved",
+      "published": "Terms published — sponsors must re-accept",
+      "empty": "No terms versions yet.",
+      "validation": "Title and content (min 10 chars) are required",
+      "acceptanceCount": "{count} acceptances recorded"
+    },
+    "sponsorship": {
+      "title": "Sponsorship calendar",
+      "subtitle": "Define how long sponsored accounts stay active based on donation amount.",
+      "rulesTitle": "Duration rules",
+      "calendarTitle": "Active sponsorships",
+      "labelPlaceholder": "e.g. $100 = 30 days",
+      "addRule": "Add rule",
+      "ruleSaved": "Rule saved",
+      "days": "days",
+      "user": "User",
+      "amount": "Amount",
+      "ends": "Ends",
+      "remaining": "Remaining",
+      "status": "Status",
+      "empty": "No sponsorship periods yet.",
+      "rulesHint": "Example: $1,000 sponsorship → 90 days to meet direct sales goal, or account is disabled."
+    },
+    "accountDeletions": {
+      "title": "Account deletion requests",
+      "subtitle": "Review and process user requests to delete their account data.",
+      "queueTitle": "Pending requests",
+      "user": "User",
+      "status": "Status",
+      "requested": "Requested",
+      "scheduled": "Scheduled",
+      "actions": "Actions",
+      "approve": "Approve now",
+      "cancel": "Cancel request",
+      "processed": "Request processed",
+      "empty": "No deletion requests."
+    },
+    "title": "Sponsorship period",
+    "subtitle": "Edit username, email, or remove this account. Managed from admin only.",
+    "username": "Username",
+    "email": "Email",
+    "save": "Save account data",
+    "saved": "Account updated",
+    "delete": "Delete account",
+    "deleteConfirm": "Deactivate this account and clear profile data?",
+    "deleted": "Account deactivated",
+    "noPeriod": "No active sponsorship period. Renew or grant capital to create one.",
+    "renewAmount": "Renewal amount (USDT)",
+    "renew": "Renew sponsorship",
+    "renewed": "Sponsorship renewed",
+    "userAccount": {
+      "title": "Account data",
+      "subtitle": "Edit username, email, or remove this account. Managed from admin only.",
+      "username": "Username",
+      "email": "Email",
+      "save": "Save account data",
+      "saved": "Account updated",
+      "delete": "Delete account",
+      "deleteConfirm": "Deactivate this account and clear profile data?",
+      "deleted": "Account deactivated"
+    },
+    "userSponsorship": {
+      "title": "Sponsorship period",
+      "noPeriod": "No active sponsorship period. Renew or grant capital to create one.",
+      "renewAmount": "Renewal amount (USDT)",
+      "renew": "Renew sponsorship",
+      "renewed": "Sponsorship renewed",
+      "requirementsMet": "Requirements met",
+      "requirementsFailed": "Deadline passed — account disabled"
+    },
+    "pagination": {
+      "showing": "Showing {from}–{to} of {total}",
+      "page": "Page {page} of {pages}",
+      "prev": "Previous",
+      "next": "Next",
+      "perPage": "Rows per page"
+    }
   },
   "trade": {
     "title": "Oportunidades de mercado ativas",
@@ -1517,7 +1623,13 @@
       "supportReplyTitle": "Resposta do suporte",
       "supportReplyBody": "Re: {subject} — {preview}",
       "supportUserReplyTitle": "Usuário respondeu no suporte",
-      "supportUserReplyBody": "{name}: {preview}"
+      "supportUserReplyBody": "{name}: {preview}",
+      "sponsorshipExpiringSoonTitle": "Sponsorship expiring soon",
+      "sponsorshipExpiringSoonBody": "Your sponsored account expires in {days} day(s). Contact support to renew.",
+      "sponsorshipExpiredTitle": "Sponsorship expired",
+      "sponsorshipExpiredBody": "Your sponsored account period has ended. Please review your account status.",
+      "sponsorshipRequirementsFailedTitle": "Account disabled",
+      "sponsorshipRequirementsFailedBody": "You did not meet the sponsorship requirements within the allowed time. Your account has been disabled."
     }
   },
   "supportPage": {
@@ -1577,5 +1689,30 @@
       "account": "Conta",
       "other": "Outra"
     }
+  },
+  "sponsorTerms": {
+    "title": "Sponsor terms & conditions",
+    "description": "Please read and accept version {version} to continue using your sponsored account.",
+    "scrollHint": "Scroll to the bottom to enable acceptance.",
+    "accept": "I accept the terms and conditions",
+    "accepted": "Terms accepted successfully"
+  },
+  "profileSettings": {
+    "title": "Account settings",
+    "email": "Email (optional)",
+    "save": "Save changes",
+    "saved": "Profile updated",
+    "deleteTitle": "Delete account",
+    "deleteDesc": "Request permanent deletion of your account data. You have a 30-day grace period to cancel.",
+    "deleteConfirm": "Are you sure you want to request account deletion?",
+    "requestDelete": "Request account deletion",
+    "deleteRequested": "Deletion request submitted",
+    "deleteCancelled": "Deletion request cancelled",
+    "cancelDelete": "Cancel deletion request",
+    "scheduledFor": "Scheduled for {date}"
+  },
+  "sponsorshipStatus": {
+    "title": "Sponsorship duration",
+    "daysLeft": "days remaining"
   }
 }

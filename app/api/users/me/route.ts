@@ -5,7 +5,6 @@ import { isDatabaseAvailable } from "@/lib/db/available";
 import {
   applyReferrerIfMissing,
   findUserByWalletWithReferrer,
-  serializeUserWithReferrer,
   serializeUserWithReferrerAsync,
   updateUsername,
   upsertUserByWallet,

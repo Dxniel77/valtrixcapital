@@ -12,6 +12,8 @@ import type { UserDetailSnapshot } from "@/lib/admin/analytics";
 import { useAdminStore } from "@/lib/admin/store";
 import { exportUserDetailCsv } from "@/lib/admin/exports";
 import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
+import { AdminUserAccountCard } from "@/components/admin/admin-user-account-card";
+import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsorship-card";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
@@ -167,8 +169,13 @@ export function UserDetailPanel({
 
       <ChangeSponsorCard user={user} />
 
+      <AdminUserAccountCard user={user} />
+
       {isSponsored ? (
-        <SponsoredUnlockProgressCard user={user} />
+        <>
+          <AdminUserSponsorshipCard user={user} />
+          <SponsoredUnlockProgressCard user={user} />
+        </>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">

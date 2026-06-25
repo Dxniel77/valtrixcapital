@@ -26,6 +26,8 @@ import {
   type SupportTicketDto,
 } from "@/lib/api/client";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useTablePagination } from "@/lib/hooks/use-table-pagination";
+import { TablePagination } from "@/components/admin/table-pagination";
 import { ticketStatuses } from "@/lib/support/ticket-schema";
 import { cn, shortenAddress } from "@/lib/utils";
 
@@ -167,6 +169,11 @@ export function SupportTicketsPanel() {
     (tk) => tk.status === "open" || tk.status === "pending",
   ).length;
 
+  const pagination = useTablePagination(tickets, {
+    resetKey: filter,
+    pageSize: 15,
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -220,7 +227,7 @@ export function SupportTicketsPanel() {
             <div className="border-b border-border-subtle px-4 py-3 text-sm text-text-secondary">
               {t("admin.support.queueTitle", { n: openCount })}
             </div>
-            <div className="max-h-[560px] overflow-y-auto divide-y divide-border-subtle">
+            <div className="divide-y divide-border-subtle">
               {loading ? (
                 <div className="flex items-center justify-center gap-2 p-8 text-sm text-text-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -234,7 +241,7 @@ export function SupportTicketsPanel() {
                   </p>
                 </div>
               ) : (
-                tickets.map((ticket) => {
+                pagination.paginatedItems.map((ticket) => {
                   const active = ticket.id === selectedId;
                   return (
                     <button
@@ -275,6 +282,19 @@ export function SupportTicketsPanel() {
                   );
                 })
               )}
+            </div>
+            <div className="border-t border-border-subtle px-3 py-2">
+              <TablePagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                rangeStart={pagination.rangeStart}
+                rangeEnd={pagination.rangeEnd}
+                pageSize={pagination.pageSize}
+                pageSizeOptions={pagination.pageSizeOptions}
+                onPageChange={pagination.setPage}
+                onPageSizeChange={pagination.setPageSize}
+              />
             </div>
           </Card>
 

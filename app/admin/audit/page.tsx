@@ -13,12 +13,20 @@ import {
   auditDetailMissingOnChainTx,
   localizeAuditDetail,
 } from "@/lib/admin/audit-format";
+import { TablePagination } from "@/components/admin/table-pagination";
+import { useTablePagination } from "@/lib/hooks/use-table-pagination";
 
 const ACTION_VARIANT: Record<string, "success" | "danger" | "info" | "gold" | "warning"> = {
   USER_ACTIVATED: "success",
   USER_DEACTIVATED: "danger",
+  USER_PROFILE_UPDATED: "info",
   BALANCE_ADJUSTED: "gold",
   SETTINGS_UPDATED: "info",
+  SPONSORSHIP_UPDATED: "gold",
+  ACCOUNT_DELETED: "danger",
+  ACCOUNT_DELETION_APPROVED: "danger",
+  ACCOUNT_DELETION_CANCELLED: "warning",
+  ACCOUNT_DELETION_PROCESSED: "warning",
   WITHDRAWAL_AUTO_PAID: "success",
   WITHDRAWAL_APPROVED: "info",
   WITHDRAWAL_REJECTED: "danger",
@@ -28,6 +36,7 @@ export default function AdminAuditPage() {
   const { t } = useI18n();
   useAdminAuditSync();
   const audit = useAdminStore((s) => s.audit);
+  const pagination = useTablePagination(audit);
 
   return (
     <div className="space-y-6">
@@ -42,6 +51,7 @@ export default function AdminAuditPage() {
           <p className="text-sm text-text-secondary">{t("admin.audit.empty")}</p>
         </div>
       ) : (
+        <div className="space-y-0">
         <Table>
           <thead>
             <THeadRow>
@@ -53,7 +63,7 @@ export default function AdminAuditPage() {
             </THeadRow>
           </thead>
           <TBody>
-            {audit.map((a) => (
+            {pagination.paginatedItems.map((a) => (
               <TR key={a.id}>
                 <TD className="font-mono text-xs text-text-secondary">
                   {new Date(a.timestamp).toLocaleString("es-ES", {
@@ -81,6 +91,18 @@ export default function AdminAuditPage() {
             ))}
           </TBody>
         </Table>
+        <TablePagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          rangeStart={pagination.rangeStart}
+          rangeEnd={pagination.rangeEnd}
+          pageSize={pagination.pageSize}
+          pageSizeOptions={pagination.pageSizeOptions}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
+        </div>
       )}
     </div>
   );

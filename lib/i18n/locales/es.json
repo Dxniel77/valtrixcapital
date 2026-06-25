@@ -968,7 +968,9 @@
       "settings": "Ajustes",
       "notifications": "Notificaciones",
       "support": "Tickets de soporte",
-      "audit": "Auditoría"
+      "audit": "Auditoría",
+      "sponsorTerms": "Términos patrocinio",
+      "sponsorship": "Calendario patrocinio"
     },
     "notifications": {
       "title": "Enviar notificaciones",
@@ -1033,7 +1035,83 @@
       "WITHDRAWAL_PROCESSED": "Retiro procesado",
       "WITHDRAWAL_APPROVED": "Retiro actualizado",
       "WITHDRAWAL_REJECTED": "Retiro rechazado",
-      "WITHDRAWAL_AUTO_PAID": "Retiro automático pagado"
+      "WITHDRAWAL_AUTO_PAID": "Retiro automático pagado",
+      "USER_PROFILE_UPDATED": "Perfil de cuenta actualizado",
+      "ACCOUNT_DELETED": "Cuenta eliminada",
+      "ACCOUNT_DELETION_APPROVED": "Eliminación de cuenta aprobada",
+      "ACCOUNT_DELETION_CANCELLED": "Solicitud de eliminación cancelada",
+      "ACCOUNT_DELETION_PROCESSED": "Eliminación de cuenta procesada",
+      "SPONSORSHIP_UPDATED": "Patrocinio actualizado",
+      "SPONSOR_TERMS_UPDATED": "Términos de patrocinio actualizados"
+    },
+    "sponsorTerms": {
+      "title": "Términos y condiciones de patrocinio",
+      "subtitle": "Crea y publica los términos que las cuentas patrocinadas deben aceptar.",
+      "createTitle": "Nueva versión",
+      "versionsTitle": "Todas las versiones",
+      "titlePlaceholder": "Título de los términos",
+      "contentPlaceholder": "Escribe el texto completo de términos y condiciones…",
+      "saveDraft": "Guardar borrador",
+      "publishNow": "Guardar y publicar",
+      "publish": "Publicar",
+      "saveChanges": "Guardar cambios",
+      "updated": "Términos actualizados",
+      "saved": "Términos guardados",
+      "published": "Términos publicados — los patrocinadores deben volver a aceptar",
+      "empty": "Aún no hay versiones de términos.",
+      "validation": "El título y el contenido (mín. 10 caracteres) son obligatorios",
+      "acceptanceCount": "{count} aceptaciones registradas"
+    },
+    "sponsorship": {
+      "title": "Calendario de patrocinio",
+      "subtitle": "Define cuántos días tienen las cuentas patrocinadas para cumplir sus requisitos de retiro.",
+      "rulesTitle": "Reglas de plazo para requisitos",
+      "rulesHint": "Ejemplo: patrocinio de $1,000 → 90 días para cumplir ventas directas; si no, la cuenta se desactiva.",
+      "calendarTitle": "Plazos activos de patrocinio",
+      "labelPlaceholder": "Ej. $1,000 = 90 días para cumplir requisitos",
+      "addRule": "Agregar regla",
+      "ruleSaved": "Regla guardada",
+      "days": "días",
+      "user": "Usuario",
+      "amount": "Monto",
+      "ends": "Finaliza",
+      "remaining": "Restante",
+      "status": "Estado",
+      "empty": "Aún no hay períodos de patrocinio."
+    },
+    "accountDeletions": {
+      "title": "Solicitudes de eliminación de cuenta",
+      "subtitle": "Revisa y procesa las solicitudes de los usuarios para eliminar sus datos.",
+      "queueTitle": "Solicitudes pendientes",
+      "user": "Usuario",
+      "status": "Estado",
+      "requested": "Solicitado",
+      "scheduled": "Programado",
+      "actions": "Acciones",
+      "approve": "Aprobar ahora",
+      "cancel": "Cancelar solicitud",
+      "processed": "Solicitud procesada",
+      "empty": "No hay solicitudes de eliminación."
+    },
+    "userAccount": {
+      "title": "Datos de la cuenta",
+      "subtitle": "Edita nombre de usuario, correo o elimina esta cuenta. Solo desde administración.",
+      "username": "Nombre de usuario",
+      "email": "Correo electrónico",
+      "save": "Guardar datos",
+      "saved": "Cuenta actualizada",
+      "delete": "Eliminar cuenta",
+      "deleteConfirm": "¿Desactivar esta cuenta y borrar los datos del perfil?",
+      "deleted": "Cuenta desactivada"
+    },
+    "userSponsorship": {
+      "title": "Plazo para requisitos",
+      "noPeriod": "Sin plazo activo. Renueva o asigna capital para crear uno.",
+      "requirementsMet": "Requisitos cumplidos",
+      "requirementsFailed": "Plazo vencido — cuenta desactivada",
+      "renewAmount": "Monto de renovación (USDT)",
+      "renew": "Renovar patrocinio",
+      "renewed": "Patrocinio renovado"
     },
     "overview": {
       "title": "Resumen",
@@ -1220,6 +1298,13 @@
       "commissionsTitle": "Comisiones de referidos (bps)",
       "pairsTitle": "Pares permitidos"
     },
+    "pagination": {
+      "showing": "Mostrando {from}–{to} de {total}",
+      "page": "Página {page} de {pages}",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "perPage": "Filas por página"
+    },
     "audit": {
       "title": "Registro de auditoría",
       "subtitle": "Historial inmutable de acciones administrativas.",
@@ -1236,9 +1321,9 @@
       "title": "Dar cuenta",
       "subtitle": "Concede acceso a un usuario con condiciones de retiro personalizadas.",
       "formTitle": "Nueva cuenta",
-      "formSubtitle": "Cuenta patrocinada con retiros bloqueados hasta cumplir la meta.",
+      "formSubtitle": "Cuenta patrocinada con retiros bloqueados hasta cumplir la meta dentro del plazo.",
       "identitySection": "Datos del usuario",
-      "rulesSection": "Reglas de retiro",
+      "rulesSection": "Requisitos de retiro",
       "walletLabel": "Billetera",
       "walletHint": "El usuario elige su propio nombre cuando inicia sesión.",
       "aliasLabel": "Usuario",
@@ -1248,6 +1333,14 @@
       "uplineHint": "Vincula la cuenta a un patrocinador en la red.",
       "activeCapitalLabel": "Capital activo inicial",
       "activeCapitalHint": "USDT acreditados como capital activo patrocinado por la empresa. El usuario puede operar y ganar rendimiento diario, pero este monto no cuenta para desbloquear retiros ni genera comisiones al upline hasta que el usuario deposite dinero real.",
+      "sponsorshipDuration": "Duración del patrocinio: {days} días (según reglas del calendario)",
+      "requirementDeadlineHint": "Autocompletado del calendario: {days} días para cumplir requisitos",
+      "requirementDaysLabel": "Días para cumplir requisitos",
+      "requirementDaysHint": "Tiempo que tiene el usuario para alcanzar la meta de retiro antes de desactivar la cuenta.",
+      "requirementDeadlineWarning": "El usuario debe cumplir la condición de retiro en {days} días. Si no la cumple, la cuenta se desactivará automáticamente.",
+      "previewRequirementDays": "Plazo",
+      "previewRequirementDaysValue": "{days} días",
+      "previewRequirementDeadline": "Fecha límite",
       "invalidActiveCapital": "Ingresa un monto válido (0 o mayor)",
       "modeLabel": "Condición para retirar",
       "modeDirect": "Ventas directas",
@@ -1260,7 +1353,7 @@
       "directMinLabel": "Mín. ventas directas",
       "l1MinLabel": "Mín. volumen N1",
       "l2MinLabel": "Mín. volumen N2",
-      "hint": "El usuario puede operar con normalidad. Los retiros se habilitan automáticamente al cumplir la condición.",
+      "hint": "El usuario puede operar con normalidad. Los retiros se habilitan al cumplir la condición antes del plazo.",
       "submit": "Conceder cuenta",
       "reset": "Limpiar",
       "invalidWallet": "Billetera inválida",
@@ -1468,7 +1561,13 @@
       "supportReplyTitle": "Respuesta de soporte",
       "supportReplyBody": "Re: {subject} — {preview}",
       "supportUserReplyTitle": "Usuario respondió en soporte",
-      "supportUserReplyBody": "{name}: {preview}"
+      "supportUserReplyBody": "{name}: {preview}",
+      "sponsorshipExpiringSoonTitle": "Plazo de requisitos por vencer",
+      "sponsorshipExpiringSoonBody": "Te quedan {days} día(s) para cumplir los requisitos del patrocinio. Si no los cumples, tu cuenta será desactivada.",
+      "sponsorshipExpiredTitle": "Plazo de requisitos alcanzado",
+      "sponsorshipExpiredBody": "Venció el plazo para cumplir los requisitos del patrocinio. Tu cuenta puede desactivarse si no cumpliste las metas.",
+      "sponsorshipRequirementsFailedTitle": "Cuenta desactivada",
+      "sponsorshipRequirementsFailedBody": "No cumpliste los requisitos del patrocinio dentro del tiempo permitido. Tu cuenta ha sido desactivada."
     }
   },
   "trade": {
@@ -1564,5 +1663,30 @@
       "showToolbar": "Mostrar herramientas de dibujo"
     },
     "yieldSummary": "Rendimiento diario"
+  },
+  "sponsorTerms": {
+    "title": "Términos y condiciones de patrocinio",
+    "description": "Lee y acepta la versión {version} para continuar usando tu cuenta patrocinada.",
+    "scrollHint": "Desplázate hasta el final para habilitar la aceptación.",
+    "accept": "Acepto los términos y condiciones",
+    "accepted": "Términos aceptados correctamente"
+  },
+  "profileSettings": {
+    "title": "Configuración de cuenta",
+    "email": "Correo electrónico (opcional)",
+    "save": "Guardar cambios",
+    "saved": "Perfil actualizado",
+    "deleteTitle": "Eliminar cuenta",
+    "deleteDesc": "Solicita la eliminación permanente de los datos de tu cuenta. Tienes 30 días para cancelar.",
+    "deleteConfirm": "¿Estás seguro de que deseas solicitar la eliminación de tu cuenta?",
+    "requestDelete": "Solicitar eliminación de cuenta",
+    "deleteRequested": "Solicitud de eliminación enviada",
+    "deleteCancelled": "Solicitud de eliminación cancelada",
+    "cancelDelete": "Cancelar solicitud de eliminación",
+    "scheduledFor": "Programado para {date}"
+  },
+  "sponsorshipStatus": {
+    "title": "Duración del patrocinio",
+    "daysLeft": "días restantes"
   }
 }
