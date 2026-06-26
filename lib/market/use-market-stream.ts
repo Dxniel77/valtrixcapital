@@ -5,6 +5,8 @@ import type { Candle, Ticker } from "./types";
 import { fetchKlines, streamSymbol } from "./binance";
 import { fetchTickerBybit } from "./bybit";
 import type { Timeframe } from "./pairs";
+import type { MarketSource } from "./pairs";
+import { startTickerPoll } from "./rest-poll";
 
 export interface MarketStreamState {
   /** Symbol the current candles belong to (empty candles while switching). */
@@ -13,9 +15,11 @@ export interface MarketStreamState {
   livePrice: number | null;
   ticker: Ticker | null;
   status: "idle" | "connecting" | "live" | "error";
-  source: "binance" | "bybit" | "gate" | null;
+  source: MarketSource | null;
   error: string | null;
 }
+
+const WS_FALLBACK_POLL_MS = 12_000;
 
 export function useMarketStream(symbol: string, timeframe: Timeframe) {
   const [state, setState] = React.useState<MarketStreamState>({
@@ -31,6 +35,10 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
   React.useEffect(() => {
     let aborted = false;
     let historyLoaded = false;
+    let wsLive = false;
+    let pollStop: (() => void) | null = null;
+    let resolvedSource: MarketSource | null = null;
+
     setState({
       activeSymbol: symbol,
       candles: [],
@@ -41,7 +49,30 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
       error: null,
     });
 
-    // Load historical candles via server proxy (Binance key, Bybit fallback).
+    function stopPoll() {
+      pollStop?.();
+      pollStop = null;
+    }
+
+    function startPoll() {
+      if (pollStop || aborted) return;
+      pollStop = startTickerPoll(
+        symbol,
+        resolvedSource,
+        (ticker, source) => {
+          if (aborted) return;
+          setState((s) => ({
+            ...s,
+            ticker,
+            livePrice: ticker.price,
+            source: source ?? s.source,
+            status: "live",
+          }));
+        },
+        4_000,
+      );
+    }
+
     (async () => {
       try {
         const { candles, source } = await fetchKlines(symbol, timeframe, 300);
@@ -52,6 +83,7 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
             : null;
         if (aborted) return;
         historyLoaded = true;
+        resolvedSource = source;
         setState((s) => ({
           ...s,
           candles,
@@ -61,6 +93,7 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
             null,
           ticker: tickerResult?.ticker ?? null,
           source,
+          status: "live",
         }));
       } catch (err) {
         if (aborted) return;
@@ -72,42 +105,70 @@ export function useMarketStream(symbol: string, timeframe: Timeframe) {
       }
     })();
 
-    // Live WS — Binance only (Bybit WS optional, REST fallback is enough for demo)
     const handle = streamSymbol(symbol, timeframe, (e) => {
-      if (aborted) return;
-      if (e.type === "open") {
-        setState((s) => ({ ...s, status: "live", source: s.source ?? "binance" }));
-      } else if (e.type === "close" || e.type === "error") {
-        setState((s) => ({
-          ...s,
-          status: s.status === "live" ? "connecting" : s.status,
-        }));
-      } else if (e.type === "candle") {
-        if (!historyLoaded) return;
-        setState((s) => {
-          const last = s.candles[s.candles.length - 1];
-          if (!last) return { ...s, candles: [e.candle], livePrice: e.candle.close };
-          if (e.candle.time === last.time) {
-            const next = s.candles.slice(0, -1).concat(e.candle);
-            return { ...s, candles: next, livePrice: e.candle.close };
+        if (aborted) return;
+        if (e.type === "open") {
+          wsLive = true;
+          stopPoll();
+          setState((s) => ({
+            ...s,
+            status: "live",
+            source: e.source,
+          }));
+        } else if (e.type === "close") {
+          if (wsLive) {
+            wsLive = false;
+            setState((s) => ({
+              ...s,
+              status: historyLoaded ? "live" : "connecting",
+            }));
+            startPoll();
           }
-          if (e.candle.time > last.time) {
-            const next = [...s.candles, e.candle].slice(-500);
-            return { ...s, candles: next, livePrice: e.candle.close };
+        } else if (e.type === "error") {
+          if (!wsLive && e.message === "All live feeds unavailable") {
+            startPoll();
+            if (historyLoaded) {
+              setState((s) => ({ ...s, status: "live" }));
+            }
           }
-          return s;
-        });
-      } else if (e.type === "ticker") {
-        setState((s) => ({
-          ...s,
-          ticker: e.ticker,
-          livePrice: e.ticker.price,
-        }));
+        } else if (e.type === "candle") {
+          if (!historyLoaded) return;
+          setState((s) => {
+            const last = s.candles[s.candles.length - 1];
+            if (!last) {
+              return { ...s, candles: [e.candle], livePrice: e.candle.close };
+            }
+            if (e.candle.time === last.time) {
+              const next = s.candles.slice(0, -1).concat(e.candle);
+              return { ...s, candles: next, livePrice: e.candle.close };
+            }
+            if (e.candle.time > last.time) {
+              const next = [...s.candles, e.candle].slice(-500);
+              return { ...s, candles: next, livePrice: e.candle.close };
+            }
+            return s;
+          });
+        } else if (e.type === "ticker") {
+          setState((s) => ({
+            ...s,
+            ticker: e.ticker,
+            livePrice: e.ticker.price,
+          }));
+        }
+      });
+
+    const fallbackTimer = setTimeout(() => {
+      if (aborted || wsLive) return;
+      startPoll();
+      if (historyLoaded) {
+        setState((s) => ({ ...s, status: "live" }));
       }
-    });
+    }, WS_FALLBACK_POLL_MS);
 
     return () => {
       aborted = true;
+      clearTimeout(fallbackTimer);
+      stopPoll();
       handle.close();
     };
   }, [symbol, timeframe]);
