@@ -8,6 +8,7 @@ import { WelcomeModal } from "@/components/user/welcome-modal";
 import { pushNotification } from "@/lib/notifications/push";
 import { useI18n } from "@/lib/i18n/context";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
+import { useHydrateProfileFromServer } from "@/lib/hooks/use-hydrate-profile-from-server";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import {
   markWelcomeSeen,
@@ -22,12 +23,9 @@ export function UsernameGate({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
   const backend = useBackendAvailable();
   const { user: sessionUser, checked: sessionChecked } = useSiwe();
-  const getProfile = useUserRegistry((s) => s.getProfile);
+  const { profile, serverChecked } = useHydrateProfileFromServer(address);
   const hasSeenWelcome = useUserRegistry((s) => s.hasSeenWelcome);
   const [hydrated, setHydrated] = React.useState(false);
-  const [profile, setProfile] = React.useState(
-    () => getProfile(address) ?? null,
-  );
   const [resumeWelcome, setResumeWelcome] = React.useState(false);
 
   React.useEffect(() => {
@@ -40,14 +38,11 @@ export function UsernameGate({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!hydrated) return;
-    const nextProfile = getProfile(address) ?? null;
-    setProfile(nextProfile);
-    setResumeWelcome(
-      !!nextProfile && !!address && !hasSeenWelcome(address),
-    );
-  }, [address, getProfile, hasSeenWelcome, hydrated]);
+    setResumeWelcome(!!profile && !!address && !hasSeenWelcome(address));
+  }, [address, profile, hasSeenWelcome, hydrated]);
 
-  const needsUsername = hydrated && isConnected && !!address && !profile;
+  const needsUsername =
+    hydrated && serverChecked && isConnected && !!address && !profile;
   const needsSignIn =
     needsUsername && backend && sessionChecked && !sessionUser;
 
@@ -74,8 +69,7 @@ export function UsernameGate({ children }: { children: React.ReactNode }) {
   }
 
   function handleUsernameComplete(nextProfile: UserProfile) {
-    setProfile(nextProfile);
-    setResumeWelcome(false);
+    setResumeWelcome(!hasSeenWelcome(nextProfile.wallet));
   }
 
   return (

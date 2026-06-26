@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "Cuerpo de solicitud no válido",
+    "usernameLocked": "Tu nombre de usuario ya está definido y no se puede cambiar",
+    "usernameTaken": "Este nombre de usuario ya está en uso",
     "invalidNonce": "Nonce no válido o expirado",
     "verifyFailed": "Falló la verificación de la firma",
     "rateLimited": "Demasiadas solicitudes. Intenta más tarde.",
@@ -422,6 +424,7 @@
         "setupConfirm": "Confirmar usuario",
         "signInRequired": "Inicia sesión con tu wallet antes de elegir un usuario.",
         "usernameTaken": "Este usuario ya está en uso",
+        "usernameLocked": "Tu nombre de usuario ya está definido y no se puede cambiar",
         "usernameInvalid": "Usuario no válido",
         "usernameSaved": "Usuario registrado correctamente",
         "welcomeModal": {

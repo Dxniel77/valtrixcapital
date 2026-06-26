@@ -10,9 +10,9 @@ import { LanguageSelector } from "@/components/i18n/language-selector";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { WalletConnectNotice } from "@/components/web3/wallet-connect-notice";
 import { UsernameSetupDialog } from "@/components/user/username-setup-dialog";
+import { useHydrateProfileFromServer } from "@/lib/hooks/use-hydrate-profile-from-server";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useI18n } from "@/lib/i18n/context";
-import { useUserRegistry } from "@/lib/user/store";
 import { setPendingReferralCode, clearPendingReferralCode } from "@/lib/referrals/pending-sponsor";
 import { validateReferralCode } from "@/lib/referrals/validate-client";
 import { startNavigationProgress } from "@/lib/navigation/progress-events";
@@ -57,15 +57,8 @@ export default function SignInPage() {
   const { t } = useI18n();
   const { isConnected, address } = useAccount();
   const { signIn, loading, error, user } = useSiwe();
-  const getProfile = useUserRegistry((s) => s.getProfile);
-  const [profile, setProfile] = React.useState(
-    () => getProfile(address) ?? null,
-  );
+  const { profile, serverChecked } = useHydrateProfileFromServer(address);
   const [showUsernameDialog, setShowUsernameDialog] = React.useState(false);
-
-  React.useEffect(() => {
-    setProfile(getProfile(address) ?? null);
-  }, [address, getProfile]);
 
   React.useEffect(() => {
     if (user && profile) {
@@ -79,10 +72,12 @@ export default function SignInPage() {
   }, [error]);
 
   React.useEffect(() => {
-    if (user && isConnected && address && !profile) {
+    if (user && isConnected && address && serverChecked && !profile) {
       setShowUsernameDialog(true);
+    } else if (profile) {
+      setShowUsernameDialog(false);
     }
-  }, [user, isConnected, address, profile]);
+  }, [user, isConnected, address, profile, serverChecked]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
@@ -190,8 +185,7 @@ export default function SignInPage() {
         <UsernameSetupDialog
           open={showUsernameDialog}
           wallet={address}
-          onComplete={(next) => {
-            setProfile(next);
+          onComplete={() => {
             setShowUsernameDialog(false);
             if (user) {
               startNavigationProgress();

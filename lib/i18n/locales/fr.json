@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "Corps de la demande invalide",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "Nonce invalide ou expiré",
     "verifyFailed": "La vérification de la signature a échoué",
     "rateLimited": "Trop de demandes. Réessayez plus tard.",
@@ -423,6 +425,7 @@
         "setupConfirm": "Confirmer le nom d'utilisateur",
         "signInRequired": "Connectez-vous avec votre portefeuille avant de choisir un nom d'utilisateur.",
         "usernameTaken": "Ce nom d'utilisateur est déjà pris",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "Nom d'utilisateur invalide",
         "usernameSaved": "Nom d'utilisateur enregistré avec succès",
         "welcomeModal": {

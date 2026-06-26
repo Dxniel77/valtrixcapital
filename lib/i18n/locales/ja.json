@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "無効なリクエスト本文",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "無効または期限切れの nonce",
     "verifyFailed": "署名検証に失敗しました",
     "rateLimited": "リクエストが多すぎます。 後でもう一度試してください。",
@@ -423,6 +425,7 @@
         "setupConfirm": "ユーザー名の確認",
         "signInRequired": "ユーザー名を選ぶ前に、ウォレットでサインインしてください。",
         "usernameTaken": "このユーザー名はすでに使用されています",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "無効なユーザー名",
         "usernameSaved": "ユーザー名が正常に登録されました",
         "welcomeModal": {

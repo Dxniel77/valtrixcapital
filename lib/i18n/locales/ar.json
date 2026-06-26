@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "نص الطلب غير صالح",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "رقم غير صالح أو منتهية الصلاحية",
     "verifyFailed": "فشل التحقق من التوقيع",
     "rateLimited": "طلبات كثيرة جدًا. حاول مرة أخرى لاحقًا.",
@@ -423,6 +425,7 @@
         "setupConfirm": "تأكيد اسم المستخدم",
         "signInRequired": "سجّل الدخول بمحفظتك قبل اختيار اسم المستخدم.",
         "usernameTaken": "اسم المستخدم هذا مأخوذ بالفعل",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "اسم المستخدم غير صالح",
         "usernameSaved": "تم تسجيل اسم المستخدم بنجاح",
         "welcomeModal": {

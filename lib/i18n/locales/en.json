@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "Invalid request body",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "Invalid or expired nonce",
     "verifyFailed": "Signature verification failed",
     "rateLimited": "Too many requests. Try again later.",
@@ -422,6 +424,7 @@
         "setupConfirm": "Confirm username",
         "signInRequired": "Sign in with your wallet before choosing a username.",
         "usernameTaken": "This username is already taken",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "Invalid username",
         "usernameSaved": "Username registered successfully",
         "welcomeModal": {

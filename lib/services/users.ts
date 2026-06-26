@@ -213,13 +213,36 @@ export async function upsertUserByWallet(
   });
 }
 
-export async function updateUsername(
+export class UsernameLockedError extends Error {
+  readonly code = "USERNAME_LOCKED" as const;
+}
+
+export class UsernameTakenError extends Error {
+  readonly code = "TAKEN" as const;
+}
+
+/** Sets username once at registration; rejects if the user already has one. */
+export async function setInitialUsername(
   userId: string,
   username: string,
 ): Promise<User> {
+  const trimmed = username.trim();
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error("NOT_FOUND");
+  if (user.username?.trim()) throw new UsernameLockedError();
+
+  const owner = await prisma.user.findFirst({
+    where: {
+      username: { equals: trimmed, mode: "insensitive" },
+      NOT: { id: userId },
+    },
+    select: { id: true },
+  });
+  if (owner) throw new UsernameTakenError();
+
   return prisma.user.update({
     where: { id: userId },
-    data: { username: username.trim() },
+    data: { username: trimmed },
   });
 }
 

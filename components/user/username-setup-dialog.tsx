@@ -17,7 +17,7 @@ import {
 import { WelcomeModal } from "@/components/user/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import { pushNotification } from "@/lib/notifications/push";
-import { updateCurrentUsername, ApiError } from "@/lib/api/client";
+import { updateCurrentUsername, fetchCurrentUser, ApiError } from "@/lib/api/client";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { getPendingReferralCode } from "@/lib/referrals/pending-sponsor";
@@ -122,6 +122,27 @@ export function UsernameSetupDialog({
             toast.error(t("dashboard.pages.profile.signInRequired"));
           } else if (err.payload.code === "TAKEN") {
             toast.error(t("dashboard.pages.profile.usernameTaken"));
+          } else if (err.payload.code === "USERNAME_LOCKED") {
+            try {
+              const me = await fetchCurrentUser();
+              if (me.user?.username) {
+                const existing: UserProfile = {
+                  id: me.user.id,
+                  wallet: normalizeWallet(me.user.walletAddress),
+                  username: me.user.username,
+                  joinedAt: me.user.createdAt
+                    ? new Date(me.user.createdAt).getTime()
+                    : Date.now(),
+                };
+                upsertProfileFromServer(existing);
+                syncProfileToAdmin(existing);
+                onComplete(existing);
+                return;
+              }
+            } catch {
+              // fall through to toast
+            }
+            toast.error(t("dashboard.pages.profile.usernameLocked"));
           } else {
             toast.error(t("dashboard.pages.profile.usernameInvalid"));
           }

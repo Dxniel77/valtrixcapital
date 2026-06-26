@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "अमान्य अनुरोध निकाय",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "अमान्य या समय सीमा समाप्त हो चुकी है",
     "verifyFailed": "हस्ताक्षर सत्यापन विफल रहा है",
     "rateLimited": "बहुत सारे अनुरोध. बाद में पुन: प्रयास।",
@@ -423,6 +425,7 @@
         "setupConfirm": "उपयोक्तानाम की पुष्टि करें",
         "signInRequired": "उपयोक्तानाम चुनने से पहले अपने वॉलेट से साइन इन करें।",
         "usernameTaken": "यह उपयोगकर्ता नाम पहले ही ले लिया है",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "अमान्य उपयोगकर्ता नाम",
         "usernameSaved": "उपयोगकर्ता नाम सफलतापूर्वक पंजीकृत हो गया",
         "welcomeModal": {

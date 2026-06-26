@@ -6,7 +6,9 @@ import {
   applyReferrerIfMissing,
   findUserByWalletWithReferrer,
   serializeUserWithReferrerAsync,
-  updateUsername,
+  setInitialUsername,
+  UsernameLockedError,
+  UsernameTakenError,
   upsertUserByWallet,
 } from "@/lib/services/users";
 import { t } from "@/lib/i18n";
@@ -75,7 +77,23 @@ export async function PATCH(req: Request) {
   }
 
   if (parsed.username) {
-    await updateUsername(dbUserId, parsed.username);
+    try {
+      await setInitialUsername(dbUserId, parsed.username);
+    } catch (err) {
+      if (err instanceof UsernameLockedError) {
+        return NextResponse.json(
+          { error: t("api.usernameLocked"), code: "USERNAME_LOCKED" },
+          { status: 409 },
+        );
+      }
+      if (err instanceof UsernameTakenError) {
+        return NextResponse.json(
+          { error: t("api.usernameTaken"), code: "TAKEN" },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
   }
 
   const withReferrer = await findUserByWalletWithReferrer(auth.session.address);

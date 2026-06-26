@@ -40,6 +40,8 @@
   },
   "api": {
     "invalidBody": "请求正文无效",
+    "usernameLocked": "Your username was already set and cannot be changed",
+    "usernameTaken": "This username is already taken",
     "invalidNonce": "无效或过期的随机数",
     "verifyFailed": "签名验证失败",
     "rateLimited": "请求太多。 稍后再尝试。",
@@ -423,6 +425,7 @@
         "setupConfirm": "确认用户",
         "signInRequired": "请先使用钱包登录，再选择用户名。",
         "usernameTaken": "该用户已在使用",
+        "usernameLocked": "Your username was already set and cannot be changed",
         "usernameInvalid": "无效用户",
         "usernameSaved": "用户注册成功",
         "welcomeModal": {
