@@ -30,6 +30,12 @@ import {
   type DailyYield,
 } from "@/lib/staking/store";
 import {
+  displayYieldRateBps,
+  displayYieldWins,
+} from "@/lib/staking/yield-display";
+import { useTradeStore, type Position } from "@/lib/trade/store";
+import type { InstantCredit } from "@/lib/staking/store";
+import {
   cn,
   explorerUrl,
   formatNumber,
@@ -41,6 +47,8 @@ export default function PortfolioPage() {
   const hydrated = useStakingStoreHydrated();
   const stakes = useStakingStore((s) => s.stakes);
   const dailyYields = useStakingStore((s) => s.dailyYields);
+  const instantCredits = useStakingStore((s) => s.instantCredits);
+  const positions = useTradeStore((s) => s.positions);
   const summary = usePortfolioSummary();
   const preview = useTodayYieldPreview();
   const showEarningsBar = useShowDailyEarningsBar();
@@ -139,7 +147,11 @@ export default function PortfolioPage() {
           </div>
 
           {showEarningsBar ? (
-            <DailyYieldsCard yields={dailyYields} />
+            <DailyYieldsCard
+              yields={dailyYields}
+              positions={positions}
+              instantCredits={instantCredits}
+            />
           ) : null}
 
           <StakesCard />
@@ -429,7 +441,15 @@ function TodayPreviewCard({
   );
 }
 
-function DailyYieldsCard({ yields }: { yields: DailyYield[] }) {
+function DailyYieldsCard({
+  yields,
+  positions,
+  instantCredits,
+}: {
+  yields: DailyYield[];
+  positions: Position[];
+  instantCredits: InstantCredit[];
+}) {
   const { t } = useI18n();
   const last14 = React.useMemo(() => yields.slice(0, 14), [yields]);
   const chartData = React.useMemo(() => last14.slice().reverse(), [last14]);
@@ -453,10 +473,19 @@ function DailyYieldsCard({ yields }: { yields: DailyYield[] }) {
             </p>
           </div>
         ) : (
-          <YieldBarChart data={chartData} maxRate={maxRate} />
+          <YieldBarChart
+            data={chartData}
+            maxRate={maxRate}
+            positions={positions}
+            instantCredits={instantCredits}
+          />
         )}
         {last14.length > 0 ? (
-          <YieldTable yields={last14} />
+          <YieldTable
+            yields={last14}
+            positions={positions}
+            instantCredits={instantCredits}
+          />
         ) : null}
       </CardContent>
     </Card>
@@ -466,9 +495,13 @@ function DailyYieldsCard({ yields }: { yields: DailyYield[] }) {
 function YieldBarChart({
   data,
   maxRate,
+  positions,
+  instantCredits,
 }: {
   data: DailyYield[];
   maxRate: number;
+  positions: Position[];
+  instantCredits: InstantCredit[];
 }) {
   const chartHeight = 156;
   const cols = Math.max(data.length, 7);
@@ -481,14 +514,15 @@ function YieldBarChart({
       }}
     >
       {data.map((y) => {
-        const pct = Math.max(0.05, y.totalRateBps / maxRate);
+        const rateBps = displayYieldRateBps(y, positions, instantCredits);
+        const pct = Math.max(0.05, rateBps / maxRate);
         const barH = pct * chartHeight;
         const label = y.date.slice(5); // MM-DD
         return (
           <div
             key={y.id}
             className="flex flex-col items-center justify-end gap-2"
-            title={`${y.date} · ${(y.totalRateBps / 100).toFixed(2)}%`}
+            title={`${y.date} · ${(rateBps / 100).toFixed(2)}%`}
           >
             <div
               className="relative w-full"
@@ -502,7 +536,7 @@ function YieldBarChart({
                 className="absolute left-1/2 -translate-x-1/2 font-mono text-[10px] text-text-secondary"
                 style={{ bottom: barH + 4 }}
               >
-                {(y.totalRateBps / 100).toFixed(2)}%
+                {(rateBps / 100).toFixed(2)}%
               </span>
             </div>
             <span className="font-mono text-[10px] text-text-muted">
@@ -518,7 +552,15 @@ function YieldBarChart({
   );
 }
 
-function YieldTable({ yields }: { yields: DailyYield[] }) {
+function YieldTable({
+  yields,
+  positions,
+  instantCredits,
+}: {
+  yields: DailyYield[];
+  positions: Position[];
+  instantCredits: InstantCredit[];
+}) {
   const { t } = useI18n();
   return (
     <div className="overflow-hidden rounded-md border border-border-subtle">
@@ -532,7 +574,10 @@ function YieldTable({ yields }: { yields: DailyYield[] }) {
         </span>
       </div>
       <ul className="divide-y divide-border-subtle">
-        {yields.map((y) => (
+        {yields.map((y) => {
+          const rateBps = displayYieldRateBps(y, positions, instantCredits);
+          const wins = displayYieldWins(y, positions, instantCredits);
+          return (
           <li
             key={y.id}
             className="grid grid-cols-2 gap-2 px-3 py-2 text-xs sm:grid-cols-[1.2fr_1fr_0.8fr_0.8fr_1fr]"
@@ -542,17 +587,18 @@ function YieldTable({ yields }: { yields: DailyYield[] }) {
               ${formatNumber(y.capitalSnapshot, { decimals: 0 })}
             </span>
             <span className="font-mono text-text-secondary sm:text-center">
-              <span className="text-success">{y.wins}</span>/
+              <span className="text-success">{wins}</span>/
               <span className="text-text-muted">7</span>
             </span>
             <span className="font-mono text-gold sm:text-right">
-              {(y.totalRateBps / 100).toFixed(2)}%
+              {(rateBps / 100).toFixed(2)}%
             </span>
             <span className="font-mono text-success sm:text-right">
               +${formatNumber(y.creditedAmount, { decimals: 2 })}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

@@ -39,9 +39,13 @@ import {
   useStakingStoreHydrated,
   useTodayYieldPreview,
   type DailyYield,
+  type InstantCredit,
 } from "@/lib/staking/store";
 import { useI18n } from "@/lib/i18n/context";
 import { useShowDailyEarningsBar } from "@/lib/hooks/use-capital-profile";
+import { displayYieldRateBps } from "@/lib/staking/yield-display";
+import { utcDayKey } from "@/lib/trade/constants";
+import { useTradeStore, type Position } from "@/lib/trade/store";
 
 export function DashboardOverview() {
   const { t } = useI18n();
@@ -51,6 +55,8 @@ export function DashboardOverview() {
   const preview = useTodayYieldPreview();
   const hydrated = useStakingStoreHydrated();
   const yields = useStakingStore(useShallow((s) => s.dailyYields.slice(0, 7)));
+  const positions = useTradeStore((s) => s.positions);
+  const instantCredits = useStakingStore((s) => s.instantCredits);
   const showEarningsBar = useShowDailyEarningsBar();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
@@ -173,7 +179,12 @@ export function DashboardOverview() {
               </div>
             </CardHeader>
             <CardContent>
-              <YieldWeekChart yields={yields} preview={preview} />
+              <YieldWeekChart
+                yields={yields}
+                preview={preview}
+                positions={positions}
+                instantCredits={instantCredits}
+              />
               <p className="mt-3 text-xs text-text-muted">
                 {t("dashboard.overview.yieldNote")}
               </p>
@@ -350,17 +361,26 @@ function PayoutMiniCard({
 function YieldWeekChart({
   yields,
   preview,
+  positions,
+  instantCredits,
 }: {
   yields: DailyYield[];
   preview: ReturnType<typeof useTodayYieldPreview>;
+  positions: Position[];
+  instantCredits: InstantCredit[];
 }) {
   const { t } = useI18n();
-  const recent = yields.slice(0, 7).slice().reverse();
+  const todayKey = utcDayKey();
+  const recent = yields
+    .filter((y) => y.date !== todayKey)
+    .slice(0, 7)
+    .slice()
+    .reverse();
   const today = preview.totalRateBps / 100;
   const data = [
     ...recent.map((y) => ({
       label: y.date.slice(5),
-      rate: y.totalRateBps / 100,
+      rate: displayYieldRateBps(y, positions, instantCredits) / 100,
       amount: y.creditedAmount,
       isToday: false,
     })),
