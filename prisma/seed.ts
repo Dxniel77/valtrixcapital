@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomBytes } from "crypto";
+import { seedCopyTraders } from "./seed-copy-traders";
 
 const prisma = new PrismaClient();
 
@@ -39,6 +40,8 @@ async function main() {
       "No ADMIN_WALLETS set — only AppConfig was seeded. Add manager wallets to ADMIN_WALLETS before running db:seed.",
     );
   }
+
+  await seedCopyTraders(prisma);
 
   console.log("Done seeding.");
 }

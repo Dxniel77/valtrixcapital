@@ -126,6 +126,45 @@ enum SupportTicketCategory {
   OTHER
 }
 
+enum CopyRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CopyPeriod {
+  TODAY
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
+  ALL_TIME
+}
+
+enum CopyInvestmentStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum CopyWithdrawalStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum CopyWithdrawalMode {
+  INSTANT
+  APPROVAL
+}
+
+enum CopyLedgerKind {
+  INVEST
+  PNL
+  WITHDRAWAL
+}
+
 enum InboxAudience {
   USER
   ADMIN
@@ -177,6 +216,9 @@ model User {
   sponsorTermsCreated     SponsorTermsVersion[]    @relation("TermsCreator")
   deletionRequest         AccountDeletionRequest?
   sponsorshipPeriods      SponsorshipPeriod[]
+  copyInvestments         CopyInvestment[]
+  copyWithdrawals         CopyWithdrawal[]
+  deviceTokens            DeviceToken[]
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -585,4 +627,141 @@ model SponsorshipPeriod {
   @@index([userId, status])
   @@index([endDate])
   @@index([status, endDate])
+}
+
+// ------------------------------------------------------------
+// Copy Trading (Weeks 6–9)
+// ------------------------------------------------------------
+
+model CopyTrader {
+  id               String        @id
+  name             String
+  photoUrl         String?
+  description      String        @db.Text
+  riskLevel        CopyRiskLevel @default(MEDIUM)
+  experienceDays   Int           @default(0)
+  profitDays       Int           @default(0)
+  followersCount   Int           @default(0)
+  investorsCount   Int           @default(0)
+  aum              BigInt        @default(0)
+  totalInvested    BigInt        @default(0)
+  roiBps           Int           @default(0)
+  cumulativeRoiBps Int           @default(0)
+  winRateBps       Int           @default(0)
+  maxDrawdownBps   Int           @default(0)
+  tradeVolume      BigInt        @default(0)
+  winningTrades    Int           @default(0)
+  losingTrades     Int           @default(0)
+  minInvestment    BigInt        @default(100000000)
+  isActive         Boolean       @default(true)
+  isVisible        Boolean       @default(true)
+  isFeatured       Boolean       @default(false)
+  sortOrder        Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  performances CopyTraderPerformance[]
+  chartPoints  CopyTraderChartPoint[]
+  investments  CopyInvestment[]
+
+  @@index([isVisible, isActive, sortOrder])
+  @@index([roiBps])
+}
+
+model CopyTraderPerformance {
+  id        String     @id @default(uuid())
+  traderId  String
+  period    CopyPeriod
+  returnBps Int
+  updatedAt DateTime   @updatedAt
+
+  trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@unique([traderId, period])
+}
+
+model CopyTraderChartPoint {
+  id        String   @id @default(uuid())
+  traderId  String
+  date      DateTime @db.Date
+  valueBps  Int
+  createdAt DateTime @default(now())
+
+  trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@unique([traderId, date])
+  @@index([traderId, date])
+}
+
+model CopyInvestment {
+  id           String               @id @default(uuid())
+  userId       String
+  traderId     String
+  principal    BigInt
+  currentValue BigInt
+  realizedPnl  BigInt               @default(0)
+  status       CopyInvestmentStatus @default(ACTIVE)
+  startedAt    DateTime             @default(now())
+  closedAt     DateTime?
+
+  user        User                   @relation(fields: [userId], references: [id])
+  trader      CopyTrader             @relation(fields: [traderId], references: [id])
+  ledger      CopyInvestmentLedger[]
+  withdrawals CopyWithdrawal[]
+
+  @@index([userId, status])
+  @@index([traderId, status])
+}
+
+model CopyInvestmentLedger {
+  id            String         @id @default(uuid())
+  investmentId  String
+  kind          CopyLedgerKind
+  amount        BigInt
+  balanceAfter  BigInt
+  performanceId String?
+  note          String?
+  createdAt     DateTime       @default(now())
+
+  investment CopyInvestment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  @@index([investmentId, createdAt])
+}
+
+model CopyWithdrawal {
+  id            String               @id @default(uuid())
+  investmentId  String
+  userId        String
+  amount        BigInt
+  status        CopyWithdrawalStatus @default(REQUESTED)
+  requestedAt   DateTime             @default(now())
+  processedAt   DateTime?
+  processedById String?
+
+  investment CopyInvestment @relation(fields: [investmentId], references: [id])
+  user       User           @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([status, requestedAt])
+}
+
+model CopyTradingConfig {
+  id                  Int                @id @default(1)
+  globalMinInvestment BigInt             @default(100000000)
+  withdrawalMode      CopyWithdrawalMode @default(APPROVAL)
+  notifyOnPerformance Boolean            @default(true)
+  updatedAt           DateTime           @updatedAt
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
