@@ -104,61 +104,72 @@ export async function openTrade(input: {
   durationSec: number;
 }): Promise<TradeDto> {
   const config = await getPlatformConfig();
-  const user = await prisma.user.findUnique({ where: { id: input.userId } });
-  if (!user) throw new TradeServiceError("User not found", "NOT_FOUND");
-  if (!user.isActive) throw new TradeServiceError("Account inactive", "INACTIVE");
 
   if (!config.allowedPairs.includes(input.pair)) {
     throw new TradeServiceError("Pair not allowed", "INVALID_PAIR");
   }
 
-  const capital = fromMicro(user.lockedCapital);
-  const maxTrades = maxSimultaneousTrades(capital, config.minStake);
-  if (maxTrades <= 0) {
-    throw new TradeServiceError("No staked capital", "NO_CAPITAL");
-  }
+  // Serialize opens per user so concurrent requests cannot both pass the
+  // daily/simultaneous count checks (TOCTOU → 8/7 style overshoots).
+  const trade = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string; isActive: boolean; lockedCapital: bigint }>>`
+      SELECT id, "isActive", "lockedCapital"
+      FROM "User"
+      WHERE id = ${input.userId}
+      FOR UPDATE
+    `;
+    const user = locked[0];
+    if (!user) throw new TradeServiceError("User not found", "NOT_FOUND");
+    if (!user.isActive) throw new TradeServiceError("Account inactive", "INACTIVE");
 
-  const dayStart = new Date(`${utcDayKey()}T00:00:00.000Z`);
-  const dayEnd = new Date(`${utcDayKey()}T23:59:59.999Z`);
+    const capital = fromMicro(user.lockedCapital);
+    const maxTrades = maxSimultaneousTrades(capital, config.minStake);
+    if (maxTrades <= 0) {
+      throw new TradeServiceError("No staked capital", "NO_CAPITAL");
+    }
 
-  const [todayCount, openCount, oppositeOpen] = await Promise.all([
-    prisma.trade.count({
-      where: {
-        userId: input.userId,
-        openedAt: { gte: dayStart, lte: dayEnd },
-      },
-    }),
-    prisma.trade.count({
-      where: { userId: input.userId, result: null },
-    }),
-    prisma.trade.findFirst({
-      where: {
+    const dayStart = new Date(`${utcDayKey()}T00:00:00.000Z`);
+    const dayEnd = new Date(`${utcDayKey()}T23:59:59.999Z`);
+
+    const [todayCount, openCount, oppositeOpen] = await Promise.all([
+      tx.trade.count({
+        where: {
+          userId: input.userId,
+          openedAt: { gte: dayStart, lte: dayEnd },
+        },
+      }),
+      tx.trade.count({
+        where: { userId: input.userId, result: null },
+      }),
+      tx.trade.findFirst({
+        where: {
+          userId: input.userId,
+          pair: input.pair,
+          result: null,
+          direction: input.direction === "UP" ? "DOWN" : "UP",
+        },
+      }),
+    ]);
+
+    if (todayCount >= maxTrades) {
+      throw new TradeServiceError("Daily trade limit reached", "DAILY_LIMIT");
+    }
+    if (openCount >= maxTrades) {
+      throw new TradeServiceError("Simultaneous trade limit reached", "SIMULTANEOUS_LIMIT");
+    }
+    if (oppositeOpen) {
+      throw new TradeServiceError("Opposite direction already open", "HEDGE_BLOCKED");
+    }
+
+    return tx.trade.create({
+      data: {
         userId: input.userId,
         pair: input.pair,
-        result: null,
-        direction: input.direction === "UP" ? "DOWN" : "UP",
+        direction: input.direction,
+        entryPrice: input.entryPrice,
+        durationSec: input.durationSec,
       },
-    }),
-  ]);
-
-  if (todayCount >= maxTrades) {
-    throw new TradeServiceError("Daily trade limit reached", "DAILY_LIMIT");
-  }
-  if (openCount >= maxTrades) {
-    throw new TradeServiceError("Simultaneous trade limit reached", "SIMULTANEOUS_LIMIT");
-  }
-  if (oppositeOpen) {
-    throw new TradeServiceError("Opposite direction already open", "HEDGE_BLOCKED");
-  }
-
-  const trade = await prisma.trade.create({
-    data: {
-      userId: input.userId,
-      pair: input.pair,
-      direction: input.direction,
-      entryPrice: input.entryPrice,
-      durationSec: input.durationSec,
-    },
+    });
   });
 
   return serializeTrade(trade);

@@ -73,8 +73,15 @@ export function DailyAttempts() {
         </ul>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1">
-        {Array.from({ length: summary.maxAttempts }).map((_, i) => {
+      <div
+        className="mt-4 grid gap-1"
+        style={{
+          gridTemplateColumns: `repeat(${Math.max(summary.maxAttempts, summary.attemptsUsed, 1)}, minmax(0, 1fr))`,
+        }}
+      >
+        {Array.from({
+          length: Math.max(summary.maxAttempts, summary.attemptsUsed),
+        }).map((_, i) => {
           const used = i < summary.attemptsUsed;
           const isWin = i < summary.wins;
           return (
