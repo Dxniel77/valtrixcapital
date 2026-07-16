@@ -215,23 +215,90 @@ export async function advanceDepositConfirmations(
   return serializeDeposit(updated);
 }
 
-/** Confirms pending deposits that already have enough confirmations. */
+interface PendingDepositRow {
+  id: string;
+  network: Network;
+  txHash: string;
+  confirmations: number;
+}
+
+/**
+ * Re-syncs a single pending deposit's confirmation count from chain, persists it,
+ * and confirms the deposit (creating the stake) once the threshold is reached.
+ *
+ * Returns true when the deposit transitioned to CONFIRMED on this pass. Failures
+ * (transient RPC/verification issues) are swallowed so one deposit can't block
+ * the reconciliation of others; the deposit is retried on the next pass.
+ */
+async function reconcilePendingDepositRow(
+  row: PendingDepositRow,
+): Promise<boolean> {
+  try {
+    if (!row.txHash) return false;
+
+    const next = await syncOnChainConfirmations(row);
+    if (next !== row.confirmations) {
+      await prisma.deposit.update({
+        where: { id: row.id },
+        data: { confirmations: next },
+      });
+    }
+
+    if (next >= REQUIRED_CONFIRMATIONS) {
+      await confirmDeposit(row.id);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reconciles a user's PENDING deposits against the chain.
+ *
+ * Unlike a passive finalizer, this actively re-reads the on-chain confirmation
+ * count for each pending deposit and confirms those that are ready. This is the
+ * safety net that activates a deposit even when the user closed the deposit
+ * modal before client-side polling finished: the funds are already on chain, so
+ * the stake is created as soon as confirmations reach the threshold.
+ */
 export async function finalizeReadyPendingDeposits(userId: string): Promise<number> {
   const pending = await prisma.deposit.findMany({
     where: {
       userId,
       status: "PENDING",
-      confirmations: { gte: REQUIRED_CONFIRMATIONS },
     },
-    select: { id: true },
+    select: { id: true, network: true, txHash: true, confirmations: true },
   });
 
   let confirmed = 0;
   for (const row of pending) {
-    await confirmDeposit(row.id);
-    confirmed += 1;
+    if (await reconcilePendingDepositRow(row)) confirmed += 1;
   }
   return confirmed;
+}
+
+/**
+ * Platform-wide reconciliation of every PENDING deposit (cron safety net for
+ * users who never return to the app after depositing).
+ */
+export async function reconcileAllPendingDeposits(limit = 500): Promise<{
+  scanned: number;
+  confirmed: number;
+}> {
+  const pending = await prisma.deposit.findMany({
+    where: { status: "PENDING" },
+    select: { id: true, network: true, txHash: true, confirmations: true },
+    orderBy: { detectedAt: "asc" },
+    take: limit,
+  });
+
+  let confirmed = 0;
+  for (const row of pending) {
+    if (await reconcilePendingDepositRow(row)) confirmed += 1;
+  }
+  return { scanned: pending.length, confirmed };
 }
 
 export async function confirmDepositForUser(
