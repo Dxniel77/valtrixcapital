@@ -741,6 +741,7 @@
       "claimNotVerified": "Transferencia no encontrada. Verifica red, hash y que el USDT se envió desde tu wallet conectada a la dirección oficial.",
       "claimOwnedByOther": "Esta transacción ya está vinculada a otra cuenta.",
       "claimInvalidAmount": "El monto está fuera del rango permitido ($15 – $100,000).",
+      "claimReverted": "Esa transacción falló en la blockchain (revertida): no se recibieron fondos. Realiza un nuevo depósito.",
       "claimInvalidHash": "Introduce un hash válido (0x + 64 caracteres hex).",
       "registerDeposit": "Registrar depósito"
     },

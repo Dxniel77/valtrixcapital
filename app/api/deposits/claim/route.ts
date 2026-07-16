@@ -48,7 +48,9 @@ export async function POST(req: Request) {
             ? 409
             : err.code === "DUPLICATE_TX"
               ? 409
-              : 400;
+              : err.code === "TX_REVERTED"
+                ? 422
+                : 400;
       return NextResponse.json(
         { error: err.message, code: err.code },
         { status },

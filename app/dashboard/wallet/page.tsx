@@ -20,7 +20,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
 import { WithdrawModal } from "@/components/wallet/withdraw-modal";
-import { PendingDepositBanner } from "@/components/wallet/claim-deposit-form";
+import {
+  ClaimDepositForm,
+  PendingDepositBanner,
+} from "@/components/wallet/claim-deposit-form";
 import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
 import {
@@ -148,6 +151,8 @@ export default function WalletPage() {
         <AddCapitalCard />
         <RecentTransactionsCard />
       </div>
+
+      <ClaimDepositForm />
 
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </div>

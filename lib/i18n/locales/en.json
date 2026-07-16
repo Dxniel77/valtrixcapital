@@ -742,6 +742,7 @@
       "claimNotVerified": "Transfer not found. Check network, hash, and that USDT was sent from your connected wallet to the official address.",
       "claimOwnedByOther": "This transaction is already linked to another account.",
       "claimInvalidAmount": "Amount is outside the allowed deposit range ($15 – $100,000).",
+      "claimReverted": "That transaction failed on-chain (reverted) — no funds were received. Please make a new deposit.",
       "claimInvalidHash": "Enter a valid transaction hash (0x + 64 hex characters)."
     },
     "tracker": {

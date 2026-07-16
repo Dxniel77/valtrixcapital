@@ -756,6 +756,7 @@
       "claimNotVerified": "Transfert introuvable. Vérifiez le réseau, le hachage et que l'USDT a été envoyé depuis votre portefeuille connecté à l'adresse officielle.",
       "claimOwnedByOther": "Cette transaction est déjà liée à un autre compte.",
       "claimInvalidAmount": "Le montant se situe en dehors de la fourchette autorisée (15 $ – 100 000 $).",
+      "claimReverted": "Cette transaction a échoué sur la blockchain (annulée) : aucun fonds n'a été reçu. Veuillez effectuer un nouveau dépôt.",
       "claimInvalidHash": "Entrez un hachage valide (0x + 64 caractères hexadécimaux)."
     },
     "tracker": {

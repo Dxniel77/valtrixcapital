@@ -95,7 +95,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, deposit });
   } catch (err) {
     if (err instanceof DepositServiceError) {
-      const status = err.code === "DUPLICATE_TX" ? 409 : 400;
+      const status =
+        err.code === "DUPLICATE_TX"
+          ? 409
+          : err.code === "TX_REVERTED"
+            ? 422
+            : 400;
       return NextResponse.json({ error: err.message, code: err.code }, { status });
     }
     throw err;

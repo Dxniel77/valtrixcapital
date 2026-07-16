@@ -756,6 +756,7 @@
       "claimNotVerified": "Trasferimento non trovato. Verifica rete, hash e che l'USDT sia stato inviato dal tuo portafoglio collegato all'indirizzo ufficiale.",
       "claimOwnedByOther": "Questa transazione è già collegata a un altro conto.",
       "claimInvalidAmount": "L'importo non rientra nell'intervallo consentito ($ 15 – $ 100.000).",
+      "claimReverted": "Questa transazione è fallita on-chain (annullata): nessun fondo è stato ricevuto. Effettua un nuovo deposito.",
       "claimInvalidHash": "Inserisci un hash valido (0x + 64 caratteri esadecimali)."
     },
     "tracker": {

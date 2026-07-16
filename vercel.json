@@ -11,10 +11,6 @@
     {
       "path": "/api/cron/process-deposits",
       "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/process-withdrawals",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

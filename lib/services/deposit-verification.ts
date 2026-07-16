@@ -175,6 +175,32 @@ async function fetchTransactionReceipt(
   }
 }
 
+export type OnChainTxOutcome = "success" | "reverted" | "pending";
+
+/**
+ * Coarse on-chain outcome of a transaction:
+ * - `success`: mined and executed successfully
+ * - `reverted`: mined but failed/reverted (definitive — safe to mark FAILED)
+ * - `pending`: not yet mined, dropped, or receipt unavailable (keep waiting)
+ */
+export async function getTxOutcome(
+  network: StakingNetwork,
+  txHash: string,
+): Promise<OnChainTxOutcome> {
+  const client = publicClient(network);
+  let receipt: TransactionReceipt | null = null;
+  try {
+    receipt = await client.getTransactionReceipt({ hash: txHash as Hash });
+  } catch {
+    receipt = null;
+  }
+  if (!receipt) {
+    receipt = await fetchReceiptFromExplorer(network, txHash);
+  }
+  if (!receipt) return "pending";
+  return receipt.status === "success" ? "success" : "reverted";
+}
+
 /** On-chain confirmation count for a mined transaction (0 if unknown). */
 export async function getTxConfirmationCount(
   network: StakingNetwork,

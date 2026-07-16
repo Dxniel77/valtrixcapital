@@ -756,6 +756,7 @@
       "claimNotVerified": "未找到传输。 验证网络、哈希值以及 USDT 是否从连接到官方地址的钱包发送。",
       "claimOwnedByOther": "该交易已链接到另一个帐户。",
       "claimInvalidAmount": "金额超出允许范围（$15 – $100,000）。",
+      "claimReverted": "该交易在链上失败（已回退），未收到任何资金。请重新充值。",
       "claimInvalidHash": "输入有效的哈希值（0x + 64 个十六进制字符）。"
     },
     "tracker": {

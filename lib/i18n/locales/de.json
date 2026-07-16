@@ -756,6 +756,7 @@
       "claimNotVerified": "Übertragung nicht gefunden. Überprüfen Sie Netzwerk, Hash und ob der USDT von Ihrem Wallet gesendet wurde, das mit der offiziellen Adresse verbunden ist.",
       "claimOwnedByOther": "Diese Transaktion ist bereits mit einem anderen Konto verknüpft.",
       "claimInvalidAmount": "Der Betrag liegt außerhalb des zulässigen Bereichs (15 $ – 100.000 $).",
+      "claimReverted": "Diese Transaktion ist on-chain fehlgeschlagen (zurückgesetzt) – es wurden keine Mittel empfangen. Bitte führen Sie eine neue Einzahlung durch.",
       "claimInvalidHash": "Geben Sie einen gültigen Hash ein (0x + 64 Hexadezimalzeichen)."
     },
     "tracker": {

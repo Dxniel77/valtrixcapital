@@ -10,6 +10,7 @@ import {
 import { getPlatformConfig } from "@/lib/services/config";
 import {
   getTxConfirmationCount,
+  getTxOutcome,
   verifyUsdtDepositTx,
   type VerifiedUsdtDeposit,
 } from "@/lib/services/deposit-verification";
@@ -27,7 +28,8 @@ export class DepositServiceError extends Error {
       | "FORBIDDEN"
       | "NOT_READY"
       | "TX_NOT_VERIFIED"
-      | "TX_OWNED_BY_OTHER",
+      | "TX_OWNED_BY_OTHER"
+      | "TX_REVERTED",
   ) {
     super(message);
     this.name = "DepositServiceError";
@@ -172,6 +174,22 @@ export async function registerDeposit(input: {
     throw new DepositServiceError("Transaction already registered", "DUPLICATE_TX");
   }
 
+  // Reject transactions that already reverted on-chain so a known-failed hash
+  // never becomes a lingering PENDING deposit. Not-yet-mined txs are allowed
+  // through (they confirm later); only a definitive revert is blocked.
+  if (isProductionRuntime()) {
+    const outcome = await getTxOutcome(
+      input.network as StakingNetwork,
+      verifiedInput.txHash,
+    );
+    if (outcome === "reverted") {
+      throw new DepositServiceError(
+        "Transaction failed on-chain",
+        "TX_REVERTED",
+      );
+    }
+  }
+
   const created = await prisma.deposit.create({
     data: {
       userId: input.userId,
@@ -222,19 +240,38 @@ interface PendingDepositRow {
   confirmations: number;
 }
 
+type ReconcileOutcome = "confirmed" | "failed" | "pending";
+
+/** Marks a still-pending deposit as FAILED (no-op if it already progressed). */
+async function markDepositFailed(depositId: string): Promise<void> {
+  await prisma.deposit.updateMany({
+    where: { id: depositId, status: "PENDING" },
+    data: { status: "FAILED" },
+  });
+}
+
 /**
- * Re-syncs a single pending deposit's confirmation count from chain, persists it,
- * and confirms the deposit (creating the stake) once the threshold is reached.
+ * Reconciles a single pending deposit against the chain:
+ * - if the transaction reverted on-chain, marks the deposit FAILED (so failed
+ *   transactions stop lingering as PENDING forever);
+ * - otherwise re-syncs the confirmation count and confirms once ready.
  *
- * Returns true when the deposit transitioned to CONFIRMED on this pass. Failures
- * (transient RPC/verification issues) are swallowed so one deposit can't block
- * the reconciliation of others; the deposit is retried on the next pass.
+ * Failures (transient RPC/verification issues) are swallowed so one deposit
+ * can't block the reconciliation of others; it is retried on the next pass.
  */
 async function reconcilePendingDepositRow(
   row: PendingDepositRow,
-): Promise<boolean> {
+): Promise<ReconcileOutcome> {
   try {
-    if (!row.txHash) return false;
+    if (!row.txHash) return "pending";
+
+    if (isProductionRuntime()) {
+      const outcome = await getTxOutcome(row.network as StakingNetwork, row.txHash);
+      if (outcome === "reverted") {
+        await markDepositFailed(row.id);
+        return "failed";
+      }
+    }
 
     const next = await syncOnChainConfirmations(row);
     if (next !== row.confirmations) {
@@ -246,11 +283,11 @@ async function reconcilePendingDepositRow(
 
     if (next >= REQUIRED_CONFIRMATIONS) {
       await confirmDeposit(row.id);
-      return true;
+      return "confirmed";
     }
-    return false;
+    return "pending";
   } catch {
-    return false;
+    return "pending";
   }
 }
 
@@ -274,7 +311,7 @@ export async function finalizeReadyPendingDeposits(userId: string): Promise<numb
 
   let confirmed = 0;
   for (const row of pending) {
-    if (await reconcilePendingDepositRow(row)) confirmed += 1;
+    if ((await reconcilePendingDepositRow(row)) === "confirmed") confirmed += 1;
   }
   return confirmed;
 }
@@ -286,6 +323,7 @@ export async function finalizeReadyPendingDeposits(userId: string): Promise<numb
 export async function reconcileAllPendingDeposits(limit = 500): Promise<{
   scanned: number;
   confirmed: number;
+  failed: number;
 }> {
   const pending = await prisma.deposit.findMany({
     where: { status: "PENDING" },
@@ -295,10 +333,13 @@ export async function reconcileAllPendingDeposits(limit = 500): Promise<{
   });
 
   let confirmed = 0;
+  let failed = 0;
   for (const row of pending) {
-    if (await reconcilePendingDepositRow(row)) confirmed += 1;
+    const outcome = await reconcilePendingDepositRow(row);
+    if (outcome === "confirmed") confirmed += 1;
+    else if (outcome === "failed") failed += 1;
   }
-  return { scanned: pending.length, confirmed };
+  return { scanned: pending.length, confirmed, failed };
 }
 
 export async function confirmDepositForUser(
@@ -437,6 +478,17 @@ export async function claimDepositFromTx(input: {
     }
     if (existing.status === "CONFIRMED") {
       return serializeDeposit(existing);
+    }
+
+    if (isProductionRuntime()) {
+      const outcome = await getTxOutcome(input.network, normalizedHash);
+      if (outcome === "reverted") {
+        await markDepositFailed(existing.id);
+        throw new DepositServiceError(
+          "Transaction failed on-chain",
+          "TX_REVERTED",
+        );
+      }
     }
 
     const confirmations = isProductionRuntime()
