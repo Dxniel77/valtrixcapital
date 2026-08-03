@@ -3,7 +3,7 @@
 > **Project**: Valtrix Capital — Web3 Trading & Staking Platform
 > **Networks**: BNB Smart Chain (BEP20) + Polygon
 > **Timeline**: 6 weeks (1 demo milestone per week)
-> **Document version**: 1.0
+> **Document version**: 1.1 (reconciled with shipped implementation)
 
 ---
 
@@ -12,14 +12,16 @@
 Valtrix Capital is a Web3-native trading and yield platform where users:
 
 1. Connect a wallet (MetaMask, Trust Wallet, WalletConnect-compatible) on **BSC (BEP20)** and **Polygon**.
-2. Lock capital into **flexible stakes** (no fixed packages) from **$15 to $100,000** (USDT/USDC).
+2. Commit capital into **flexible stakes** (no fixed packages) from **$15 to $100,000** (USDT). Deposited capital is sent to a **project treasury wallet** and recorded as the user's locked capital — this is a **treasury-backed managed model, not on-chain escrow/staking**.
 3. Participate in **live trading operations** on multiple pairs (BTC, ETH, SOL, XRP, etc.) sourced from **Binance + Bybit** market data.
-4. Earn a **base yield of 0.3% per day** + up to **0.7% bonus** from winning their **7 daily trades** (cap **1%/day**).
-5. Capital remains **locked until 200% ROI** (100% capital + 100% profit) is reached.
-6. Build a **7-level referral network** that accelerates the daily yield.
-7. Withdraw profits at any time (3% fee), with on-chain transactions verifiable on **BscScan / PolygonScan**.
+4. Earn a **base yield of 0.3% per day** on their locked capital, plus a **+0.1% bonus per winning trade** (cap **1%/day** when all 7 are won).
+5. Locked capital is **never returned to the user's withdrawable balance** — it stays working. Earnings accrue into the **earnings balance** up to a **payout cap of 2× locked capital** (`totalEarned ≤ 2× lockedCapital`), at which point active stakes flip to `COMPLETED`.
+6. Build an **8-level referral network** that earns commissions on downline earnings.
+7. Withdraw **earnings** at any time (default **4% fee**), settled from the treasury with an automatic on-chain payout, verifiable on **BscScan / PolygonScan**.
 
 The product also features a **Bot Trading** module that surfaces simulated/mirrored institutional operations (drawn from real exchange data) with BscScan-style transaction hashes — purely a presentation/transparency layer; **the actual trading is real market-data driven** as clarified by the client.
+
+> **Model note:** There is no user-facing "unstake" or principal-withdrawal flow. Withdrawals draw exclusively from `earningsBalance`. Principal (`lockedCapital`) is only reduced/returned through a deliberate admin/treasury operation; it is not automatically released when the payout cap is reached.
 
 ---
 
@@ -28,6 +30,7 @@ The product also features a **Bot Trading** module that surfaces simulated/mirro
 | Topic | Client Decision |
 |---|---|
 | Investment packages | **No fixed packages** — user decides the amount. Multiple stakes per user are **summed** to form the trading capital base. |
+| Custody model | **Treasury-backed managed model** (Week 3 decision, retained): deposits go to a project treasury wallet; smart-contract escrow deferred to v2. Principal is not user-withdrawable. |
 | Single active investment | Only **one active investment plan** per person; new stakes are added to the same active plan. |
 | Trading | **Real-market data** (not simulated). 7 quick trades/day across user-selected pairs. |
 | Pairs | Multiple: BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT, BNB/USDT, MATIC/USDT, and more. |
@@ -39,62 +42,77 @@ The product also features a **Bot Trading** module that surfaces simulated/mirro
 
 ## 3. Business Logic Specification
 
-### 3.1 Staking Logic
+### 3.1 Staking / Capital Logic
 
 - **Minimum stake**: 15 USDT
 - **Maximum stake**: 100,000 USDT
-- **One active investment per user**; additional deposits are merged into the active plan.
-- **Lock condition**: total capital is locked until cumulative profit reaches **+100%** of total deposits (so payout cap = 2× total deposits).
-- **Stake currency**: USDT (BEP20) and USDT (Polygon) at launch; USDC optional later.
+- **One active investment per user**; additional deposits are merged into the active plan (`lockedCapital` is incremented).
+- **Payout cap**: earnings accrue until `totalEarned` reaches **2× `lockedCapital`** (`payoutCap = lockedCapital × 2`, recomputed on each new stake). When `totalEarned ≥ payoutCap`, active stakes flip to `COMPLETED`.
+- **Principal is not auto-returned**: `lockedCapital` is never credited back to `earningsBalance` on completion, and there is no user unstake flow. Only earnings are withdrawable. Returning principal is an explicit admin/treasury action.
+- **Stake sources** (`StakeSource`): `ON_CHAIN` (real user deposit, linked to a `Deposit`) or `COMPANY_SPONSORED` (admin-granted capital with no deposit). Only real, deposited capital counts toward referral commissions and withdrawal-unlock volume.
+- **Stake currency**: USDT (BEP20) and USDT (Polygon) at launch.
 
 ### 3.2 Daily Yield Logic
 
 | Component | Value |
 |---|---|
-| Base daily yield | **0.3 %** of total active capital |
-| Bonus per winning trade | **+0.1 %** of total active capital |
-| Max trades per day | **7** |
-| Max daily yield (all 7 won) | **1.0 %** |
-| Min daily yield (all 7 lost / not played) | **0.3 %** |
-| Reset cadence | Every 24h (UTC) the trade counter and bonuses reset |
+| Base daily yield | **0.3 %** (`baseYieldBps = 30`) of locked capital, accrued on a rolling interval |
+| Bonus per winning trade | **+0.1 %** (`bonusPerWinBps = 10`) of capital at resolve time, credited instantly |
+| Max daily / simultaneous trades | **capital-tiered**: 3 (< $501), 5 ($501–$1,000), 7 (≥ $1,001) |
+| Max daily yield (all wins) | **1.0 %** (`maxDailyYieldBps = 100`) at the 7-trade tier |
+| Min daily yield (no wins) | **0.3 %** (base only) |
+| Reset cadence | Trade counting is per UTC day |
+
+**Implementation notes**:
+- **Passive yield** (`lib/services/yield.ts`) accrues the base 0.3% per interval after an initial confirmation delay, with catch-up for missed periods (capped). Interval and delay default to 24h and are env-tunable (`YIELD_ACCRUAL_INTERVAL_MS`, `PASSIVE_YIELD_DELAY_MS`) for testing.
+- **Trade-win bonus** (`lib/services/trades.ts`) is an *operational* credit paid instantly on each win, sized on capital active at resolve time; it is not part of the passive record.
+- The **daily trade limit is tiered by capital** (see table) via `maxSimultaneousTrades`; the flat `maxTradesPerDay=7` config is the tier ceiling, not a per-user flat cap.
+- Every credit (passive or bonus) is clamped so `totalEarned` never exceeds `payoutCap`.
 
 **Examples**:
-- User stakes 1,000 USDT. Wins 3 of 7 trades → daily yield = `0.3% + 3 × 0.1% = 0.6%` → **6 USDT** credited.
-- User stakes 5,000 USDT spread across 3 stakes (100 + 900 + 4,000). Wins 7/7 → daily yield = `1%` on **5,000 USDT** = **50 USDT** credited.
+- User has 1,000 USDT locked (5-trade tier). Wins 3 trades → 0.3% base + 3 × 0.1% = **9 USDT** that day.
+- User has 5,000 USDT locked (7-trade tier). Wins 7/7 → 1% = **50 USDT** that day.
 
-### 3.3 Referral System (7 Levels)
+### 3.3 Referral System (8 Levels)
 
 - Each user gets a unique referral link.
-- Only **active referrals** (users with ≥ minimum stake AND ≥1 trade in the last X days) generate commissions.
-- Commission rates are configurable; **default proposal** (admin-editable in panel):
+- Commission rates are configurable (`AppConfig.commissionRatesBps`, 8 slots). **Shipped defaults**:
 
 | Level | Default Commission |
 |---|---|
-| 1 | 7 % |
-| 2 | 3 % |
-| 3 | 2 % |
-| 4 | 1 % |
-| 5 | 1 % |
-| 6 | 0.5 % |
-| 7 | 0.5 % |
+| 1 | 20 % |
+| 2 | 10 % |
+| 3 | 10 % |
+| 4 | 10 % |
+| 5 | 5 % |
+| 6 | 5 % |
+| 7 | 5 % |
+| 8 | 5 % |
 
-- Commissions are paid out **on referral's daily yield** (not on their deposit principal), routed to the upline's **earnings balance** which counts toward the 200% cap acceleration.
+- Commissions fire on **both** a downline's **daily passive yield and trade-win bonuses**, routed to each upline's **earnings balance** (which counts toward their own payout cap).
+- **Commissionable scaling**: only the portion of a downline's earnings backed by **real deposited capital** generates upline commissions (`commissionableAmountMicro`). Earnings on `COMPANY_SPONSORED` capital do not pay upline. A downline generates upline commissions only when they have real deposit volume.
 
 ### 3.4 Withdrawals
 
-- Available anytime from **earnings balance**.
-- **3% withdrawal fee**.
-- Minimum withdrawal: 10 USDT.
-- Settled on-chain (BSC or Polygon, user's choice).
+- Available anytime from **earnings balance** (never from principal).
+- **Default 4% fee** (`withdrawalFeeBps = 400`, admin-editable). Fee is server-derived from config — not client-supplied.
+- **Minimum withdrawal**: `minWithdrawal` config, default **1 USDT**.
+- On request, the gross amount is reserved from `earningsBalance` in a transaction, treasury liquidity is checked, and an **automatic on-chain payout** is attempted; on failure the withdrawal is auto-rejected and the balance refunded.
+- Admins can also drive status transitions (`APPROVED / REJECTED / SENT / CONFIRMED`); confirmation deducts the treasury and records a `TreasuryWithdrawal` (`kind = USER_PAYOUT`, unique per withdrawal to prevent double-spend).
+- **Company-sponsored (granted) accounts** are additionally gated: withdrawals stay locked until the account's real-deposit **unlock-volume rules** (`withdrawalRule`) are met (`withdrawalUnlocked`).
 - Each withdrawal generates a transaction record + on-chain tx hash visible on BscScan / PolygonScan.
 
 ### 3.5 Admin Capabilities
 
-- Full user CRUD: view, activate, deactivate, ban.
-- Manual balance adjustments (audit-logged).
-- View all deposits, withdrawals, trades, referrals.
-- Configure: yield rates, commission tiers, fees, allowed pairs.
-- Bot-trading feed control: pause / resume / configure visible volume/cadence.
+- User management: view, activate/deactivate, edit profile (username/email), change referrer/sponsor.
+- **Manual balance adjustments** (audit-logged): `WITHDRAWABLE` (± earnings balance) or `STAKING` (positive-only capital grant that creates a `COMPANY_SPONSORED` stake). *Note:* there is currently no admin control to decrease `lockedCapital`/return principal.
+- Withdrawal queue: approve / reject / confirm, with treasury deduction and audit trail.
+- **Treasury management**: record inflows, manual outflows, per-network balances.
+- **Sponsorship program**: grant sponsored accounts, duration rules, sponsorship periods, and versioned **sponsor terms** (with user acceptance tracking).
+- **Account-deletion** workflow (request → grace period → processed).
+- Support ticket inbox + platform broadcasts / notifications.
+- Configure: yield rates, commission tiers (8 levels), fees, min/max stake, min withdrawal, allowed pairs.
+- Every mutating admin action is written to `AdminAction` for audit.
 
 ---
 
