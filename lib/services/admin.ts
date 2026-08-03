@@ -104,9 +104,16 @@ export async function adjustUserBalance(input: {
   }
 
   const updated = await prisma.$transaction(async (tx) => {
+    const nextAllowance =
+      nextBalance < targetUser.withdrawalAllowance
+        ? nextBalance
+        : targetUser.withdrawalAllowance;
     const user = await tx.user.update({
       where: { id: targetUser.id },
-      data: { earningsBalance: nextBalance },
+      data: {
+        earningsBalance: nextBalance,
+        withdrawalAllowance: nextAllowance,
+      },
     });
 
     await tx.adminAction.create({
@@ -120,6 +127,86 @@ export async function adjustUserBalance(input: {
           target: targetType,
           previousBalance: fromMicro(targetUser.earningsBalance),
           nextBalance: fromMicro(nextBalance),
+          previousAllowance: fromMicro(targetUser.withdrawalAllowance),
+          nextAllowance: fromMicro(nextAllowance),
+        },
+      },
+    });
+
+    return user;
+  });
+
+  return serializeUser(updated);
+}
+
+/**
+ * Admin releases a partial USDT amount for a volume-locked sponsored user.
+ * Example: earnings 200 → release 20 → user may withdraw up to 20; rest stays locked.
+ */
+export async function releaseWithdrawalAllowance(input: {
+  adminUserId: string;
+  targetUserId: string;
+  amount: number;
+  note?: string;
+}): Promise<UserDto> {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new AdminServiceError("Amount must be a positive number", "INVALID_DELTA");
+  }
+
+  const target = await findUserById(input.targetUserId);
+  if (!target) {
+    throw new AdminServiceError("User not found", "NOT_FOUND");
+  }
+  if (!target.accountGranted) {
+    throw new AdminServiceError(
+      "Partial release is only for sponsored accounts",
+      "FORBIDDEN",
+    );
+  }
+  if (target.withdrawalUnlocked) {
+    throw new AdminServiceError(
+      "Withdrawals are already fully unlocked for this user",
+      "FORBIDDEN",
+    );
+  }
+
+  const amountMicro = toMicro(input.amount);
+  const remainingLocked =
+    target.earningsBalance > target.withdrawalAllowance
+      ? target.earningsBalance - target.withdrawalAllowance
+      : 0n;
+  if (remainingLocked <= 0n) {
+    throw new AdminServiceError(
+      "No locked earnings left to release",
+      "INSUFFICIENT_BALANCE",
+    );
+  }
+  if (amountMicro > remainingLocked) {
+    throw new AdminServiceError(
+      `Can only release up to ${fromMicro(remainingLocked)} USDT`,
+      "INSUFFICIENT_BALANCE",
+    );
+  }
+
+  const nextAllowance = target.withdrawalAllowance + amountMicro;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: target.id },
+      data: { withdrawalAllowance: nextAllowance },
+    });
+
+    await tx.adminAction.create({
+      data: {
+        adminId: input.adminUserId,
+        targetUserId: target.id,
+        action: "RELEASE_WITHDRAWAL_ALLOWANCE",
+        payload: {
+          amount: input.amount,
+          note: input.note?.trim() || "",
+          previousAllowance: fromMicro(target.withdrawalAllowance),
+          nextAllowance: fromMicro(nextAllowance),
+          earningsBalance: fromMicro(target.earningsBalance),
         },
       },
     });

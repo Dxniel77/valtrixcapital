@@ -39,6 +39,8 @@ export interface UserDto {
   payoutCap: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
+  /** Partial USDT released by admin while still volume-locked. */
+  withdrawalAllowance: number;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -89,6 +91,7 @@ export function serializeUser(
     payoutCap: fromMicro(user.payoutCap),
     accountGranted: user.accountGranted,
     withdrawalUnlocked: user.withdrawalUnlocked,
+    withdrawalAllowance: fromMicro(user.withdrawalAllowance),
     withdrawalRule: user.accountGranted
       ? parseWithdrawalRuleJson(user.withdrawalRule)
       : null,

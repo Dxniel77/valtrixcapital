@@ -25,6 +25,8 @@ export function auditActionLabel(
       return "USER_DEACTIVATED";
     case "ADJUST_BALANCE":
       return "BALANCE_ADJUSTED";
+    case "RELEASE_WITHDRAWAL_ALLOWANCE":
+      return "WITHDRAWAL_ALLOWANCE_RELEASED";
     case "APPROVE_WITHDRAWAL":
       return "WITHDRAWAL_APPROVED";
     case "REJECT_WITHDRAWAL":
@@ -111,6 +113,10 @@ export function formatAuditPayload(
         : null,
     ].filter(Boolean);
     return parts.join(" · ");
+  }
+
+  if (action === "RELEASE_WITHDRAWAL_ALLOWANCE" && payload.amount != null) {
+    return `+${String(payload.amount)} USDT`;
   }
 
   if (action === "ADJUST_BALANCE" && payload.target) {

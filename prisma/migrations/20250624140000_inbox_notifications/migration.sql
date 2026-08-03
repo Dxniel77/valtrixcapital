@@ -1,8 +1,12 @@
--- CreateEnum
-CREATE TYPE "InboxAudience" AS ENUM ('USER', 'ADMIN');
+-- CreateEnum (idempotent — may already exist from a prior failed/partial apply)
+DO $$ BEGIN
+  CREATE TYPE "InboxAudience" AS ENUM ('USER', 'ADMIN');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateTable
-CREATE TABLE "InboxNotification" (
+CREATE TABLE IF NOT EXISTS "InboxNotification" (
     "id" TEXT NOT NULL,
     "audience" "InboxAudience" NOT NULL,
     "userId" TEXT,
@@ -19,19 +23,23 @@ CREATE TABLE "InboxNotification" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "InboxNotification_dedupeKey_key" ON "InboxNotification"("dedupeKey");
+CREATE UNIQUE INDEX IF NOT EXISTS "InboxNotification_dedupeKey_key" ON "InboxNotification"("dedupeKey");
 
 -- CreateIndex
-CREATE INDEX "InboxNotification_audience_createdAt_idx" ON "InboxNotification"("audience", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "InboxNotification_audience_createdAt_idx" ON "InboxNotification"("audience", "createdAt" DESC);
 
 -- CreateIndex
-CREATE INDEX "InboxNotification_userId_createdAt_idx" ON "InboxNotification"("userId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "InboxNotification_userId_createdAt_idx" ON "InboxNotification"("userId", "createdAt" DESC);
 
 -- CreateIndex
-CREATE INDEX "InboxNotification_wallet_createdAt_idx" ON "InboxNotification"("wallet", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "InboxNotification_wallet_createdAt_idx" ON "InboxNotification"("wallet", "createdAt" DESC);
 
 -- CreateIndex
-CREATE INDEX "InboxNotification_email_createdAt_idx" ON "InboxNotification"("email", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "InboxNotification_email_createdAt_idx" ON "InboxNotification"("email", "createdAt" DESC);
 
 -- AddForeignKey
-ALTER TABLE "InboxNotification" ADD CONSTRAINT "InboxNotification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "InboxNotification" ADD CONSTRAINT "InboxNotification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;

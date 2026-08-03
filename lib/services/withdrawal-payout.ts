@@ -97,10 +97,23 @@ export async function rejectWithdrawalAfterFailedPayout(
         processedAt: new Date(),
       },
     });
+    const user = await tx.user.findUnique({
+      where: { id: existing.userId },
+      select: {
+        accountGranted: true,
+        withdrawalUnlocked: true,
+      },
+    });
+    const restoreAllowance = Boolean(
+      user?.accountGranted && !user.withdrawalUnlocked,
+    );
     await tx.user.update({
       where: { id: existing.userId },
       data: {
         earningsBalance: { increment: existing.amount },
+        ...(restoreAllowance
+          ? { withdrawalAllowance: { increment: existing.amount } }
+          : {}),
       },
     });
   });

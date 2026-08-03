@@ -814,6 +814,7 @@
       "done": "准备好",
       "eligibilityOpen": "可提款。",
       "eligibilityUnlocked": "你已经满足条件了。 您可以提取您的奖金。",
+      "eligibilityPartial": "管理员已部分释放提现额度。您最多可提取已释放余额。",
       "eligibilityLocked": "要提款，您必须在可用余额中保持至少 1.00 USD 的余额。",
       "eligibilityHeading": "提款",
       "eligibilityTitle": "提款已锁定",

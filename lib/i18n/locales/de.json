@@ -814,6 +814,7 @@
       "done": "Bereit",
       "eligibilityOpen": "Auszahlungen möglich.",
       "eligibilityUnlocked": "Sie haben die Anforderungen erfüllt. Sie können Ihre Einnahmen abheben.",
+      "eligibilityPartial": "Der Admin hat einen Teilbetrag freigegeben. Sie können bis zum freigegebenen Saldo abheben.",
       "eligibilityLocked": "Um Auszahlungen vorzunehmen, musst du ein Mindestguthaben von 1,00 USD in deinem verfügbaren Guthaben halten.",
       "eligibilityHeading": "Auszahlungen",
       "eligibilityTitle": "Auszahlungen gesperrt",

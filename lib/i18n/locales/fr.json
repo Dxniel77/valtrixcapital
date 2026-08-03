@@ -814,6 +814,7 @@
       "done": "Prêt",
       "eligibilityOpen": "Retraits disponibles.",
       "eligibilityUnlocked": "Vous avez satisfait aux exigences. Vous pouvez retirer vos gains.",
+      "eligibilityPartial": "L'administrateur a libéré un montant partiel. Vous pouvez retirer jusqu'au solde libéré.",
       "eligibilityLocked": "Pour effectuer des retraits, vous devez maintenir un solde minimum de 1,00 USD dans votre solde disponible.",
       "eligibilityHeading": "Retraits",
       "eligibilityTitle": "Retraits bloqués",

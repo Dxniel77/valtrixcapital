@@ -16,15 +16,15 @@ export type Messages = typeof es;
 
 const localeImporters: Record<Locale, () => Promise<Messages>> = {
   es: async () => es,
-  en: async () => (await import("./locales/en.json")).default as Messages,
-  de: async () => (await import("./locales/de.json")).default as Messages,
-  ar: async () => (await import("./locales/ar.json")).default as Messages,
-  zh: async () => (await import("./locales/zh.json")).default as Messages,
-  fr: async () => (await import("./locales/fr.json")).default as Messages,
-  hi: async () => (await import("./locales/hi.json")).default as Messages,
-  it: async () => (await import("./locales/it.json")).default as Messages,
-  ja: async () => (await import("./locales/ja.json")).default as Messages,
-  pt: async () => (await import("./locales/pt.json")).default as Messages,
+  en: async () => (await import("./locales/en.json")).default as unknown as Messages,
+  de: async () => (await import("./locales/de.json")).default as unknown as Messages,
+  ar: async () => (await import("./locales/ar.json")).default as unknown as Messages,
+  zh: async () => (await import("./locales/zh.json")).default as unknown as Messages,
+  fr: async () => (await import("./locales/fr.json")).default as unknown as Messages,
+  hi: async () => (await import("./locales/hi.json")).default as unknown as Messages,
+  it: async () => (await import("./locales/it.json")).default as unknown as Messages,
+  ja: async () => (await import("./locales/ja.json")).default as unknown as Messages,
+  pt: async () => (await import("./locales/pt.json")).default as unknown as Messages,
 };
 
 const messageCache = new Map<Locale, Messages>([[defaultLocale, es]]);

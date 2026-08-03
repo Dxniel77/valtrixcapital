@@ -814,6 +814,7 @@
       "done": "Pronta",
       "eligibilityOpen": "Prelievi disponibili.",
       "eligibilityUnlocked": "Hai soddisfatto i requisiti. Puoi ritirare i tuoi guadagni.",
+      "eligibilityPartial": "L'admin ha rilasciato un importo parziale. Puoi prelevare fino al saldo rilasciato.",
       "eligibilityLocked": "Per effettuare prelievi, devi mantenere un saldo minimo di 1,00 USD nel tuo saldo disponibile.",
       "eligibilityHeading": "Prelievi",
       "eligibilityTitle": "Prelievi bloccati",

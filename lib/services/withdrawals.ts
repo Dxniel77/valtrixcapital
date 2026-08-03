@@ -84,10 +84,12 @@ export async function createWithdrawal(input: {
   if (!user) throw new WithdrawalServiceError("User not found", "NOT_FOUND");
   if (!user.isActive) throw new WithdrawalServiceError("Account inactive", "INACTIVE");
   if (user.accountGranted && !user.withdrawalUnlocked) {
-    throw new WithdrawalServiceError(
-      "Withdrawals locked until requirements are met",
-      "WITHDRAWAL_LOCKED",
-    );
+    if (user.withdrawalAllowance <= 0n) {
+      throw new WithdrawalServiceError(
+        "Withdrawals locked until requirements are met",
+        "WITHDRAWAL_LOCKED",
+      );
+    }
   }
 
   const config = await getPlatformConfig();
@@ -104,6 +106,15 @@ export async function createWithdrawal(input: {
 
   if (user.earningsBalance < amountMicro) {
     throw new WithdrawalServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
+  }
+
+  const partialLocked =
+    user.accountGranted && !user.withdrawalUnlocked && user.withdrawalAllowance > 0n;
+  if (partialLocked && user.withdrawalAllowance < amountMicro) {
+    throw new WithdrawalServiceError(
+      `Only ${fromMicro(user.withdrawalAllowance)} USDT has been released for withdrawal`,
+      "WITHDRAWAL_LOCKED",
+    );
   }
 
   const netAmount = fromMicro(netMicro);
@@ -125,7 +136,12 @@ export async function createWithdrawal(input: {
   const created = await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: user.id },
-      data: { earningsBalance: user.earningsBalance - amountMicro },
+      data: {
+        earningsBalance: user.earningsBalance - amountMicro,
+        ...(partialLocked
+          ? { withdrawalAllowance: user.withdrawalAllowance - amountMicro }
+          : {}),
+      },
     });
 
     return tx.withdrawal.create({
@@ -226,10 +242,15 @@ export async function updateWithdrawalStatus(input: {
     });
 
     if (input.status === "REJECTED") {
+      const restoreAllowance =
+        existing.user.accountGranted && !existing.user.withdrawalUnlocked;
       await tx.user.update({
         where: { id: existing.userId },
         data: {
           earningsBalance: { increment: existing.amount },
+          ...(restoreAllowance
+            ? { withdrawalAllowance: { increment: existing.amount } }
+            : {}),
         },
       });
     }

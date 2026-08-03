@@ -801,6 +801,7 @@
       "done": "Ready",
       "eligibilityOpen": "Withdrawals available.",
       "eligibilityUnlocked": "You met the requirements. You can withdraw your earnings.",
+      "eligibilityPartial": "Admin released a partial amount. You can withdraw up to the released balance.",
       "eligibilityLocked": "Complete your unlock goal with real direct sales from your referrals. Company-sponsored capital does not count toward this goal.",
       "eligibilityHeading": "Withdrawals",
       "eligibilityTitle": "Withdrawals blocked",
@@ -982,6 +983,7 @@
       "WITHDRAWAL_APPROVED": "Withdrawal updated",
       "WITHDRAWAL_REJECTED": "Withdrawal rejected",
       "WITHDRAWAL_AUTO_PAID": "Automatic withdrawal paid",
+      "WITHDRAWAL_ALLOWANCE_RELEASED": "Partial withdrawal released",
       "USER_PROFILE_UPDATED": "Account profile updated",
       "ACCOUNT_DELETED": "Account deleted",
       "ACCOUNT_DELETION_APPROVED": "Account deletion approved",
@@ -1058,6 +1060,20 @@
       "renewAmount": "Renewal amount (USDT)",
       "renew": "Renew sponsorship",
       "renewed": "Sponsorship renewed"
+    },
+    "partialRelease": {
+      "title": "Partial withdrawal release",
+      "hint": "Release only part of the locked earnings. Example: balance $200 → release $20 so the user can withdraw up to $20. The rest stays locked until volume rules are met or you release more.",
+      "balance": "Earnings balance",
+      "released": "Already released",
+      "stillLocked": "Still locked",
+      "amount": "Amount to release (USDT)",
+      "note": "Note",
+      "notePlaceholder": "Optional note",
+      "cta": "Release amount",
+      "invalidAmount": "Enter a valid positive amount",
+      "tooMuch": "You can release at most ${max}",
+      "success": "Released ${amount} USDT for withdrawal"
     },
     "overview": {
       "title": "Summary",

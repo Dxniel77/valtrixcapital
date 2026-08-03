@@ -813,6 +813,7 @@
       "done": "Preparar",
       "eligibilityOpen": "Retiradas disponíveis.",
       "eligibilityUnlocked": "Você atendeu aos requisitos. Você pode retirar seus ganhos.",
+      "eligibilityPartial": "O administrador liberou um valor parcial. Você pode sacar até o saldo liberado.",
       "eligibilityLocked": "Para realizar saques, você deve manter um saldo mínimo de 1,00 USD no seu saldo disponível.",
       "eligibilityHeading": "Retiradas",
       "eligibilityTitle": "Retiradas bloqueadas",

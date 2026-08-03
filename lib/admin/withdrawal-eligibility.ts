@@ -23,6 +23,8 @@ export interface WithdrawalEligibilityResult {
   directSalesMet: boolean;
   networkLevelsMet: boolean;
   messageKey: string;
+  /** When partially released by admin while still volume-locked. */
+  partialAllowance?: number;
 }
 
 export function evaluateWithdrawalEligibility(
@@ -33,7 +35,7 @@ export function evaluateWithdrawalEligibility(
     | "withdrawalRule"
     | "directSalesVolume"
     | "levelVolumes"
-  >,
+  > & { withdrawalAllowance?: number; balance?: number },
 ): WithdrawalEligibilityResult {
   if (!user.accountGranted) {
     return {
@@ -50,6 +52,17 @@ export function evaluateWithdrawalEligibility(
       directSalesMet: true,
       networkLevelsMet: true,
       messageKey: "walletPage.withdraw.eligibilityUnlocked",
+    };
+  }
+
+  const allowance = Math.max(0, user.withdrawalAllowance ?? 0);
+  if (allowance > 0) {
+    return {
+      eligible: true,
+      directSalesMet: false,
+      networkLevelsMet: false,
+      messageKey: "walletPage.withdraw.eligibilityPartial",
+      partialAllowance: allowance,
     };
   }
 

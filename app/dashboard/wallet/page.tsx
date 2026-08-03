@@ -56,8 +56,18 @@ export default function WalletPage() {
   const { minWithdrawalUsdt } = usePlatformSettings();
   const pendingNetwork = useReferralsStore((s) => s.pendingNetworkEarnings);
   const withdrawals = useWalletStore((s) => s.withdrawals);
-  const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
-  const canWithdrawAmount = hydrated && earningsBalance >= minWithdrawalUsdt;
+  const { eligible, messageKey, adminUser, partialAllowance } =
+    useWithdrawalEligibility();
+  const withdrawableCap =
+    adminUser?.accountGranted &&
+    !adminUser.withdrawalUnlocked &&
+    (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
+      ? Math.min(
+          earningsBalance,
+          partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
+        )
+      : earningsBalance;
+  const canWithdrawAmount = hydrated && withdrawableCap >= minWithdrawalUsdt;
 
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
 
@@ -105,10 +115,16 @@ export default function WalletPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={t("walletPage.availableBalance")}
-          value={`$${formatNumber(hydrated ? earningsBalance : 0, { decimals: 2 })}`}
+          value={`$${formatNumber(hydrated ? withdrawableCap : 0, { decimals: 2 })}`}
           icon={WalletIcon}
           accent="gold"
-          hint={t("walletPage.availableHint")}
+          hint={
+            adminUser?.accountGranted &&
+            !adminUser.withdrawalUnlocked &&
+            (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
+              ? t("walletPage.withdraw.eligibilityPartial")
+              : t("walletPage.availableHint")
+          }
         />
         <StatTile
           label={t("walletPage.pendingNetwork")}

@@ -814,6 +814,7 @@
       "done": "مستعد",
       "eligibilityOpen": "السحب متاح.",
       "eligibilityUnlocked": "لقد استوفيت المتطلبات. يمكنك سحب أرباحك.",
+      "eligibilityPartial": "حرر المشرف مبلغًا جزئيًا. يمكنك السحب حتى الرصيد المحرر.",
       "eligibilityLocked": "لإجراء عمليات السحب، يجب أن تحتفظ برصيد أدنى قدره 1.00 USD في رصيدك المتاح.",
       "eligibilityHeading": "السحوبات",
       "eligibilityTitle": "السحوبات محظورة",

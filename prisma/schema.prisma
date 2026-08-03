@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon: use the non-pooler host for migrate (advisory locks fail on -pooler)
+  directUrl = env("DIRECT_URL")
 }
 
 // ------------------------------------------------------------
@@ -69,6 +71,7 @@ enum AdminActionType {
   ADJUST_BALANCE
   APPROVE_WITHDRAWAL
   REJECT_WITHDRAWAL
+  RELEASE_WITHDRAWAL_ALLOWANCE
   UPDATE_CONFIG
   UPDATE_SPONSOR_TERMS
   UPDATE_USER_PROFILE
@@ -189,6 +192,8 @@ model User {
   payoutCap       BigInt    @default(0)
   accountGranted       Boolean   @default(false)
   withdrawalUnlocked   Boolean   @default(false)
+  /// Partial USDT (micro) admin released for withdrawal while volume-locked.
+  withdrawalAllowance  BigInt    @default(0)
   withdrawalRule       Json?
   unlockDirectVolume   BigInt    @default(0)
   unlockLevel1Volume   BigInt    @default(0)

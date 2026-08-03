@@ -196,6 +196,7 @@ export function useWithdrawalEligibility(): WithdrawalEligibilityResult & {
             directReferrals: res.user.directReferrals,
             accountGranted: res.user.accountGranted,
             withdrawalUnlocked: res.user.withdrawalUnlocked,
+            withdrawalAllowance: res.user.withdrawalAllowance ?? 0,
             withdrawalRule: res.user.withdrawalRule,
             realCapital: res.user.realCapital,
             companyCapital: res.user.companyCapital,

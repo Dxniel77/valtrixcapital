@@ -43,6 +43,7 @@ function mapApiRow(
       joinedAt: 0,
       accountGranted: false,
       withdrawalUnlocked: false,
+      withdrawalAllowance: 0,
       withdrawalRule: {
         mode: "either",
         directSalesMin: 0,

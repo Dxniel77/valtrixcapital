@@ -68,6 +68,7 @@ export async function fetchCurrentUser() {
       role: "USER" | "ADMIN";
       accountGranted: boolean;
       withdrawalUnlocked: boolean;
+      withdrawalAllowance?: number;
       withdrawalRule: import("@/lib/admin/withdrawal-eligibility").WithdrawalRule | null;
       realCapital: number;
       companyCapital: number;
@@ -163,6 +164,7 @@ export async function fetchAdminUsers() {
       directReferrals: number;
       accountGranted: boolean;
       withdrawalUnlocked: boolean;
+      withdrawalAllowance?: number;
       withdrawalRule: {
         mode: "direct_sales" | "network_levels" | "either";
         directSalesMin: number;

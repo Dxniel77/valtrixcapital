@@ -228,7 +228,10 @@ export async function evaluateAndPersistWithdrawalUnlock(
 
   await prisma.user.update({
     where: { id: userId },
-    data: { withdrawalUnlocked: true },
+    data: {
+      withdrawalUnlocked: true,
+      withdrawalAllowance: 0n,
+    },
   });
 
   await prisma.sponsorshipPeriod.updateMany({

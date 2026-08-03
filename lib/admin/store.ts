@@ -57,6 +57,8 @@ export interface AdminUser {
   joinedAt: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
+  /** Partial USDT released by admin while still volume-locked. */
+  withdrawalAllowance: number;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -213,6 +215,7 @@ function buildDemoUsers(): AdminUser[] {
           joinedAt: now - Math.floor(Math.random() * 90) * 86_400_000,
           accountGranted: false,
           withdrawalUnlocked: false,
+          withdrawalAllowance: 0,
           withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -388,6 +391,7 @@ export const useAdminStore = create<AdminState>()(
               joinedAt: profile.joinedAt,
               accountGranted: false,
               withdrawalUnlocked: false,
+              withdrawalAllowance: 0,
               withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
               directSalesVolume: 0,
               levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -461,6 +465,7 @@ export const useAdminStore = create<AdminState>()(
           joinedAt: Date.now(),
           accountGranted: true,
           withdrawalUnlocked: false,
+          withdrawalAllowance: 0,
           withdrawalRule: rule,
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],

@@ -67,6 +67,7 @@ function mapUsersToAdmin(users: Awaited<ReturnType<typeof listUsersForAdmin>>): 
     joinedAt: Date.parse(u.createdAt) || Date.now(),
     accountGranted: u.accountGranted,
     withdrawalUnlocked: u.withdrawalUnlocked,
+    withdrawalAllowance: u.withdrawalAllowance ?? 0,
     withdrawalRule: u.withdrawalRule ?? DEFAULT_WITHDRAWAL_RULE,
     directSalesVolume: u.directSalesVolume,
     levelVolumes: u.levelVolumes,

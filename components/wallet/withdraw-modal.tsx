@@ -50,13 +50,24 @@ export function WithdrawModal({
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
 
-  const available = useStakingStore((s) => s.earningsBalance);
+  const availableBalance = useStakingStore((s) => s.earningsBalance);
   const requestWithdrawal = useWalletStore((s) => s.requestWithdrawal);
   const backend = useBackendAvailable();
-  const { eligible, messageKey, adminUser } = useWithdrawalEligibility();
+  const { eligible, messageKey, adminUser, partialAllowance } =
+    useWithdrawalEligibility();
   const pool = useTreasuryLiquidity();
   const { minWithdrawalUsdt, withdrawalFeeBps } = usePlatformSettings();
   const withdrawalFeePct = withdrawalFeeBps / 100;
+
+  const available =
+    adminUser?.accountGranted &&
+    !adminUser.withdrawalUnlocked &&
+    (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
+      ? Math.min(
+          availableBalance,
+          partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
+        )
+      : availableBalance;
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState("");

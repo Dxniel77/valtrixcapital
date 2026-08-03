@@ -801,6 +801,7 @@
       "done": "Listo",
       "eligibilityOpen": "Retiros disponibles.",
       "eligibilityUnlocked": "Has cumplido las condiciones. Puedes retirar tus ganancias.",
+      "eligibilityPartial": "El administrador liberó un monto parcial. Puedes retirar hasta el saldo liberado.",
       "eligibilityLocked": "Completa tu meta de desbloqueo con ventas directas reales de tus referidos. El capital patrocinado por la empresa no cuenta.",
       "eligibilityHeading": "Retiros",
       "eligibilityTitle": "Retiros bloqueados",
@@ -1040,6 +1041,7 @@
       "WITHDRAWAL_APPROVED": "Retiro actualizado",
       "WITHDRAWAL_REJECTED": "Retiro rechazado",
       "WITHDRAWAL_AUTO_PAID": "Retiro automático pagado",
+      "WITHDRAWAL_ALLOWANCE_RELEASED": "Liberación parcial de retiro",
       "USER_PROFILE_UPDATED": "Perfil de cuenta actualizado",
       "ACCOUNT_DELETED": "Cuenta eliminada",
       "ACCOUNT_DELETION_APPROVED": "Eliminación de cuenta aprobada",
@@ -1116,6 +1118,20 @@
       "renewAmount": "Monto de renovación (USDT)",
       "renew": "Renovar patrocinio",
       "renewed": "Patrocinio renovado"
+    },
+    "partialRelease": {
+      "title": "Liberación parcial de retiro",
+      "hint": "Libera solo una parte de las ganancias bloqueadas. Ejemplo: saldo $200 → liberar $20 para que el usuario pueda retirar hasta $20. El resto sigue bloqueado hasta cumplir el volumen o liberar más.",
+      "balance": "Saldo de ganancias",
+      "released": "Ya liberado",
+      "stillLocked": "Aún bloqueado",
+      "amount": "Monto a liberar (USDT)",
+      "note": "Nota",
+      "notePlaceholder": "Nota opcional",
+      "cta": "Liberar monto",
+      "invalidAmount": "Introduce un monto positivo válido",
+      "tooMuch": "Solo puedes liberar hasta ${max}",
+      "success": "Se liberaron ${amount} USDT para retiro"
     },
     "overview": {
       "title": "Resumen",

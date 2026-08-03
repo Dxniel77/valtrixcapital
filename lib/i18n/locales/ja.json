@@ -814,6 +814,7 @@
       "done": "準備ができて",
       "eligibilityOpen": "引き出しが可能です。",
       "eligibilityUnlocked": "要件を満たしました。 収益を引き出すことができます。",
+      "eligibilityPartial": "管理者が一部金額を解除しました。解除済み残高まで出金できます。",
       "eligibilityLocked": "出金するには、利用可能残高に最低1.00 USDの残高を維持する必要があります。",
       "eligibilityHeading": "出金",
       "eligibilityTitle": "出金ブロック中",

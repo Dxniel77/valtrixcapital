@@ -22,6 +22,7 @@ export interface BackendAdminUserDto {
   directReferrals: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
+  withdrawalAllowance?: number;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -50,6 +51,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     joinedAt: Date.parse(db.createdAt) || Date.now(),
     accountGranted: db.accountGranted,
     withdrawalUnlocked: db.withdrawalUnlocked,
+    withdrawalAllowance: db.withdrawalAllowance ?? 0,
     withdrawalRule: db.withdrawalRule ?? parseWithdrawalRuleJson(null),
     directSalesVolume: db.directSalesVolume,
     levelVolumes: db.levelVolumes.length > 0 ? db.levelVolumes : [0, 0, 0, 0, 0, 0, 0, 0],

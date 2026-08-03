@@ -23,6 +23,7 @@ export interface AdminUserShape {
   joinedAt: number;
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
+  withdrawalAllowance: number;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -60,6 +61,7 @@ export function enrichDemoUser(
   return {
     ...base,
     withdrawalUnlocked: granted ? shouldUnlockWithdrawals(base) : false,
+    withdrawalAllowance: 0,
   };
 }
 
