@@ -712,7 +712,9 @@
     "sponsoredProgress": {
       "title": "Progreso para desbloquear retiros",
       "lockedHint": "Solo cuentan depósitos reales de tus referidos. El capital patrocinado por la empresa no suma.",
-      "unlockedHint": "Cumpliste los requisitos. Ya puedes retirar tus ganancias."
+      "unlockedHint": "Cumpliste los requisitos. Ya puedes retirar tus ganancias.",
+      "partialHint": "Un administrador liberó un monto parcial. Solo puedes retirar esa cantidad hasta cumplir la meta de volumen.",
+      "partialBadge": "Liberación parcial"
     },
     "deposit": {
       "title": "Depositar fondos",

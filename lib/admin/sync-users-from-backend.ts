@@ -32,7 +32,9 @@ export interface BackendAdminUserDto {
 }
 
 export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
-  return recomputeWithdrawalUnlock({
+  // Volume fields may be recomputed for progress UI, but full unlock + allowance
+  // always come from the server — never invent unlock from partial release.
+  const mapped = recomputeWithdrawalUnlock({
     id: db.id,
     alias: db.username?.trim() || shortenAddress(db.walletAddress),
     wallet: db.walletAddress,
@@ -59,6 +61,11 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     networkEarned: 0,
     passiveEarned: 0,
   });
+  return {
+    ...mapped,
+    withdrawalUnlocked: db.withdrawalUnlocked,
+    withdrawalAllowance: db.withdrawalAllowance ?? 0,
+  };
 }
 
 /** Merge server users into admin state — DB is source of truth when available. */

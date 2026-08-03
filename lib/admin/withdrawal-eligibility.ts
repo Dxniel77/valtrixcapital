@@ -88,6 +88,10 @@ export function evaluateWithdrawalEligibility(
   };
 }
 
+/**
+ * Full volume unlock only. Admin partial release (`withdrawalAllowance`) must
+ * NOT flip this — that only allows withdrawing up to the released amount.
+ */
 export function shouldUnlockWithdrawals(
   user: Pick<
     AdminUser,
@@ -98,5 +102,7 @@ export function shouldUnlockWithdrawals(
   return evaluateWithdrawalEligibility({
     ...user,
     accountGranted: true,
+    // Ignore partial allowance — that is not a full unlock.
+    withdrawalAllowance: 0,
   }).eligible;
 }

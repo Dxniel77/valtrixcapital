@@ -222,6 +222,8 @@ export async function evaluateAndPersistWithdrawalUnlock(
     withdrawalRule: rule,
     directSalesVolume: fromMicro(user.unlockDirectVolume),
     levelVolumes,
+    // Explicit: partial admin release must never auto-unlock via this path.
+    withdrawalAllowance: 0,
   });
 
   if (!result.eligible) return false;

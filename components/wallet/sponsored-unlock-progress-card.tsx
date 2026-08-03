@@ -13,6 +13,7 @@ type SponsoredUser = Pick<
   AdminUser,
   | "accountGranted"
   | "withdrawalUnlocked"
+  | "withdrawalAllowance"
   | "withdrawalRule"
   | "directSalesVolume"
   | "levelVolumes"
@@ -35,13 +36,17 @@ export function SponsoredUnlockProgressCard({
   if (items.length === 0) return null;
 
   const unlocked = user.withdrawalUnlocked;
+  const partial =
+    !unlocked && Math.max(0, user.withdrawalAllowance ?? 0) > 0;
 
   return (
     <Card
       className={cn(
         unlocked
           ? "border-success/30 bg-success/5"
-          : "border-warning/30 bg-warning/5",
+          : partial
+            ? "border-gold/30 bg-gold/5"
+            : "border-warning/30 bg-warning/5",
         className,
       )}
     >
@@ -51,7 +56,11 @@ export function SponsoredUnlockProgressCard({
             <div
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                unlocked ? "bg-success/15 text-success" : "bg-warning/15 text-warning",
+                unlocked
+                  ? "bg-success/15 text-success"
+                  : partial
+                    ? "bg-gold/15 text-gold"
+                    : "bg-warning/15 text-warning",
               )}
             >
               {unlocked ? (
@@ -67,13 +76,17 @@ export function SponsoredUnlockProgressCard({
               <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">
                 {unlocked
                   ? t("walletPage.sponsoredProgress.unlockedHint")
-                  : t("walletPage.sponsoredProgress.lockedHint")}
+                  : partial
+                    ? t("walletPage.sponsoredProgress.partialHint")
+                    : t("walletPage.sponsoredProgress.lockedHint")}
               </p>
             </div>
           </div>
-          <Badge variant={unlocked ? "success" : "warning"}>
+          <Badge variant={unlocked ? "success" : partial ? "gold" : "warning"}>
             {unlocked ? (
               t("admin.lookup.withdrawOk")
+            ) : partial ? (
+              t("walletPage.sponsoredProgress.partialBadge")
             ) : (
               <>
                 <Lock className="mr-1 h-3 w-3" />

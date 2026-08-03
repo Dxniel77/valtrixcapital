@@ -712,7 +712,9 @@
     "sponsoredProgress": {
       "title": "Withdrawal unlock progress",
       "lockedHint": "Only real deposits from your referrals count toward this goal. Company-sponsored capital does not count.",
-      "unlockedHint": "You met the unlock requirements. You can withdraw your earnings."
+      "unlockedHint": "You met the unlock requirements. You can withdraw your earnings.",
+      "partialHint": "An admin released a partial amount. You can withdraw only that amount until you meet the volume goal.",
+      "partialBadge": "Partial release"
     },
     "deposit": {
       "title": "Add funds to staking",

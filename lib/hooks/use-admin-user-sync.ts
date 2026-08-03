@@ -50,13 +50,19 @@ function mergeUnlockMetrics(
   user: AdminUser,
   live: { directSalesVolume: number; levelVolumes: number[] },
 ): AdminUser {
-  return recomputeWithdrawalUnlock({
+  const next = recomputeWithdrawalUnlock({
     ...user,
     directSalesVolume: Math.max(user.directSalesVolume, live.directSalesVolume),
     levelVolumes: user.levelVolumes.map((v, i) =>
       Math.max(v, live.levelVolumes[i] ?? 0),
     ),
   });
+  // Progress volumes can update live; full unlock flag stays server-owned.
+  return {
+    ...next,
+    withdrawalUnlocked: user.withdrawalUnlocked,
+    withdrawalAllowance: user.withdrawalAllowance,
+  };
 }
 
 export function useAdminUserSync(): void {
