@@ -15,6 +15,8 @@ import { useI18n } from "@/lib/i18n/context";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useUserRegistry } from "@/lib/user/store";
 import { formatMemberSince } from "@/lib/user/format";
+import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 
 export default function ProfilePage() {
   const { t, locale } = useI18n();
@@ -24,6 +26,7 @@ export default function ProfilePage() {
   const profile = useUserRegistry((s) => s.getProfile(address));
   const { user } = useSiwe();
   const isAdmin = user?.role === "ADMIN";
+  const { adminUser } = useWithdrawalEligibility();
 
   return (
     <div className="space-y-6">
@@ -84,7 +87,10 @@ export default function ProfilePage() {
           <CardContent className="space-y-4 text-sm">
             <Row label={t("dashboard.pages.profile.username")}>
               {profile ? (
-                <Badge variant="gold">{profile.username}</Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="gold">{profile.username}</Badge>
+                  <IbBoostBadge boost={adminUser?.ibBoost} showName />
+                </div>
               ) : (
                 <span className="text-text-muted">
                   {t("dashboard.pages.profile.usernameNotSet")}

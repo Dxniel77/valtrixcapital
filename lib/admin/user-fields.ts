@@ -25,6 +25,12 @@ export interface AdminUserShape {
   withdrawalUnlocked: boolean;
   withdrawalAllowance: number;
   ibStrategyId: string | null;
+  ibBoost: {
+    strategyId: string;
+    name: string;
+    passiveBonusBps: number;
+    tradeBonusExtraBps: number;
+  } | null;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -64,6 +70,7 @@ export function enrichDemoUser(
     withdrawalUnlocked: granted ? shouldUnlockWithdrawals(base) : false,
     withdrawalAllowance: 0,
     ibStrategyId: null,
+    ibBoost: null,
   };
 }
 

@@ -45,6 +45,7 @@ function mapApiRow(
       withdrawalUnlocked: false,
       withdrawalAllowance: 0,
       ibStrategyId: null,
+      ibBoost: null,
       withdrawalRule: {
         mode: "either",
         directSalesMin: 0,

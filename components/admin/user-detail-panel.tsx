@@ -17,6 +17,7 @@ import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsors
 import { AdminPartialWithdrawalReleaseCard } from "@/components/admin/admin-partial-withdrawal-release-card";
 import { AdminIbStrategyAssignCard } from "@/components/admin/admin-ib-strategy-assign-card";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
+import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
@@ -108,6 +109,7 @@ export function UserDetailPanel({
             ) : isSponsored ? (
               <Badge variant="outline">{t("admin.lookup.withdrawLocked")}</Badge>
             ) : null}
+            <IbBoostBadge boost={user.ibBoost} showName />
           </div>
           {referrer ? (
             <p className="mt-2 text-sm text-text-secondary">

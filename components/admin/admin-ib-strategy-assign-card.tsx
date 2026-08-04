@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Gauge } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 import { useI18n } from "@/lib/i18n/context";
 import { apiFetch } from "@/lib/api/client";
 import { formatNumber } from "@/lib/utils";
@@ -61,17 +62,37 @@ export function AdminIbStrategyAssignCard({ user }: { user: AdminUser }) {
       const res = await apiFetch<{
         ok: boolean;
         ibStrategyId: string | null;
+        ibStrategy: {
+          id: string;
+          name: string;
+          passiveBonusBps: number;
+          tradeBonusExtraBps: number;
+          isActive: boolean;
+        } | null;
       }>(`/api/admin/users/${user.id}/ib-strategy`, {
         method: "POST",
         body: JSON.stringify({
           strategyId: strategyId.trim() ? strategyId : null,
         }),
       });
+      const nextBoost =
+        res.ibStrategy && res.ibStrategy.isActive
+          ? {
+              strategyId: res.ibStrategy.id,
+              name: res.ibStrategy.name,
+              passiveBonusBps: res.ibStrategy.passiveBonusBps,
+              tradeBonusExtraBps: res.ibStrategy.tradeBonusExtraBps,
+            }
+          : null;
       setStrategyId(res.ibStrategyId ?? "");
       useAdminStore.setState((s) => ({
         users: s.users.map((u) =>
           u.id === user.id
-            ? { ...u, ibStrategyId: res.ibStrategyId }
+            ? {
+                ...u,
+                ibStrategyId: res.ibStrategyId,
+                ibBoost: nextBoost,
+              }
             : u,
         ),
       }));
@@ -92,7 +113,10 @@ export function AdminIbStrategyAssignCard({ user }: { user: AdminUser }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-text-secondary">{t("admin.ib.assignHint")}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-text-secondary">{t("admin.ib.assignHint")}</p>
+          <IbBoostBadge boost={user.ibBoost} showName />
+        </div>
         <select
           className="w-full rounded-md border border-border-subtle bg-bg-base px-3 py-2 text-sm text-text-primary"
           value={strategyId}

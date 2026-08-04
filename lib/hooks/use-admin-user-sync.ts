@@ -63,6 +63,7 @@ function mergeUnlockMetrics(
     withdrawalUnlocked: user.withdrawalUnlocked,
     withdrawalAllowance: user.withdrawalAllowance,
     ibStrategyId: user.ibStrategyId,
+    ibBoost: user.ibBoost,
   };
 }
 
@@ -205,6 +206,7 @@ export function useWithdrawalEligibility(): WithdrawalEligibilityResult & {
             withdrawalUnlocked: res.user.withdrawalUnlocked,
             withdrawalAllowance: res.user.withdrawalAllowance ?? 0,
             ibStrategyId: res.user.ibStrategyId ?? null,
+            ibBoost: res.user.ibBoost ?? null,
             withdrawalRule: res.user.withdrawalRule,
             realCapital: res.user.realCapital,
             companyCapital: res.user.companyCapital,

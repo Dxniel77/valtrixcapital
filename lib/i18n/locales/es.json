@@ -22,6 +22,10 @@
     "cancel": "Cancelar",
     "language": "Idioma"
   },
+  "ib": {
+    "badgeActive": "Boost IB activo",
+    "badgeNamed": "IB: {name}"
+  },
   "theme": {
     "light": "Modo claro",
     "dark": "Modo oscuro",

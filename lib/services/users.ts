@@ -21,6 +21,13 @@ import { syncUserReferralChain } from "@/lib/services/referral-chain";
 
 export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
 
+export interface IbBoostSummary {
+  strategyId: string;
+  name: string;
+  passiveBonusBps: number;
+  tradeBonusExtraBps: number;
+}
+
 export interface UserDto {
   id: string;
   walletAddress: string;
@@ -43,6 +50,8 @@ export interface UserDto {
   withdrawalAllowance: number;
   /** Assigned IB acceleration strategy (null = platform default rates). */
   ibStrategyId: string | null;
+  /** Active IB boost summary for badges (null if none / inactive). */
+  ibBoost: IbBoostSummary | null;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -52,8 +61,28 @@ export interface UserDto {
   updatedAt: string;
 }
 
+type IbStrategyRel = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  passiveBonusBps: number;
+  tradeBonusExtraBps: number;
+} | null;
+
+export function ibBoostFromStrategy(
+  strategy: IbStrategyRel | undefined,
+): IbBoostSummary | null {
+  if (!strategy || !strategy.isActive) return null;
+  return {
+    strategyId: strategy.id,
+    name: strategy.name,
+    passiveBonusBps: Math.max(0, strategy.passiveBonusBps),
+    tradeBonusExtraBps: Math.max(0, strategy.tradeBonusExtraBps),
+  };
+}
+
 export function serializeUser(
-  user: User,
+  user: User & { ibStrategy?: IbStrategyRel },
   meta?: {
     referrerWallet?: string | null;
     referrerUsername?: string | null;
@@ -62,6 +91,7 @@ export function serializeUser(
     companyCapital?: number;
     directSalesVolume?: number;
     levelVolumes?: number[];
+    ibBoost?: IbBoostSummary | null;
   },
 ): UserDto {
   const volumes =
@@ -75,6 +105,10 @@ export function serializeUser(
           unlockLevel1Volume: user.unlockLevel1Volume,
           unlockLevel2Volume: user.unlockLevel2Volume,
         });
+  const ibBoost =
+    meta?.ibBoost !== undefined
+      ? meta.ibBoost
+      : ibBoostFromStrategy(user.ibStrategy);
   return {
     id: user.id,
     walletAddress: user.walletAddress,
@@ -95,6 +129,7 @@ export function serializeUser(
     withdrawalUnlocked: user.withdrawalUnlocked,
     withdrawalAllowance: fromMicro(user.withdrawalAllowance),
     ibStrategyId: user.ibStrategyId ?? null,
+    ibBoost,
     withdrawalRule: user.accountGranted
       ? parseWithdrawalRuleJson(user.withdrawalRule)
       : null,
@@ -120,6 +155,15 @@ export async function findUserByWalletWithReferrer(walletAddress: string) {
     where: { walletAddress: normalizeWallet(walletAddress) },
     include: {
       referrer: { select: { walletAddress: true, username: true } },
+      ibStrategy: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          passiveBonusBps: true,
+          tradeBonusExtraBps: true,
+        },
+      },
     },
   });
 }
@@ -128,6 +172,7 @@ export async function serializeUserWithReferrerAsync(
   user: User & {
     referrer?: { walletAddress: string; username: string | null } | null;
     _count?: { downline: number };
+    ibStrategy?: IbStrategyRel;
   },
 ): Promise<UserDto> {
   const breakdown = await getCapitalBreakdownMap([user.id]);
@@ -139,15 +184,33 @@ export async function serializeUserWithReferrerAsync(
         unlockLevel1Volume: user.unlockLevel1Volume,
         unlockLevel2Volume: user.unlockLevel2Volume,
       });
-  return serializeUser(user, {
-    referrerWallet: user.referrer?.walletAddress ?? null,
-    referrerUsername: user.referrer?.username ?? null,
-    directReferrals: user._count?.downline,
-    realCapital: fromMicro(cap.real),
-    companyCapital: fromMicro(cap.company),
-    directSalesVolume: volumes.directSalesVolume,
-    levelVolumes: volumes.levelVolumes,
-  });
+
+  let ibStrategy = user.ibStrategy;
+  if (ibStrategy === undefined && user.ibStrategyId) {
+    ibStrategy = await prisma.ibStrategy.findUnique({
+      where: { id: user.ibStrategyId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        passiveBonusBps: true,
+        tradeBonusExtraBps: true,
+      },
+    });
+  }
+
+  return serializeUser(
+    { ...user, ibStrategy: ibStrategy ?? null },
+    {
+      referrerWallet: user.referrer?.walletAddress ?? null,
+      referrerUsername: user.referrer?.username ?? null,
+      directReferrals: user._count?.downline,
+      realCapital: fromMicro(cap.real),
+      companyCapital: fromMicro(cap.company),
+      directSalesVolume: volumes.directSalesVolume,
+      levelVolumes: volumes.levelVolumes,
+    },
+  );
 }
 
 export function serializeUserWithReferrer(
@@ -280,6 +343,15 @@ export async function listUsersForAdmin(): Promise<UserDto[]> {
     take: 500,
     include: {
       referrer: { select: { walletAddress: true, username: true } },
+      ibStrategy: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          passiveBonusBps: true,
+          tradeBonusExtraBps: true,
+        },
+      },
       _count: { select: { downline: true } },
     },
   });

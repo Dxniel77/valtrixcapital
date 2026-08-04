@@ -70,6 +70,12 @@ export async function fetchCurrentUser() {
       withdrawalUnlocked: boolean;
       withdrawalAllowance?: number;
       ibStrategyId?: string | null;
+      ibBoost?: {
+        strategyId: string;
+        name: string;
+        passiveBonusBps: number;
+        tradeBonusExtraBps: number;
+      } | null;
       withdrawalRule: import("@/lib/admin/withdrawal-eligibility").WithdrawalRule | null;
       realCapital: number;
       companyCapital: number;
@@ -167,6 +173,12 @@ export async function fetchAdminUsers() {
       withdrawalUnlocked: boolean;
       withdrawalAllowance?: number;
       ibStrategyId?: string | null;
+      ibBoost?: {
+        strategyId: string;
+        name: string;
+        passiveBonusBps: number;
+        tradeBonusExtraBps: number;
+      } | null;
       withdrawalRule: {
         mode: "direct_sales" | "network_levels" | "either";
         directSalesMin: number;

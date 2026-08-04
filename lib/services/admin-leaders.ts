@@ -69,6 +69,7 @@ function mapUsersToAdmin(users: Awaited<ReturnType<typeof listUsersForAdmin>>): 
     withdrawalUnlocked: u.withdrawalUnlocked,
     withdrawalAllowance: u.withdrawalAllowance ?? 0,
     ibStrategyId: u.ibStrategyId ?? null,
+    ibBoost: u.ibBoost ?? null,
     withdrawalRule: u.withdrawalRule ?? DEFAULT_WITHDRAWAL_RULE,
     directSalesVolume: u.directSalesVolume,
     levelVolumes: u.levelVolumes,
