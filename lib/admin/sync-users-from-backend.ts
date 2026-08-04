@@ -98,6 +98,7 @@ export function mergeBackendUsers(
       alias: fromDb.alias || local.alias,
       accountGranted: fromDb.accountGranted,
       withdrawalUnlocked: fromDb.withdrawalUnlocked,
+      withdrawalAllowance: fromDb.withdrawalAllowance ?? 0,
       withdrawalRule: fromDb.withdrawalRule,
       uplineWallet,
       referrerUsername:

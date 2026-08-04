@@ -18,14 +18,17 @@ import { useAdminStore, type AdminUser } from "@/lib/admin/store";
 export function AdminPartialWithdrawalReleaseCard({ user }: { user: AdminUser }) {
   const { t } = useI18n();
   const mergeUsersFromBackend = useAdminStore((s) => s.mergeUsersFromBackend);
+  const liveUser = useAdminStore(
+    (s) => s.users.find((u) => u.id === user.id) ?? user,
+  );
   const [amount, setAmount] = React.useState("");
   const [note, setNote] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
-  if (!user.accountGranted || user.withdrawalUnlocked) return null;
+  if (!liveUser.accountGranted || liveUser.withdrawalUnlocked) return null;
 
-  const allowance = user.withdrawalAllowance ?? 0;
-  const remainingLocked = Math.max(0, user.balance - allowance);
+  const allowance = liveUser.withdrawalAllowance ?? 0;
+  const remainingLocked = Math.max(0, liveUser.balance - allowance);
 
   async function release() {
     const value = Number(amount);
@@ -101,7 +104,7 @@ export function AdminPartialWithdrawalReleaseCard({ user }: { user: AdminUser })
         <div className="grid gap-3 sm:grid-cols-3">
           <Stat
             label={t("admin.partialRelease.balance")}
-            value={`$${formatNumber(user.balance, { decimals: 2 })}`}
+            value={`$${formatNumber(liveUser.balance, { decimals: 2 })}`}
           />
           <Stat
             label={t("admin.partialRelease.released")}

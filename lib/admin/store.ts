@@ -322,7 +322,10 @@ export const useAdminStore = create<AdminState>()(
               prev.capital === u.capital &&
               prev.totalEarned === u.totalEarned &&
               prev.status === u.status &&
-              prev.referrals === u.referrals
+              prev.referrals === u.referrals &&
+              prev.accountGranted === u.accountGranted &&
+              prev.withdrawalUnlocked === u.withdrawalUnlocked &&
+              (prev.withdrawalAllowance ?? 0) === (u.withdrawalAllowance ?? 0)
             );
           });
 

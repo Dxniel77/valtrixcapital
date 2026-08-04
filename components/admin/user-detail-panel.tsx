@@ -19,6 +19,22 @@ import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unloc
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
+/** Amount the user can withdraw right now (respects sponsored partial release). */
+function availableToWithdraw(user: {
+  accountGranted: boolean;
+  withdrawalUnlocked: boolean;
+  withdrawalAllowance?: number;
+  balance: number;
+}): number {
+  if (!user.accountGranted || user.withdrawalUnlocked) {
+    return Math.max(0, user.balance);
+  }
+  return Math.max(
+    0,
+    Math.min(user.balance, user.withdrawalAllowance ?? 0),
+  );
+}
+
 export function UserDetailPanel({
   detail,
   backHref,
@@ -134,7 +150,19 @@ export function UserDetailPanel({
       >
         <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label={t("admin.lookup.capital")} value={`$${formatNumber(totals.capital, { decimals: 0 })}`} />
-          <Stat label={t("admin.lookup.balance")} value={`$${formatNumber(totals.balance, { decimals: 2 })}`} />
+          <Stat
+            label={t("admin.partialRelease.balance")}
+            value={`$${formatNumber(totals.balance, { decimals: 2 })}`}
+          />
+          <Stat
+            label={t("admin.lookup.balance")}
+            value={`$${formatNumber(availableToWithdraw(user), { decimals: 2 })}`}
+            highlight={
+              isSponsored &&
+              !user.withdrawalUnlocked &&
+              availableToWithdraw(user) < totals.balance
+            }
+          />
           <Stat label={t("admin.userDetail.totalEarned")} value={`$${formatNumber(totals.totalEarned, { decimals: 2 })}`} />
           <Stat label={t("admin.lookup.directRefs")} value={String(totals.directReferrals)} />
           <Stat
