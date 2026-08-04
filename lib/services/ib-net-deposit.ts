@@ -283,10 +283,12 @@ export async function creditIbNetDepositForDeposit(input: {
     const credited = raw > room ? room : raw;
     if (credited <= 0n) continue;
 
+    // Prefer ADMIN_WALLETS, then any ADMIN role user (see getDefaultAdminActorId).
     const actorId = await getDefaultAdminActorId();
 
     try {
       await prisma.$transaction(async (tx) => {
+        // Canonical audit of the credit (IB, source, deposit, level, rate, amount).
         await tx.ibNetDepositCredit.create({
           data: {
             beneficiaryId,
@@ -316,6 +318,7 @@ export async function creditIbNetDepositForDeposit(input: {
           });
         }
 
+        // Admin audit UI entry — always written when a platform admin exists.
         if (actorId) {
           await tx.adminAction.create({
             data: {

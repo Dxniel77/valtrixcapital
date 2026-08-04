@@ -367,6 +367,20 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
   });
   if (!deposit) throw new DepositServiceError("Deposit not found", "NOT_FOUND");
   if (deposit.status === "CONFIRMED") {
+    // Idempotent: recover Net Deposit if a prior confirm credited capital but
+    // creditIbNetDepositForDeposit failed afterward.
+    try {
+      await creditIbNetDepositForDeposit({
+        depositId: deposit.id,
+        sourceUserId: deposit.userId,
+        depositAmountMicro: deposit.amount,
+      });
+    } catch (err) {
+      console.error("[ib-net-deposit] credit retry on confirmed deposit failed", {
+        depositId: deposit.id,
+        err,
+      });
+    }
     return serializeDeposit(deposit);
   }
 
@@ -453,11 +467,20 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
   await refreshUserPayoutCap(deposit.userId);
   await propagateRealDepositVolume(deposit.userId, creditedAmount);
   await evaluateAndPersistWithdrawalUnlock(deposit.userId);
-  await creditIbNetDepositForDeposit({
-    depositId: updated.id,
-    sourceUserId: deposit.userId,
-    depositAmountMicro: creditedAmount,
-  });
+  try {
+    await creditIbNetDepositForDeposit({
+      depositId: updated.id,
+      sourceUserId: deposit.userId,
+      depositAmountMicro: creditedAmount,
+    });
+  } catch (err) {
+    // Deposit is already confirmed — never roll it back. Credits are idempotent
+    // via unique (beneficiaryId, depositId); log and continue.
+    console.error("[ib-net-deposit] credit failed after confirm", {
+      depositId: updated.id,
+      err,
+    });
+  }
 
   return serializeDeposit(updated);
 }

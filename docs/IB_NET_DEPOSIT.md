@@ -121,6 +121,7 @@ Agreed product defaults unless Carlos says otherwise later:
 - **No back-pay** of historical deposits — only deposits after config is active  
 - **No automatic clawback** if a deposit is later disputed (handle manually / later if needed)  
 - Rates stored in **basis points** (e.g. 3% = 300 bps) for consistency with platform config  
+- **Audit:** every credit is stored in `IbNetDepositCredit` (IB, source, deposit, level, rate, amount). Admin UI audit also writes `IB_NET_DEPOSIT_CREDIT` using `ADMIN_WALLETS` or any `ADMIN` role user.
 
 ---
 

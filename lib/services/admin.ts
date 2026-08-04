@@ -494,5 +494,12 @@ export async function getDefaultAdminActorId(): Promise<string | null> {
     const id = await getAdminActorId(wallet);
     if (id) return id;
   }
-  return null;
+
+  // Fallback: any ADMIN role user (covers misconfigured ADMIN_WALLETS).
+  const admin = await prisma.user.findFirst({
+    where: { role: "ADMIN", isActive: true },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  return admin?.id ?? null;
 }
