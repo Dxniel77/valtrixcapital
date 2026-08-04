@@ -9,6 +9,7 @@ import {
   commissionableAmountMicro,
   getOperationalBonusCapitalMicro,
 } from "@/lib/services/sponsored-capital";
+import { getUserIbYieldBoost } from "@/lib/services/ib-strategy";
 
 const SIMULTANEOUS_TIER_MID_MIN = 501;
 const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -213,9 +214,12 @@ export async function resolveTrade(input: {
     user.payoutCap > 0n
       ? user.payoutCap
       : capitalMicro * BigInt(PAYOUT_CAP_MULTIPLIER);
+  const ibBoost = await getUserIbYieldBoost(user.id);
+  const effectiveWinBps =
+    config.bonusPerWinBps + ibBoost.tradeBonusExtraBps;
   const bonusMicro =
     capitalMicro > 0n
-      ? (capitalMicro * BigInt(config.bonusPerWinBps)) / 10_000n
+      ? (capitalMicro * BigInt(effectiveWinBps)) / 10_000n
       : 0n;
   const applied = applyEarningsCredit(user.totalEarned, payoutCap, bonusMicro);
   const payableMicro =
@@ -230,7 +234,7 @@ export async function resolveTrade(input: {
         result: "WIN",
         exitPrice: input.exitPrice,
         resolvedAt: now,
-        bonusAppliedBps: config.bonusPerWinBps,
+        bonusAppliedBps: effectiveWinBps,
         capitalSnapshotAtWin: capitalMicro,
         bonusCredited: applied,
       },

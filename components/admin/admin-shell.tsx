@@ -21,6 +21,7 @@ import {
   Users,
   Wallet,
   Calendar,
+  Gauge,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSelector } from "@/components/i18n/language-selector";
@@ -43,6 +44,7 @@ export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
   { href: "/admin/treasury", key: "treasury", icon: Landmark },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
+  { href: "/admin/ib", key: "ib", icon: Gauge },
   { href: "/admin/sponsorship", key: "sponsorship", icon: Calendar },
   { href: "/admin/lookup", key: "lookup", icon: Search },
   { href: "/admin/leaders", key: "leaders", icon: Trophy },

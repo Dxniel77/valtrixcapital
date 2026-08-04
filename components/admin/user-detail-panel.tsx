@@ -15,6 +15,7 @@ import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
 import { AdminUserAccountCard } from "@/components/admin/admin-user-account-card";
 import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsorship-card";
 import { AdminPartialWithdrawalReleaseCard } from "@/components/admin/admin-partial-withdrawal-release-card";
+import { AdminIbStrategyAssignCard } from "@/components/admin/admin-ib-strategy-assign-card";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
@@ -199,6 +200,8 @@ export function UserDetailPanel({
       <ChangeSponsorCard user={user} />
 
       <AdminUserAccountCard user={user} />
+
+      <AdminIbStrategyAssignCard user={user} />
 
       {isSponsored ? (
         <>

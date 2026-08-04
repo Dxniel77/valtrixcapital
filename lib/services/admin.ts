@@ -459,6 +459,14 @@ export function adminActionLabel(action: AdminActionType): string {
       return "SPONSOR_TERMS_UPDATED";
     case "PROCESS_ACCOUNT_DELETION":
       return "ACCOUNT_DELETION_PROCESSED";
+    case "CREATE_IB_STRATEGY":
+      return "IB_STRATEGY_CREATED";
+    case "UPDATE_IB_STRATEGY":
+      return "IB_STRATEGY_UPDATED";
+    case "ASSIGN_IB_STRATEGY":
+      return "IB_STRATEGY_ASSIGNED";
+    case "RELEASE_WITHDRAWAL_ALLOWANCE":
+      return "WITHDRAWAL_ALLOWANCE_RELEASED";
     default:
       return action;
   }

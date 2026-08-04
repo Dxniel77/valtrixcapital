@@ -23,6 +23,7 @@ export interface BackendAdminUserDto {
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
   withdrawalAllowance?: number;
+  ibStrategyId?: string | null;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -54,6 +55,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     accountGranted: db.accountGranted,
     withdrawalUnlocked: db.withdrawalUnlocked,
     withdrawalAllowance: db.withdrawalAllowance ?? 0,
+    ibStrategyId: db.ibStrategyId ?? null,
     withdrawalRule: db.withdrawalRule ?? parseWithdrawalRuleJson(null),
     directSalesVolume: db.directSalesVolume,
     levelVolumes: db.levelVolumes.length > 0 ? db.levelVolumes : [0, 0, 0, 0, 0, 0, 0, 0],
@@ -65,6 +67,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     ...mapped,
     withdrawalUnlocked: db.withdrawalUnlocked,
     withdrawalAllowance: db.withdrawalAllowance ?? 0,
+    ibStrategyId: db.ibStrategyId ?? null,
   };
 }
 
@@ -99,6 +102,7 @@ export function mergeBackendUsers(
       accountGranted: fromDb.accountGranted,
       withdrawalUnlocked: fromDb.withdrawalUnlocked,
       withdrawalAllowance: fromDb.withdrawalAllowance ?? 0,
+      ibStrategyId: fromDb.ibStrategyId ?? null,
       withdrawalRule: fromDb.withdrawalRule,
       uplineWallet,
       referrerUsername:

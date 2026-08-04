@@ -6,6 +6,7 @@ import {
 import { getPlatformConfig } from "@/lib/services/config";
 import { resolveUplineChain } from "@/lib/services/referral-chain";
 import { commissionableAmountMicro } from "@/lib/services/sponsored-capital";
+import { getIbCommissionRatesForBeneficiary } from "@/lib/services/ib-strategy";
 
 function effectiveCommissionRates(ratesBps: number[]): number[] {
   return normalizeCommissionRatesBps(ratesBps);
@@ -61,7 +62,8 @@ export async function distributeReferralCommissions(input: {
 
   for (let level = 1; level <= uplines.length && level <= REFERRAL_LEVELS; level += 1) {
     const referrerId = uplines[level - 1]!;
-    const rateBps = rates[level - 1] ?? 0;
+    const ibRates = await getIbCommissionRatesForBeneficiary(referrerId);
+    const rateBps = (ibRates ?? rates)[level - 1] ?? 0;
     if (rateBps <= 0) continue;
 
     const amount = (payable * BigInt(rateBps)) / 10_000n;

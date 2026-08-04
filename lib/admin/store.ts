@@ -59,6 +59,8 @@ export interface AdminUser {
   withdrawalUnlocked: boolean;
   /** Partial USDT released by admin while still volume-locked. */
   withdrawalAllowance: number;
+  /** IB acceleration strategy (null = platform defaults). */
+  ibStrategyId: string | null;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -216,6 +218,7 @@ function buildDemoUsers(): AdminUser[] {
           accountGranted: false,
           withdrawalUnlocked: false,
           withdrawalAllowance: 0,
+          ibStrategyId: null,
           withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -395,6 +398,7 @@ export const useAdminStore = create<AdminState>()(
               accountGranted: false,
               withdrawalUnlocked: false,
               withdrawalAllowance: 0,
+              ibStrategyId: null,
               withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
               directSalesVolume: 0,
               levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -469,6 +473,7 @@ export const useAdminStore = create<AdminState>()(
           accountGranted: true,
           withdrawalUnlocked: false,
           withdrawalAllowance: 0,
+          ibStrategyId: null,
           withdrawalRule: rule,
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],

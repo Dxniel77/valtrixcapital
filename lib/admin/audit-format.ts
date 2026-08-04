@@ -39,6 +39,12 @@ export function auditActionLabel(
       return "SPONSORSHIP_UPDATED";
     case "UPDATE_SPONSOR_TERMS":
       return "SPONSOR_TERMS_UPDATED";
+    case "CREATE_IB_STRATEGY":
+      return "IB_STRATEGY_CREATED";
+    case "UPDATE_IB_STRATEGY":
+      return "IB_STRATEGY_UPDATED";
+    case "ASSIGN_IB_STRATEGY":
+      return "IB_STRATEGY_ASSIGNED";
     default:
       return action;
   }

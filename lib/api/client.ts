@@ -69,6 +69,7 @@ export async function fetchCurrentUser() {
       accountGranted: boolean;
       withdrawalUnlocked: boolean;
       withdrawalAllowance?: number;
+      ibStrategyId?: string | null;
       withdrawalRule: import("@/lib/admin/withdrawal-eligibility").WithdrawalRule | null;
       realCapital: number;
       companyCapital: number;
@@ -165,6 +166,7 @@ export async function fetchAdminUsers() {
       accountGranted: boolean;
       withdrawalUnlocked: boolean;
       withdrawalAllowance?: number;
+      ibStrategyId?: string | null;
       withdrawalRule: {
         mode: "direct_sales" | "network_levels" | "either";
         directSalesMin: number;

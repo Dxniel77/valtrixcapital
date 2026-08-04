@@ -41,6 +41,8 @@ export interface UserDto {
   withdrawalUnlocked: boolean;
   /** Partial USDT released by admin while still volume-locked. */
   withdrawalAllowance: number;
+  /** Assigned IB acceleration strategy (null = platform default rates). */
+  ibStrategyId: string | null;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -92,6 +94,7 @@ export function serializeUser(
     accountGranted: user.accountGranted,
     withdrawalUnlocked: user.withdrawalUnlocked,
     withdrawalAllowance: fromMicro(user.withdrawalAllowance),
+    ibStrategyId: user.ibStrategyId ?? null,
     withdrawalRule: user.accountGranted
       ? parseWithdrawalRuleJson(user.withdrawalRule)
       : null,

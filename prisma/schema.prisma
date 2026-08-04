@@ -77,6 +77,9 @@ enum AdminActionType {
   UPDATE_USER_PROFILE
   PROCESS_ACCOUNT_DELETION
   UPDATE_SPONSORSHIP
+  CREATE_IB_STRATEGY
+  UPDATE_IB_STRATEGY
+  ASSIGN_IB_STRATEGY
 }
 
 enum SponsorTermsStatus {
@@ -198,11 +201,14 @@ model User {
   unlockDirectVolume   BigInt    @default(0)
   unlockLevel1Volume   BigInt    @default(0)
   unlockLevel2Volume   BigInt    @default(0)
+  /// Optional IB acceleration strategy (faster path to same 200% cap).
+  ibStrategyId         String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   referrer        User?     @relation("UserReferrer", fields: [referrerId], references: [id])
   downline        User[]    @relation("UserReferrer")
+  ibStrategy      IbStrategy? @relation(fields: [ibStrategyId], references: [id], onDelete: SetNull)
 
   stakes          Stake[]
   trades          Trade[]
@@ -227,6 +233,29 @@ model User {
 
   @@index([referrerId])
   @@index([walletAddress])
+  @@index([ibStrategyId])
+}
+
+/// Admin-defined IB / acceleration strategy.
+/// Speeds progress toward the same 2× payout cap — does not raise total investor payout.
+model IbStrategy {
+  id                   String   @id @default(uuid())
+  name                 String
+  description          String   @default("")
+  /// Extra passive yield bps added to platform baseYieldBps (e.g. 20 = +0.20%/day).
+  passiveBonusBps      Int      @default(0)
+  /// Extra trade-win bonus bps added to platform bonusPerWinBps.
+  tradeBonusExtraBps   Int      @default(0)
+  /// Optional custom 8-level commission rates (bps) when this user earns as upline.
+  /// null = use global platform commission rates.
+  commissionRatesBps   Json?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  users                User[]
+
+  @@index([isActive])
 }
 
 model Stake {

@@ -24,6 +24,7 @@ export interface AdminUserShape {
   accountGranted: boolean;
   withdrawalUnlocked: boolean;
   withdrawalAllowance: number;
+  ibStrategyId: string | null;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -62,6 +63,7 @@ export function enrichDemoUser(
     ...base,
     withdrawalUnlocked: granted ? shouldUnlockWithdrawals(base) : false,
     withdrawalAllowance: 0,
+    ibStrategyId: null,
   };
 }
 

@@ -15,6 +15,7 @@ import {
   getPassiveYieldDelayMs,
   getYieldAccrualIntervalMs,
 } from "@/lib/yield/timing";
+import { getUserIbYieldBoost } from "@/lib/services/ib-strategy";
 
 const PAYOUT_CAP_MULTIPLIER = 2;
 
@@ -131,9 +132,13 @@ export async function accruePassiveYieldForUser(
   );
   if (periodsDue <= 0) return 0;
 
+  const ibBoost = await getUserIbYieldBoost(userId);
+  const effectiveBaseBps =
+    platformConfig.baseYieldBps + ibBoost.passiveBonusBps;
+
   const periodCredit = passiveCreditMicroForPeriod(
     capital,
-    platformConfig.baseYieldBps,
+    effectiveBaseBps,
     intervalMs,
   );
   if (periodCredit <= 0n) return 0;
@@ -160,10 +165,10 @@ export async function accruePassiveYieldForUser(
       data: {
         userId,
         date: new Date(`${recordDate}T12:00:00.000Z`),
-        baseRateBps: platformConfig.baseYieldBps,
+        baseRateBps: effectiveBaseBps,
         winsCount: 0,
         bonusRateBps: 0,
-        totalRateBps: platformConfig.baseYieldBps,
+        totalRateBps: effectiveBaseBps,
         capitalSnapshot: capital,
         creditedAmount: applied,
       },
