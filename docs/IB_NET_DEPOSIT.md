@@ -1,6 +1,6 @@
 # IB Net Deposit — Requirements
 
-> Status: **Agreed with Carlos / Daniel (Aug 2026)** — ready to implement  
+> Status: **Implemented (Aug 2026)** — Net Deposit + IB monitor live alongside yield-boost strategies  
 > Scope: real-money deposits only (not sponsored / company capital)
 
 ---

@@ -31,6 +31,13 @@ export interface AdminUserShape {
     passiveBonusBps: number;
     tradeBonusExtraBps: number;
   } | null;
+  isIb: boolean;
+  ibNetDeposit: {
+    enabled: boolean;
+    level1DepositBps: number;
+    level2DepositBps: number;
+    notes: string;
+  } | null;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -71,6 +78,8 @@ export function enrichDemoUser(
     withdrawalAllowance: 0,
     ibStrategyId: null,
     ibBoost: null,
+    isIb: false,
+    ibNetDeposit: null,
   };
 }
 

@@ -30,6 +30,13 @@ export interface BackendAdminUserDto {
     passiveBonusBps: number;
     tradeBonusExtraBps: number;
   } | null;
+  isIb?: boolean;
+  ibNetDeposit?: {
+    enabled: boolean;
+    level1DepositBps: number;
+    level2DepositBps: number;
+    notes: string;
+  } | null;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -63,6 +70,8 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     withdrawalAllowance: db.withdrawalAllowance ?? 0,
     ibStrategyId: db.ibStrategyId ?? null,
     ibBoost: db.ibBoost ?? null,
+    isIb: db.isIb ?? false,
+    ibNetDeposit: db.ibNetDeposit ?? null,
     withdrawalRule: db.withdrawalRule ?? parseWithdrawalRuleJson(null),
     directSalesVolume: db.directSalesVolume,
     levelVolumes: db.levelVolumes.length > 0 ? db.levelVolumes : [0, 0, 0, 0, 0, 0, 0, 0],
@@ -76,6 +85,8 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     withdrawalAllowance: db.withdrawalAllowance ?? 0,
     ibStrategyId: db.ibStrategyId ?? null,
     ibBoost: db.ibBoost ?? null,
+    isIb: db.isIb ?? false,
+    ibNetDeposit: db.ibNetDeposit ?? null,
   };
 }
 
@@ -112,6 +123,8 @@ export function mergeBackendUsers(
       withdrawalAllowance: fromDb.withdrawalAllowance ?? 0,
       ibStrategyId: fromDb.ibStrategyId ?? null,
       ibBoost: fromDb.ibBoost ?? null,
+      isIb: fromDb.isIb ?? false,
+      ibNetDeposit: fromDb.ibNetDeposit ?? null,
       withdrawalRule: fromDb.withdrawalRule,
       uplineWallet,
       referrerUsername:

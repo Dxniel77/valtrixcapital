@@ -465,6 +465,10 @@ export function adminActionLabel(action: AdminActionType): string {
       return "IB_STRATEGY_UPDATED";
     case "ASSIGN_IB_STRATEGY":
       return "IB_STRATEGY_ASSIGNED";
+    case "UPSERT_IB_AGREEMENT":
+      return "IB_AGREEMENT_UPDATED";
+    case "IB_NET_DEPOSIT_CREDIT":
+      return "IB_NET_DEPOSIT_CREDITED";
     case "RELEASE_WITHDRAWAL_ALLOWANCE":
       return "WITHDRAWAL_ALLOWANCE_RELEASED";
     default:

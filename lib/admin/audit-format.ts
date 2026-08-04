@@ -45,6 +45,10 @@ export function auditActionLabel(
       return "IB_STRATEGY_UPDATED";
     case "ASSIGN_IB_STRATEGY":
       return "IB_STRATEGY_ASSIGNED";
+    case "UPSERT_IB_AGREEMENT":
+      return "IB_AGREEMENT_UPDATED";
+    case "IB_NET_DEPOSIT_CREDIT":
+      return "IB_NET_DEPOSIT_CREDITED";
     default:
       return action;
   }
@@ -123,6 +127,41 @@ export function formatAuditPayload(
 
   if (action === "RELEASE_WITHDRAWAL_ALLOWANCE" && payload.amount != null) {
     return `+${String(payload.amount)} USDT`;
+  }
+
+  if (action === "UPSERT_IB_AGREEMENT") {
+    const parts: string[] = [];
+    if (payload.isIb === true) parts.push("IB");
+    if (payload.netDepositEnabled === true) {
+      const l1 =
+        typeof payload.level1DepositBps === "number"
+          ? payload.level1DepositBps / 100
+          : null;
+      const l2 =
+        typeof payload.level2DepositBps === "number"
+          ? payload.level2DepositBps / 100
+          : null;
+      parts.push(
+        `Net Deposit L1 ${l1 != null ? `${l1}%` : "?"}${
+          l2 && l2 > 0 ? ` · L2 ${l2}%` : " · L1 only"
+        }`,
+      );
+    } else if (payload.netDepositEnabled === false) {
+      parts.push("Net Deposit off");
+    }
+    if (typeof payload.notes === "string" && payload.notes.trim()) {
+      parts.push(payload.notes.trim());
+    }
+    return parts.join(" · ") || "IB agreement updated";
+  }
+
+  if (action === "IB_NET_DEPOSIT_CREDIT" && payload.creditedAmount != null) {
+    const level = payload.level != null ? `L${String(payload.level)}` : "";
+    const rate =
+      typeof payload.rateBps === "number" ? `${payload.rateBps / 100}%` : "";
+    return `+${String(payload.creditedAmount)} USDT${level ? ` · ${level}` : ""}${
+      rate ? ` · ${rate}` : ""
+    }`;
   }
 
   if (action === "ADJUST_BALANCE" && payload.target) {

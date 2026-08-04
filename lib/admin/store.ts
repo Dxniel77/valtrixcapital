@@ -63,6 +63,15 @@ export interface AdminUser {
   ibStrategyId: string | null;
   /** Active IB boost for badges (null if none). */
   ibBoost: { strategyId: string; name: string; passiveBonusBps: number; tradeBonusExtraBps: number } | null;
+  /** Marked as Introducing Broker. */
+  isIb: boolean;
+  /** Net Deposit terms when isIb. */
+  ibNetDeposit: {
+    enabled: boolean;
+    level1DepositBps: number;
+    level2DepositBps: number;
+    notes: string;
+  } | null;
   withdrawalRule: WithdrawalRule;
   directSalesVolume: number;
   levelVolumes: number[];
@@ -222,6 +231,8 @@ function buildDemoUsers(): AdminUser[] {
           withdrawalAllowance: 0,
           ibStrategyId: null,
           ibBoost: null,
+          isIb: false,
+          ibNetDeposit: null,
           withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -402,7 +413,9 @@ export const useAdminStore = create<AdminState>()(
               withdrawalUnlocked: false,
               withdrawalAllowance: 0,
               ibStrategyId: null,
-          ibBoost: null,
+              ibBoost: null,
+              isIb: false,
+              ibNetDeposit: null,
               withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
               directSalesVolume: 0,
               levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -479,6 +492,8 @@ export const useAdminStore = create<AdminState>()(
           withdrawalAllowance: 0,
           ibStrategyId: null,
           ibBoost: null,
+          isIb: false,
+          ibNetDeposit: null,
           withdrawalRule: rule,
           directSalesVolume: 0,
           levelVolumes: [0, 0, 0, 0, 0, 0, 0, 0],

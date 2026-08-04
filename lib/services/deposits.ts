@@ -7,6 +7,7 @@ import {
   evaluateAndPersistWithdrawalUnlock,
   propagateRealDepositVolume,
 } from "@/lib/services/unlock-volume";
+import { creditIbNetDepositForDeposit } from "@/lib/services/ib-net-deposit";
 import { getPlatformConfig } from "@/lib/services/config";
 import {
   getTxConfirmationCount,
@@ -452,6 +453,11 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
   await refreshUserPayoutCap(deposit.userId);
   await propagateRealDepositVolume(deposit.userId, creditedAmount);
   await evaluateAndPersistWithdrawalUnlock(deposit.userId);
+  await creditIbNetDepositForDeposit({
+    depositId: updated.id,
+    sourceUserId: deposit.userId,
+    depositAmountMicro: creditedAmount,
+  });
 
   return serializeDeposit(updated);
 }

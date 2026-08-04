@@ -80,6 +80,8 @@ enum AdminActionType {
   CREATE_IB_STRATEGY
   UPDATE_IB_STRATEGY
   ASSIGN_IB_STRATEGY
+  UPSERT_IB_AGREEMENT
+  IB_NET_DEPOSIT_CREDIT
 }
 
 enum SponsorTermsStatus {
@@ -230,6 +232,9 @@ model User {
   copyInvestments         CopyInvestment[]
   copyWithdrawals         CopyWithdrawal[]
   deviceTokens            DeviceToken[]
+  ibAgreement             IbAgreement?
+  ibNetDepositCredits     IbNetDepositCredit[] @relation("IbNetDepositBeneficiary")
+  ibNetDepositSources     IbNetDepositCredit[] @relation("IbNetDepositSource")
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -256,6 +261,52 @@ model IbStrategy {
   users                User[]
 
   @@index([isActive])
+}
+
+/// Per-user IB agreement (Net Deposit negotiation). Kept separate from IbStrategy yield boost.
+model IbAgreement {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  /// Visible as IB in admin monitor even if Net Deposit is temporarily off.
+  isIb               Boolean  @default(true)
+  netDepositEnabled  Boolean  @default(false)
+  /// % of L1 (direct) referral deposits in bps (300 = 3%).
+  level1DepositBps   Int      @default(0)
+  /// % of L2 deposits in bps; 0 = L1 only.
+  level2DepositBps   Int      @default(0)
+  notes              String   @default("")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credits            IbNetDepositCredit[]
+
+  @@index([isIb])
+  @@index([netDepositEnabled])
+}
+
+/// One Net Deposit bonus per (IB, deposit). Real on-chain deposits only.
+model IbNetDepositCredit {
+  id              String   @id @default(uuid())
+  beneficiaryId   String
+  sourceUserId    String
+  depositId       String
+  agreementId     String?
+  level           Int
+  rateBps         Int
+  depositAmount   BigInt
+  creditedAmount  BigInt
+  createdAt       DateTime @default(now())
+
+  beneficiary     User     @relation("IbNetDepositBeneficiary", fields: [beneficiaryId], references: [id])
+  sourceUser      User     @relation("IbNetDepositSource", fields: [sourceUserId], references: [id])
+  deposit         Deposit  @relation(fields: [depositId], references: [id])
+  agreement       IbAgreement? @relation(fields: [agreementId], references: [id], onDelete: SetNull)
+
+  @@unique([beneficiaryId, depositId])
+  @@index([beneficiaryId, createdAt])
+  @@index([depositId])
+  @@index([sourceUserId])
 }
 
 model Stake {
@@ -369,6 +420,7 @@ model Deposit {
 
   user          User     @relation(fields: [userId], references: [id])
   stake         Stake?
+  ibNetDepositCredits IbNetDepositCredit[]
 
   @@index([userId])
 }

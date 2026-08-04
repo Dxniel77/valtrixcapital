@@ -52,6 +52,15 @@ export interface UserDto {
   ibStrategyId: string | null;
   /** Active IB boost summary for badges (null if none / inactive). */
   ibBoost: IbBoostSummary | null;
+  /** Marked as Introducing Broker in admin IB monitor. */
+  isIb: boolean;
+  /** Net Deposit negotiation when user is an IB (null if none). */
+  ibNetDeposit: {
+    enabled: boolean;
+    level1DepositBps: number;
+    level2DepositBps: number;
+    notes: string;
+  } | null;
   withdrawalRule: WithdrawalRule | null;
   realCapital: number;
   companyCapital: number;
@@ -69,6 +78,14 @@ type IbStrategyRel = {
   tradeBonusExtraBps: number;
 } | null;
 
+type IbAgreementRel = {
+  isIb: boolean;
+  netDepositEnabled: boolean;
+  level1DepositBps: number;
+  level2DepositBps: number;
+  notes: string;
+} | null;
+
 export function ibBoostFromStrategy(
   strategy: IbStrategyRel | undefined,
 ): IbBoostSummary | null {
@@ -82,7 +99,7 @@ export function ibBoostFromStrategy(
 }
 
 export function serializeUser(
-  user: User & { ibStrategy?: IbStrategyRel },
+  user: User & { ibStrategy?: IbStrategyRel; ibAgreement?: IbAgreementRel },
   meta?: {
     referrerWallet?: string | null;
     referrerUsername?: string | null;
@@ -109,6 +126,8 @@ export function serializeUser(
     meta?.ibBoost !== undefined
       ? meta.ibBoost
       : ibBoostFromStrategy(user.ibStrategy);
+  const agreement = user.ibAgreement ?? null;
+  const isIb = agreement?.isIb === true;
   return {
     id: user.id,
     walletAddress: user.walletAddress,
@@ -130,6 +149,15 @@ export function serializeUser(
     withdrawalAllowance: fromMicro(user.withdrawalAllowance),
     ibStrategyId: user.ibStrategyId ?? null,
     ibBoost,
+    isIb,
+    ibNetDeposit: isIb
+      ? {
+          enabled: agreement!.netDepositEnabled,
+          level1DepositBps: agreement!.level1DepositBps,
+          level2DepositBps: agreement!.level2DepositBps,
+          notes: agreement!.notes,
+        }
+      : null,
     withdrawalRule: user.accountGranted
       ? parseWithdrawalRuleJson(user.withdrawalRule)
       : null,
@@ -164,6 +192,15 @@ export async function findUserByWalletWithReferrer(walletAddress: string) {
           tradeBonusExtraBps: true,
         },
       },
+      ibAgreement: {
+        select: {
+          isIb: true,
+          netDepositEnabled: true,
+          level1DepositBps: true,
+          level2DepositBps: true,
+          notes: true,
+        },
+      },
     },
   });
 }
@@ -173,6 +210,7 @@ export async function serializeUserWithReferrerAsync(
     referrer?: { walletAddress: string; username: string | null } | null;
     _count?: { downline: number };
     ibStrategy?: IbStrategyRel;
+    ibAgreement?: IbAgreementRel;
   },
 ): Promise<UserDto> {
   const breakdown = await getCapitalBreakdownMap([user.id]);
@@ -199,8 +237,26 @@ export async function serializeUserWithReferrerAsync(
     });
   }
 
+  let ibAgreement = user.ibAgreement;
+  if (ibAgreement === undefined) {
+    ibAgreement = await prisma.ibAgreement.findUnique({
+      where: { userId: user.id },
+      select: {
+        isIb: true,
+        netDepositEnabled: true,
+        level1DepositBps: true,
+        level2DepositBps: true,
+        notes: true,
+      },
+    });
+  }
+
   return serializeUser(
-    { ...user, ibStrategy: ibStrategy ?? null },
+    {
+      ...user,
+      ibStrategy: ibStrategy ?? null,
+      ibAgreement: ibAgreement ?? null,
+    },
     {
       referrerWallet: user.referrer?.walletAddress ?? null,
       referrerUsername: user.referrer?.username ?? null,
@@ -350,6 +406,15 @@ export async function listUsersForAdmin(): Promise<UserDto[]> {
           isActive: true,
           passiveBonusBps: true,
           tradeBonusExtraBps: true,
+        },
+      },
+      ibAgreement: {
+        select: {
+          isIb: true,
+          netDepositEnabled: true,
+          level1DepositBps: true,
+          level2DepositBps: true,
+          notes: true,
         },
       },
       _count: { select: { downline: true } },
