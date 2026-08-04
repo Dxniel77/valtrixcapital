@@ -19,10 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StartStakingCTA } from "@/components/staking/start-staking-cta";
-import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 import { useI18n } from "@/lib/i18n/context";
 import { useShowDailyEarningsBar } from "@/lib/hooks/use-capital-profile";
-import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
 import {
   PAYOUT_CAP_MULTIPLIER,
   useStakingStore,
@@ -54,7 +52,6 @@ export default function PortfolioPage() {
   const summary = usePortfolioSummary();
   const preview = useTodayYieldPreview();
   const showEarningsBar = useShowDailyEarningsBar();
-  const { adminUser } = useWithdrawalEligibility();
 
   const hasCapital = hydrated && stakes.length > 0;
 
@@ -143,11 +140,7 @@ export default function PortfolioPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             {showEarningsBar ? (
               <>
-                <PayoutCapCard
-                  summary={summary}
-                  preview={preview}
-                  ibBoost={adminUser?.ibBoost ?? null}
-                />
+                <PayoutCapCard summary={summary} preview={preview} />
                 <TodayPreviewCard preview={preview} />
               </>
             ) : null}
@@ -248,15 +241,9 @@ function EmptyBullet({
 function PayoutCapCard({
   summary,
   preview,
-  ibBoost,
 }: {
   summary: ReturnType<typeof usePortfolioSummary>;
   preview: ReturnType<typeof useTodayYieldPreview>;
-  ibBoost: {
-    name: string;
-    passiveBonusBps: number;
-    tradeBonusExtraBps: number;
-  } | null;
 }) {
   const { t } = useI18n();
   const pct = summary.capProgressBarPct;
@@ -282,7 +269,6 @@ function PayoutCapCard({
               })}
             </Badge>
           )}
-          <IbBoostBadge boost={ibBoost} />
           </div>
         </div>
       </CardHeader>

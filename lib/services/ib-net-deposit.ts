@@ -20,7 +20,6 @@ export interface IbAgreementDto {
   displayName: string;
   totalCredited: number;
   creditCount: number;
-  yieldStrategyName: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -54,7 +53,6 @@ function serializeAgreement(row: {
   user: {
     walletAddress: string;
     username: string | null;
-    ibStrategy: { name: string; isActive: boolean } | null;
   };
   _count?: { credits: number };
   credits?: { creditedAmount: bigint }[];
@@ -77,8 +75,6 @@ function serializeAgreement(row: {
     displayName: displayName(row.user.username, row.user.walletAddress),
     totalCredited: fromMicro(totalCredited),
     creditCount: row._count?.credits ?? row.credits?.length ?? 0,
-    yieldStrategyName:
-      row.user.ibStrategy?.isActive ? row.user.ibStrategy.name : null,
     updatedAt: row.updatedAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
   };
@@ -89,7 +85,6 @@ const agreementInclude = {
     select: {
       walletAddress: true,
       username: true,
-      ibStrategy: { select: { name: true, isActive: true } },
     },
   },
   _count: { select: { credits: true } },

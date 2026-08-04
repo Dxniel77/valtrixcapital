@@ -122,10 +122,7 @@ export function serializeUser(
           unlockLevel1Volume: user.unlockLevel1Volume,
           unlockLevel2Volume: user.unlockLevel2Volume,
         });
-  const ibBoost =
-    meta?.ibBoost !== undefined
-      ? meta.ibBoost
-      : ibBoostFromStrategy(user.ibStrategy);
+  const ibBoost = null as IbBoostSummary | null;
   const agreement = user.ibAgreement ?? null;
   const isIb = agreement?.isIb === true;
   return {

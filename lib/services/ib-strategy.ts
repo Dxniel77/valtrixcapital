@@ -69,48 +69,18 @@ export function serializeIbStrategy(
   };
 }
 
-/** Active IB boost for a user (0 if none / inactive). Cap still enforced separately. */
+/** Yield-boost strategies are retired — Net Deposit is the IB benefit. Always 0. */
 export async function getUserIbYieldBoost(
-  userId: string,
+  _userId: string,
 ): Promise<IbYieldBoost> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      ibStrategyId: true,
-      ibStrategy: {
-        select: {
-          id: true,
-          name: true,
-          isActive: true,
-          passiveBonusBps: true,
-          tradeBonusExtraBps: true,
-        },
-      },
-    },
-  });
-  if (!user?.ibStrategy || !user.ibStrategy.isActive) return EMPTY_BOOST;
-  return {
-    passiveBonusBps: Math.max(0, user.ibStrategy.passiveBonusBps),
-    tradeBonusExtraBps: Math.max(0, user.ibStrategy.tradeBonusExtraBps),
-    strategyId: user.ibStrategy.id,
-    strategyName: user.ibStrategy.name,
-  };
+  return EMPTY_BOOST;
 }
 
-/** Custom commission rates when this beneficiary is an IB; null = platform defaults. */
+/** Yield-boost custom commissions retired — always use platform rates. */
 export async function getIbCommissionRatesForBeneficiary(
-  beneficiaryId: string,
+  _beneficiaryId: string,
 ): Promise<number[] | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: beneficiaryId },
-    select: {
-      ibStrategy: {
-        select: { isActive: true, commissionRatesBps: true },
-      },
-    },
-  });
-  if (!user?.ibStrategy?.isActive) return null;
-  return parseCommissionRates(user.ibStrategy.commissionRatesBps);
+  return null;
 }
 
 export async function listIbStrategies(): Promise<IbStrategyDto[]> {

@@ -67,7 +67,7 @@ Not every user is an IB. Not every IB gets Net Deposit. Rates are **not** global
 | Feature | Behavior with Net Deposit |
 |---------|---------------------------|
 | Normal referral commissions (earnings) | **Keep** — IB still earns network commissions as usual |
-| Existing IB yield-boost strategy (extra passive / trade bps) | **Keep as separate optional benefit** (accelerates 200%); Net Deposit is another optional benefit Carlos can grant |
+| Old IB yield-boost strategy (extra passive / trade bps) | **Retired** — UI and bonuses disabled; DB rows kept; Net Deposit is the IB benefit |
 | Partial withdrawal release | Unchanged — still controls how much sponsored/locked users can withdraw |
 | 200% payout cap | Unchanged — Net Deposit bonus is clamped like other earnings credits |
 
@@ -83,12 +83,8 @@ Not every user is an IB. Not every IB gets Net Deposit. Rates are **not** global
 
 ## 7. Visibility (IB badge)
 
-Already in product:
-
-- User profile / portfolio / dashboard: **IB boost** badge when an IB strategy is assigned  
-- Admin user list + user detail: same badge  
-
-Net Deposit config should also be visible to admin on the user (enabled, L1%, L2%, depth).
+- Admin user list + user detail + IB monitor: **IB** badge when marked as Introducing Broker  
+- Net Deposit config is visible to admin on the user (enabled, L1%, L2%, depth) and on `/admin/ib`
 
 ---
 

@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { isDatabaseAvailable } from "@/lib/db/available";
 import { listIbAgreements } from "@/lib/services/ib-net-deposit";
-import { listIbStrategies } from "@/lib/services/ib-strategy";
 
 export const dynamic = "force-dynamic";
 
-/** GET — IB monitor (agreements) + yield strategies. */
+/** GET — IB monitor (Net Deposit agreements). */
 export async function GET() {
   const auth = await requireAdminSession();
   if (auth.error) return auth.error;
@@ -14,10 +13,6 @@ export async function GET() {
     return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
   }
 
-  const [agreements, strategies] = await Promise.all([
-    listIbAgreements(),
-    listIbStrategies(),
-  ]);
-
-  return NextResponse.json({ ok: true, agreements, strategies });
+  const agreements = await listIbAgreements();
+  return NextResponse.json({ ok: true, agreements });
 }

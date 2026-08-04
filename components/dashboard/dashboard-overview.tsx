@@ -43,8 +43,6 @@ import {
 } from "@/lib/staking/store";
 import { useI18n } from "@/lib/i18n/context";
 import { useShowDailyEarningsBar } from "@/lib/hooks/use-capital-profile";
-import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
-import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 import { displayYieldRateBps } from "@/lib/staking/yield-display";
 import { utcDayKey } from "@/lib/trade/constants";
 import { useTradeStore, type Position } from "@/lib/trade/store";
@@ -60,7 +58,6 @@ export function DashboardOverview() {
   const positions = useTradeStore((s) => s.positions);
   const instantCredits = useStakingStore((s) => s.instantCredits);
   const showEarningsBar = useShowDailyEarningsBar();
-  const { adminUser } = useWithdrawalEligibility();
 
   const hasCapital = hydrated && portfolio.totalCapital > 0;
 
@@ -212,10 +209,7 @@ export function DashboardOverview() {
           ) : !hasCapital ? (
             <CapitalCallout />
           ) : showEarningsBar ? (
-            <PayoutMiniCard
-              portfolio={portfolio}
-              ibBoost={adminUser?.ibBoost ?? null}
-            />
+            <PayoutMiniCard portfolio={portfolio} />
           ) : null}
           <DailyAttemptsCard
             wins={summary.wins}
@@ -300,14 +294,8 @@ function CapitalCallout() {
 
 function PayoutMiniCard({
   portfolio,
-  ibBoost,
 }: {
   portfolio: ReturnType<typeof usePortfolioSummary>;
-  ibBoost: {
-    name: string;
-    passiveBonusBps: number;
-    tradeBonusExtraBps: number;
-  } | null;
 }) {
   const { t } = useI18n();
   const pct = portfolio.capProgressBarPct;
@@ -327,7 +315,6 @@ function PayoutMiniCard({
             )}
             {(PAYOUT_CAP_MULTIPLIER * 100).toFixed(0)}%
           </Badge>
-          <IbBoostBadge boost={ibBoost} compact />
           </div>
         </div>
       </CardHeader>

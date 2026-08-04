@@ -33,7 +33,6 @@ import {
 } from "@/lib/admin/analytics";
 import { exportUsersBillingCsv } from "@/lib/admin/exports";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
-import { IbBoostBadge } from "@/components/ib/ib-boost-badge";
 import { IbStatusBadge } from "@/components/ib/ib-status-badge";
 import {
   adminAdjustBalance,
@@ -258,11 +257,6 @@ export default function AdminUsersPage() {
                       {u.isIb ? (
                         <span className="ml-1.5 inline-flex align-middle">
                           <IbStatusBadge isIb compact />
-                        </span>
-                      ) : null}
-                      {u.ibBoost ? (
-                        <span className="ml-1.5 inline-flex align-middle">
-                          <IbBoostBadge boost={u.ibBoost} compact />
                         </span>
                       ) : null}
                     </p>
