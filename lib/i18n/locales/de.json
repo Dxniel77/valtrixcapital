@@ -21,6 +21,12 @@
     "loading": "Laden…",
     "language": "Sprache"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "IB-Partner",
+    "partnerSubtitle": "Offizieller Introducing Broker von Valtrix Capital.",
+    "partnerNetDeposit": "Net-Deposit-Bonus auf die Einzahlungen Ihrer Empfehlungen ist aktiv."
+  },
   "theme": {
     "light": "Clear-Modus",
     "dark": "Dunkler Modus",

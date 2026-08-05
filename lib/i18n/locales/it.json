@@ -21,6 +21,12 @@
     "loading": "Caricamento…",
     "language": "Lingua"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "Partner IB",
+    "partnerSubtitle": "Introducing Broker ufficiale di Valtrix Capital.",
+    "partnerNetDeposit": "Bonus Net Deposit attivo sui depositi dei tuoi referral."
+  },
   "theme": {
     "light": "Modalità Cancella",
     "dark": "Modalità oscura",

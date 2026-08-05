@@ -15,6 +15,9 @@ import { useI18n } from "@/lib/i18n/context";
 import { useSiwe } from "@/lib/hooks/use-siwe";
 import { useUserRegistry } from "@/lib/user/store";
 import { formatMemberSince } from "@/lib/user/format";
+import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { IbPartnerCard } from "@/components/ib/ib-partner-card";
+import { IbStatusBadge } from "@/components/ib/ib-status-badge";
 
 export default function ProfilePage() {
   const { t, locale } = useI18n();
@@ -24,12 +27,20 @@ export default function ProfilePage() {
   const profile = useUserRegistry((s) => s.getProfile(address));
   const { user } = useSiwe();
   const isAdmin = user?.role === "ADMIN";
+  const { adminUser } = useWithdrawalEligibility();
+  const isIb = adminUser?.isIb ?? false;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={t("dashboard.pages.profile.title")}
         subtitle={t("dashboard.pages.profile.subtitle")}
+      />
+
+      <IbPartnerCard
+        isIb={isIb}
+        netDepositEnabled={adminUser?.ibNetDeposit?.enabled ?? false}
+        name={profile?.username ?? adminUser?.alias ?? null}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -86,6 +97,7 @@ export default function ProfilePage() {
               {profile ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="gold">{profile.username}</Badge>
+                  <IbStatusBadge isIb={isIb} compact />
                 </div>
               ) : (
                 <span className="text-text-muted">

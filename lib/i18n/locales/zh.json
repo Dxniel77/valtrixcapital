@@ -21,6 +21,12 @@
     "loading": "收费…",
     "language": "语言"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "IB 合作伙伴",
+    "partnerSubtitle": "Valtrix Capital 官方介绍经纪人。",
+    "partnerNetDeposit": "您的推荐用户存款已启用 Net Deposit 奖金。"
+  },
   "theme": {
     "light": "清除模式",
     "dark": "深色模式",

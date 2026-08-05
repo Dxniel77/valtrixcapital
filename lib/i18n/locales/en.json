@@ -25,7 +25,10 @@
   "ib": {
     "badgeActive": "IB boost active",
     "badgeNamed": "IB: {name}",
-    "badgeIb": "IB"
+    "badgeIb": "IB",
+    "partnerTitle": "IB Partner",
+    "partnerSubtitle": "Official Introducing Broker of Valtrix Capital.",
+    "partnerNetDeposit": "Net Deposit bonus active on your referrals’ deposits."
   },
   "theme": {
     "light": "Clear mode",

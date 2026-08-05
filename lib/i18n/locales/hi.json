@@ -21,6 +21,12 @@
     "loading": "लोड हो रहा है...",
     "language": "भाषा"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "IB पार्टनर",
+    "partnerSubtitle": "Valtrix Capital का आधिकारिक इंट्रोड्यूसिंग ब्रोकर।",
+    "partnerNetDeposit": "आपके रेफ़रल के डिपॉज़िट पर Net Deposit बोनस सक्रिय है।"
+  },
   "theme": {
     "light": "साफ़ मोड",
     "dark": "डार्क मोड",

@@ -21,6 +21,12 @@
     "loading": "読み込み中…",
     "language": "言語"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "IB パートナー",
+    "partnerSubtitle": "Valtrix Capital の公式イントロデューシングブローカー。",
+    "partnerNetDeposit": "紹介者の入金に対する Net Deposit ボーナスが有効です。"
+  },
   "theme": {
     "light": "クリアモード",
     "dark": "ダークモード",

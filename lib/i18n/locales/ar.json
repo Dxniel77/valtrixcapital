@@ -21,6 +21,12 @@
     "loading": "تحميل…",
     "language": "لغة"
   },
+  "ib": {
+    "badgeIb": "IB",
+    "partnerTitle": "شريك IB",
+    "partnerSubtitle": "وسيط تعريفي رسمي لدى Valtrix Capital.",
+    "partnerNetDeposit": "مكافأة Net Deposit مفعّلة على إيداعات إحالاتك."
+  },
   "theme": {
     "light": "وضع واضح",
     "dark": "الوضع المظلم",
