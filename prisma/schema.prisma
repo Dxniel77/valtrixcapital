@@ -754,6 +754,7 @@ model CopyTrader {
 
   performances      CopyTraderPerformance[]
   performanceEvents CopyPerformanceEvent[]
+  operations        CopyTraderOperation[]
   chartPoints       CopyTraderChartPoint[]
   investments       CopyInvestment[]
 
@@ -784,10 +785,37 @@ model CopyPerformanceEvent {
   createdById    String?
   createdAt      DateTime   @default(now())
 
-  trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+  trader    CopyTrader           @relation(fields: [traderId], references: [id], onDelete: Cascade)
+  operation CopyTraderOperation?
 
   @@index([traderId, createdAt(sort: Desc)])
   @@index([source, createdAt(sort: Desc)])
+}
+
+model CopyTraderOperation {
+  id                 String   @id @default(uuid())
+  traderId           String
+  symbol             String
+  direction          String
+  leverage           Int
+  entryPrice         Decimal  @db.Decimal(20, 8)
+  targetReturnBps    Int
+  exitPrice          Decimal? @db.Decimal(20, 8)
+  settledReturnBps   Int?
+  status             String   @default("OPEN")
+  openKey            String?  @unique
+  idempotencyKey     String   @unique
+  performanceEventId String?  @unique
+  openedAt           DateTime @default(now())
+  closesAt           DateTime
+  closedAt           DateTime?
+  createdAt          DateTime @default(now())
+
+  trader           CopyTrader            @relation(fields: [traderId], references: [id], onDelete: Cascade)
+  performanceEvent CopyPerformanceEvent? @relation(fields: [performanceEventId], references: [id], onDelete: SetNull)
+
+  @@index([traderId, status, openedAt(sort: Desc)])
+  @@index([status, closesAt])
 }
 
 model CopyTraderChartPoint {

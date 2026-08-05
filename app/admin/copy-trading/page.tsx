@@ -63,6 +63,17 @@ type Dashboard = {
     pendingWithdrawals: number;
   };
   traders: Trader[];
+  openOperations: Array<{
+    id: string;
+    traderId: string;
+    symbol: string;
+    direction: "LONG" | "SHORT";
+    leverage: number;
+    entryPrice: number;
+    markPrice: number;
+    floatingReturnBps: number;
+    closesAt: string;
+  }>;
   pendingWithdrawals: Array<{
     id: string;
     traderName: string;
@@ -161,7 +172,9 @@ function formPayload(form: TraderForm) {
     simulationEnabled: form.simulationEnabled,
     simulationMinBps: Math.round((Number(form.simulationMinPct) || 0) * 100),
     simulationMaxBps: Math.round((Number(form.simulationMaxPct) || 0) * 100),
-    simulationIntervalHours: Math.trunc(Number(form.simulationIntervalHours) || 24),
+    simulationIntervalHours: Math.trunc(
+      Number(form.simulationIntervalHours) || 24,
+    ),
   };
 }
 
@@ -179,7 +192,9 @@ export default function AdminCopyTradingPage() {
     try {
       setData(await apiFetch<Dashboard & { ok: boolean }>("/api/admin/copy"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errors.signInFailed"));
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -206,7 +221,9 @@ export default function AdminCopyTradingPage() {
     setBusy(key);
     try {
       await apiFetch(
-        current === "new" ? "/api/admin/copy/traders" : `/api/admin/copy/traders/${current.id}`,
+        current === "new"
+          ? "/api/admin/copy/traders"
+          : `/api/admin/copy/traders/${current.id}`,
         {
           method: current === "new" ? "POST" : "PATCH",
           body: JSON.stringify(formPayload(form)),
@@ -216,7 +233,9 @@ export default function AdminCopyTradingPage() {
       setEditing(null);
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errors.signInFailed"));
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
     } finally {
       setBusy(null);
     }
@@ -241,11 +260,15 @@ export default function AdminCopyTradingPage() {
           }),
         },
       );
-      toast.success(t("admin.copyTrading.returnApplied", { n: result.affected }));
+      toast.success(
+        t("admin.copyTrading.returnApplied", { n: result.affected }),
+      );
       setReturns((current) => ({ ...current, [trader.id]: "" }));
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errors.signInFailed"));
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
     } finally {
       setBusy(null);
     }
@@ -255,10 +278,13 @@ export default function AdminCopyTradingPage() {
     const key = `run:${traderId ?? "all"}`;
     setBusy(key);
     try {
-      const result = await apiFetch<{ processed: number; affectedInvestments: number }>(
-        "/api/admin/copy/simulate",
-        { method: "POST", body: JSON.stringify(traderId ? { traderId } : {}) },
-      );
+      const result = await apiFetch<{
+        processed: number;
+        affectedInvestments: number;
+      }>("/api/admin/copy/simulate", {
+        method: "POST",
+        body: JSON.stringify(traderId ? { traderId } : {}),
+      });
       toast.success(
         t("admin.copyTrading.simulationApplied", {
           traders: result.processed,
@@ -267,7 +293,9 @@ export default function AdminCopyTradingPage() {
       );
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errors.signInFailed"));
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
     } finally {
       setBusy(null);
     }
@@ -283,7 +311,9 @@ export default function AdminCopyTradingPage() {
       toast.success(t("admin.copyTrading.withdrawalUpdated"));
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("errors.signInFailed"));
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
     } finally {
       setBusy(null);
     }
@@ -321,13 +351,24 @@ export default function AdminCopyTradingPage() {
       </Card>
 
       {loading || !data ? (
-        <p className="py-12 text-center text-sm text-text-muted">{t("common.loading")}</p>
+        <p className="py-12 text-center text-sm text-text-muted">
+          {t("common.loading")}
+        </p>
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label={t("admin.copyTrading.activeTraders")} value={String(data.metrics.activeTraders)} />
-            <Metric label={t("admin.copyTrading.automated")} value={String(data.metrics.automatedTraders)} />
-            <Metric label={t("admin.copyTrading.activeCopiers")} value={String(data.metrics.activeUsers)} />
+            <Metric
+              label={t("admin.copyTrading.activeTraders")}
+              value={String(data.metrics.activeTraders)}
+            />
+            <Metric
+              label={t("admin.copyTrading.automated")}
+              value={String(data.metrics.automatedTraders)}
+            />
+            <Metric
+              label={t("admin.copyTrading.activeCopiers")}
+              value={String(data.metrics.activeUsers)}
+            />
             <Metric
               label={t("admin.copyTrading.connectedCapital")}
               value={`$${formatNumber(data.metrics.currentValue, { decimals: 2 })}`}
@@ -352,88 +393,175 @@ export default function AdminCopyTradingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.traders.map((trader) => (
-                <div
-                  key={trader.id}
-                  className="rounded-lg border border-border-subtle bg-bg-base/40 p-4"
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-display font-semibold text-text-primary">{trader.name}</p>
-                        <Badge variant={trader.riskLevel === "HIGH" ? "danger" : trader.riskLevel === "LOW" ? "success" : "warning"}>
-                          {trader.riskLevel}
-                        </Badge>
-                        {trader.isFeatured ? <Badge variant="gold">{t("admin.copyTrading.featured")}</Badge> : null}
-                        {trader.simulationEnabled ? (
-                          <Badge variant="info">
-                            <Bot className="h-3 w-3" />
-                            {t("admin.copyTrading.automatic")}
-                          </Badge>
-                        ) : null}
-                        {!trader.isVisible ? <Badge variant="outline">{t("admin.copyTrading.hidden")}</Badge> : null}
-                      </div>
-                      <p className="mt-1 line-clamp-1 text-xs text-text-muted">{trader.description}</p>
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-text-secondary">
-                        <span>ROI {trader.roiBps >= 0 ? "+" : ""}{(trader.roiBps / 100).toFixed(2)}%</span>
-                        <span>{trader.activeInvestments} {t("admin.copyTrading.copies")}</span>
-                        <span>AUM ${formatNumber(trader.aum, { decimals: 0 })}</span>
-                        {trader.simulationEnabled ? (
-                          <span>
-                            {(trader.simulationMinBps / 100).toFixed(2)}%…+
-                            {(trader.simulationMaxBps / 100).toFixed(2)}% / {trader.simulationIntervalHours}h
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
+              {data.traders.map((trader) =>
+                (() => {
+                  const operation = data.openOperations.find(
+                    (item) => item.traderId === trader.id,
+                  );
+                  return (
+                    <div
+                      key={trader.id}
+                      className="rounded-lg border border-border-subtle bg-bg-base/40 p-4"
+                    >
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-display font-semibold text-text-primary">
+                              {trader.name}
+                            </p>
+                            <Badge
+                              variant={
+                                trader.riskLevel === "HIGH"
+                                  ? "danger"
+                                  : trader.riskLevel === "LOW"
+                                    ? "success"
+                                    : "warning"
+                              }
+                            >
+                              {trader.riskLevel}
+                            </Badge>
+                            {trader.isFeatured ? (
+                              <Badge variant="gold">
+                                {t("admin.copyTrading.featured")}
+                              </Badge>
+                            ) : null}
+                            {trader.simulationEnabled ? (
+                              <Badge variant="info">
+                                <Bot className="h-3 w-3" />
+                                {t("admin.copyTrading.automatic")}
+                              </Badge>
+                            ) : null}
+                            {!trader.isVisible ? (
+                              <Badge variant="outline">
+                                {t("admin.copyTrading.hidden")}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-xs text-text-muted">
+                            {trader.description}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-text-secondary">
+                            <span>
+                              ROI {trader.roiBps >= 0 ? "+" : ""}
+                              {(trader.roiBps / 100).toFixed(2)}%
+                            </span>
+                            <span>
+                              {trader.activeInvestments}{" "}
+                              {t("admin.copyTrading.copies")}
+                            </span>
+                            <span>
+                              AUM ${formatNumber(trader.aum, { decimals: 0 })}
+                            </span>
+                            {trader.simulationEnabled ? (
+                              <span>
+                                {(trader.simulationMinBps / 100).toFixed(2)}%…+
+                                {(trader.simulationMaxBps / 100).toFixed(2)}% /{" "}
+                                {trader.simulationIntervalHours}h
+                              </span>
+                            ) : null}
+                          </div>
+                          {operation ? (
+                            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2 font-mono text-xs">
+                              <Badge variant="info">SIM · OPEN</Badge>
+                              <span
+                                className={
+                                  operation.direction === "LONG"
+                                    ? "text-success"
+                                    : "text-danger"
+                                }
+                              >
+                                {operation.symbol} {operation.direction}{" "}
+                                {operation.leverage}×
+                              </span>
+                              <span className="text-text-muted">
+                                {formatNumber(operation.entryPrice, {
+                                  decimals: operation.entryPrice < 10 ? 4 : 2,
+                                })}
+                                {" → "}
+                                {formatNumber(operation.markPrice, {
+                                  decimals: operation.markPrice < 10 ? 4 : 2,
+                                })}
+                              </span>
+                              <span
+                                className={
+                                  operation.floatingReturnBps >= 0
+                                    ? "text-success"
+                                    : "text-danger"
+                                }
+                              >
+                                {operation.floatingReturnBps >= 0 ? "+" : ""}
+                                {(operation.floatingReturnBps / 100).toFixed(2)}
+                                %
+                              </span>
+                              <span className="text-text-muted">
+                                {new Date(operation.closesAt).toLocaleString()}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder={t("admin.copyTrading.returnPlaceholder")}
-                        value={returns[trader.id] ?? ""}
-                        onChange={(event) =>
-                          setReturns((current) => ({ ...current, [trader.id]: event.target.value }))
-                        }
-                        className="w-28"
-                      />
-                      <Button
-                        size="sm"
-                        variant="success"
-                        loading={busy === `return:${trader.id}`}
-                        onClick={() => void publishReturn(trader)}
-                      >
-                        {t("admin.copyTrading.publish")}
-                      </Button>
-                      {trader.simulationEnabled ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          loading={busy === `run:${trader.id}`}
-                          onClick={() => void runSimulation(trader.id)}
-                        >
-                          <Play className="h-3.5 w-3.5" />
-                        </Button>
-                      ) : null}
-                      <Button size="icon-sm" variant="ghost" onClick={() => openEdit(trader)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder={t(
+                              "admin.copyTrading.returnPlaceholder",
+                            )}
+                            value={returns[trader.id] ?? ""}
+                            onChange={(event) =>
+                              setReturns((current) => ({
+                                ...current,
+                                [trader.id]: event.target.value,
+                              }))
+                            }
+                            className="w-28"
+                          />
+                          <Button
+                            size="sm"
+                            variant="success"
+                            loading={busy === `return:${trader.id}`}
+                            onClick={() => void publishReturn(trader)}
+                          >
+                            {t("admin.copyTrading.publish")}
+                          </Button>
+                          {trader.simulationEnabled ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              loading={busy === `run:${trader.id}`}
+                              onClick={() => void runSimulation(trader.id)}
+                            >
+                              <Play className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : null}
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => openEdit(trader)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })(),
+              )}
             </CardContent>
           </Card>
 
           <div className="grid gap-6 xl:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t("admin.copyTrading.pendingWithdrawals")}</CardTitle>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.pendingWithdrawals")}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {data.pendingWithdrawals.length === 0 ? (
-                  <p className="text-sm text-text-muted">{t("admin.copyTrading.noPendingWithdrawals")}</p>
+                  <p className="text-sm text-text-muted">
+                    {t("admin.copyTrading.noPendingWithdrawals")}
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -441,7 +569,9 @@ export default function AdminCopyTradingPage() {
                         <THeadRow>
                           <TH>{t("common.user")}</TH>
                           <TH>{t("admin.copyTrading.trader")}</TH>
-                          <TH className="text-right">{t("admin.copyTrading.amount")}</TH>
+                          <TH className="text-right">
+                            {t("admin.copyTrading.amount")}
+                          </TH>
                           <TH />
                         </THeadRow>
                       </thead>
@@ -449,30 +579,47 @@ export default function AdminCopyTradingPage() {
                         {data.pendingWithdrawals.map((withdrawal) => (
                           <TR key={withdrawal.id}>
                             <TD>
-                              <p className="text-sm text-text-primary">{withdrawal.userName}</p>
+                              <p className="text-sm text-text-primary">
+                                {withdrawal.userName}
+                              </p>
                               <p className="font-mono text-xs text-text-muted">
                                 {shortenAddress(withdrawal.walletAddress)}
                               </p>
                             </TD>
                             <TD>{withdrawal.traderName}</TD>
                             <TD className="text-right font-mono">
-                              ${formatNumber(withdrawal.amount, { decimals: 2 })}
+                              $
+                              {formatNumber(withdrawal.amount, { decimals: 2 })}
                             </TD>
                             <TD>
                               <div className="flex justify-end gap-1">
                                 <Button
                                   size="sm"
                                   variant="success"
-                                  disabled={busy === `withdrawal:${withdrawal.id}`}
-                                  onClick={() => void decideWithdrawal(withdrawal.id, "APPROVE")}
+                                  disabled={
+                                    busy === `withdrawal:${withdrawal.id}`
+                                  }
+                                  onClick={() =>
+                                    void decideWithdrawal(
+                                      withdrawal.id,
+                                      "APPROVE",
+                                    )
+                                  }
                                 >
                                   {t("admin.copyTrading.approve")}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="danger"
-                                  disabled={busy === `withdrawal:${withdrawal.id}`}
-                                  onClick={() => void decideWithdrawal(withdrawal.id, "REJECT")}
+                                  disabled={
+                                    busy === `withdrawal:${withdrawal.id}`
+                                  }
+                                  onClick={() =>
+                                    void decideWithdrawal(
+                                      withdrawal.id,
+                                      "REJECT",
+                                    )
+                                  }
                                 >
                                   {t("admin.copyTrading.reject")}
                                 </Button>
@@ -496,12 +643,19 @@ export default function AdminCopyTradingPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.recentEvents.length === 0 ? (
-                  <p className="text-sm text-text-muted">{t("admin.copyTrading.noActivity")}</p>
+                  <p className="text-sm text-text-muted">
+                    {t("admin.copyTrading.noActivity")}
+                  </p>
                 ) : (
                   data.recentEvents.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between border-b border-border-subtle pb-3 last:border-0">
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between border-b border-border-subtle pb-3 last:border-0"
+                    >
                       <div>
-                        <p className="text-sm font-medium text-text-primary">{event.traderName}</p>
+                        <p className="text-sm font-medium text-text-primary">
+                          {event.traderName}
+                        </p>
                         <p className="text-xs text-text-muted">
                           {event.source === "SIMULATION"
                             ? t("admin.copyTrading.automatic")
@@ -509,7 +663,9 @@ export default function AdminCopyTradingPage() {
                           · {new Date(event.createdAt).toLocaleString()}
                         </p>
                       </div>
-                      <span className={`font-mono text-sm ${event.returnBps >= 0 ? "text-success" : "text-danger"}`}>
+                      <span
+                        className={`font-mono text-sm ${event.returnBps >= 0 ? "text-success" : "text-danger"}`}
+                      >
                         {event.returnBps >= 0 ? "+" : ""}
                         {(event.returnBps / 100).toFixed(2)}%
                       </span>
@@ -527,7 +683,10 @@ export default function AdminCopyTradingPage() {
         form={form}
         setForm={setForm}
         isNew={editing === "new"}
-        saving={busy === "create" || (editing !== null && editing !== "new" && busy === editing.id)}
+        saving={
+          busy === "create" ||
+          (editing !== null && editing !== "new" && busy === editing.id)
+        }
         onClose={() => setEditing(null)}
         onSave={() => void saveTrader()}
       />
@@ -555,8 +714,12 @@ function Metric({
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-[11px] uppercase tracking-wider text-text-muted">{label}</p>
-        <p className={`mt-1 font-mono text-xl font-semibold ${color}`}>{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-text-muted">
+          {label}
+        </p>
+        <p className={`mt-1 font-mono text-xl font-semibold ${color}`}>
+          {value}
+        </p>
       </CardContent>
     </Card>
   );
@@ -588,17 +751,29 @@ function TraderDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {isNew ? t("admin.copyTrading.newTrader") : t("admin.copyTrading.editTrader")}
+            {isNew
+              ? t("admin.copyTrading.newTrader")
+              : t("admin.copyTrading.editTrader")}
           </DialogTitle>
-          <DialogDescription>{t("admin.copyTrading.formDescription")}</DialogDescription>
+          <DialogDescription>
+            {t("admin.copyTrading.formDescription")}
+          </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("admin.copyTrading.name")}>
-              <Input value={form.name} onChange={(event) => update("name", event.target.value)} />
+              <Input
+                value={form.name}
+                onChange={(event) => update("name", event.target.value)}
+              />
             </Field>
             <Field label={t("admin.copyTrading.risk")}>
-              <Select value={form.riskLevel} onChange={(event) => update("riskLevel", event.target.value as Risk)}>
+              <Select
+                value={form.riskLevel}
+                onChange={(event) =>
+                  update("riskLevel", event.target.value as Risk)
+                }
+              >
                 <option value="LOW">LOW</option>
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HIGH">HIGH</option>
@@ -614,26 +789,63 @@ function TraderDialog({
             />
           </Field>
           <Field label={t("admin.copyTrading.photoUrl")}>
-            <Input value={form.photoUrl} onChange={(event) => update("photoUrl", event.target.value)} />
+            <Input
+              value={form.photoUrl}
+              onChange={(event) => update("photoUrl", event.target.value)}
+            />
           </Field>
           <div className="grid gap-4 sm:grid-cols-4">
             <Field label={t("admin.copyTrading.experienceDays")}>
-              <Input type="number" value={form.experienceDays} onChange={(event) => update("experienceDays", event.target.value)} />
+              <Input
+                type="number"
+                value={form.experienceDays}
+                onChange={(event) =>
+                  update("experienceDays", event.target.value)
+                }
+              />
             </Field>
             <Field label={t("admin.copyTrading.followers")}>
-              <Input type="number" value={form.followersCount} onChange={(event) => update("followersCount", event.target.value)} />
+              <Input
+                type="number"
+                value={form.followersCount}
+                onChange={(event) =>
+                  update("followersCount", event.target.value)
+                }
+              />
             </Field>
             <Field label={t("admin.copyTrading.minimum")}>
-              <Input type="number" value={form.minInvestment} onChange={(event) => update("minInvestment", event.target.value)} />
+              <Input
+                type="number"
+                value={form.minInvestment}
+                onChange={(event) =>
+                  update("minInvestment", event.target.value)
+                }
+              />
             </Field>
             <Field label={t("admin.copyTrading.order")}>
-              <Input type="number" value={form.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} />
+              <Input
+                type="number"
+                value={form.sortOrder}
+                onChange={(event) => update("sortOrder", event.target.value)}
+              />
             </Field>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <Check label={t("admin.copyTrading.active")} checked={form.isActive} onChange={(value) => update("isActive", value)} />
-            <Check label={t("admin.copyTrading.visible")} checked={form.isVisible} onChange={(value) => update("isVisible", value)} />
-            <Check label={t("admin.copyTrading.featured")} checked={form.isFeatured} onChange={(value) => update("isFeatured", value)} />
+            <Check
+              label={t("admin.copyTrading.active")}
+              checked={form.isActive}
+              onChange={(value) => update("isActive", value)}
+            />
+            <Check
+              label={t("admin.copyTrading.visible")}
+              checked={form.isVisible}
+              onChange={(value) => update("isVisible", value)}
+            />
+            <Check
+              label={t("admin.copyTrading.featured")}
+              checked={form.isFeatured}
+              onChange={(value) => update("isFeatured", value)}
+            />
           </div>
           <div className="rounded-lg border border-gold/20 bg-gold/5 p-4">
             <Check
@@ -643,27 +855,57 @@ function TraderDialog({
             />
             <div className="mt-3 grid gap-4 sm:grid-cols-3">
               <Field label={t("admin.copyTrading.minimumReturn")}>
-                <Input type="number" step="0.01" value={form.simulationMinPct} onChange={(event) => update("simulationMinPct", event.target.value)} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.simulationMinPct}
+                  onChange={(event) =>
+                    update("simulationMinPct", event.target.value)
+                  }
+                />
               </Field>
               <Field label={t("admin.copyTrading.maximumReturn")}>
-                <Input type="number" step="0.01" value={form.simulationMaxPct} onChange={(event) => update("simulationMaxPct", event.target.value)} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.simulationMaxPct}
+                  onChange={(event) =>
+                    update("simulationMaxPct", event.target.value)
+                  }
+                />
               </Field>
               <Field label={t("admin.copyTrading.intervalHours")}>
-                <Input type="number" value={form.simulationIntervalHours} onChange={(event) => update("simulationIntervalHours", event.target.value)} />
+                <Input
+                  type="number"
+                  value={form.simulationIntervalHours}
+                  onChange={(event) =>
+                    update("simulationIntervalHours", event.target.value)
+                  }
+                />
               </Field>
             </div>
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
-          <Button loading={saving} onClick={onSave}>{t("admin.copyTrading.save")}</Button>
+          <Button variant="outline" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button loading={saving} onClick={onSave}>
+            {t("admin.copyTrading.save")}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-text-secondary">{label}</span>

@@ -1,6 +1,13 @@
 import type { CopyPeriod, CopyRiskLevel, PrismaClient } from "@prisma/client";
 
-const PERIODS: CopyPeriod[] = ["TODAY", "WEEK", "MONTH", "QUARTER", "YEAR", "ALL_TIME"];
+const PERIODS: CopyPeriod[] = [
+  "TODAY",
+  "WEEK",
+  "MONTH",
+  "QUARTER",
+  "YEAR",
+  "ALL_TIME",
+];
 
 type SeedSpec = {
   slug: string;
@@ -391,13 +398,17 @@ function performanceFor(trader: SeedTrader, period: CopyPeriod): number {
   return Math.round(trader.roiBps * PERIOD_FRACTION[period]);
 }
 
-function chartPointsFor(trader: SeedTrader, days = 120): { date: Date; valueBps: number }[] {
+function chartPointsFor(
+  trader: SeedTrader,
+  days = 120,
+): { date: Date; valueBps: number }[] {
   const points: { date: Date; valueBps: number }[] = [];
   const now = new Date();
   for (let i = 0; i < days; i++) {
     const progress = i / (days - 1);
     const drift = trader.cumulativeRoiBps * progress;
-    const noise = Math.sin(i * 0.4 + trader.sortOrder) * trader.maxDrawdownBps * 0.15;
+    const noise =
+      Math.sin(i * 0.4 + trader.sortOrder) * trader.maxDrawdownBps * 0.15;
     const date = new Date(now);
     date.setUTCHours(0, 0, 0, 0);
     date.setUTCDate(date.getUTCDate() - (days - 1 - i));
@@ -425,7 +436,9 @@ export async function seedCopyTraders(prisma: PrismaClient): Promise<void> {
 
   for (const t of TRADERS) {
     const profile = RISK_PROFILE[t.riskLevel];
-    const existing = await prisma.copyTrader.findUnique({ where: { id: t.id } });
+    const existing = await prisma.copyTrader.findUnique({
+      where: { id: t.id },
+    });
 
     if (existing) {
       await prisma.copyTrader.update({
