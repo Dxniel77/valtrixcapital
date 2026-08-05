@@ -7,8 +7,10 @@ import type {
   CopyWithdrawalStatus,
   Prisma,
 } from "@prisma/client";
+import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { applyPerformance } from "@/lib/copy-trading/sync-engine";
+import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
 export class CopyTradingError extends Error {
@@ -71,6 +73,16 @@ export type CopyTraderDetailDto = CopyTraderDto & {
   chartPoints: CopyTraderChartPointDto[];
 };
 
+export type AdminCopyTraderDto = CopyTraderDto & {
+  simulationEnabled: boolean;
+  simulationMinBps: number;
+  simulationMaxBps: number;
+  simulationIntervalHours: number;
+  simulationLastRunAt: string | null;
+  simulationNextRunAt: string | null;
+  activeInvestments: number;
+};
+
 export type CopyTradingConfigDto = {
   globalMinInvestment: number;
   withdrawalMode: CopyWithdrawalMode;
@@ -108,6 +120,16 @@ type TraderRow = Prisma.CopyTraderGetPayload<{
 type InvestmentRow = Prisma.CopyInvestmentGetPayload<{
   include: { trader: true };
 }>;
+
+export type CopyPerformanceEventDto = {
+  id: string;
+  traderId: string;
+  traderName: string;
+  period: CopyPeriod;
+  returnBps: number;
+  source: string;
+  createdAt: string;
+};
 
 function roiBpsOf(principal: bigint, currentValue: bigint): number {
   if (principal <= 0n) return 0;
@@ -148,6 +170,21 @@ function serializeTrader(
         : undefined,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
+  };
+}
+
+function serializeAdminTrader(
+  t: Prisma.CopyTraderGetPayload<{ include: { _count: { select: { investments: true } } } }>,
+): AdminCopyTraderDto {
+  return {
+    ...serializeTrader(t),
+    simulationEnabled: t.simulationEnabled,
+    simulationMinBps: t.simulationMinBps,
+    simulationMaxBps: t.simulationMaxBps,
+    simulationIntervalHours: t.simulationIntervalHours,
+    simulationLastRunAt: t.simulationLastRunAt?.toISOString() ?? null,
+    simulationNextRunAt: t.simulationNextRunAt?.toISOString() ?? null,
+    activeInvestments: t._count.investments,
   };
 }
 
@@ -241,6 +278,153 @@ export async function getCopyTraderDetail(id: string): Promise<CopyTraderDetailD
   };
 }
 
+export type AdminCopyTraderInput = {
+  name: string;
+  photoUrl?: string | null;
+  description: string;
+  riskLevel: CopyRiskLevel;
+  experienceDays: number;
+  followersCount: number;
+  minInvestment: number;
+  isActive: boolean;
+  isVisible: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+  simulationEnabled: boolean;
+  simulationMinBps: number;
+  simulationMaxBps: number;
+  simulationIntervalHours: number;
+};
+
+function validateAdminTraderInput(input: AdminCopyTraderInput): void {
+  if (!input.name.trim() || !input.description.trim()) {
+    throw new CopyTradingError("Name and description are required", "INVALID_AMOUNT");
+  }
+  if (!Number.isFinite(input.minInvestment) || input.minInvestment < 0) {
+    throw new CopyTradingError("Invalid minimum investment", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(input.simulationMinBps) ||
+    !Number.isInteger(input.simulationMaxBps) ||
+    input.simulationMinBps < -10_000 ||
+    input.simulationMaxBps > 10_000 ||
+    input.simulationMinBps > input.simulationMaxBps
+  ) {
+    throw new CopyTradingError("Invalid simulation return range", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(input.simulationIntervalHours) ||
+    input.simulationIntervalHours < 1 ||
+    input.simulationIntervalHours > 720
+  ) {
+    throw new CopyTradingError("Simulation interval must be between 1 and 720 hours", "INVALID_AMOUNT");
+  }
+}
+
+export async function listAdminCopyTraders(): Promise<AdminCopyTraderDto[]> {
+  const rows = await prisma.copyTrader.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    include: {
+      _count: {
+        select: {
+          investments: { where: { status: "ACTIVE" } },
+        },
+      },
+    },
+  });
+  return rows.map(serializeAdminTrader);
+}
+
+export async function createAdminCopyTrader(
+  input: AdminCopyTraderInput,
+  adminUserId: string,
+): Promise<AdminCopyTraderDto> {
+  validateAdminTraderInput(input);
+  const now = new Date();
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.copyTrader.create({
+      data: {
+        id: randomUUID(),
+        name: input.name.trim(),
+        photoUrl: input.photoUrl?.trim() || null,
+        description: input.description.trim(),
+        riskLevel: input.riskLevel,
+        experienceDays: Math.max(0, Math.trunc(input.experienceDays)),
+        followersCount: Math.max(0, Math.trunc(input.followersCount)),
+        minInvestment: toMicro(input.minInvestment),
+        isActive: input.isActive,
+        isVisible: input.isVisible,
+        isFeatured: input.isFeatured,
+        sortOrder: Math.trunc(input.sortOrder),
+        simulationEnabled: input.simulationEnabled,
+        simulationMinBps: input.simulationMinBps,
+        simulationMaxBps: input.simulationMaxBps,
+        simulationIntervalHours: input.simulationIntervalHours,
+        simulationNextRunAt: input.simulationEnabled ? now : null,
+      },
+    });
+    await tx.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: "UPDATE_CONFIG",
+        payload: { kind: "COPY_TRADER_CREATED", traderId: created.id, name: created.name },
+      },
+    });
+    return tx.copyTrader.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { _count: { select: { investments: { where: { status: "ACTIVE" } } } } },
+    });
+  });
+  return serializeAdminTrader(row);
+}
+
+export async function updateAdminCopyTrader(
+  traderId: string,
+  input: AdminCopyTraderInput,
+  adminUserId: string,
+): Promise<AdminCopyTraderDto> {
+  validateAdminTraderInput(input);
+  const existing = await prisma.copyTrader.findUnique({ where: { id: traderId } });
+  if (!existing) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  const row = await prisma.$transaction(async (tx) => {
+    await tx.copyTrader.update({
+      where: { id: traderId },
+      data: {
+        name: input.name.trim(),
+        photoUrl: input.photoUrl?.trim() || null,
+        description: input.description.trim(),
+        riskLevel: input.riskLevel,
+        experienceDays: Math.max(0, Math.trunc(input.experienceDays)),
+        followersCount: Math.max(0, Math.trunc(input.followersCount)),
+        minInvestment: toMicro(input.minInvestment),
+        isActive: input.isActive,
+        isVisible: input.isVisible,
+        isFeatured: input.isFeatured,
+        sortOrder: Math.trunc(input.sortOrder),
+        simulationEnabled: input.simulationEnabled,
+        simulationMinBps: input.simulationMinBps,
+        simulationMaxBps: input.simulationMaxBps,
+        simulationIntervalHours: input.simulationIntervalHours,
+        simulationNextRunAt:
+          input.simulationEnabled && !existing.simulationEnabled ? new Date() : undefined,
+      },
+    });
+    await tx.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: "UPDATE_CONFIG",
+        payload: { kind: "COPY_TRADER_UPDATED", traderId, name: input.name.trim() },
+      },
+    });
+    return tx.copyTrader.findUniqueOrThrow({
+      where: { id: traderId },
+      include: { _count: { select: { investments: { where: { status: "ACTIVE" } } } } },
+    });
+  });
+  return serializeAdminTrader(row);
+}
+
 export async function listUserCopyInvestments(userId: string): Promise<CopyInvestmentDto[]> {
   const rows = await prisma.copyInvestment.findMany({
     where: { userId },
@@ -248,6 +432,78 @@ export async function listUserCopyInvestments(userId: string): Promise<CopyInves
     orderBy: { startedAt: "desc" },
   });
   return rows.map(serializeInvestment);
+}
+
+export async function listUserCopyEvents(userId: string): Promise<
+  Array<{
+    id: string;
+    traderId: string;
+    traderName: string;
+    returnBps: number;
+    totalDelta: number;
+    affected: number;
+    at: number;
+  }>
+> {
+  const ledger = await prisma.copyInvestmentLedger.findMany({
+    where: {
+      kind: "PNL",
+      performanceId: { not: null },
+      investment: { userId },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    include: { investment: { include: { trader: true } } },
+  });
+  const eventIds = [...new Set(ledger.flatMap((entry) => (entry.performanceId ? [entry.performanceId] : [])))];
+  if (eventIds.length === 0) return [];
+  const events = await prisma.copyPerformanceEvent.findMany({
+    where: { id: { in: eventIds } },
+  });
+  const eventMap = new Map(events.map((event) => [event.id, event]));
+  const grouped = new Map<
+    string,
+    {
+      id: string;
+      traderId: string;
+      traderName: string;
+      returnBps: number;
+      totalDeltaMicro: bigint;
+      investments: Set<string>;
+      at: number;
+    }
+  >();
+
+  for (const entry of ledger) {
+    if (!entry.performanceId) continue;
+    const event = eventMap.get(entry.performanceId);
+    if (!event) continue;
+    const current = grouped.get(event.id) ?? {
+      id: event.id,
+      traderId: event.traderId,
+      traderName: entry.investment.trader.name,
+      returnBps: event.returnBps,
+      totalDeltaMicro: 0n,
+      investments: new Set<string>(),
+      at: event.createdAt.getTime(),
+    };
+    current.totalDeltaMicro += entry.amount;
+    current.investments.add(entry.investmentId);
+    grouped.set(event.id, current);
+  }
+
+  return [...grouped.values()]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 50)
+    .map((event) => ({
+      id: event.id,
+      traderId: event.traderId,
+      traderName: event.traderName,
+      returnBps: event.returnBps,
+      totalDelta: fromMicro(event.totalDeltaMicro),
+      affected: event.investments.size,
+      at: event.at,
+    }));
 }
 
 export async function listUserCopyWithdrawals(userId: string): Promise<CopyWithdrawalDto[]> {
@@ -446,20 +702,52 @@ export async function applyTraderPerformanceUpdate(input: {
   period: CopyPeriod;
   returnBps: number;
   adminUserId: string;
-}): Promise<{ affected: number; totalDelta: number }> {
-  if (!Number.isInteger(input.returnBps)) {
+  idempotencyKey?: string;
+  source?: "ADMIN" | "SIMULATION";
+}): Promise<{ affected: number; totalDelta: number; eventId: string; alreadyApplied: boolean }> {
+  if (!Number.isInteger(input.returnBps) || input.returnBps < -10_000 || input.returnBps > 10_000) {
     throw new CopyTradingError("returnBps must be an integer", "INVALID_AMOUNT");
   }
 
-  const performance = await prisma.$transaction(async (tx) => {
-    const trader = await tx.copyTrader.findUnique({ where: { id: input.traderId } });
-    if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+  const idempotencyKey = input.idempotencyKey?.trim() || randomUUID();
+  const prior = await prisma.copyPerformanceEvent.findUnique({ where: { idempotencyKey } });
+  if (prior) {
+    return { affected: 0, totalDelta: 0, eventId: prior.id, alreadyApplied: true };
+  }
 
-    const perf = await tx.copyTraderPerformance.upsert({
+  let performance: {
+    event: { id: string };
+    affected: number;
+    totalDelta: bigint;
+  };
+  try {
+    performance = await prisma.$transaction(async (tx) => {
+      const trader = await tx.copyTrader.findUnique({ where: { id: input.traderId } });
+      if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+    const event = await tx.copyPerformanceEvent.create({
+      data: {
+        traderId: input.traderId,
+        period: input.period,
+        returnBps: input.returnBps,
+        source: input.source ?? "ADMIN",
+        idempotencyKey,
+        createdById: input.adminUserId,
+      },
+    });
+
+    await tx.copyTraderPerformance.upsert({
       where: { traderId_period: { traderId: input.traderId, period: input.period } },
-      update: { returnBps: input.returnBps },
+      update: { returnBps: { increment: input.returnBps } },
       create: { traderId: input.traderId, period: input.period, returnBps: input.returnBps },
     });
+    if (input.period !== "ALL_TIME") {
+      await tx.copyTraderPerformance.upsert({
+        where: { traderId_period: { traderId: input.traderId, period: "ALL_TIME" } },
+        update: { returnBps: { increment: input.returnBps } },
+        create: { traderId: input.traderId, period: "ALL_TIME", returnBps: input.returnBps },
+      });
+    }
 
     const active = await tx.copyInvestment.findMany({
       where: { traderId: input.traderId, status: "ACTIVE", currentValue: { gt: 0 } },
@@ -487,17 +775,40 @@ export async function applyTraderPerformanceUpdate(input: {
       });
     }
 
-    for (const entry of result.ledger) {
-      await tx.copyInvestmentLedger.create({
-        data: {
+    if (result.ledger.length > 0) {
+      await tx.copyInvestmentLedger.createMany({
+        data: result.ledger.map((entry) => ({
           investmentId: entry.investmentId,
           kind: "PNL" satisfies CopyLedgerKind,
           amount: entry.amount,
           balanceAfter: entry.balanceAfter,
-          performanceId: perf.id,
-        },
+          performanceId: event.id,
+        })),
       });
     }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    await tx.copyTraderChartPoint.upsert({
+      where: { traderId_date: { traderId: input.traderId, date: today } },
+      update: { valueBps: { increment: input.returnBps } },
+      create: {
+        traderId: input.traderId,
+        date: today,
+        valueBps: trader.cumulativeRoiBps + input.returnBps,
+      },
+    });
+    await tx.copyTrader.update({
+      where: { id: input.traderId },
+      data: {
+        roiBps: { increment: input.returnBps },
+        cumulativeRoiBps: { increment: input.returnBps },
+        aum: { increment: result.totalDelta },
+        winningTrades: input.returnBps > 0 ? { increment: 1 } : undefined,
+        losingTrades: input.returnBps < 0 ? { increment: 1 } : undefined,
+        profitDays: input.returnBps > 0 ? { increment: 1 } : undefined,
+      },
+    });
 
     await tx.adminAction.create({
       data: {
@@ -509,19 +820,284 @@ export async function applyTraderPerformanceUpdate(input: {
           traderId: input.traderId,
           period: input.period,
           returnBps: input.returnBps,
+          source: input.source ?? "ADMIN",
+          eventId: event.id,
+          idempotencyKey,
           affected: active.length,
           totalDelta: result.totalDelta.toString(),
         },
       },
     });
 
-    return { perf, affected: active.length, totalDelta: result.totalDelta };
-  });
+      return { event, affected: active.length, totalDelta: result.totalDelta };
+    },
+    // Distributing P&L touches every active copy; allow room beyond the 5s default.
+    { maxWait: 10_000, timeout: 30_000 },
+    );
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      const existing = await prisma.copyPerformanceEvent.findUnique({ where: { idempotencyKey } });
+      if (existing) {
+        return { affected: 0, totalDelta: 0, eventId: existing.id, alreadyApplied: true };
+      }
+    }
+    throw error;
+  }
 
   return {
     affected: performance.affected,
     totalDelta: fromMicro(performance.totalDelta),
+    eventId: performance.event.id,
+    alreadyApplied: false,
   };
+}
+
+export async function getAdminCopyDashboard() {
+  const [traders, activeAggregate, activeUsers, pendingRows, recentRows] = await Promise.all([
+    listAdminCopyTraders(),
+    prisma.copyInvestment.aggregate({
+      where: { status: "ACTIVE" },
+      _count: true,
+      _sum: { principal: true, currentValue: true },
+    }),
+    prisma.copyInvestment.groupBy({
+      by: ["userId"],
+      where: { status: "ACTIVE" },
+    }),
+    prisma.copyWithdrawal.findMany({
+      where: { status: "REQUESTED" },
+      orderBy: { requestedAt: "asc" },
+      take: 50,
+      include: {
+        user: { select: { walletAddress: true, username: true } },
+        investment: { include: { trader: true } },
+      },
+    }),
+    prisma.copyPerformanceEvent.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      include: { trader: { select: { name: true } } },
+    }),
+  ]);
+
+  const principal = activeAggregate._sum.principal ?? 0n;
+  const currentValue = activeAggregate._sum.currentValue ?? 0n;
+  return {
+    metrics: {
+      traders: traders.length,
+      activeTraders: traders.filter((t) => t.isActive && t.isVisible).length,
+      automatedTraders: traders.filter((t) => t.simulationEnabled).length,
+      activeInvestments: activeAggregate._count,
+      activeUsers: activeUsers.length,
+      totalPrincipal: fromMicro(principal),
+      currentValue: fromMicro(currentValue),
+      totalPnl: fromMicro(currentValue - principal),
+      pendingWithdrawals: pendingRows.length,
+    },
+    traders,
+    pendingWithdrawals: pendingRows.map((w) => ({
+      id: w.id,
+      investmentId: w.investmentId,
+      traderName: w.investment.trader.name,
+      userName: w.user.username || w.user.walletAddress,
+      walletAddress: w.user.walletAddress,
+      amount: fromMicro(w.amount),
+      requestedAt: w.requestedAt.toISOString(),
+    })),
+    recentEvents: recentRows.map(
+      (event): CopyPerformanceEventDto => ({
+        id: event.id,
+        traderId: event.traderId,
+        traderName: event.trader.name,
+        period: event.period,
+        returnBps: event.returnBps,
+        source: event.source,
+        createdAt: event.createdAt.toISOString(),
+      }),
+    ),
+  };
+}
+
+function deterministicSimulationBps(
+  traderId: string,
+  bucket: number,
+  minBps: number,
+  maxBps: number,
+): number {
+  if (minBps === maxBps) return minBps;
+  const digest = createHash("sha256").update(`${traderId}:${bucket}`).digest();
+  const sample = digest.readUInt32BE(0);
+  return minBps + (sample % (maxBps - minBps + 1));
+}
+
+export async function runCopyTradingSimulation(input?: {
+  traderId?: string;
+  force?: boolean;
+  adminUserId?: string;
+  now?: Date;
+}): Promise<{
+  processed: number;
+  skipped: number;
+  affectedInvestments: number;
+  totalDelta: number;
+  results: Array<{ traderId: string; returnBps: number; affected: number; alreadyApplied: boolean }>;
+}> {
+  const now = input?.now ?? new Date();
+  const adminUserId = input?.adminUserId ?? (await getDefaultAdminActorId());
+  if (!adminUserId) {
+    throw new CopyTradingError("No active admin user is available for audit logging", "FORBIDDEN");
+  }
+
+  const rows = await prisma.copyTrader.findMany({
+    where: {
+      simulationEnabled: true,
+      isActive: true,
+      ...(input?.traderId ? { id: input.traderId } : {}),
+      ...(!input?.force
+        ? { OR: [{ simulationNextRunAt: null }, { simulationNextRunAt: { lte: now } }] }
+        : {}),
+    },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  const results: Array<{
+    traderId: string;
+    returnBps: number;
+    affected: number;
+    alreadyApplied: boolean;
+  }> = [];
+  let totalDelta = 0;
+  let affectedInvestments = 0;
+
+  for (const trader of rows) {
+    const intervalMs = trader.simulationIntervalHours * 60 * 60 * 1000;
+    const bucket = Math.floor(now.getTime() / intervalMs);
+    const returnBps = deterministicSimulationBps(
+      trader.id,
+      bucket,
+      trader.simulationMinBps,
+      trader.simulationMaxBps,
+    );
+    const result = await applyTraderPerformanceUpdate({
+      traderId: trader.id,
+      period: "TODAY",
+      returnBps,
+      adminUserId,
+      idempotencyKey: `simulation:${trader.id}:${bucket}`,
+      source: "SIMULATION",
+    });
+    const nextRunAt = new Date((bucket + 1) * intervalMs);
+    await prisma.copyTrader.update({
+      where: { id: trader.id },
+      data: { simulationLastRunAt: now, simulationNextRunAt: nextRunAt },
+    });
+    results.push({
+      traderId: trader.id,
+      returnBps,
+      affected: result.affected,
+      alreadyApplied: result.alreadyApplied,
+    });
+    totalDelta += result.totalDelta;
+    affectedInvestments += result.affected;
+  }
+
+  return {
+    processed: rows.length,
+    skipped: results.filter((result) => result.alreadyApplied).length,
+    affectedInvestments,
+    totalDelta,
+    results,
+  };
+}
+
+export async function decideCopyWithdrawal(input: {
+  withdrawalId: string;
+  decision: "APPROVE" | "REJECT";
+  adminUserId: string;
+}): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const withdrawal = await tx.copyWithdrawal.findFirst({
+      where: { id: input.withdrawalId, status: "REQUESTED" },
+      include: { investment: true },
+    });
+    if (!withdrawal) {
+      throw new CopyTradingError("Pending withdrawal not found", "NOT_FOUND");
+    }
+
+    const now = new Date();
+    if (input.decision === "REJECT") {
+      await tx.copyWithdrawal.update({
+        where: { id: withdrawal.id },
+        data: { status: "REJECTED", processedAt: now, processedById: input.adminUserId },
+      });
+    } else {
+      const math = applyWithdrawalMath(
+        withdrawal.investment.principal,
+        withdrawal.investment.currentValue,
+        withdrawal.amount,
+      );
+      if (math.withdrawn <= 0n) {
+        throw new CopyTradingError("Nothing remains to withdraw", "INVALID_AMOUNT");
+      }
+      await tx.copyInvestment.update({
+        where: { id: withdrawal.investmentId },
+        data: {
+          principal: math.principal,
+          currentValue: math.currentValue,
+          status: math.closed ? "CLOSED" : "ACTIVE",
+          closedAt: math.closed ? now : null,
+        },
+      });
+      await tx.copyInvestmentLedger.create({
+        data: {
+          investmentId: withdrawal.investmentId,
+          kind: "WITHDRAWAL",
+          amount: -math.withdrawn,
+          balanceAfter: math.currentValue,
+          note: "Admin-approved copy withdrawal",
+        },
+      });
+      await tx.copyWithdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          amount: math.withdrawn,
+          status: "COMPLETED",
+          processedAt: now,
+          processedById: input.adminUserId,
+        },
+      });
+      await tx.user.update({
+        where: { id: withdrawal.userId },
+        data: { earningsBalance: { increment: math.withdrawn } },
+      });
+      await tx.copyTrader.update({
+        where: { id: withdrawal.investment.traderId },
+        data: { aum: { decrement: math.withdrawn } },
+      });
+    }
+
+    await tx.adminAction.create({
+      data: {
+        adminId: input.adminUserId,
+        targetUserId: withdrawal.userId,
+        action: "UPDATE_CONFIG",
+        payload: {
+          kind:
+            input.decision === "APPROVE"
+              ? "COPY_WITHDRAWAL_APPROVED"
+              : "COPY_WITHDRAWAL_REJECTED",
+          withdrawalId: withdrawal.id,
+          investmentId: withdrawal.investmentId,
+          requestedAmount: withdrawal.amount.toString(),
+        },
+      },
+    });
+  });
 }
 
 export async function registerDeviceToken(input: {

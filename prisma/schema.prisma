@@ -183,48 +183,48 @@ enum InboxAudience {
 // ------------------------------------------------------------
 
 model User {
-  id              String    @id @default(uuid())
-  walletAddress   String    @unique
-  email           String?   @unique
-  username        String?
-  role            UserRole  @default(USER)
-  isActive        Boolean   @default(true)
-  referralCode    String    @unique
-  referrerId      String?
-  earningsBalance BigInt    @default(0)
-  lockedCapital   BigInt    @default(0)
-  totalEarned     BigInt    @default(0)
-  payoutCap       BigInt    @default(0)
-  accountGranted       Boolean   @default(false)
-  withdrawalUnlocked   Boolean   @default(false)
+  id                  String   @id @default(uuid())
+  walletAddress       String   @unique
+  email               String?  @unique
+  username            String?
+  role                UserRole @default(USER)
+  isActive            Boolean  @default(true)
+  referralCode        String   @unique
+  referrerId          String?
+  earningsBalance     BigInt   @default(0)
+  lockedCapital       BigInt   @default(0)
+  totalEarned         BigInt   @default(0)
+  payoutCap           BigInt   @default(0)
+  accountGranted      Boolean  @default(false)
+  withdrawalUnlocked  Boolean  @default(false)
   /// Partial USDT (micro) admin released for withdrawal while volume-locked.
-  withdrawalAllowance  BigInt    @default(0)
-  withdrawalRule       Json?
-  unlockDirectVolume   BigInt    @default(0)
-  unlockLevel1Volume   BigInt    @default(0)
-  unlockLevel2Volume   BigInt    @default(0)
+  withdrawalAllowance BigInt   @default(0)
+  withdrawalRule      Json?
+  unlockDirectVolume  BigInt   @default(0)
+  unlockLevel1Volume  BigInt   @default(0)
+  unlockLevel2Volume  BigInt   @default(0)
   /// Optional IB acceleration strategy (faster path to same 200% cap).
-  ibStrategyId         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  ibStrategyId        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  referrer        User?     @relation("UserReferrer", fields: [referrerId], references: [id])
-  downline        User[]    @relation("UserReferrer")
-  ibStrategy      IbStrategy? @relation(fields: [ibStrategyId], references: [id], onDelete: SetNull)
+  referrer   User?       @relation("UserReferrer", fields: [referrerId], references: [id])
+  downline   User[]      @relation("UserReferrer")
+  ibStrategy IbStrategy? @relation(fields: [ibStrategyId], references: [id], onDelete: SetNull)
 
-  stakes          Stake[]
-  trades          Trade[]
-  dailyYields     DailyYieldRecord[]
-  deposits        Deposit[]
-  withdrawals     Withdrawal[]
-  referralsAsUser Referral[]   @relation("ReferralUser")
-  referralsAsUpline Referral[] @relation("ReferralUpline")
-  commissionsEarned Commission[] @relation("CommissionBeneficiary")
-  commissionsFrom   Commission[] @relation("CommissionSource")
-  adminActions    AdminAction[] @relation("AdminActor")
-  targetedActions AdminAction[] @relation("AdminTarget")
-  inboxNotifications InboxNotification[]
-  supportTickets     SupportTicket[]
+  stakes                  Stake[]
+  trades                  Trade[]
+  dailyYields             DailyYieldRecord[]
+  deposits                Deposit[]
+  withdrawals             Withdrawal[]
+  referralsAsUser         Referral[]               @relation("ReferralUser")
+  referralsAsUpline       Referral[]               @relation("ReferralUpline")
+  commissionsEarned       Commission[]             @relation("CommissionBeneficiary")
+  commissionsFrom         Commission[]             @relation("CommissionSource")
+  adminActions            AdminAction[]            @relation("AdminActor")
+  targetedActions         AdminAction[]            @relation("AdminTarget")
+  inboxNotifications      InboxNotification[]
+  supportTickets          SupportTicket[]
   sponsorTermsAcceptances SponsorTermsAcceptance[]
   sponsorTermsCreated     SponsorTermsVersion[]    @relation("TermsCreator")
   deletionRequest         AccountDeletionRequest?
@@ -233,8 +233,8 @@ model User {
   copyWithdrawals         CopyWithdrawal[]
   deviceTokens            DeviceToken[]
   ibAgreement             IbAgreement?
-  ibNetDepositCredits     IbNetDepositCredit[] @relation("IbNetDepositBeneficiary")
-  ibNetDepositSources     IbNetDepositCredit[] @relation("IbNetDepositSource")
+  ibNetDepositCredits     IbNetDepositCredit[]     @relation("IbNetDepositBeneficiary")
+  ibNetDepositSources     IbNetDepositCredit[]     @relation("IbNetDepositSource")
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -244,42 +244,42 @@ model User {
 /// Admin-defined IB / acceleration strategy.
 /// Speeds progress toward the same 2× payout cap — does not raise total investor payout.
 model IbStrategy {
-  id                   String   @id @default(uuid())
-  name                 String
-  description          String   @default("")
+  id                 String   @id @default(uuid())
+  name               String
+  description        String   @default("")
   /// Extra passive yield bps added to platform baseYieldBps (e.g. 20 = +0.20%/day).
-  passiveBonusBps      Int      @default(0)
+  passiveBonusBps    Int      @default(0)
   /// Extra trade-win bonus bps added to platform bonusPerWinBps.
-  tradeBonusExtraBps   Int      @default(0)
+  tradeBonusExtraBps Int      @default(0)
   /// Optional custom 8-level commission rates (bps) when this user earns as upline.
   /// null = use global platform commission rates.
-  commissionRatesBps   Json?
-  isActive             Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  commissionRatesBps Json?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  users                User[]
+  users User[]
 
   @@index([isActive])
 }
 
 /// Per-user IB agreement (Net Deposit negotiation). Kept separate from IbStrategy yield boost.
 model IbAgreement {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
+  id                String   @id @default(uuid())
+  userId            String   @unique
   /// Visible as IB in admin monitor even if Net Deposit is temporarily off.
-  isIb               Boolean  @default(true)
-  netDepositEnabled  Boolean  @default(false)
+  isIb              Boolean  @default(true)
+  netDepositEnabled Boolean  @default(false)
   /// % of L1 (direct) referral deposits in bps (300 = 3%).
-  level1DepositBps   Int      @default(0)
+  level1DepositBps  Int      @default(0)
   /// % of L2 deposits in bps; 0 = L1 only.
-  level2DepositBps   Int      @default(0)
-  notes              String   @default("")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  level2DepositBps  Int      @default(0)
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credits            IbNetDepositCredit[]
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credits IbNetDepositCredit[]
 
   @@index([isIb])
   @@index([netDepositEnabled])
@@ -287,21 +287,21 @@ model IbAgreement {
 
 /// One Net Deposit bonus per (IB, deposit). Real on-chain deposits only.
 model IbNetDepositCredit {
-  id              String   @id @default(uuid())
-  beneficiaryId   String
-  sourceUserId    String
-  depositId       String
-  agreementId     String?
-  level           Int
-  rateBps         Int
-  depositAmount   BigInt
-  creditedAmount  BigInt
-  createdAt       DateTime @default(now())
+  id             String   @id @default(uuid())
+  beneficiaryId  String
+  sourceUserId   String
+  depositId      String
+  agreementId    String?
+  level          Int
+  rateBps        Int
+  depositAmount  BigInt
+  creditedAmount BigInt
+  createdAt      DateTime @default(now())
 
-  beneficiary     User     @relation("IbNetDepositBeneficiary", fields: [beneficiaryId], references: [id])
-  sourceUser      User     @relation("IbNetDepositSource", fields: [sourceUserId], references: [id])
-  deposit         Deposit  @relation(fields: [depositId], references: [id])
-  agreement       IbAgreement? @relation(fields: [agreementId], references: [id], onDelete: SetNull)
+  beneficiary User         @relation("IbNetDepositBeneficiary", fields: [beneficiaryId], references: [id])
+  sourceUser  User         @relation("IbNetDepositSource", fields: [sourceUserId], references: [id])
+  deposit     Deposit      @relation(fields: [depositId], references: [id])
+  agreement   IbAgreement? @relation(fields: [agreementId], references: [id], onDelete: SetNull)
 
   @@unique([beneficiaryId, depositId])
   @@index([beneficiaryId, createdAt])
@@ -321,49 +321,49 @@ model Stake {
   startedAt   DateTime    @default(now())
   completedAt DateTime?
 
-  user        User        @relation(fields: [userId], references: [id])
-  deposit     Deposit?    @relation(fields: [depositId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  deposit Deposit? @relation(fields: [depositId], references: [id])
 
   @@index([userId])
   @@index([status])
 }
 
 model Trade {
-  id              String       @id @default(uuid())
-  userId          String
-  pair            String
-  direction       Direction
-  entryPrice      Decimal      @db.Decimal(20, 8)
-  exitPrice       Decimal?     @db.Decimal(20, 8)
-  durationSec     Int
-  openedAt        DateTime     @default(now())
-  resolvedAt      DateTime?
-  result          TradeResult?
-  bonusAppliedBps Int          @default(0)
-  capitalSnapshotAtWin BigInt  @default(0)
-  bonusCredited   BigInt       @default(0)
+  id                   String       @id @default(uuid())
+  userId               String
+  pair                 String
+  direction            Direction
+  entryPrice           Decimal      @db.Decimal(20, 8)
+  exitPrice            Decimal?     @db.Decimal(20, 8)
+  durationSec          Int
+  openedAt             DateTime     @default(now())
+  resolvedAt           DateTime?
+  result               TradeResult?
+  bonusAppliedBps      Int          @default(0)
+  capitalSnapshotAtWin BigInt       @default(0)
+  bonusCredited        BigInt       @default(0)
 
-  user            User         @relation(fields: [userId], references: [id])
-  commissions     Commission[]
+  user        User         @relation(fields: [userId], references: [id])
+  commissions Commission[]
 
   @@index([userId, openedAt])
   @@index([userId, result])
 }
 
 model DailyYieldRecord {
-  id              String       @id @default(uuid())
+  id              String   @id @default(uuid())
   userId          String
-  date            DateTime     @db.Date
-  baseRateBps     Int          @default(30)
-  winsCount       Int          @default(0)
-  bonusRateBps    Int          @default(0)
+  date            DateTime @db.Date
+  baseRateBps     Int      @default(30)
+  winsCount       Int      @default(0)
+  bonusRateBps    Int      @default(0)
   totalRateBps    Int
   capitalSnapshot BigInt
   creditedAmount  BigInt
-  createdAt       DateTime     @default(now())
+  createdAt       DateTime @default(now())
 
-  user            User         @relation(fields: [userId], references: [id])
-  commissions     Commission[]
+  user        User         @relation(fields: [userId], references: [id])
+  commissions Commission[]
 
   @@index([userId, date])
   @@index([date])
@@ -376,28 +376,28 @@ model Referral {
   level     Int
   createdAt DateTime @default(now())
 
-  user      User     @relation("ReferralUser", fields: [userId], references: [id])
-  upline    User     @relation("ReferralUpline", fields: [uplineId], references: [id])
+  user   User @relation("ReferralUser", fields: [userId], references: [id])
+  upline User @relation("ReferralUpline", fields: [uplineId], references: [id])
 
   @@unique([userId, level])
   @@index([uplineId, level])
 }
 
 model Commission {
-  id              String           @id @default(uuid())
-  beneficiaryId   String
-  sourceUserId    String
-  level           Int
-  rateBps         Int
-  amount          BigInt
-  sourceYieldId   String?
-  sourceTradeId   String?
-  createdAt       DateTime         @default(now())
+  id            String   @id @default(uuid())
+  beneficiaryId String
+  sourceUserId  String
+  level         Int
+  rateBps       Int
+  amount        BigInt
+  sourceYieldId String?
+  sourceTradeId String?
+  createdAt     DateTime @default(now())
 
-  beneficiary     User             @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
-  sourceUser      User             @relation("CommissionSource", fields: [sourceUserId], references: [id])
-  sourceYield     DailyYieldRecord? @relation(fields: [sourceYieldId], references: [id])
-  sourceTrade     Trade?           @relation(fields: [sourceTradeId], references: [id])
+  beneficiary User              @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
+  sourceUser  User              @relation("CommissionSource", fields: [sourceUserId], references: [id])
+  sourceYield DailyYieldRecord? @relation(fields: [sourceYieldId], references: [id])
+  sourceTrade Trade?            @relation(fields: [sourceTradeId], references: [id])
 
   @@index([beneficiaryId])
   @@index([sourceUserId])
@@ -405,21 +405,21 @@ model Commission {
 }
 
 model Deposit {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   userId        String
   network       Network
-  currency      Currency @default(USDT)
+  currency      Currency  @default(USDT)
   amount        BigInt
   fromAddress   String
   toAddress     String
-  txHash        String   @unique
-  confirmations Int      @default(0)
-  status        TxStatus @default(PENDING)
-  detectedAt    DateTime @default(now())
+  txHash        String    @unique
+  confirmations Int       @default(0)
+  status        TxStatus  @default(PENDING)
+  detectedAt    DateTime  @default(now())
   confirmedAt   DateTime?
 
-  user          User     @relation(fields: [userId], references: [id])
-  stake         Stake?
+  user                User                 @relation(fields: [userId], references: [id])
+  stake               Stake?
   ibNetDepositCredits IbNetDepositCredit[]
 
   @@index([userId])
@@ -439,22 +439,22 @@ model Withdrawal {
   requestedAt DateTime         @default(now())
   processedAt DateTime?
 
-  user        User             @relation(fields: [userId], references: [id])
+  user           User                @relation(fields: [userId], references: [id])
   treasuryPayout TreasuryWithdrawal?
 
   @@index([userId, status])
 }
 
 model BotOperation {
-  id          String    @id @default(uuid())
-  pair        String
-  direction   Direction
-  volume      BigInt
-  pnl         BigInt
-  pnlBps      Int
-  fakeTxHash  String    @unique
-  network     Network
-  executedAt  DateTime  @default(now())
+  id         String    @id @default(uuid())
+  pair       String
+  direction  Direction
+  volume     BigInt
+  pnl        BigInt
+  pnlBps     Int
+  fakeTxHash String    @unique
+  network    Network
+  executedAt DateTime  @default(now())
 
   @@index([executedAt])
 }
@@ -467,8 +467,8 @@ model AdminAction {
   payload      Json
   createdAt    DateTime        @default(now())
 
-  admin        User            @relation("AdminActor", fields: [adminId], references: [id])
-  target       User?           @relation("AdminTarget", fields: [targetUserId], references: [id])
+  admin  User  @relation("AdminActor", fields: [adminId], references: [id])
+  target User? @relation("AdminTarget", fields: [targetUserId], references: [id])
 
   @@index([adminId])
   @@index([targetUserId])
@@ -508,7 +508,7 @@ model TreasuryWithdrawal {
   createdBy        String?
   createdAt        DateTime               @default(now())
 
-  userWithdrawal   Withdrawal?            @relation(fields: [userWithdrawalId], references: [id])
+  userWithdrawal Withdrawal? @relation(fields: [userWithdrawalId], references: [id])
 
   @@index([createdAt(sort: Desc)])
 }
@@ -565,7 +565,7 @@ model SupportTicket {
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 
-  user        User?                      @relation(fields: [userId], references: [id])
+  user        User?                     @relation(fields: [userId], references: [id])
   replies     SupportTicketReply[]
   attachments SupportTicketAttachment[]
 
@@ -584,7 +584,7 @@ model SupportTicketReply {
   adminId   String?
   createdAt DateTime @default(now())
 
-  ticket      SupportTicket               @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket      SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   attachments SupportTicketAttachment[]
 
   @@index([ticketId, createdAt])
@@ -609,19 +609,19 @@ model SupportTicketAttachment {
 }
 
 model InboxNotification {
-  id        String         @id @default(uuid())
+  id        String        @id @default(uuid())
   audience  InboxAudience
   userId    String?
   wallet    String?
   email     String?
   kind      String
   eventKey  String
-  params    Json           @default("{}")
+  params    Json          @default("{}")
   href      String?
-  dedupeKey String         @unique
-  createdAt DateTime       @default(now())
+  dedupeKey String        @unique
+  createdAt DateTime      @default(now())
 
-  user      User?          @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@index([audience, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
@@ -640,7 +640,7 @@ model SponsorTermsVersion {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  createdBy   User                      @relation("TermsCreator", fields: [createdById], references: [id])
+  createdBy   User                     @relation("TermsCreator", fields: [createdById], references: [id])
   acceptances SponsorTermsAcceptance[]
 
   @@unique([version])
@@ -720,38 +720,46 @@ model SponsorshipPeriod {
 // ------------------------------------------------------------
 
 model CopyTrader {
-  id               String        @id
-  name             String
-  photoUrl         String?
-  description      String        @db.Text
-  riskLevel        CopyRiskLevel @default(MEDIUM)
-  experienceDays   Int           @default(0)
-  profitDays       Int           @default(0)
-  followersCount   Int           @default(0)
-  investorsCount   Int           @default(0)
-  aum              BigInt        @default(0)
-  totalInvested    BigInt        @default(0)
-  roiBps           Int           @default(0)
-  cumulativeRoiBps Int           @default(0)
-  winRateBps       Int           @default(0)
-  maxDrawdownBps   Int           @default(0)
-  tradeVolume      BigInt        @default(0)
-  winningTrades    Int           @default(0)
-  losingTrades     Int           @default(0)
-  minInvestment    BigInt        @default(100000000)
-  isActive         Boolean       @default(true)
-  isVisible        Boolean       @default(true)
-  isFeatured       Boolean       @default(false)
-  sortOrder        Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                      String        @id
+  name                    String
+  photoUrl                String?
+  description             String        @db.Text
+  riskLevel               CopyRiskLevel @default(MEDIUM)
+  experienceDays          Int           @default(0)
+  profitDays              Int           @default(0)
+  followersCount          Int           @default(0)
+  investorsCount          Int           @default(0)
+  aum                     BigInt        @default(0)
+  totalInvested           BigInt        @default(0)
+  roiBps                  Int           @default(0)
+  cumulativeRoiBps        Int           @default(0)
+  winRateBps              Int           @default(0)
+  maxDrawdownBps          Int           @default(0)
+  tradeVolume             BigInt        @default(0)
+  winningTrades           Int           @default(0)
+  losingTrades            Int           @default(0)
+  minInvestment           BigInt        @default(100000000)
+  isActive                Boolean       @default(true)
+  isVisible               Boolean       @default(true)
+  isFeatured              Boolean       @default(false)
+  sortOrder               Int           @default(0)
+  simulationEnabled       Boolean       @default(false)
+  simulationMinBps        Int           @default(-50)
+  simulationMaxBps        Int           @default(100)
+  simulationIntervalHours Int           @default(24)
+  simulationLastRunAt     DateTime?
+  simulationNextRunAt     DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
-  performances CopyTraderPerformance[]
-  chartPoints  CopyTraderChartPoint[]
-  investments  CopyInvestment[]
+  performances      CopyTraderPerformance[]
+  performanceEvents CopyPerformanceEvent[]
+  chartPoints       CopyTraderChartPoint[]
+  investments       CopyInvestment[]
 
   @@index([isVisible, isActive, sortOrder])
   @@index([roiBps])
+  @@index([simulationEnabled, simulationNextRunAt])
 }
 
 model CopyTraderPerformance {
@@ -764,6 +772,22 @@ model CopyTraderPerformance {
   trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
 
   @@unique([traderId, period])
+}
+
+model CopyPerformanceEvent {
+  id             String     @id @default(uuid())
+  traderId       String
+  period         CopyPeriod @default(TODAY)
+  returnBps      Int
+  source         String     @default("ADMIN")
+  idempotencyKey String     @unique
+  createdById    String?
+  createdAt      DateTime   @default(now())
+
+  trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@index([traderId, createdAt(sort: Desc)])
+  @@index([source, createdAt(sort: Desc)])
 }
 
 model CopyTraderChartPoint {

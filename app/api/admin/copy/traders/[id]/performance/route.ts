@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({
   period: z.enum(["TODAY", "WEEK", "MONTH", "QUARTER", "YEAR", "ALL_TIME"]),
-  returnBps: z.number().int(),
+  returnBps: z.number().int().min(-10_000).max(10_000),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -43,6 +44,8 @@ export async function POST(req: Request, { params }: Params) {
       period: parsed.period,
       returnBps: parsed.returnBps,
       adminUserId: adminUser.id,
+      idempotencyKey: parsed.idempotencyKey,
+      source: "ADMIN",
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

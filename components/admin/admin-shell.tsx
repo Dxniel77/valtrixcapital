@@ -22,6 +22,7 @@ import {
   Wallet,
   Calendar,
   Handshake,
+  Bot,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSelector } from "@/components/i18n/language-selector";
@@ -45,6 +46,7 @@ export const adminNavItems = [
   { href: "/admin/treasury", key: "treasury", icon: Landmark },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
   { href: "/admin/ib", key: "ib", icon: Handshake },
+  { href: "/admin/copy-trading", key: "copyTrading", icon: Bot },
   { href: "/admin/sponsorship", key: "sponsorship", icon: Calendar },
   { href: "/admin/lookup", key: "lookup", icon: Search },
   { href: "/admin/leaders", key: "leaders", icon: Trophy },
