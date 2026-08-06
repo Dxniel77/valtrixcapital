@@ -1556,7 +1556,12 @@
       "minimumReturn": "न्यूनतम परिणाम %",
       "maximumReturn": "अधिकतम परिणाम %",
       "intervalHours": "अंतराल (घंटे)",
-      "save": "व्यापारी को बचाएं"
+      "save": "व्यापारी को बचाएं",
+      "searchTraders": "ट्रेडर खोजें",
+      "noTradersMatch": "आपकी खोज से कोई ट्रेडर मेल नहीं खाता।",
+      "pageOf": "पृष्ठ {page} / {total}",
+      "prev": "पिछला",
+      "next": "अगला"
     }
   },
   "trade": {

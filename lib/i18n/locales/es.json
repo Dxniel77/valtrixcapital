@@ -1038,7 +1038,12 @@
       "minimumReturn": "Resultado mínimo %",
       "maximumReturn": "Resultado máximo %",
       "intervalHours": "Intervalo (horas)",
-      "save": "Guardar trader"
+      "save": "Guardar trader",
+      "searchTraders": "Buscar traders",
+      "noTradersMatch": "Ningún trader coincide con tu búsqueda.",
+      "pageOf": "Página {page} de {total}",
+      "prev": "Anterior",
+      "next": "Siguiente"
     },
     "notifications": {
       "title": "Enviar notificaciones",

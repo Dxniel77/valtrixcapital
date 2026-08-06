@@ -1556,7 +1556,12 @@
       "minimumReturn": "الحد الأدنى للنتيجة٪",
       "maximumReturn": "الحد الأقصى للنتيجة٪",
       "intervalHours": "الفاصل الزمني (ساعات)",
-      "save": "حفظ التاجر"
+      "save": "حفظ التاجر",
+      "searchTraders": "ابحث عن المتداولين",
+      "noTradersMatch": "لا يوجد متداول يطابق بحثك.",
+      "pageOf": "الصفحة {page} من {total}",
+      "prev": "السابق",
+      "next": "التالي"
     }
   },
   "trade": {

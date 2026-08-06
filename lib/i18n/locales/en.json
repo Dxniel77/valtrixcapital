@@ -980,7 +980,12 @@
       "minimumReturn": "Minimum result %",
       "maximumReturn": "Maximum result %",
       "intervalHours": "Interval (hours)",
-      "save": "Save trader"
+      "save": "Save trader",
+      "searchTraders": "Search traders",
+      "noTradersMatch": "No traders match your search.",
+      "pageOf": "Page {page} of {total}",
+      "prev": "Previous",
+      "next": "Next"
     },
     "notifications": {
       "title": "Send notifications",

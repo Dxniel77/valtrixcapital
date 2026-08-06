@@ -1556,7 +1556,12 @@
       "minimumReturn": "最小結果%",
       "maximumReturn": "最大結果%",
       "intervalHours": "間隔 (時間)",
-      "save": "トレーダーを保存する"
+      "save": "トレーダーを保存する",
+      "searchTraders": "トレーダーを検索",
+      "noTradersMatch": "条件に一致するトレーダーがいません。",
+      "pageOf": "{total} ページ中 {page} ページ",
+      "prev": "前へ",
+      "next": "次へ"
     }
   },
   "trade": {

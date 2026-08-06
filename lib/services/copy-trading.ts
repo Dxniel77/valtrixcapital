@@ -39,6 +39,8 @@ export type CopyTraderDto = {
   name: string;
   photoUrl: string | null;
   description: string;
+  countryCode: string | null;
+  countryName: string | null;
   riskLevel: CopyRiskLevel;
   experienceDays: number;
   profitDays: number;
@@ -164,6 +166,8 @@ function serializeTrader(
     name: t.name,
     photoUrl: t.photoUrl,
     description: t.description,
+    countryCode: t.countryCode,
+    countryName: t.countryName,
     riskLevel: t.riskLevel,
     experienceDays: t.experienceDays,
     profitDays: t.profitDays,
@@ -269,7 +273,7 @@ export async function listCopyTraders(input?: {
   total: number;
 }> {
   const page = Math.max(1, input?.page ?? 1);
-  const pageSize = Math.min(100, Math.max(1, input?.pageSize ?? 50));
+  const pageSize = Math.min(300, Math.max(1, input?.pageSize ?? 50));
   const where = { isVisible: true, isActive: true };
 
   const [total, rows] = await Promise.all([

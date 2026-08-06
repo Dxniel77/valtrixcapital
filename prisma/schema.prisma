@@ -724,6 +724,8 @@ model CopyTrader {
   name                    String
   photoUrl                String?
   description             String        @db.Text
+  countryCode             String?       @db.VarChar(2)
+  countryName             String?
   riskLevel               CopyRiskLevel @default(MEDIUM)
   experienceDays          Int           @default(0)
   profitDays              Int           @default(0)

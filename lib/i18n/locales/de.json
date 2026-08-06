@@ -1556,7 +1556,12 @@
       "minimumReturn": "Mindestergebnis %",
       "maximumReturn": "Maximales Ergebnis %",
       "intervalHours": "Intervall (Stunden)",
-      "save": "Händler speichern"
+      "save": "Händler speichern",
+      "searchTraders": "Trader suchen",
+      "noTradersMatch": "Keine Trader entsprechen deiner Suche.",
+      "pageOf": "Seite {page} von {total}",
+      "prev": "Zurück",
+      "next": "Weiter"
     }
   },
   "trade": {

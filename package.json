@@ -15,6 +15,8 @@
     "db:push": "node scripts/prisma-with-env.mjs db push",
     "db:studio": "node scripts/prisma-with-env.mjs studio",
     "db:seed": "node scripts/run-with-env.mjs npx tsx prisma/seed.ts",
+    "db:copy:rebuild": "node scripts/run-with-env.mjs npx tsx prisma/rebuild-copy-catalog.ts",
+    "db:copy:refresh": "node scripts/run-with-env.mjs npx tsx prisma/refresh-copy-history.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

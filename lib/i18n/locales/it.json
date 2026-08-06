@@ -1556,7 +1556,12 @@
       "minimumReturn": "Risultato minimo%",
       "maximumReturn": "Risultato massimo%",
       "intervalHours": "Intervallo (ore)",
-      "save": "Salva il commerciante"
+      "save": "Salva il commerciante",
+      "searchTraders": "Cerca trader",
+      "noTradersMatch": "Nessun trader corrisponde alla ricerca.",
+      "pageOf": "Pagina {page} di {total}",
+      "prev": "Precedente",
+      "next": "Successivo"
     }
   },
   "trade": {

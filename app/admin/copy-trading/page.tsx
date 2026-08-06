@@ -186,6 +186,38 @@ export default function AdminCopyTradingPage() {
   const [editing, setEditing] = React.useState<Trader | null | "new">(null);
   const [form, setForm] = React.useState<TraderForm>(EMPTY_FORM);
   const [returns, setReturns] = React.useState<Record<string, string>>({});
+  const [traderSearch, setTraderSearch] = React.useState("");
+  const [traderPage, setTraderPage] = React.useState(1);
+
+  const TRADER_PAGE_SIZE = 15;
+
+  const filteredTraders = React.useMemo(() => {
+    const q = traderSearch.trim().toLowerCase();
+    const list = data?.traders ?? [];
+    if (!q) return list;
+    return list.filter((tr) => tr.name.toLowerCase().includes(q));
+  }, [data?.traders, traderSearch]);
+
+  const traderPageCount = Math.max(
+    1,
+    Math.ceil(filteredTraders.length / TRADER_PAGE_SIZE),
+  );
+  const pagedTraders = React.useMemo(
+    () =>
+      filteredTraders.slice(
+        (traderPage - 1) * TRADER_PAGE_SIZE,
+        traderPage * TRADER_PAGE_SIZE,
+      ),
+    [filteredTraders, traderPage],
+  );
+
+  React.useEffect(() => {
+    setTraderPage(1);
+  }, [traderSearch]);
+
+  React.useEffect(() => {
+    if (traderPage > traderPageCount) setTraderPage(traderPageCount);
+  }, [traderPage, traderPageCount]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -386,14 +418,24 @@ export default function AdminCopyTradingPage() {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Users className="h-4 w-4 text-gold" />
                 {t("admin.copyTrading.traders")}
+                <span className="font-mono text-xs font-normal text-text-muted">
+                  ({filteredTraders.length})
+                </span>
               </CardTitle>
+              <div className="w-full sm:w-64">
+                <Input
+                  value={traderSearch}
+                  onChange={(e) => setTraderSearch(e.target.value)}
+                  placeholder={t("admin.copyTrading.searchTraders")}
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.traders.map((trader) =>
+              {pagedTraders.map((trader) =>
                 (() => {
                   const operation = data.openOperations.find(
                     (item) => item.traderId === trader.id,
@@ -547,6 +589,41 @@ export default function AdminCopyTradingPage() {
                   );
                 })(),
               )}
+              {filteredTraders.length === 0 ? (
+                <p className="text-sm text-text-muted">
+                  {t("admin.copyTrading.noTradersMatch")}
+                </p>
+              ) : null}
+              {traderPageCount > 1 ? (
+                <div className="flex items-center justify-between border-t border-border-subtle pt-4">
+                  <p className="font-mono text-xs text-text-muted">
+                    {t("admin.copyTrading.pageOf", {
+                      page: traderPage,
+                      total: traderPageCount,
+                    })}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={traderPage <= 1}
+                      onClick={() => setTraderPage((p) => Math.max(1, p - 1))}
+                    >
+                      {t("admin.copyTrading.prev")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={traderPage >= traderPageCount}
+                      onClick={() =>
+                        setTraderPage((p) => Math.min(traderPageCount, p + 1))
+                      }
+                    >
+                      {t("admin.copyTrading.next")}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
