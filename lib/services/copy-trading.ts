@@ -512,6 +512,72 @@ export async function updateAdminCopyTrader(
   return serializeAdminTrader(row);
 }
 
+/**
+ * Soft-deletes traders from the marketplace. Investors keep their ledger
+ * history (hard delete is refused when any investment exists). Returns how
+ * many were hidden and how many were skipped because they still have copies.
+ */
+export async function deleteAdminCopyTraders(
+  traderIds: string[],
+  adminUserId: string,
+): Promise<{ deleted: number; skipped: number; skippedIds: string[] }> {
+  const uniqueIds = [...new Set(traderIds.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    throw new CopyTradingError("No traders selected", "INVALID_AMOUNT");
+  }
+  if (uniqueIds.length > 100) {
+    throw new CopyTradingError("Select at most 100 traders at once", "INVALID_AMOUNT");
+  }
+
+  const rows = await prisma.copyTrader.findMany({
+    where: { id: { in: uniqueIds } },
+    include: {
+      _count: {
+        select: {
+          investments: { where: { status: "ACTIVE" } },
+        },
+      },
+    },
+  });
+
+  const withActive = rows.filter((row) => row._count.investments > 0).map((row) => row.id);
+  const deletable = rows
+    .filter((row) => row._count.investments === 0)
+    .map((row) => row.id);
+
+  if (deletable.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.copyTrader.updateMany({
+        where: { id: { in: deletable } },
+        data: {
+          isActive: false,
+          isVisible: false,
+          simulationEnabled: false,
+          isFeatured: false,
+          simulationNextRunAt: null,
+        },
+      });
+      await tx.adminAction.create({
+        data: {
+          adminId: adminUserId,
+          action: "UPDATE_CONFIG",
+          payload: {
+            kind: "COPY_TRADERS_DELETED",
+            traderIds: deletable,
+            skippedIds: withActive,
+          },
+        },
+      });
+    });
+  }
+
+  return {
+    deleted: deletable.length,
+    skipped: withActive.length,
+    skippedIds: withActive,
+  };
+}
+
 export async function listUserCopyInvestments(
   userId: string,
 ): Promise<CopyInvestmentDto[]> {

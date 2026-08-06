@@ -1561,7 +1561,12 @@
       "noTradersMatch": "لا يوجد متداول يطابق بحثك.",
       "pageOf": "الصفحة {page} من {total}",
       "prev": "السابق",
-      "next": "التالي"
+      "next": "التالي",
+      "selectPage": "تحديد الصفحة",
+      "deleteSelected": "حذف ({n})",
+      "confirmDelete": "إخفاء {n} من المتداولين المحددين من السوق؟",
+      "deleted": "تمت إزالة {n} من المتداولين.",
+      "deletedWithSkipped": "تمت إزالة {deleted}. تم تخطي {skipped} لديهم نسخ نشطة."
     }
   },
   "trade": {

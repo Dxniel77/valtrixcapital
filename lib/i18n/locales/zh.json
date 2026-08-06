@@ -1619,7 +1619,12 @@
       "noTradersMatch": "没有匹配的交易员。",
       "pageOf": "第 {page} 页 / 共 {total} 页",
       "prev": "上一页",
-      "next": "下一页"
+      "next": "下一页",
+      "selectPage": "选择本页",
+      "deleteSelected": "删除（{n}）",
+      "confirmDelete": "从市场隐藏所选的 {n} 位交易员？",
+      "deleted": "已移除 {n} 位交易员。",
+      "deletedWithSkipped": "已移除 {deleted} 位。跳过 {skipped} 位仍有活跃跟单。"
     }
   },
   "notifications": {

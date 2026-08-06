@@ -740,7 +740,7 @@ model CopyTrader {
   tradeVolume             BigInt        @default(0)
   winningTrades           Int           @default(0)
   losingTrades            Int           @default(0)
-  minInvestment           BigInt        @default(100000000)
+  minInvestment           BigInt        @default(15000000)
   isActive                Boolean       @default(true)
   isVisible               Boolean       @default(true)
   isFeatured              Boolean       @default(false)
@@ -887,7 +887,7 @@ model CopyWithdrawal {
 
 model CopyTradingConfig {
   id                  Int                @id @default(1)
-  globalMinInvestment BigInt             @default(100000000)
+  globalMinInvestment BigInt             @default(15000000)
   withdrawalMode      CopyWithdrawalMode @default(APPROVAL)
   notifyOnPerformance Boolean            @default(true)
   updatedAt           DateTime           @updatedAt

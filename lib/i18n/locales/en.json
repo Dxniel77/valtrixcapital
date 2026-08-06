@@ -985,7 +985,12 @@
       "noTradersMatch": "No traders match your search.",
       "pageOf": "Page {page} of {total}",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "selectPage": "Select page",
+      "deleteSelected": "Delete ({n})",
+      "confirmDelete": "Hide {n} selected trader(s) from the marketplace?",
+      "deleted": "Removed {n} trader(s).",
+      "deletedWithSkipped": "Removed {deleted} trader(s). Skipped {skipped} with active copies."
     },
     "notifications": {
       "title": "Send notifications",

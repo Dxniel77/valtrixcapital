@@ -1560,7 +1560,12 @@
       "noTradersMatch": "Nenhum trader corresponde à sua busca.",
       "pageOf": "Página {page} de {total}",
       "prev": "Anterior",
-      "next": "Próximo"
+      "next": "Próximo",
+      "selectPage": "Selecionar página",
+      "deleteSelected": "Excluir ({n})",
+      "confirmDelete": "Ocultar {n} trader(s) selecionado(s) do marketplace?",
+      "deleted": "Removido(s) {n} trader(s).",
+      "deletedWithSkipped": "Removidos {deleted}. Ignorados {skipped} com cópias ativas."
     }
   },
   "trade": {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Activity, Bot, Pencil, Play, Plus, Users } from "lucide-react";
+import { Activity, Bot, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +116,7 @@ const EMPTY_FORM: TraderForm = {
   riskLevel: "MEDIUM",
   experienceDays: "365",
   followersCount: "0",
-  minInvestment: "100",
+  minInvestment: "15",
   sortOrder: "0",
   isActive: true,
   isVisible: true,
@@ -188,6 +188,7 @@ export default function AdminCopyTradingPage() {
   const [returns, setReturns] = React.useState<Record<string, string>>({});
   const [traderSearch, setTraderSearch] = React.useState("");
   const [traderPage, setTraderPage] = React.useState(1);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
   const TRADER_PAGE_SIZE = 15;
 
@@ -213,11 +214,75 @@ export default function AdminCopyTradingPage() {
 
   React.useEffect(() => {
     setTraderPage(1);
+    setSelectedIds(new Set());
   }, [traderSearch]);
 
   React.useEffect(() => {
     if (traderPage > traderPageCount) setTraderPage(traderPageCount);
   }, [traderPage, traderPageCount]);
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = pagedTraders.every((trader) => next.has(trader.id));
+      for (const trader of pagedTraders) {
+        if (allSelected) next.delete(trader.id);
+        else next.add(trader.id);
+      }
+      return next;
+    });
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        t("admin.copyTrading.confirmDelete", { n: ids.length }),
+      )
+    ) {
+      return;
+    }
+    setBusy("delete");
+    try {
+      const result = await apiFetch<{
+        deleted: number;
+        skipped: number;
+      }>("/api/admin/copy/traders/delete", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      });
+      setSelectedIds(new Set());
+      if (result.skipped > 0) {
+        toast.success(
+          t("admin.copyTrading.deletedWithSkipped", {
+            deleted: result.deleted,
+            skipped: result.skipped,
+          }),
+        );
+      } else {
+        toast.success(
+          t("admin.copyTrading.deleted", { n: result.deleted }),
+        );
+      }
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -426,15 +491,43 @@ export default function AdminCopyTradingPage() {
                   ({filteredTraders.length})
                 </span>
               </CardTitle>
-              <div className="w-full sm:w-64">
-                <Input
-                  value={traderSearch}
-                  onChange={(e) => setTraderSearch(e.target.value)}
-                  placeholder={t("admin.copyTrading.searchTraders")}
-                />
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <div className="w-full sm:w-64">
+                  <Input
+                    value={traderSearch}
+                    onChange={(e) => setTraderSearch(e.target.value)}
+                    placeholder={t("admin.copyTrading.searchTraders")}
+                  />
+                </div>
+                {selectedIds.size > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    loading={busy === "delete"}
+                    onClick={() => void deleteSelected()}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t("admin.copyTrading.deleteSelected", {
+                      n: selectedIds.size,
+                    })}
+                  </Button>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {pagedTraders.length > 0 ? (
+                <label className="flex items-center gap-2 text-xs text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={
+                      pagedTraders.length > 0 &&
+                      pagedTraders.every((trader) => selectedIds.has(trader.id))
+                    }
+                    onChange={toggleSelectPage}
+                  />
+                  {t("admin.copyTrading.selectPage")}
+                </label>
+              ) : null}
               {pagedTraders.map((trader) =>
                 (() => {
                   const operation = data.openOperations.find(
@@ -446,6 +539,13 @@ export default function AdminCopyTradingPage() {
                       className="rounded-lg border border-border-subtle bg-bg-base/40 p-4"
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                        <label className="flex shrink-0 items-start pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(trader.id)}
+                            onChange={() => toggleSelected(trader.id)}
+                          />
+                        </label>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-display font-semibold text-text-primary">

@@ -1561,7 +1561,12 @@
       "noTradersMatch": "条件に一致するトレーダーがいません。",
       "pageOf": "{total} ページ中 {page} ページ",
       "prev": "前へ",
-      "next": "次へ"
+      "next": "次へ",
+      "selectPage": "このページを選択",
+      "deleteSelected": "削除（{n}）",
+      "confirmDelete": "選択した {n} 人のトレーダーをマーケットから非表示にしますか？",
+      "deleted": "{n} 人のトレーダーを削除しました。",
+      "deletedWithSkipped": "{deleted} 人を削除。アクティブなコピーがある {skipped} 人はスキップ。"
     }
   },
   "trade": {

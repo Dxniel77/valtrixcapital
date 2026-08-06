@@ -252,7 +252,7 @@ const RISK_BASE: Record<
     profitRatio: 0.72,
     simulationMinBps: -40,
     simulationMaxBps: 80,
-    minInvestment: 100,
+    minInvestment: 15,
   },
   MEDIUM: {
     dailyVolBps: 88,
@@ -262,7 +262,7 @@ const RISK_BASE: Record<
     profitRatio: 0.64,
     simulationMinBps: -90,
     simulationMaxBps: 150,
-    minInvestment: 100,
+    minInvestment: 15,
   },
   HIGH: {
     dailyVolBps: 180,
@@ -272,7 +272,7 @@ const RISK_BASE: Record<
     profitRatio: 0.56,
     simulationMinBps: -180,
     simulationMaxBps: 260,
-    minInvestment: 250,
+    minInvestment: 15,
   },
 };
 
@@ -683,8 +683,8 @@ function chartPointsFor(trader: SeedTrader): { date: Date; valueBps: number }[] 
 export async function seedCopyTraders(prisma: PrismaClient): Promise<void> {
   await prisma.copyTradingConfig.upsert({
     where: { id: 1 },
-    update: {},
-    create: { id: 1 },
+    update: { globalMinInvestment: toMicro(15) },
+    create: { id: 1, globalMinInvestment: toMicro(15) },
   });
 
   let created = 0;
@@ -797,6 +797,7 @@ export async function refreshCopyTraderHistory(prisma: PrismaClient): Promise<vo
       data: {
         countryCode: t.countryCode,
         countryName: t.countryName,
+        minInvestment: toMicro(t.minInvestment),
         roiBps: t.roiBps,
         cumulativeRoiBps: t.cumulativeRoiBps,
         winRateBps: t.winRateBps,

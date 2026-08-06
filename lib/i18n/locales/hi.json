@@ -1561,7 +1561,12 @@
       "noTradersMatch": "आपकी खोज से कोई ट्रेडर मेल नहीं खाता।",
       "pageOf": "पृष्ठ {page} / {total}",
       "prev": "पिछला",
-      "next": "अगला"
+      "next": "अगला",
+      "selectPage": "पेज चुनें",
+      "deleteSelected": "हटाएँ ({n})",
+      "confirmDelete": "चयनित {n} ट्रेडर को मार्केटप्लेस से छिपाएँ?",
+      "deleted": "{n} ट्रेडर हटाए गए।",
+      "deletedWithSkipped": "{deleted} हटाए गए। सक्रिय कॉपी वाले {skipped} छोड़ दिए गए।"
     }
   },
   "trade": {

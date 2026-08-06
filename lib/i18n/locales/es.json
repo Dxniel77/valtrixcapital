@@ -1043,7 +1043,12 @@
       "noTradersMatch": "Ningún trader coincide con tu búsqueda.",
       "pageOf": "Página {page} de {total}",
       "prev": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "selectPage": "Seleccionar página",
+      "deleteSelected": "Eliminar ({n})",
+      "confirmDelete": "¿Ocultar {n} trader(s) seleccionados del marketplace?",
+      "deleted": "Se eliminaron {n} trader(s).",
+      "deletedWithSkipped": "Se eliminaron {deleted} trader(s). Se omitieron {skipped} con copias activas."
     },
     "notifications": {
       "title": "Enviar notificaciones",
