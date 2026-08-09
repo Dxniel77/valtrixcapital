@@ -132,6 +132,8 @@ export function StakeDepositModal({
 
     setStep("wallet");
 
+    let submittedTxHash: string | null = null;
+
     try {
       if (allowOfflineSimulation() && !backend) {
         beginDeposit({ amount, network });
@@ -146,36 +148,80 @@ export function StakeDepositModal({
         return;
       }
 
-      const txHash = await sendUsdtDeposit({
+      // 1) On-chain transfer — once this returns, USDT has left the wallet.
+      submittedTxHash = await sendUsdtDeposit({
         network,
         amount,
         toAddress: toAddress as `0x${string}`,
       });
 
-      if (backend) {
-        const res = await registerDepositRequest({
-          network,
-          amount,
-          fromAddress: address,
-          toAddress,
-          txHash,
-        });
-        beginDeposit({
-          amount,
-          network,
-          txHash,
-          serverDepositId: res.deposit.id,
-        });
-      } else if (allowOfflineSimulation()) {
-        beginDeposit({ amount, network, txHash });
-      } else {
+      if (!backend) {
+        if (allowOfflineSimulation()) {
+          beginDeposit({ amount, network, txHash: submittedTxHash });
+          setStep("confirming");
+          return;
+        }
         toast.error(t("errors.backendRequired"));
         setStep("form");
         return;
       }
 
+      // 2) Register in Valtrix. If this fails, money is already on-chain —
+      // recover via claim so the user is not stuck with an uncredited transfer.
+      let serverDepositId: string | undefined;
+      try {
+        const res = await registerDepositRequest({
+          network,
+          amount,
+          fromAddress: address,
+          toAddress,
+          txHash: submittedTxHash,
+        });
+        serverDepositId = res.deposit.id;
+      } catch {
+        try {
+          const claim = await claimDepositByTxHash({
+            network,
+            txHash: submittedTxHash,
+          });
+          const dep = claim.deposit as { id?: string } | undefined;
+          serverDepositId = typeof dep?.id === "string" ? dep.id : undefined;
+          toast.message(t("staking.deposit.recoveredAfterRegisterFail"));
+        } catch {
+          toast.warning(t("staking.deposit.sentNeedsClaim"), {
+            description: t("staking.deposit.sentNeedsClaimHint"),
+            duration: 12_000,
+          });
+        }
+      }
+
+      beginDeposit({
+        amount,
+        network,
+        txHash: submittedTxHash,
+        serverDepositId,
+      });
       setStep("confirming");
     } catch (err) {
+      // If the wallet tx already succeeded, never treat this as a failed transfer.
+      if (submittedTxHash && backend) {
+        beginDeposit({
+          amount,
+          network,
+          txHash: submittedTxHash,
+        });
+        setStep("confirming");
+        toast.warning(t("staking.deposit.sentNeedsClaim"), {
+          description: t("staking.deposit.sentNeedsClaimHint"),
+          duration: 12_000,
+        });
+        void claimDepositByTxHash({
+          network,
+          txHash: submittedTxHash,
+        }).catch(() => undefined);
+        return;
+      }
+
       const message = err instanceof Error ? err.message : "";
       if (
         message === "WALLET_NOT_CONNECTED" ||
