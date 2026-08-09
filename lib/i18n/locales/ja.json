@@ -1147,6 +1147,21 @@
       "renew": "スポンサーシップを更新",
       "renewed": "スポンサーシップを更新しました"
     },
+    "manualPayout": {
+      "title": "手動で支払い済み",
+      "hint": "アプリ外ですでに USDT を送った後だけ使います（トレジャリー / SafePal）。Valtrix の残高と解放額から差し引き、再出金できないようにします。USDT は送金しません。",
+      "balance": "収益残高",
+      "released": "解放済み",
+      "max": "照合できる上限",
+      "amount": "支払い済み金額 (USDT)",
+      "note": "メモ",
+      "notePlaceholder": "例: SafePal tx / 理由",
+      "cta": "手動支払い済みにする",
+      "invalidAmount": "有効な正の金額を入力してください",
+      "tooMuch": "金額は残高 ${max} を超えられません",
+      "confirm": "アプリ外で ${amount} USDT をすでに送ったことを確認します。Valtrix はこの金額を残高（と解放額）から差し引きます。続行しますか？",
+      "success": "手動支払いとして ${amount} USDT を照合しました"
+    },
     "ib": {
       "title": "IBモニター",
       "monitorSubtitle": "すべてのIntroducing BrokerとNet Deposit交渉を確認します。",

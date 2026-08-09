@@ -217,6 +217,73 @@ export async function releaseWithdrawalAllowance(input: {
   return serializeUser(updated);
 }
 
+/**
+ * Admin marks an amount as already paid outside the app (e.g. SafePal/treasury send).
+ * Debits earnings and matching withdrawal allowance so the user cannot withdraw again.
+ */
+export async function reconcileManualPayout(input: {
+  adminUserId: string;
+  targetUserId: string;
+  amount: number;
+  note?: string;
+}): Promise<UserDto> {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new AdminServiceError("Amount must be a positive number", "INVALID_DELTA");
+  }
+
+  const target = await findUserById(input.targetUserId);
+  if (!target) {
+    throw new AdminServiceError("User not found", "NOT_FOUND");
+  }
+
+  const amountMicro = toMicro(input.amount);
+  if (target.earningsBalance < amountMicro) {
+    throw new AdminServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
+  }
+
+  const nextBalance = target.earningsBalance - amountMicro;
+  // Reduce released allowance by the paid amount (cannot go below 0 or above new balance).
+  let nextAllowance = target.withdrawalAllowance - amountMicro;
+  if (nextAllowance < 0n) nextAllowance = 0n;
+  if (nextAllowance > nextBalance) nextAllowance = nextBalance;
+
+  const note =
+    input.note?.trim() ||
+    "Manual payout reconciled — USDT sent outside the app";
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: target.id },
+      data: {
+        earningsBalance: nextBalance,
+        withdrawalAllowance: nextAllowance,
+      },
+    });
+
+    await tx.adminAction.create({
+      data: {
+        adminId: input.adminUserId,
+        targetUserId: target.id,
+        action: "ADJUST_BALANCE",
+        payload: {
+          delta: -input.amount,
+          note,
+          target: "WITHDRAWABLE",
+          manualPayout: true,
+          previousBalance: fromMicro(target.earningsBalance),
+          nextBalance: fromMicro(nextBalance),
+          previousAllowance: fromMicro(target.withdrawalAllowance),
+          nextAllowance: fromMicro(nextAllowance),
+        },
+      },
+    });
+
+    return user;
+  });
+
+  return serializeUser(updated);
+}
+
 export async function setUserActive(input: {
   adminUserId: string;
   targetUserId: string;

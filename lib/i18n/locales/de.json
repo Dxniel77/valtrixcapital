@@ -1147,6 +1147,21 @@
       "renew": "Sponsoring erneuern",
       "renewed": "Sponsoring erneuert"
     },
+    "manualPayout": {
+      "title": "Bereits manuell bezahlt",
+      "hint": "Nur verwenden, nachdem USDT außerhalb der App gesendet wurde (Treasury / SafePal). Entfernt den Betrag vom Valtrix-Saldo und von der Freigabe, damit der Nutzer ihn nicht erneut abheben kann. Sendet kein USDT.",
+      "balance": "Gewinnsaldo",
+      "released": "Bereits freigegeben",
+      "max": "Max. auszugleichen",
+      "amount": "Bereits bezahlter Betrag (USDT)",
+      "note": "Notiz",
+      "notePlaceholder": "z. B. SafePal-Tx / Grund",
+      "cta": "Als manuell bezahlt markieren",
+      "invalidAmount": "Gültigen positiven Betrag eingeben",
+      "tooMuch": "Betrag darf den Saldo ${max} nicht überschreiten",
+      "confirm": "Bestätigen Sie, dass Sie bereits ${amount} USDT außerhalb der App gesendet haben. Valtrix zieht diesen Betrag vom Saldo (und der Freigabe) ab. Fortfahren?",
+      "success": "${amount} USDT als manuelle Zahlung ausgeglichen"
+    },
     "ib": {
       "title": "IB-Monitor",
       "monitorSubtitle": "Alle Introducing Broker und ihre Net-Deposit-Verhandlung einsehen.",

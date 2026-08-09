@@ -9,6 +9,10 @@ export function auditActionLabel(
     return "WITHDRAWAL_AUTO_PAID";
   }
 
+  if (action === "ADJUST_BALANCE" && payload?.manualPayout === true) {
+    return "MANUAL_PAYOUT_RECONCILED";
+  }
+
   if (action === "PROCESS_ACCOUNT_DELETION") {
     const sub = payload?.action;
     if (sub === "profile_update") return "USER_PROFILE_UPDATED";
@@ -127,6 +131,20 @@ export function formatAuditPayload(
 
   if (action === "RELEASE_WITHDRAWAL_ALLOWANCE" && payload.amount != null) {
     return `+${String(payload.amount)} USDT`;
+  }
+
+  if (action === "ADJUST_BALANCE" && payload.manualPayout === true) {
+    const amount = payload.delta != null ? Math.abs(Number(payload.delta)) : null;
+    const note =
+      typeof payload.note === "string" && payload.note.trim()
+        ? payload.note.trim()
+        : null;
+    const parts = [
+      amount != null && Number.isFinite(amount) ? `−${amount} USDT` : null,
+      "manual payout",
+      note,
+    ].filter(Boolean);
+    return parts.join(" · ");
   }
 
   if (action === "UPSERT_IB_AGREEMENT") {

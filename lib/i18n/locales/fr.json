@@ -1147,6 +1147,21 @@
       "renew": "Renouveler le parrainage",
       "renewed": "Parrainage renouvelé"
     },
+    "manualPayout": {
+      "title": "Déjà payé manuellement",
+      "hint": "À utiliser uniquement après avoir envoyé des USDT hors de l’app (trésorerie / SafePal). Retire ce montant du solde Valtrix et du montant libéré pour empêcher un nouveau retrait. N’envoie pas d’USDT.",
+      "balance": "Solde des gains",
+      "released": "Déjà libéré",
+      "max": "Max. à réconcilier",
+      "amount": "Montant déjà payé (USDT)",
+      "note": "Note",
+      "notePlaceholder": "ex. tx SafePal / motif",
+      "cta": "Marquer comme payé manuellement",
+      "invalidAmount": "Entrez un montant positif valide",
+      "tooMuch": "Le montant ne peut pas dépasser le solde ${max}",
+      "confirm": "Confirmez que vous avez déjà envoyé ${amount} USDT hors de l’app. Valtrix déduira ce montant du solde (et du montant libéré). Continuer ?",
+      "success": "${amount} USDT réconciliés comme paiement manuel"
+    },
     "ib": {
       "title": "Moniteur IB",
       "monitorSubtitle": "Consultez tous les Introducing Brokers et leur négociation Net Deposit.",

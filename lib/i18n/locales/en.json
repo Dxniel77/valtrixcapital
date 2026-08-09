@@ -1060,6 +1060,7 @@
       "WITHDRAWAL_REJECTED": "Withdrawal rejected",
       "WITHDRAWAL_AUTO_PAID": "Automatic withdrawal paid",
       "WITHDRAWAL_ALLOWANCE_RELEASED": "Partial withdrawal released",
+      "MANUAL_PAYOUT_RECONCILED": "Manual payout reconciled",
       "USER_PROFILE_UPDATED": "Account profile updated",
       "ACCOUNT_DELETED": "Account deleted",
       "ACCOUNT_DELETION_APPROVED": "Account deletion approved",
@@ -1155,6 +1156,21 @@
       "invalidAmount": "Enter a valid positive amount",
       "tooMuch": "You can release at most ${max}",
       "success": "Released ${amount} USDT for withdrawal"
+    },
+    "manualPayout": {
+      "title": "Already paid manually",
+      "hint": "Use this only after you already sent USDT outside the app (treasury / SafePal). It removes that amount from Valtrix balance and from any released allowance so the user cannot withdraw it again. It does not send USDT.",
+      "balance": "Earnings balance",
+      "released": "Already released",
+      "max": "Max to reconcile",
+      "amount": "Amount already paid (USDT)",
+      "note": "Note",
+      "notePlaceholder": "e.g. SafePal tx / reason",
+      "cta": "Mark as paid manually",
+      "invalidAmount": "Enter a valid positive amount",
+      "tooMuch": "Amount cannot exceed balance ${max}",
+      "confirm": "Confirm you already sent ${amount} USDT outside the app. Valtrix will deduct this from the user balance (and released amount). Continue?",
+      "success": "Reconciled ${amount} USDT as manually paid"
     },
     "ib": {
       "title": "IB monitor",
@@ -1346,7 +1362,7 @@
       "adjustTargetStaking": "Staking capital",
       "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
       "deltaHintStaking": "Staking credits must be a positive amount.",
-      "adjustNoPayoutWarning": "This only changes the balance in Valtrix. It does not send USDT. To pay a user, release funds if needed and have them use Wallet → Withdraw.",
+      "adjustNoPayoutWarning": "Adjusting balance does not send USDT. If you already paid outside the app, use “Already paid manually” on the user page instead of a raw negative adjust.",
       "adjustDebitConfirm": "You are reducing withdrawable balance by {amount} USDT. This is NOT a withdrawal and will NOT send USDT. Continue?",
       "colReferredBy": "Referred by",
       "referredByNone": "—"

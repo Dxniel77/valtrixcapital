@@ -1205,6 +1205,21 @@
       "renew": "续订赞助",
       "renewed": "赞助已续订"
     },
+    "manualPayout": {
+      "title": "已手动支付",
+      "hint": "仅在已在应用外发送 USDT 后使用（金库 / SafePal）。从 Valtrix 余额和已释放额度中扣除，防止用户再次提现。不会发送 USDT。",
+      "balance": "收益余额",
+      "released": "已释放",
+      "max": "可核对上限",
+      "amount": "已支付金额 (USDT)",
+      "note": "备注",
+      "notePlaceholder": "例如 SafePal tx / 原因",
+      "cta": "标记为已手动支付",
+      "invalidAmount": "请输入有效的正数金额",
+      "tooMuch": "金额不能超过余额 ${max}",
+      "confirm": "确认您已在应用外发送 ${amount} USDT。Valtrix 将从余额（及已释放额度）中扣除。是否继续？",
+      "success": "已将 ${amount} USDT 核对为手动支付"
+    },
     "ib": {
       "title": "IB 监控",
       "monitorSubtitle": "查看每位介绍经纪人及其 Net Deposit 协商情况。",

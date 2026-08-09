@@ -15,6 +15,7 @@ import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
 import { AdminUserAccountCard } from "@/components/admin/admin-user-account-card";
 import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsorship-card";
 import { AdminPartialWithdrawalReleaseCard } from "@/components/admin/admin-partial-withdrawal-release-card";
+import { AdminManualPayoutCard } from "@/components/admin/admin-manual-payout-card";
 import { AdminIbAgreementCard } from "@/components/admin/admin-ib-agreement-card";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { IbStatusBadge } from "@/components/ib/ib-status-badge";
@@ -208,6 +209,8 @@ export function UserDetailPanel({
       <AdminUserAccountCard user={user} />
 
       <AdminIbAgreementCard user={user} />
+
+      <AdminManualPayoutCard user={user} />
 
       {isSponsored ? (
         <>

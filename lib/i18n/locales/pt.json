@@ -1146,6 +1146,21 @@
       "renew": "Renovar patrocínio",
       "renewed": "Patrocínio renovado"
     },
+    "manualPayout": {
+      "title": "Já pago manualmente",
+      "hint": "Use apenas depois de já ter enviado USDT fora da app (tesouraria / SafePal). Remove esse valor do saldo no Valtrix e do montante libertado, para o utilizador não poder retirar de novo. Não envia USDT.",
+      "balance": "Saldo de ganhos",
+      "released": "Já libertado",
+      "max": "Máximo a reconciliar",
+      "amount": "Valor já pago (USDT)",
+      "note": "Nota",
+      "notePlaceholder": "ex. tx SafePal / motivo",
+      "cta": "Marcar como pago manualmente",
+      "invalidAmount": "Introduza um valor positivo válido",
+      "tooMuch": "O valor não pode exceder o saldo ${max}",
+      "confirm": "Confirme que já enviou ${amount} USDT fora da app. O Valtrix descontará este valor do saldo (e do libertado). Continuar?",
+      "success": "Reconciliados ${amount} USDT como pagamento manual"
+    },
     "ib": {
       "title": "Monitor IB",
       "monitorSubtitle": "Veja todos os Introducing Brokers e a negociação de Net Deposit.",
@@ -1336,7 +1351,7 @@
       "adjustTargetStaking": "Apostar capital",
       "adjustTargetStakingDesc": "É adicionado ao capital bloqueado na aposta. Não é removível.",
       "deltaHintStaking": "Os créditos de staking devem ser um valor positivo.",
-      "adjustNoPayoutWarning": "Isto só altera o saldo no Valtrix. Não envia USDT. Para pagar um utilizador, liberte o montante se for preciso e peça que use Carteira → Retirar.",
+      "adjustNoPayoutWarning": "Isto só altera o saldo no Valtrix. Não envia USDT. Se já pagou fora da app, use «Já pago manualmente» na ficha do utilizador.",
       "adjustDebitConfirm": "Vai reduzir o saldo disponível para levantamento em {amount} USDT. Isto NÃO é um levantamento e NÃO envia USDT. Continuar?",
       "colReferredBy": "Indicado por",
       "referredByNone": "—"

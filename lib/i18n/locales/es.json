@@ -1118,6 +1118,7 @@
       "WITHDRAWAL_REJECTED": "Retiro rechazado",
       "WITHDRAWAL_AUTO_PAID": "Retiro automático pagado",
       "WITHDRAWAL_ALLOWANCE_RELEASED": "Liberación parcial de retiro",
+      "MANUAL_PAYOUT_RECONCILED": "Pago manual reconciliado",
       "USER_PROFILE_UPDATED": "Perfil de cuenta actualizado",
       "ACCOUNT_DELETED": "Cuenta eliminada",
       "ACCOUNT_DELETION_APPROVED": "Eliminación de cuenta aprobada",
@@ -1213,6 +1214,21 @@
       "invalidAmount": "Introduce un monto positivo válido",
       "tooMuch": "Solo puedes liberar hasta ${max}",
       "success": "Se liberaron ${amount} USDT para retiro"
+    },
+    "manualPayout": {
+      "title": "Ya pagado manualmente",
+      "hint": "Úsalo solo después de haber enviado USDT fuera de la app (tesorería / SafePal). Quita ese monto del saldo en Valtrix y de lo liberado, para que el usuario no pueda retirarlo otra vez. No envía USDT.",
+      "balance": "Saldo de ganancias",
+      "released": "Ya liberado",
+      "max": "Máximo a reconciliar",
+      "amount": "Monto ya pagado (USDT)",
+      "note": "Nota",
+      "notePlaceholder": "ej. tx SafePal / motivo",
+      "cta": "Marcar como pagado manualmente",
+      "invalidAmount": "Introduce un monto positivo válido",
+      "tooMuch": "El monto no puede superar el saldo ${max}",
+      "confirm": "Confirma que ya enviaste ${amount} USDT fuera de la app. Valtrix descontará este monto del saldo (y de lo liberado). ¿Continuar?",
+      "success": "Se reconciliaron ${amount} USDT como pago manual"
     },
     "ib": {
       "title": "Monitor IB",
@@ -1404,7 +1420,7 @@
       "adjustTargetStaking": "Capital en staking",
       "adjustTargetStakingDesc": "Se suma al capital bloqueado en staking. No es retirable.",
       "deltaHintStaking": "Los créditos de staking deben ser un monto positivo.",
-      "adjustNoPayoutWarning": "Esto solo cambia el saldo en Valtrix. No envía USDT. Para pagar a un usuario, libera el monto si hace falta y que use Billetera → Retirar.",
+      "adjustNoPayoutWarning": "Ajustar el saldo no envía USDT. Si ya pagaste fuera de la app, usa «Ya pagado manualmente» en la ficha del usuario en lugar de un ajuste negativo suelto.",
       "adjustDebitConfirm": "Vas a reducir el saldo retirable en {amount} USDT. Esto NO es un retiro y NO envía USDT. ¿Continuar?",
       "colReferredBy": "Referido por",
       "referredByNone": "—"

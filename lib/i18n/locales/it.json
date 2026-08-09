@@ -1147,6 +1147,21 @@
       "renew": "Rinnova sponsorship",
       "renewed": "Sponsorship rinnovata"
     },
+    "manualPayout": {
+      "title": "Già pagato manualmente",
+      "hint": "Usare solo dopo aver già inviato USDT fuori dall’app (tesoreria / SafePal). Rimuove l’importo dal saldo Valtrix e dall’importo sbloccato così l’utente non può ritirarlo di nuovo. Non invia USDT.",
+      "balance": "Saldo guadagni",
+      "released": "Già sbloccato",
+      "max": "Max da riconciliare",
+      "amount": "Importo già pagato (USDT)",
+      "note": "Nota",
+      "notePlaceholder": "es. tx SafePal / motivo",
+      "cta": "Segna come pagato manualmente",
+      "invalidAmount": "Inserisci un importo positivo valido",
+      "tooMuch": "L’importo non può superare il saldo ${max}",
+      "confirm": "Conferma di aver già inviato ${amount} USDT fuori dall’app. Valtrix detrae questo importo dal saldo (e dallo sblocco). Continuare?",
+      "success": "Riconciliati ${amount} USDT come pagamento manuale"
+    },
     "ib": {
       "title": "Monitor IB",
       "monitorSubtitle": "Visualizza ogni Introducing Broker e la negoziazione Net Deposit.",
