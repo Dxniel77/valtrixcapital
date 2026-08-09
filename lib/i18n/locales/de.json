@@ -929,7 +929,10 @@
     "headerOffline": "Datenbank nicht verfügbar",
     "nav": {
       "overview": "Zusammenfassung",
+      "treasury": "Kasse",
       "grant": "Konto gewähren",
+      "ib": "IB",
+      "copyTrading": "Kopierhandel",
       "lookup": "Benutzersuche",
       "leaders": "Top-Performer",
       "users": "Benutzer",
@@ -940,10 +943,8 @@
       "notifications": "Benachrichtigungen",
       "support": "Support-Tickets",
       "audit": "Prüfung",
-      "treasury": "Kasse",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "Sponsoring-Kalender",
-      "copyTrading": "Kopierhandel"
+      "sponsorship": "Sponsoring-Kalender"
     },
     "copyTrading": {
       "title": "Handelskontrolle kopieren",

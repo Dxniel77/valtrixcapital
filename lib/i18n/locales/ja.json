@@ -929,7 +929,10 @@
     "headerOffline": "データベース利用不可",
     "nav": {
       "overview": "まとめ",
+      "treasury": "財務省",
       "grant": "助成金アカウント",
+      "ib": "IB",
+      "copyTrading": "コピートレード",
       "lookup": "ユーザー検索",
       "leaders": "トップパフォーマー",
       "users": "ユーザー",
@@ -940,10 +943,8 @@
       "notifications": "通知",
       "support": "サポートチケット",
       "audit": "監査",
-      "treasury": "財務省",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "スポンサーシップカレンダー",
-      "copyTrading": "コピートレード"
+      "sponsorship": "スポンサーシップカレンダー"
     },
     "copyTrading": {
       "title": "コピー取引管理",

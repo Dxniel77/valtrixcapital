@@ -928,7 +928,10 @@
     "headerOffline": "Banco de dados indisponível",
     "nav": {
       "overview": "Resumo",
+      "treasury": "Tesouraria",
       "grant": "Conceder conta",
+      "ib": "IB",
+      "copyTrading": "Negociação de cópias",
       "lookup": "Pesquisa de usuário",
       "leaders": "Melhores desempenhos",
       "users": "Usuárias",
@@ -939,10 +942,8 @@
       "notifications": "Notificações",
       "support": "Tickets de suporte",
       "audit": "Auditoria",
-      "treasury": "Tesouraria",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "Calendário de patrocínio",
-      "copyTrading": "Negociação de cópias"
+      "sponsorship": "Calendário de patrocínio"
     },
     "copyTrading": {
       "title": "Controle de negociação de cópias",

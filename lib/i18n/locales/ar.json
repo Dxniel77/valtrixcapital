@@ -929,7 +929,10 @@
     "headerOffline": "قاعدة البيانات غير متاحة",
     "nav": {
       "overview": "ملخص",
+      "treasury": "الخزانة",
       "grant": "حساب المنحة",
+      "ib": "IB",
+      "copyTrading": "نسخ التداول",
       "lookup": "بحث المستخدم",
       "leaders": "أفضل الفنانين أداءً",
       "users": "المستخدمين",
@@ -940,10 +943,8 @@
       "notifications": "إشعارات",
       "support": "تذاكر الدعم",
       "audit": "مراجعة",
-      "treasury": "الخزانة",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "تقويم الرعاية",
-      "copyTrading": "نسخ التداول"
+      "sponsorship": "تقويم الرعاية"
     },
     "copyTrading": {
       "title": "نسخ التحكم في التداول",

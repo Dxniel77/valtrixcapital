@@ -929,7 +929,10 @@
     "headerOffline": "Database non disponibile",
     "nav": {
       "overview": "Riepilogo",
+      "treasury": "Tesoro",
       "grant": "Concedere un conto",
+      "ib": "IB",
+      "copyTrading": "Copia commerciale",
       "lookup": "Ricerca utente",
       "leaders": "Migliori interpreti",
       "users": "Utenti",
@@ -940,10 +943,8 @@
       "notifications": "Notifiche",
       "support": "Ticket di supporto",
       "audit": "Controllo",
-      "treasury": "Tesoro",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "Calendario sponsorship",
-      "copyTrading": "Copia commerciale"
+      "sponsorship": "Calendario sponsorship"
     },
     "copyTrading": {
       "title": "Copia il controllo del trading",

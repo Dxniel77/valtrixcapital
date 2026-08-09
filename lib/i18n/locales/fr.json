@@ -929,7 +929,10 @@
     "headerOffline": "Base de données indisponible",
     "nav": {
       "overview": "Résumé",
+      "treasury": "Trésorerie",
       "grant": "Compte de subvention",
+      "ib": "IB",
+      "copyTrading": "Trading de copie",
       "lookup": "Recherche d'utilisateur",
       "leaders": "Les plus performants",
       "users": "Utilisatrices",
@@ -940,10 +943,8 @@
       "notifications": "Alertes",
       "support": "Tickets de support",
       "audit": "Journal d'audit",
-      "treasury": "Trésorerie",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "Calendrier de parrainage",
-      "copyTrading": "Trading de copie"
+      "sponsorship": "Calendrier de parrainage"
     },
     "copyTrading": {
       "title": "Contrôle du trading de copie",

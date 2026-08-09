@@ -987,7 +987,10 @@
     "headerOffline": "数据库不可用",
     "nav": {
       "overview": "概括",
+      "treasury": "财政部",
       "grant": "给个账号",
+      "ib": "IB",
+      "copyTrading": "复制交易",
       "lookup": "搜索用户",
       "leaders": "最高计费",
       "users": "用户",
@@ -998,10 +1001,8 @@
       "notifications": "通知",
       "support": "支持工单",
       "audit": "审计",
-      "treasury": "财政部",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "赞助日历",
-      "copyTrading": "复制交易"
+      "sponsorship": "赞助日历"
     },
     "copyTrading": {
       "title": "复制交易控制",

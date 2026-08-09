@@ -929,7 +929,10 @@
     "headerOffline": "डेटाबेस उपलब्ध नहीं",
     "nav": {
       "overview": "सारांश",
+      "treasury": "ख़ज़ाना",
       "grant": "अनुदान खाता",
+      "ib": "IB",
+      "copyTrading": "कॉपी ट्रेडिंग",
       "lookup": "उपयोगकर्ता खोज",
       "leaders": "शीर्ष प्रदर्शक",
       "users": "उपयोगकर्ताओं",
@@ -940,10 +943,8 @@
       "notifications": "सूचनाएं",
       "support": "सहायता टिकट",
       "audit": "अंकेक्षण",
-      "treasury": "ख़ज़ाना",
       "sponsorTerms": "Sponsor terms",
-      "sponsorship": "स्पॉन्सरशिप कैलेंडर",
-      "copyTrading": "कॉपी ट्रेडिंग"
+      "sponsorship": "स्पॉन्सरशिप कैलेंडर"
     },
     "copyTrading": {
       "title": "ट्रेडिंग नियंत्रण कॉपी करें",
