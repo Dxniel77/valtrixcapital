@@ -26,6 +26,7 @@ import { computeWithdrawal } from "@/lib/wallet/constants";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 import { bsc } from "wagmi/chains";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { computeWithdrawableCap } from "@/lib/admin/withdrawal-eligibility";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
 import { createWithdrawalRequest, ApiError, fetchUserPortfolio } from "@/lib/api/client";
@@ -59,15 +60,23 @@ export function WithdrawModal({
   const { minWithdrawalUsdt, withdrawalFeeBps } = usePlatformSettings();
   const withdrawalFeePct = withdrawalFeeBps / 100;
 
+  /** See wallet page — keep /me balance and local store in sync for the cap. */
+  const earningsForCap = Math.max(
+    availableBalance,
+    adminUser?.balance ?? 0,
+  );
   const available =
-    adminUser?.accountGranted &&
-    !adminUser.withdrawalUnlocked &&
-    (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
-      ? Math.min(
-          availableBalance,
-          partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
-        )
-      : availableBalance;
+    adminUser == null
+      ? backend
+        ? 0
+        : availableBalance
+      : computeWithdrawableCap({
+          earningsBalance: earningsForCap,
+          accountGranted: adminUser.accountGranted,
+          withdrawalUnlocked: adminUser.withdrawalUnlocked,
+          withdrawalAllowance:
+            partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
+        });
 
   const [step, setStep] = React.useState<Step>("form");
   const [amountStr, setAmountStr] = React.useState("");

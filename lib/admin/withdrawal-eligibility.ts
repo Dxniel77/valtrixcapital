@@ -27,6 +27,27 @@ export interface WithdrawalEligibilityResult {
   partialAllowance?: number;
 }
 
+/**
+ * How much a user may withdraw right now.
+ *
+ * Sponsored + still volume-locked → only the admin-released allowance
+ * (0 when nothing is released — never fall through to full earnings).
+ * Everyone else → full earnings balance.
+ */
+export function computeWithdrawableCap(input: {
+  earningsBalance: number;
+  accountGranted?: boolean | null;
+  withdrawalUnlocked?: boolean | null;
+  withdrawalAllowance?: number | null;
+}): number {
+  const balance = Math.max(0, input.earningsBalance);
+  const granted = Boolean(input.accountGranted);
+  const unlocked = Boolean(input.withdrawalUnlocked);
+  if (!granted || unlocked) return balance;
+  const allowance = Math.max(0, input.withdrawalAllowance ?? 0);
+  return Math.min(balance, allowance);
+}
+
 export function evaluateWithdrawalEligibility(
   user: Pick<
     AdminUser,

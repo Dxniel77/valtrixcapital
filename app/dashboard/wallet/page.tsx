@@ -45,6 +45,8 @@ import { useReferralsStore } from "@/lib/referrals/store";
 import { useLedger } from "@/lib/ledger";
 import { cn, explorerUrl, formatNumber, shortenAddress, shortenHash } from "@/lib/utils";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
+import { computeWithdrawableCap } from "@/lib/admin/withdrawal-eligibility";
+import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { Lock } from "lucide-react";
 
@@ -56,18 +58,32 @@ export default function WalletPage() {
   const { minWithdrawalUsdt } = usePlatformSettings();
   const pendingNetwork = useReferralsStore((s) => s.pendingNetworkEarnings);
   const withdrawals = useWalletStore((s) => s.withdrawals);
+  const backend = useBackendAvailable();
   const { eligible, messageKey, adminUser, partialAllowance } =
     useWithdrawalEligibility();
+  /**
+   * Prefer the higher of local store vs /me balance. After an admin partial
+   * release, /me can update before the staking store hydrates — using only the
+   * local store made authorized amounts look like $0 (withdraw stuck "locked").
+   */
+  const earningsForCap = Math.max(
+    earningsBalance,
+    adminUser?.balance ?? 0,
+  );
   const withdrawableCap =
-    adminUser?.accountGranted &&
-    !adminUser.withdrawalUnlocked &&
-    (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
-      ? Math.min(
-          earningsBalance,
-          partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
-        )
-      : earningsBalance;
-  const canWithdrawAmount = hydrated && withdrawableCap >= minWithdrawalUsdt;
+    adminUser == null
+      ? backend
+        ? 0
+        : earningsBalance
+      : computeWithdrawableCap({
+          earningsBalance: earningsForCap,
+          accountGranted: adminUser.accountGranted,
+          withdrawalUnlocked: adminUser.withdrawalUnlocked,
+          withdrawalAllowance:
+            partialAllowance ?? adminUser.withdrawalAllowance ?? 0,
+        });
+  const canWithdrawAmount =
+    hydrated && withdrawableCap >= minWithdrawalUsdt && eligible;
 
   const [withdrawOpen, setWithdrawOpen] = React.useState(false);
 
@@ -119,10 +135,10 @@ export default function WalletPage() {
           icon={WalletIcon}
           accent="gold"
           hint={
-            adminUser?.accountGranted &&
-            !adminUser.withdrawalUnlocked &&
-            (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
-              ? t("walletPage.withdraw.eligibilityPartial")
+            adminUser?.accountGranted && !adminUser.withdrawalUnlocked
+              ? (partialAllowance ?? adminUser.withdrawalAllowance ?? 0) > 0
+                ? t("walletPage.withdraw.eligibilityPartial")
+                : t("walletPage.withdraw.eligibilityLocked")
               : t("walletPage.availableHint")
           }
         />

@@ -219,6 +219,16 @@ export function useWithdrawalEligibility(): WithdrawalEligibilityResult & {
             createdAt: res.user.createdAt,
           }),
         );
+        // Keep local earnings in sync with /me so partial-release withdraw
+        // amounts are not capped at a stale $0 store balance.
+        const serverEarnings = res.user.earningsBalance;
+        const localEarnings = useStakingStore.getState().earningsBalance;
+        if (
+          Number.isFinite(serverEarnings) &&
+          serverEarnings > localEarnings
+        ) {
+          useStakingStore.setState({ earningsBalance: serverEarnings });
+        }
       } catch {
         if (!cancelled) setSessionUser(null);
       }
@@ -245,12 +255,13 @@ export function useWithdrawalEligibility(): WithdrawalEligibilityResult & {
         }
         return eligibilityFromAdminUser(merged, address);
       }
-      // Postgres is source of truth — do not block on stale local admin demo data.
+      // Wait for /me before allowing withdraw. Showing "open" here previously
+      // let sponsored users see full earnings as withdrawable before allowance loaded.
       return {
-        eligible: true,
-        directSalesMet: true,
-        networkLevelsMet: true,
-        messageKey: "walletPage.withdraw.eligibilityOpen",
+        eligible: false,
+        directSalesMet: false,
+        networkLevelsMet: false,
+        messageKey: "walletPage.withdraw.eligibilityLocked",
         adminUser: null,
       };
     }

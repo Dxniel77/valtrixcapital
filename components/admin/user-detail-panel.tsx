@@ -19,6 +19,7 @@ import { AdminIbAgreementCard } from "@/components/admin/admin-ib-agreement-card
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { IbStatusBadge } from "@/components/ib/ib-status-badge";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
+import { computeWithdrawableCap } from "@/lib/admin/withdrawal-eligibility";
 import { cn, formatNumber, shortenAddress } from "@/lib/utils";
 
 /** Amount the user can withdraw right now (respects sponsored partial release). */
@@ -28,13 +29,12 @@ function availableToWithdraw(user: {
   withdrawalAllowance?: number;
   balance: number;
 }): number {
-  if (!user.accountGranted || user.withdrawalUnlocked) {
-    return Math.max(0, user.balance);
-  }
-  return Math.max(
-    0,
-    Math.min(user.balance, user.withdrawalAllowance ?? 0),
-  );
+  return computeWithdrawableCap({
+    earningsBalance: user.balance,
+    accountGranted: user.accountGranted,
+    withdrawalUnlocked: user.withdrawalUnlocked,
+    withdrawalAllowance: user.withdrawalAllowance,
+  });
 }
 
 export function UserDetailPanel({

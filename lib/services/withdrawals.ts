@@ -83,13 +83,13 @@ export async function createWithdrawal(input: {
   const user = await prisma.user.findUnique({ where: { id: input.userId } });
   if (!user) throw new WithdrawalServiceError("User not found", "NOT_FOUND");
   if (!user.isActive) throw new WithdrawalServiceError("Account inactive", "INACTIVE");
-  if (user.accountGranted && !user.withdrawalUnlocked) {
-    if (user.withdrawalAllowance <= 0n) {
-      throw new WithdrawalServiceError(
-        "Withdrawals locked until requirements are met",
-        "WITHDRAWAL_LOCKED",
-      );
-    }
+
+  const volumeLocked = user.accountGranted && !user.withdrawalUnlocked;
+  if (volumeLocked && user.withdrawalAllowance <= 0n) {
+    throw new WithdrawalServiceError(
+      "Withdrawals locked until requirements are met",
+      "WITHDRAWAL_LOCKED",
+    );
   }
 
   const config = await getPlatformConfig();
@@ -108,9 +108,7 @@ export async function createWithdrawal(input: {
     throw new WithdrawalServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
   }
 
-  const partialLocked =
-    user.accountGranted && !user.withdrawalUnlocked && user.withdrawalAllowance > 0n;
-  if (partialLocked && user.withdrawalAllowance < amountMicro) {
+  if (volumeLocked && user.withdrawalAllowance < amountMicro) {
     throw new WithdrawalServiceError(
       `Only ${fromMicro(user.withdrawalAllowance)} USDT has been released for withdrawal`,
       "WITHDRAWAL_LOCKED",
@@ -133,16 +131,66 @@ export async function createWithdrawal(input: {
     throw err;
   }
 
+  /**
+   * Debit balance (and allowance when volume-locked) with conditional updateMany
+   * so concurrent requests cannot overdraw the released amount or earnings.
+   */
   const created = await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: user.id },
-      data: {
-        earningsBalance: user.earningsBalance - amountMicro,
-        ...(partialLocked
-          ? { withdrawalAllowance: user.withdrawalAllowance - amountMicro }
-          : {}),
-      },
-    });
+    const debited = volumeLocked
+      ? await tx.user.updateMany({
+          where: {
+            id: user.id,
+            isActive: true,
+            accountGranted: true,
+            withdrawalUnlocked: false,
+            earningsBalance: { gte: amountMicro },
+            withdrawalAllowance: { gte: amountMicro },
+          },
+          data: {
+            earningsBalance: { decrement: amountMicro },
+            withdrawalAllowance: { decrement: amountMicro },
+          },
+        })
+      : await tx.user.updateMany({
+          where: {
+            id: user.id,
+            isActive: true,
+            earningsBalance: { gte: amountMicro },
+            // Still fully unlocked (or not a sponsored lock) at write time.
+            NOT: {
+              AND: [{ accountGranted: true }, { withdrawalUnlocked: false }],
+            },
+          },
+          data: {
+            earningsBalance: { decrement: amountMicro },
+          },
+        });
+
+    if (debited.count !== 1) {
+      const latest = await tx.user.findUnique({ where: { id: user.id } });
+      if (!latest || latest.earningsBalance < amountMicro) {
+        throw new WithdrawalServiceError(
+          "Insufficient balance",
+          "INSUFFICIENT_BALANCE",
+        );
+      }
+      if (latest.accountGranted && !latest.withdrawalUnlocked) {
+        if (latest.withdrawalAllowance <= 0n) {
+          throw new WithdrawalServiceError(
+            "Withdrawals locked until requirements are met",
+            "WITHDRAWAL_LOCKED",
+          );
+        }
+        throw new WithdrawalServiceError(
+          `Only ${fromMicro(latest.withdrawalAllowance)} USDT has been released for withdrawal`,
+          "WITHDRAWAL_LOCKED",
+        );
+      }
+      throw new WithdrawalServiceError(
+        "Withdrawals locked until requirements are met",
+        "WITHDRAWAL_LOCKED",
+      );
+    }
 
     return tx.withdrawal.create({
       data: {
