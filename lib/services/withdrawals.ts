@@ -208,6 +208,16 @@ export async function createWithdrawal(input: {
   try {
     await processAutomaticWithdrawalPayout(created.id);
   } catch (err) {
+    // On-chain USDT already left — keep debit; return SENT row for ops to confirm.
+    if (
+      err instanceof WithdrawalPayoutError &&
+      err.code === "PAYOUT_SENT_UNCONFIRMED"
+    ) {
+      const sent = await prisma.withdrawal.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+      return serializeWithdrawal(sent);
+    }
     await rejectWithdrawalAfterFailedPayout(created.id);
     if (err instanceof WithdrawalPayoutError) {
       if (err.code === "INSUFFICIENT_TREASURY") {

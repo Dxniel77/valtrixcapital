@@ -1404,6 +1404,8 @@
       "adjustTargetStaking": "Capital en staking",
       "adjustTargetStakingDesc": "Se suma al capital bloqueado en staking. No es retirable.",
       "deltaHintStaking": "Los créditos de staking deben ser un monto positivo.",
+      "adjustNoPayoutWarning": "Esto solo cambia el saldo en Valtrix. No envía USDT. Para pagar a un usuario, libera el monto si hace falta y que use Billetera → Retirar.",
+      "adjustDebitConfirm": "Vas a reducir el saldo retirable en {amount} USDT. Esto NO es un retiro y NO envía USDT. ¿Continuar?",
       "colReferredBy": "Referido por",
       "referredByNone": "—"
     },
@@ -1556,6 +1558,7 @@
       "granted": "Cuenta concedida",
       "withdrawOk": "Retiro habilitado",
       "withdrawLocked": "Retiro bloqueado",
+      "withdrawPartial": "Liberación parcial",
       "operational": "Ganancia operativa",
       "network": "Ganancia de red",
       "passive": "Ganancia pasiva",

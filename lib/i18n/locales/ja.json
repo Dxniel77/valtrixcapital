@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "ステーキング資本",
       "adjustTargetStakingDesc": "ステーキングでロックされた資本に追加されます。 取り外しはできません。",
       "deltaHintStaking": "ステーキングクレジットは正の金額である必要があります。",
+      "adjustNoPayoutWarning": "これは Valtrix 上の残高を変更するだけです。USDT は送金されません。ユーザーに支払う場合は、必要なら金額を解放し、ウォレット → 出金 を使わせてください。",
+      "adjustDebitConfirm": "出金可能残高を {amount} USDT 減らします。これは出金ではなく、USDT も送金されません。続行しますか？",
       "colReferredBy": "参照元",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "アカウントが付与されました",
       "withdrawOk": "出金可能",
       "withdrawLocked": "出金はロックされています",
+      "withdrawPartial": "一部解放",
       "operational": "営業利益",
       "network": "ネットワーク収益",
       "passive": "受動的収益",

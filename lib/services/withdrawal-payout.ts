@@ -18,7 +18,9 @@ export class WithdrawalPayoutError extends Error {
       | "NOT_FOUND"
       | "INVALID_STATE"
       | "INSUFFICIENT_TREASURY"
-      | "PAYOUT_FAILED",
+      | "PAYOUT_FAILED"
+      /** On-chain send succeeded; DB confirm/treasury bookkeeping failed. Never refund. */
+      | "PAYOUT_SENT_UNCONFIRMED",
   ) {
     super(message);
     this.name = "WithdrawalPayoutError";
@@ -88,6 +90,8 @@ export async function rejectWithdrawalAfterFailedPayout(
   });
   if (!existing) return;
   if (existing.status === "CONFIRMED" || existing.status === "REJECTED") return;
+  // Money may already have left the treasury — never credit the user again.
+  if (existing.txHash?.trim()) return;
 
   await prisma.$transaction(async (tx) => {
     await tx.withdrawal.update({
@@ -136,6 +140,25 @@ export async function processAutomaticWithdrawalPayout(
     throw new WithdrawalPayoutError("Withdrawal was rejected", "INVALID_STATE");
   }
 
+  // Prior send already recorded — only retry DB/treasury confirmation.
+  const priorHash = existing.txHash?.trim();
+  if (priorHash) {
+    try {
+      await confirmWithdrawalAfterPayout({
+        withdrawalId: existing.id,
+        txHash: priorHash,
+      });
+      return { txHash: priorHash };
+    } catch (err) {
+      const detail =
+        err instanceof Error ? err.message : "Confirmation failed";
+      throw new WithdrawalPayoutError(
+        `Payout already sent on-chain (${priorHash}) but confirmation failed: ${detail}`,
+        "PAYOUT_SENT_UNCONFIRMED",
+      );
+    }
+  }
+
   const netAmount = fromMicro(existing.netAmount);
   let txHash: string;
   try {
@@ -154,22 +177,28 @@ export async function processAutomaticWithdrawalPayout(
     throw new WithdrawalPayoutError(message, "PAYOUT_FAILED");
   }
 
+  // Persist hash before confirm so a later failure never triggers a balance refund.
+  await prisma.withdrawal.update({
+    where: { id: existing.id },
+    data: { status: "SENT", txHash },
+  });
+
   try {
     await confirmWithdrawalAfterPayout({
       withdrawalId: existing.id,
       txHash,
     });
   } catch (err) {
-    if (
-      err instanceof TreasuryServiceError &&
-      err.code === "INSUFFICIENT_FUNDS"
-    ) {
-      throw new WithdrawalPayoutError(
-        "Insufficient treasury liquidity for payout",
-        "INSUFFICIENT_TREASURY",
-      );
-    }
-    throw err;
+    const detail =
+      err instanceof TreasuryServiceError && err.code === "INSUFFICIENT_FUNDS"
+        ? "Insufficient treasury liquidity for payout"
+        : err instanceof Error
+          ? err.message
+          : "Confirmation failed";
+    throw new WithdrawalPayoutError(
+      `Payout sent on-chain (${txHash}) but confirmation failed: ${detail}`,
+      "PAYOUT_SENT_UNCONFIRMED",
+    );
   }
 
   return { txHash };
@@ -183,7 +212,6 @@ export async function processPendingAutomaticWithdrawals(limit = 20): Promise<{
   const rows = await prisma.withdrawal.findMany({
     where: {
       status: { in: ["REQUESTED", "APPROVED", "SENT"] },
-      txHash: null,
     },
     orderBy: { requestedAt: "asc" },
     take: limit,

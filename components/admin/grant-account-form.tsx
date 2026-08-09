@@ -551,12 +551,20 @@ export function GrantAccountForm() {
                           </p>
                         </div>
                         <Badge
-                          variant={u.withdrawalUnlocked ? "success" : "warning"}
+                          variant={
+                            u.withdrawalUnlocked
+                              ? "success"
+                              : (u.withdrawalAllowance ?? 0) > 0
+                                ? "gold"
+                                : "warning"
+                          }
                           className="shrink-0 text-[10px]"
                         >
                           {u.withdrawalUnlocked
                             ? t("admin.lookup.withdrawOk")
-                            : t("admin.lookup.withdrawLocked")}
+                            : (u.withdrawalAllowance ?? 0) > 0
+                              ? t("admin.lookup.withdrawPartial")
+                              : t("admin.lookup.withdrawLocked")}
                         </Badge>
                       </div>
                       <div className="mt-2.5">

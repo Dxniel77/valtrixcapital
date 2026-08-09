@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "Kapital einsetzen",
       "adjustTargetStakingDesc": "Es wird dem im Einsatz gebundenen Kapital hinzugefügt. Es ist nicht abnehmbar.",
       "deltaHintStaking": "Das Einsatzguthaben muss ein positiver Betrag sein.",
+      "adjustNoPayoutWarning": "Dies ändert nur den Saldo in Valtrix. Es sendet kein USDT. Um einen Nutzer auszuzahlen, geben Sie ggf. Beträge frei und lassen Sie ihn Wallet → Abheben nutzen.",
+      "adjustDebitConfirm": "Sie reduzieren den abhebbaren Saldo um {amount} USDT. Das ist KEINE Auszahlung und sendet KEIN USDT. Fortfahren?",
       "colReferredBy": "Empfohlen von",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "Konto gewährt",
       "withdrawOk": "Auszahlungen aktiviert",
       "withdrawLocked": "Auszahlungen gesperrt",
+      "withdrawPartial": "Teilfreigabe",
       "operational": "Betriebsergebnis",
       "network": "Netzwerkeinnahmen",
       "passive": "Passives Einkommen",

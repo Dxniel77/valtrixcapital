@@ -107,7 +107,11 @@ export function UserDetailPanel({
             {user.withdrawalUnlocked ? (
               <Badge variant="success">{t("admin.lookup.withdrawOk")}</Badge>
             ) : isSponsored ? (
-              <Badge variant="outline">{t("admin.lookup.withdrawLocked")}</Badge>
+              (user.withdrawalAllowance ?? 0) > 0 ? (
+                <Badge variant="gold">{t("admin.lookup.withdrawPartial")}</Badge>
+              ) : (
+                <Badge variant="outline">{t("admin.lookup.withdrawLocked")}</Badge>
+              )
             ) : null}
             <IbStatusBadge isIb={user.isIb} />
           </div>

@@ -972,43 +972,43 @@ export async function applyTraderPerformanceUpdate(input: {
           });
         }
 
-        const active = await tx.copyInvestment.findMany({
+    const active = await tx.copyInvestment.findMany({
           where: {
             traderId: input.traderId,
             status: "ACTIVE",
             currentValue: { gt: 0 },
           },
-        });
+    });
 
-        const syncInput = active.map((i) => ({
-          id: i.id,
-          principal: i.principal,
-          currentValue: i.currentValue,
-          realizedPnl: i.realizedPnl,
-        }));
+    const syncInput = active.map((i) => ({
+      id: i.id,
+      principal: i.principal,
+      currentValue: i.currentValue,
+      realizedPnl: i.realizedPnl,
+    }));
 
-        const result = applyPerformance(syncInput, input.returnBps);
+    const result = applyPerformance(syncInput, input.returnBps);
 
-        for (const next of result.investments) {
-          const closed = next.currentValue <= 0n;
-          await tx.copyInvestment.update({
-            where: { id: next.id },
-            data: {
-              currentValue: next.currentValue,
-              realizedPnl: next.realizedPnl,
-              status: closed ? "CLOSED" : "ACTIVE",
-              closedAt: closed ? new Date() : null,
-            },
-          });
-        }
+    for (const next of result.investments) {
+      const closed = next.currentValue <= 0n;
+      await tx.copyInvestment.update({
+        where: { id: next.id },
+        data: {
+          currentValue: next.currentValue,
+          realizedPnl: next.realizedPnl,
+          status: closed ? "CLOSED" : "ACTIVE",
+          closedAt: closed ? new Date() : null,
+        },
+      });
+    }
 
         if (result.ledger.length > 0) {
           await tx.copyInvestmentLedger.createMany({
             data: result.ledger.map((entry) => ({
-              investmentId: entry.investmentId,
-              kind: "PNL" satisfies CopyLedgerKind,
-              amount: entry.amount,
-              balanceAfter: entry.balanceAfter,
+          investmentId: entry.investmentId,
+          kind: "PNL" satisfies CopyLedgerKind,
+          amount: entry.amount,
+          balanceAfter: entry.balanceAfter,
               performanceId: event.id,
             })),
           });
@@ -1037,24 +1037,24 @@ export async function applyTraderPerformanceUpdate(input: {
           },
         });
 
-        await tx.adminAction.create({
-          data: {
-            adminId: input.adminUserId,
-            action: "UPDATE_CONFIG",
-            targetUserId: null,
-            payload: {
-              kind: "COPY_PERFORMANCE",
-              traderId: input.traderId,
-              period: input.period,
-              returnBps: input.returnBps,
+    await tx.adminAction.create({
+      data: {
+        adminId: input.adminUserId,
+        action: "UPDATE_CONFIG",
+        targetUserId: null,
+        payload: {
+          kind: "COPY_PERFORMANCE",
+          traderId: input.traderId,
+          period: input.period,
+          returnBps: input.returnBps,
               source: input.source ?? "ADMIN",
               eventId: event.id,
               idempotencyKey,
-              affected: active.length,
-              totalDelta: result.totalDelta.toString(),
-            },
-          },
-        });
+          affected: active.length,
+          totalDelta: result.totalDelta.toString(),
+        },
+      },
+    });
 
         return {
           event,

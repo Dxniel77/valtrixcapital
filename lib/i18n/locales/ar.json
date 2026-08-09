@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "الرهان على رأس المال",
       "adjustTargetStakingDesc": "يتم إضافته إلى رأس المال المقفل في التوقيع المساحي. إنه غير قابل للإزالة.",
       "deltaHintStaking": "يجب أن تكون الاعتمادات المتراكمة مبلغًا إيجابيًا.",
+      "adjustNoPayoutWarning": "هذا يغيّر الرصيد في Valtrix فقط ولا يرسل USDT. لدفع مستخدم، حرّر المبلغ عند الحاجة واطلب منه استخدام المحفظة ← سحب.",
+      "adjustDebitConfirm": "ستقوم بخفض الرصيد القابل للسحب بمقدار {amount} USDT. هذا ليس سحبًا ولن يرسل USDT. المتابعة؟",
       "colReferredBy": "تمت الإشارة إليه بواسطة",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "تم منح الحساب",
       "withdrawOk": "تم تمكين عمليات السحب",
       "withdrawLocked": "عمليات السحب مغلقة",
+      "withdrawPartial": "تحرير جزئي",
       "operational": "الأرباح التشغيلية",
       "network": "أرباح الشبكة",
       "passive": "الأرباح السلبية",

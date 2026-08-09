@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "पूंजी जमा करना",
       "adjustTargetStakingDesc": "इसे हिस्सेदारी में बंद पूंजी में जोड़ा जाता है। यह हटाने योग्य नहीं है.",
       "deltaHintStaking": "स्टेकिंग क्रेडिट एक सकारात्मक राशि होनी चाहिए।",
+      "adjustNoPayoutWarning": "यह केवल Valtrix में बैलेंस बदलता है। USDT नहीं भेजता। उपयोगकर्ता को भुगतान के लिए ज़रूरत हो तो राशि रिलीज़ करें और वॉलेट → निकासी इस्तेमाल करवाएँ।",
+      "adjustDebitConfirm": "आप निकासी योग्य बैलेंस {amount} USDT कम कर रहे हैं। यह निकासी नहीं है और USDT नहीं भेजेगा। जारी रखें?",
       "colReferredBy": "द्वारा उल्लिखित",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "हिसाब दिया गया",
       "withdrawOk": "निकासी सक्षम",
       "withdrawLocked": "निकासी बंद है",
+      "withdrawPartial": "आंशिक रिलीज़",
       "operational": "परिचालन आय",
       "network": "नेटवर्क कमाई",
       "passive": "निष्क्रिय कमाई",

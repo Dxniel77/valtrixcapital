@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "Capital de mise",
       "adjustTargetStakingDesc": "Il s’ajoute au capital bloqué en staking. Il n'est pas amovible.",
       "deltaHintStaking": "Les crédits de mise doivent être d’un montant positif.",
+      "adjustNoPayoutWarning": "Cela modifie uniquement le solde dans Valtrix. Cela n’envoie pas d’USDT. Pour payer un utilisateur, libérez le montant si besoin et demandez-lui d’utiliser Portefeuille → Retirer.",
+      "adjustDebitConfirm": "Vous réduisez le solde retirable de {amount} USDT. Ce n’est PAS un retrait et cela n’envoie PAS d’USDT. Continuer ?",
       "colReferredBy": "Référé par",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "Compte accordé",
       "withdrawOk": "Retraits activés",
       "withdrawLocked": "Retraits bloqués",
+      "withdrawPartial": "Libération partielle",
       "operational": "Résultat opérationnel",
       "network": "Gains du réseau",
       "passive": "Gains passifs",

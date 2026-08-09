@@ -1395,6 +1395,8 @@
       "adjustTargetStaking": "质押资本",
       "adjustTargetStakingDesc": "它被添加到锁定的资本中。 它是不可拆卸的。",
       "deltaHintStaking": "质押积分必须为正数。",
+      "adjustNoPayoutWarning": "这只会更改 Valtrix 中的余额，不会发送 USDT。要给用户付款，请在需要时释放金额，并让用户使用钱包 → 提现。",
+      "adjustDebitConfirm": "您将减少可提现余额 {amount} USDT。这不是提现，也不会发送 USDT。是否继续？",
       "colReferredBy": "推荐人",
       "referredByNone": "—"
     },
@@ -1547,6 +1549,7 @@
       "granted": "帐户已授予",
       "withdrawOk": "已启用提款",
       "withdrawLocked": "提款被阻止",
+      "withdrawPartial": "部分释放",
       "operational": "营业利润",
       "network": "网络增益",
       "passive": "被动增益",

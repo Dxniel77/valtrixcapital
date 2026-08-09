@@ -435,6 +435,17 @@ function AdjustBalanceModal({
 
   async function apply() {
     if (!user || !valid || submitting) return;
+
+    const isWithdrawableDebit = target === "WITHDRAWABLE" && delta < 0;
+    if (isWithdrawableDebit) {
+      const ok = window.confirm(
+        t("admin.users.adjustDebitConfirm", {
+          amount: formatNumber(Math.abs(delta), { decimals: 2 }),
+        }),
+      );
+      if (!ok) return;
+    }
+
     setSubmitting(true);
     try {
       const health = await fetchBackendHealth();
@@ -496,6 +507,9 @@ function AdjustBalanceModal({
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
+          <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-xs leading-relaxed text-warning">
+            {t("admin.users.adjustNoPayoutWarning")}
+          </div>
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.users.adjustTargetLabel")}

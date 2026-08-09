@@ -1337,6 +1337,8 @@
       "adjustTargetStaking": "Capitale di puntata",
       "adjustTargetStakingDesc": "Viene aggiunto al capitale bloccato nello staking. Non è rimovibile.",
       "deltaHintStaking": "I crediti di staking devono avere un importo positivo.",
+      "adjustNoPayoutWarning": "Questo modifica solo il saldo in Valtrix. Non invia USDT. Per pagare un utente, sblocca l’importo se serve e fai usare Portafoglio → Preleva.",
+      "adjustDebitConfirm": "Stai riducendo il saldo prelevabile di {amount} USDT. Questo NON è un prelievo e NON invia USDT. Continuare?",
       "colReferredBy": "Riferito da",
       "referredByNone": "—"
     },
@@ -1489,6 +1491,7 @@
       "granted": "Conto concesso",
       "withdrawOk": "Prelievi abilitati",
       "withdrawLocked": "Prelievi bloccati",
+      "withdrawPartial": "Rilascio parziale",
       "operational": "Guadagni operativi",
       "network": "Guadagni di rete",
       "passive": "Guadagni passivi",

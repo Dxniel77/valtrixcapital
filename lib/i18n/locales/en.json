@@ -1346,6 +1346,8 @@
       "adjustTargetStaking": "Staking capital",
       "adjustTargetStakingDesc": "Adds locked capital to the staking account. Not withdrawable.",
       "deltaHintStaking": "Staking credits must be a positive amount.",
+      "adjustNoPayoutWarning": "This only changes the balance in Valtrix. It does not send USDT. To pay a user, release funds if needed and have them use Wallet → Withdraw.",
+      "adjustDebitConfirm": "You are reducing withdrawable balance by {amount} USDT. This is NOT a withdrawal and will NOT send USDT. Continue?",
       "colReferredBy": "Referred by",
       "referredByNone": "—"
     },
@@ -1498,6 +1500,7 @@
       "granted": "Account granted",
       "withdrawOk": "Withdrawals enabled",
       "withdrawLocked": "Withdrawals locked",
+      "withdrawPartial": "Partial release",
       "operational": "Operational earnings",
       "network": "Network earnings",
       "passive": "Passive earnings",
