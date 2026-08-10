@@ -38,6 +38,8 @@ type Trader = {
   roiBps: number;
   cumulativeRoiBps: number;
   minInvestment: number;
+  performanceFeeBps: number;
+  maxInvestors: number;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
@@ -99,6 +101,8 @@ type TraderForm = {
   experienceDays: string;
   followersCount: string;
   minInvestment: string;
+  performanceFeePct: string;
+  maxInvestors: string;
   sortOrder: string;
   isActive: boolean;
   isVisible: boolean;
@@ -117,6 +121,8 @@ const EMPTY_FORM: TraderForm = {
   experienceDays: "365",
   followersCount: "0",
   minInvestment: "15",
+  performanceFeePct: "10",
+  maxInvestors: "180",
   sortOrder: "0",
   isActive: true,
   isVisible: true,
@@ -145,6 +151,8 @@ function traderToForm(trader: Trader): TraderForm {
     experienceDays: String(trader.experienceDays),
     followersCount: String(trader.followersCount),
     minInvestment: String(trader.minInvestment),
+    performanceFeePct: String((trader.performanceFeeBps ?? 1000) / 100),
+    maxInvestors: String(trader.maxInvestors ?? 180),
     sortOrder: String(trader.sortOrder),
     isActive: trader.isActive,
     isVisible: trader.isVisible,
@@ -165,6 +173,8 @@ function formPayload(form: TraderForm) {
     experienceDays: Math.trunc(Number(form.experienceDays) || 0),
     followersCount: Math.trunc(Number(form.followersCount) || 0),
     minInvestment: Number(form.minInvestment) || 0,
+    performanceFeeBps: Math.round((Number(form.performanceFeePct) || 0) * 100),
+    maxInvestors: Math.max(1, Math.trunc(Number(form.maxInvestors) || 180)),
     sortOrder: Math.trunc(Number(form.sortOrder) || 0),
     isActive: form.isActive,
     isVisible: form.isVisible,
@@ -971,7 +981,7 @@ function TraderDialog({
               onChange={(event) => update("photoUrl", event.target.value)}
             />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <Field label={t("admin.copyTrading.experienceDays")}>
               <Input
                 type="number"
@@ -996,6 +1006,25 @@ function TraderDialog({
                 value={form.minInvestment}
                 onChange={(event) =>
                   update("minInvestment", event.target.value)
+                }
+              />
+            </Field>
+            <Field label={t("admin.copyTrading.performanceFee")}>
+              <Input
+                type="number"
+                step="0.1"
+                value={form.performanceFeePct}
+                onChange={(event) =>
+                  update("performanceFeePct", event.target.value)
+                }
+              />
+            </Field>
+            <Field label={t("admin.copyTrading.maxInvestors")}>
+              <Input
+                type="number"
+                value={form.maxInvestors}
+                onChange={(event) =>
+                  update("maxInvestors", event.target.value)
                 }
               />
             </Field>

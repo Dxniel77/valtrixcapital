@@ -1011,7 +1011,9 @@
       "deleteSelected": "حذف ({n})",
       "confirmDelete": "إخفاء {n} من المتداولين المحددين من السوق؟",
       "deleted": "تمت إزالة {n} من المتداولين.",
-      "deletedWithSkipped": "تمت إزالة {deleted}. تم تخطي {skipped} لديهم نسخ نشطة."
+      "deletedWithSkipped": "تمت إزالة {deleted}. تم تخطي {skipped} لديهم نسخ نشطة.",
+      "performanceFee": "حصة الأرباح %",
+      "maxInvestors": "الحد الأقصى للمستثمرين الحقيقيين"
     },
     "notifications": {
       "title": "إرسال الإخطارات",

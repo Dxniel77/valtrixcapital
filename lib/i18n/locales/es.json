@@ -1041,6 +1041,8 @@
       "experienceDays": "Días de experiencia",
       "followers": "Seguidores mostrados",
       "minimum": "Mínimo USDT",
+      "performanceFee": "Participación en ganancias %",
+      "maxInvestors": "Máx. inversores reales",
       "order": "Orden",
       "active": "Activo",
       "visible": "Visible",

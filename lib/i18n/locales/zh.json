@@ -1069,7 +1069,9 @@
       "deleteSelected": "删除（{n}）",
       "confirmDelete": "从市场隐藏所选的 {n} 位交易员？",
       "deleted": "已移除 {n} 位交易员。",
-      "deletedWithSkipped": "已移除 {deleted} 位。跳过 {skipped} 位仍有活跃跟单。"
+      "deletedWithSkipped": "已移除 {deleted} 位。跳过 {skipped} 位仍有活跃跟单。",
+      "performanceFee": "利润分成 %",
+      "maxInvestors": "最大真实投资者数"
     },
     "notifications": {
       "title": "发送通知",

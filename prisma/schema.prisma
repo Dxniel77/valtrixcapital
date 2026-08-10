@@ -746,6 +746,10 @@ model CopyTrader {
   winningTrades           Int           @default(0)
   losingTrades            Int           @default(0)
   minInvestment           BigInt        @default(15000000)
+  /// Profit-share / performance fee shown to clients (bps, 1000 = 10%).
+  performanceFeeBps       Int           @default(1000)
+  /// Max real investors allowed to copy this trader.
+  maxInvestors            Int           @default(180)
   isActive                Boolean       @default(true)
   isVisible               Boolean       @default(true)
   isFeatured              Boolean       @default(false)

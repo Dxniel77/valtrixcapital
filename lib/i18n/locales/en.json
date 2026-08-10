@@ -983,6 +983,8 @@
       "experienceDays": "Experience days",
       "followers": "Displayed followers",
       "minimum": "Minimum USDT",
+      "performanceFee": "Profit share %",
+      "maxInvestors": "Max real investors",
       "order": "Order",
       "active": "Active",
       "visible": "Visible",

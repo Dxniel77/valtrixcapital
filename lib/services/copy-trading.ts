@@ -22,7 +22,8 @@ export class CopyTradingError extends Error {
       | "INSUFFICIENT_BALANCE"
       | "INACTIVE"
       | "FORBIDDEN"
-      | "TRADER_UNAVAILABLE",
+      | "TRADER_UNAVAILABLE"
+      | "CAPACITY_FULL",
   ) {
     super(message);
     this.name = "CopyTradingError";
@@ -56,6 +57,8 @@ export type CopyTraderDto = {
   winningTrades: number;
   losingTrades: number;
   minInvestment: number;
+  performanceFeeBps: number;
+  maxInvestors: number;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
@@ -152,6 +155,49 @@ export type CopyTraderOperationDto = {
   simulated: true;
 };
 
+export type CopyTraderStatsPeriod = "TODAY" | "WEEK" | "MONTH" | "ALL";
+
+export type CopyTraderCoinBreakdownDto = {
+  symbol: string;
+  ops: number;
+  shareBps: number;
+};
+
+export type CopyTraderDailyPnlDto = {
+  date: string;
+  returnBps: number;
+  ops: number;
+};
+
+export type CopyTraderStatsDto = {
+  period: CopyTraderStatsPeriod;
+  avgReturnBps: number | null;
+  opsCount: number;
+  winRateBps: number;
+  coinBreakdown: CopyTraderCoinBreakdownDto[];
+  dailyPnl: CopyTraderDailyPnlDto[];
+};
+
+export type CopyTraderCopierDto = {
+  /** Masked display name, e.g. SE******3 */
+  displayName: string;
+  /** Masked wallet fragment when available */
+  walletHint: string | null;
+  /** Is this row the viewing user? */
+  isYou: boolean;
+  margin: number;
+  pnl: number;
+  roiBps: number;
+  durationDays: number;
+  startedAt: string;
+};
+
+export type CopyTraderCopiersDto = {
+  total: number;
+  maxInvestors: number;
+  copiers: CopyTraderCopierDto[];
+};
+
 function roiBpsOf(principal: bigint, currentValue: bigint): number {
   if (principal <= 0n) return 0;
   return Number(((currentValue - principal) * 10_000n) / principal);
@@ -183,6 +229,8 @@ function serializeTrader(
     winningTrades: t.winningTrades,
     losingTrades: t.losingTrades,
     minInvestment: fromMicro(t.minInvestment),
+    performanceFeeBps: t.performanceFeeBps ?? 1000,
+    maxInvestors: t.maxInvestors ?? 180,
     isActive: t.isActive,
     isVisible: t.isVisible,
     isFeatured: t.isFeatured,
@@ -348,6 +396,8 @@ export type AdminCopyTraderInput = {
   experienceDays: number;
   followersCount: number;
   minInvestment: number;
+  performanceFeeBps: number;
+  maxInvestors: number;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
@@ -367,6 +417,20 @@ function validateAdminTraderInput(input: AdminCopyTraderInput): void {
   }
   if (!Number.isFinite(input.minInvestment) || input.minInvestment < 0) {
     throw new CopyTradingError("Invalid minimum investment", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(input.performanceFeeBps) ||
+    input.performanceFeeBps < 0 ||
+    input.performanceFeeBps > 10_000
+  ) {
+    throw new CopyTradingError("Invalid performance fee", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(input.maxInvestors) ||
+    input.maxInvestors < 1 ||
+    input.maxInvestors > 1_000_000
+  ) {
+    throw new CopyTradingError("Invalid max investors", "INVALID_AMOUNT");
   }
   if (
     !Number.isInteger(input.simulationMinBps) ||
@@ -423,6 +487,8 @@ export async function createAdminCopyTrader(
         experienceDays: Math.max(0, Math.trunc(input.experienceDays)),
         followersCount: Math.max(0, Math.trunc(input.followersCount)),
         minInvestment: toMicro(input.minInvestment),
+        performanceFeeBps: Math.trunc(input.performanceFeeBps),
+        maxInvestors: Math.trunc(input.maxInvestors),
         isActive: input.isActive,
         isVisible: input.isVisible,
         isFeatured: input.isFeatured,
@@ -477,6 +543,8 @@ export async function updateAdminCopyTrader(
         experienceDays: Math.max(0, Math.trunc(input.experienceDays)),
         followersCount: Math.max(0, Math.trunc(input.followersCount)),
         minInvestment: toMicro(input.minInvestment),
+        performanceFeeBps: Math.trunc(input.performanceFeeBps),
+        maxInvestors: Math.trunc(input.maxInvestors),
         isActive: input.isActive,
         isVisible: input.isVisible,
         isFeatured: input.isFeatured,
@@ -715,6 +783,28 @@ export async function investInCopyTrader(input: {
   }
 
   const investment = await prisma.$transaction(async (tx) => {
+    const prior = await tx.copyInvestment.count({
+      where: {
+        userId: input.userId,
+        traderId: input.traderId,
+        status: "ACTIVE",
+      },
+    });
+
+    if (prior === 0) {
+      const distinctCopiers = await tx.copyInvestment.findMany({
+        where: { traderId: input.traderId, status: "ACTIVE" },
+        distinct: ["userId"],
+        select: { userId: true },
+      });
+      if (distinctCopiers.length >= trader.maxInvestors) {
+        throw new CopyTradingError(
+          "Trader copy slots are full",
+          "CAPACITY_FULL",
+        );
+      }
+    }
+
     const updatedUser = await tx.user.updateMany({
       where: { id: input.userId, earningsBalance: { gte: amountMicro } },
       data: { earningsBalance: { decrement: amountMicro } },
@@ -725,14 +815,6 @@ export async function investInCopyTrader(input: {
         "INSUFFICIENT_BALANCE",
       );
     }
-
-    const prior = await tx.copyInvestment.count({
-      where: {
-        userId: input.userId,
-        traderId: input.traderId,
-        status: "ACTIVE",
-      },
-    });
 
     const created = await tx.copyInvestment.create({
       data: {
@@ -1258,25 +1340,227 @@ function serializeCopyOperation(
   };
 }
 
+export async function userHasActiveCopyInvestment(
+  userId: string,
+  traderId: string,
+): Promise<boolean> {
+  const count = await prisma.copyInvestment.count({
+    where: { userId, traderId, status: "ACTIVE" },
+  });
+  return count > 0;
+}
+
 export async function getCopyTraderOperations(
   traderId: string,
+  viewerUserId?: string | null,
 ): Promise<{
+  locked: boolean;
   current: CopyTraderOperationDto | null;
   history: CopyTraderOperationDto[];
 }> {
+  const unlocked = viewerUserId
+    ? await userHasActiveCopyInvestment(viewerUserId, traderId)
+    : false;
+
+  if (!unlocked) {
+    return { locked: true, current: null, history: [] };
+  }
+
   const rows = await prisma.copyTraderOperation.findMany({
     where: { traderId },
     orderBy: [{ status: "desc" }, { openedAt: "desc" }],
-    take: 21,
+    take: 80,
   });
   const now = new Date();
   const current = rows.find((operation) => operation.status === "OPEN") ?? null;
   return {
+    locked: false,
     current: current ? serializeCopyOperation(current, now) : null,
     history: rows
       .filter((operation) => operation.status === "CLOSED")
-      .slice(0, 20)
+      .slice(0, 60)
       .map((operation) => serializeCopyOperation(operation, now)),
+  };
+}
+
+function periodStartMs(period: CopyTraderStatsPeriod, now = Date.now()): number | null {
+  if (period === "ALL") return null;
+  if (period === "TODAY") {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  if (period === "WEEK") return now - 7 * 24 * 60 * 60 * 1000;
+  return now - 30 * 24 * 60 * 60 * 1000;
+}
+
+export async function getCopyTraderStats(
+  traderId: string,
+  period: CopyTraderStatsPeriod = "ALL",
+): Promise<CopyTraderStatsDto | null> {
+  const trader = await prisma.copyTrader.findFirst({
+    where: { id: traderId, isVisible: true },
+    select: { id: true },
+  });
+  if (!trader) return null;
+
+  const startMs = periodStartMs(period);
+  const closed = await prisma.copyTraderOperation.findMany({
+    where: {
+      traderId,
+      status: "CLOSED",
+      ...(startMs != null
+        ? { closedAt: { gte: new Date(startMs) } }
+        : {}),
+    },
+    orderBy: { closedAt: "asc" },
+    take: 500,
+  });
+
+  const returns = closed.map((op) => op.settledReturnBps ?? op.targetReturnBps);
+  const wins = returns.filter((bps) => bps > 0).length;
+  const avgReturnBps =
+    returns.length === 0
+      ? null
+      : Math.round(returns.reduce((a, b) => a + b, 0) / returns.length);
+  const winRateBps =
+    returns.length === 0 ? 0 : Math.round((wins / returns.length) * 10_000);
+
+  const coinMap = new Map<string, number>();
+  for (const op of closed) {
+    coinMap.set(op.symbol, (coinMap.get(op.symbol) ?? 0) + 1);
+  }
+  const totalOps = closed.length || 1;
+  const coinBreakdown = [...coinMap.entries()]
+    .map(([symbol, ops]) => ({
+      symbol,
+      ops,
+      shareBps: Math.round((ops / totalOps) * 10_000),
+    }))
+    .sort((a, b) => b.ops - a.ops)
+    .slice(0, 8);
+
+  const dayMap = new Map<string, { returnBps: number; ops: number }>();
+  for (const op of closed) {
+    const closedAt = op.closedAt ?? op.openedAt;
+    const key = closedAt.toISOString().slice(0, 10);
+    const prev = dayMap.get(key) ?? { returnBps: 0, ops: 0 };
+    prev.returnBps += op.settledReturnBps ?? op.targetReturnBps;
+    prev.ops += 1;
+    dayMap.set(key, prev);
+  }
+  const dailyPnl = [...dayMap.entries()]
+    .map(([date, v]) => ({ date, returnBps: v.returnBps, ops: v.ops }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    period,
+    avgReturnBps,
+    opsCount: closed.length,
+    winRateBps,
+    coinBreakdown,
+    dailyPnl,
+  };
+}
+
+function maskUsername(username: string | null, wallet: string): string {
+  const raw = (username?.trim() || wallet.replace(/^0x/i, "")).toUpperCase();
+  if (raw.length <= 2) return `${raw}****`;
+  if (raw.length <= 4) return `${raw.slice(0, 1)}****${raw.slice(-1)}`;
+  return `${raw.slice(0, 2)}******${raw.slice(-1)}`;
+}
+
+function maskWallet(wallet: string): string {
+  if (wallet.length < 10) return wallet;
+  return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`;
+}
+
+export type CopierSortMode =
+  | "pnl_desc"
+  | "pnl_asc"
+  | "roi_desc"
+  | "dur_desc";
+
+export async function listCopyTraderCopiers(
+  traderId: string,
+  opts?: { sort?: CopierSortMode; viewerUserId?: string | null },
+): Promise<CopyTraderCopiersDto | null> {
+  const trader = await prisma.copyTrader.findFirst({
+    where: { id: traderId, isVisible: true },
+    select: { id: true, maxInvestors: true },
+  });
+  if (!trader) return null;
+
+  const rows = await prisma.copyInvestment.findMany({
+    where: { traderId, status: "ACTIVE" },
+    include: {
+      user: { select: { id: true, username: true, walletAddress: true } },
+    },
+    orderBy: { startedAt: "asc" },
+    take: 200,
+  });
+
+  // One row per user (sum if multiple active legs — normally one).
+  const byUser = new Map<
+    string,
+    {
+      userId: string;
+      username: string | null;
+      wallet: string;
+      principal: bigint;
+      currentValue: bigint;
+      startedAt: Date;
+    }
+  >();
+  for (const row of rows) {
+    const prev = byUser.get(row.userId);
+    if (!prev) {
+      byUser.set(row.userId, {
+        userId: row.userId,
+        username: row.user.username,
+        wallet: row.user.walletAddress,
+        principal: row.principal,
+        currentValue: row.currentValue,
+        startedAt: row.startedAt,
+      });
+      continue;
+    }
+    prev.principal += row.principal;
+    prev.currentValue += row.currentValue;
+    if (row.startedAt < prev.startedAt) prev.startedAt = row.startedAt;
+  }
+
+  const now = Date.now();
+  let copiers: CopyTraderCopierDto[] = [...byUser.values()].map((u) => {
+    const pnl = fromMicro(u.currentValue - u.principal);
+    const margin = fromMicro(u.currentValue);
+    return {
+      displayName: maskUsername(u.username, u.wallet),
+      walletHint: maskWallet(u.wallet),
+      isYou: opts?.viewerUserId === u.userId,
+      margin,
+      pnl,
+      roiBps: roiBpsOf(u.principal, u.currentValue),
+      durationDays: Math.max(
+        1,
+        Math.floor((now - u.startedAt.getTime()) / (24 * 60 * 60 * 1000)),
+      ),
+      startedAt: u.startedAt.toISOString(),
+    };
+  });
+
+  const sort = opts?.sort ?? "pnl_desc";
+  copiers.sort((a, b) => {
+    if (sort === "pnl_asc") return a.pnl - b.pnl;
+    if (sort === "roi_desc") return b.roiBps - a.roiBps;
+    if (sort === "dur_desc") return b.durationDays - a.durationDays;
+    return b.pnl - a.pnl;
+  });
+
+  return {
+    total: copiers.length,
+    maxInvestors: trader.maxInvestors,
+    copiers: copiers.slice(0, 50),
   };
 }
 

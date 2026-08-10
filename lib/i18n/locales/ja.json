@@ -1011,7 +1011,9 @@
       "deleteSelected": "削除（{n}）",
       "confirmDelete": "選択した {n} 人のトレーダーをマーケットから非表示にしますか？",
       "deleted": "{n} 人のトレーダーを削除しました。",
-      "deletedWithSkipped": "{deleted} 人を削除。アクティブなコピーがある {skipped} 人はスキップ。"
+      "deletedWithSkipped": "{deleted} 人を削除。アクティブなコピーがある {skipped} 人はスキップ。",
+      "performanceFee": "利益分配 %",
+      "maxInvestors": "最大実投資家数"
     },
     "notifications": {
       "title": "通知を送信する",

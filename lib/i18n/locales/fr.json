@@ -1011,7 +1011,9 @@
       "deleteSelected": "Supprimer ({n})",
       "confirmDelete": "Masquer {n} trader(s) sélectionné(s) du marketplace ?",
       "deleted": "{n} trader(s) supprimé(s).",
-      "deletedWithSkipped": "{deleted} supprimé(s). {skipped} ignoré(s) avec copies actives."
+      "deletedWithSkipped": "{deleted} supprimé(s). {skipped} ignoré(s) avec copies actives.",
+      "performanceFee": "Part des profits %",
+      "maxInvestors": "Max. investisseurs réels"
     },
     "notifications": {
       "title": "Envoyer des notifications",

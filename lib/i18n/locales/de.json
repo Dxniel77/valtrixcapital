@@ -1011,7 +1011,9 @@
       "deleteSelected": "Löschen ({n})",
       "confirmDelete": "{n} ausgewählte Trader aus dem Marketplace ausblenden?",
       "deleted": "{n} Trader entfernt.",
-      "deletedWithSkipped": "{deleted} entfernt. {skipped} mit aktiven Copies übersprungen."
+      "deletedWithSkipped": "{deleted} entfernt. {skipped} mit aktiven Copies übersprungen.",
+      "performanceFee": "Gewinnbeteiligung %",
+      "maxInvestors": "Max. echte Investoren"
     },
     "notifications": {
       "title": "Senden Sie Benachrichtigungen",
