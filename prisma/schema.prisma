@@ -187,8 +187,11 @@ model User {
   walletAddress       String   @unique
   email               String?  @unique
   username            String?
-  /// Public profile image URL — editable only while user is marked as IB.
+  /// Public avatar path (e.g. /api/avatars/{id}) — IB only.
   avatarUrl           String?
+  /// Compressed avatar image bytes stored in Neon (IB only).
+  avatarBytes         Bytes?
+  avatarMime          String?
   role                UserRole @default(USER)
   isActive            Boolean  @default(true)
   referralCode        String   @unique

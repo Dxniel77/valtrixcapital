@@ -1,7 +1,8 @@
 import type { Prisma, User, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isAdminWallet, normalizeWallet } from "@/lib/auth/admins";
-import { normalizeAvatarUrl, AvatarUrlError } from "@/lib/user/avatar";
+import { normalizeAvatarUrl, AvatarUrlError, parseAvatarUploadPayload } from "@/lib/user/avatar";
+import { avatarPublicPath } from "@/lib/user/avatar-image";
 import { fromMicro } from "@/lib/utils";
 import {
   generateUniqueReferralCode,
@@ -128,11 +129,16 @@ export function serializeUser(
   const ibBoost = null as IbBoostSummary | null;
   const agreement = user.ibAgreement ?? null;
   const isIb = agreement?.isIb === true;
+  const hasStoredAvatar = Boolean(user.avatarMime);
   return {
     id: user.id,
     walletAddress: user.walletAddress,
     username: user.username,
-    avatarUrl: isIb ? user.avatarUrl ?? null : null,
+    avatarUrl: isIb
+      ? hasStoredAvatar
+        ? avatarPublicPath(user.id, user.updatedAt.getTime())
+        : user.avatarUrl ?? null
+      : null,
     role: user.role,
     isActive: user.isActive,
     referralCode: user.referralCode,
@@ -372,11 +378,61 @@ export async function setInitialUsername(
   });
 }
 
-/** IB-only: set or clear the profile avatar URL. */
+/** IB-only: clear avatar (URL + Neon bytes). */
+export async function clearUserAvatar(userId: string): Promise<User> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { ibAgreement: { select: { isIb: true } } },
+  });
+  if (!user) throw new AvatarUrlError("User not found", "NOT_FOUND");
+  if (user.ibAgreement?.isIb !== true) {
+    throw new AvatarUrlError("Only IB users can set an avatar", "NOT_IB");
+  }
+  return prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: null, avatarBytes: null, avatarMime: null },
+  });
+}
+
+/** IB-only: store a compressed avatar in Neon and expose /api/avatars/{id}. */
+export async function setUserAvatarImage(
+  userId: string,
+  input: { dataBase64: string; mime?: string },
+): Promise<User> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { ibAgreement: { select: { isIb: true } } },
+  });
+  if (!user) throw new AvatarUrlError("User not found", "NOT_FOUND");
+  if (user.ibAgreement?.isIb !== true) {
+    throw new AvatarUrlError("Only IB users can set an avatar", "NOT_IB");
+  }
+
+  const { bytes, mime } = parseAvatarUploadPayload(input);
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      avatarBytes: bytes,
+      avatarMime: mime,
+      avatarUrl: avatarPublicPath(userId),
+    },
+  });
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      avatarUrl: avatarPublicPath(userId, updated.updatedAt.getTime()),
+    },
+  });
+}
+
+/** @deprecated Prefer setUserAvatarImage / clearUserAvatar. */
 export async function setUserAvatarUrl(
   userId: string,
   avatarUrl: string | null,
 ): Promise<User> {
+  if (avatarUrl == null || !avatarUrl.trim()) {
+    return clearUserAvatar(userId);
+  }
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { ibAgreement: { select: { isIb: true } } },
@@ -388,7 +444,11 @@ export async function setUserAvatarUrl(
   const normalized = normalizeAvatarUrl(avatarUrl);
   return prisma.user.update({
     where: { id: userId },
-    data: { avatarUrl: normalized },
+    data: {
+      avatarUrl: normalized,
+      avatarBytes: null,
+      avatarMime: null,
+    },
   });
 }
 

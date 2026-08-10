@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Save, Trash2, UserCog } from "lucide-react";
+import { Save, Trash2, Upload, UserCog } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/context";
 import { apiFetch } from "@/lib/api/client";
 import { useAdminStore, type AdminUser } from "@/lib/admin/store";
+import { compressAvatarFile } from "@/lib/user/compress-avatar-client";
 
 export function AdminUserAccountCard({ user }: { user: AdminUser }) {
   const { t } = useI18n();
@@ -16,43 +17,75 @@ export function AdminUserAccountCard({ user }: { user: AdminUser }) {
   const removeUser = useAdminStore((s) => s.removeUser);
   const [username, setUsername] = React.useState(user.alias);
   const [email, setEmail] = React.useState("");
-  const [avatarUrl, setAvatarUrl] = React.useState(user.avatarUrl ?? "");
+  const [avatarPreview, setAvatarPreview] = React.useState(user.avatarUrl ?? "");
   const [saving, setSaving] = React.useState(false);
+  const [avatarSaving, setAvatarSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setUsername(user.alias);
-    setAvatarUrl(user.avatarUrl ?? "");
+    setAvatarPreview(user.avatarUrl ?? "");
   }, [user.id, user.alias, user.avatarUrl]);
 
   async function saveProfile() {
     setSaving(true);
     try {
       const trimmed = username.trim();
-      const body: {
-        username?: string;
-        email: string | null;
-        avatarUrl?: string | null;
-      } = {
-        username: trimmed || undefined,
-        email: email.trim() || null,
-      };
-      if (user.isIb) {
-        body.avatarUrl = avatarUrl.trim() || null;
-      }
       await apiFetch(`/api/admin/users/${user.id}/profile`, {
         method: "PATCH",
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          username: trimmed || undefined,
+          email: email.trim() || null,
+        }),
       });
-      updateUserProfile(user.id, {
-        ...(trimmed ? { username: trimmed } : {}),
-        ...(user.isIb ? { avatarUrl: avatarUrl.trim() || null } : {}),
-      });
+      if (trimmed) {
+        updateUserProfile(user.id, { username: trimmed });
+      }
       toast.success(t("admin.userAccount.saved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onAvatarFile(file: File | null) {
+    if (!file || !user.isIb) return;
+    setAvatarSaving(true);
+    try {
+      const { dataUrl, mime } = await compressAvatarFile(file);
+      const res = await apiFetch<{
+        ok: boolean;
+        user: { avatarUrl?: string | null } | null;
+      }>(`/api/admin/users/${user.id}/avatar`, {
+        method: "POST",
+        body: JSON.stringify({ dataBase64: dataUrl, mime }),
+      });
+      const next = res.user?.avatarUrl ?? null;
+      setAvatarPreview(next ?? "");
+      updateUserProfile(user.id, { avatarUrl: next });
+      toast.success(t("admin.userAccount.avatarSaved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setAvatarSaving(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function clearAvatar() {
+    if (!user.isIb) return;
+    setAvatarSaving(true);
+    try {
+      await apiFetch(`/api/admin/users/${user.id}/avatar`, { method: "DELETE" });
+      setAvatarPreview("");
+      updateUserProfile(user.id, { avatarUrl: null });
+      toast.success(t("admin.userAccount.avatarSaved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
+    } finally {
+      setAvatarSaving(false);
     }
   }
 
@@ -102,29 +135,52 @@ export function AdminUserAccountCard({ user }: { user: AdminUser }) {
           </div>
         </div>
         {user.isIb ? (
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-text-muted">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.userAccount.avatarUrl")}
-            </label>
-            <Input
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://…"
-              className="font-mono text-xs"
-            />
+            </p>
             <p className="text-[11px] text-text-muted">
               {t("admin.userAccount.avatarHint")}
             </p>
-            {avatarUrl.trim() ? (
-              <div className="flex h-14 w-14 overflow-hidden rounded-full border border-border-subtle">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={avatarUrl.trim()}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-14 w-14 overflow-hidden rounded-full border border-border-subtle bg-bg-base">
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarPreview}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
               </div>
-            ) : null}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void onAvatarFile(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                loading={avatarSaving}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                {t("admin.userAccount.avatarUpload")}
+              </Button>
+              {avatarPreview ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={avatarSaving}
+                  onClick={() => void clearAvatar()}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t("dashboard.pages.profile.avatarClear")}
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
         <div className="flex flex-wrap gap-2">

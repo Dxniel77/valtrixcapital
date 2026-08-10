@@ -104,7 +104,14 @@ export async function updateUserProfile(
       ...(input.email !== undefined
         ? { email: input.email?.trim().toLowerCase() || null }
         : {}),
-      ...(nextAvatar !== undefined ? { avatarUrl: nextAvatar } : {}),
+      ...(nextAvatar !== undefined
+        ? {
+            avatarUrl: nextAvatar,
+            ...(nextAvatar == null
+              ? { avatarBytes: null, avatarMime: null }
+              : {}),
+          }
+        : {}),
     },
   });
 }
@@ -256,6 +263,8 @@ export async function adminProcessDeletionRequest(input: {
         username: null,
         email: null,
         avatarUrl: null,
+        avatarBytes: null,
+        avatarMime: null,
       },
     });
 
@@ -298,6 +307,8 @@ export async function adminDeleteUserAccount(input: {
         username: null,
         email: null,
         avatarUrl: null,
+        avatarBytes: null,
+        avatarMime: null,
       },
     });
 
