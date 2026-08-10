@@ -31,6 +31,7 @@ export interface BackendAdminUserDto {
     tradeBonusExtraBps: number;
   } | null;
   isIb?: boolean;
+  avatarUrl?: string | null;
   ibNetDeposit?: {
     enabled: boolean;
     level1DepositBps: number;
@@ -71,6 +72,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     ibStrategyId: db.ibStrategyId ?? null,
     ibBoost: db.ibBoost ?? null,
     isIb: db.isIb ?? false,
+    avatarUrl: db.isIb ? db.avatarUrl ?? null : null,
     ibNetDeposit: db.ibNetDeposit ?? null,
     withdrawalRule: db.withdrawalRule ?? parseWithdrawalRuleJson(null),
     directSalesVolume: db.directSalesVolume,
@@ -86,6 +88,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     ibStrategyId: db.ibStrategyId ?? null,
     ibBoost: db.ibBoost ?? null,
     isIb: db.isIb ?? false,
+    avatarUrl: db.isIb ? db.avatarUrl ?? null : null,
     ibNetDeposit: db.ibNetDeposit ?? null,
   };
 }

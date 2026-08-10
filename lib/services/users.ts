@@ -1,6 +1,7 @@
 import type { Prisma, User, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isAdminWallet, normalizeWallet } from "@/lib/auth/admins";
+import { normalizeAvatarUrl, AvatarUrlError } from "@/lib/user/avatar";
 import { fromMicro } from "@/lib/utils";
 import {
   generateUniqueReferralCode,
@@ -32,6 +33,8 @@ export interface UserDto {
   id: string;
   walletAddress: string;
   username: string | null;
+  /** IB profile image URL (null when unset or not an IB). */
+  avatarUrl: string | null;
   role: UserRole;
   isActive: boolean;
   referralCode: string;
@@ -129,6 +132,7 @@ export function serializeUser(
     id: user.id,
     walletAddress: user.walletAddress,
     username: user.username,
+    avatarUrl: isIb ? user.avatarUrl ?? null : null,
     role: user.role,
     isActive: user.isActive,
     referralCode: user.referralCode,
@@ -365,6 +369,26 @@ export async function setInitialUsername(
   return prisma.user.update({
     where: { id: userId },
     data: { username: trimmed },
+  });
+}
+
+/** IB-only: set or clear the profile avatar URL. */
+export async function setUserAvatarUrl(
+  userId: string,
+  avatarUrl: string | null,
+): Promise<User> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { ibAgreement: { select: { isIb: true } } },
+  });
+  if (!user) throw new AvatarUrlError("User not found", "NOT_FOUND");
+  if (user.ibAgreement?.isIb !== true) {
+    throw new AvatarUrlError("Only IB users can set an avatar", "NOT_IB");
+  }
+  const normalized = normalizeAvatarUrl(avatarUrl);
+  return prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: normalized },
   });
 }
 

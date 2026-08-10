@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useAccount, useChainId } from "wagmi";
 import { ShieldCheck } from "lucide-react";
@@ -17,6 +18,7 @@ import { useUserRegistry } from "@/lib/user/store";
 import { formatMemberSince } from "@/lib/user/format";
 import { useWithdrawalEligibility } from "@/lib/hooks/use-admin-user-sync";
 import { IbPartnerCard } from "@/components/ib/ib-partner-card";
+import { IbAvatarEditor } from "@/components/ib/ib-avatar-editor";
 import { IbStatusBadge } from "@/components/ib/ib-status-badge";
 
 export default function ProfilePage() {
@@ -29,6 +31,13 @@ export default function ProfilePage() {
   const isAdmin = user?.role === "ADMIN";
   const { adminUser } = useWithdrawalEligibility();
   const isIb = adminUser?.isIb ?? false;
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(
+    adminUser?.avatarUrl ?? null,
+  );
+
+  React.useEffect(() => {
+    setAvatarUrl(adminUser?.avatarUrl ?? null);
+  }, [adminUser?.avatarUrl]);
 
   return (
     <div className="space-y-6">
@@ -41,6 +50,7 @@ export default function ProfilePage() {
         isIb={isIb}
         netDepositEnabled={adminUser?.ibNetDeposit?.enabled ?? false}
         name={profile?.username ?? adminUser?.alias ?? null}
+        avatarUrl={avatarUrl}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -115,6 +125,15 @@ export default function ProfilePage() {
                 <span className="text-text-muted">—</span>
               )}
             </Row>
+            {isIb ? (
+              <>
+                <Separator />
+                <IbAvatarEditor
+                  avatarUrl={avatarUrl}
+                  onSaved={(url) => setAvatarUrl(url)}
+                />
+              </>
+            ) : null}
           </CardContent>
         </Card>
       </div>

@@ -16,27 +16,38 @@ export function AdminUserAccountCard({ user }: { user: AdminUser }) {
   const removeUser = useAdminStore((s) => s.removeUser);
   const [username, setUsername] = React.useState(user.alias);
   const [email, setEmail] = React.useState("");
+  const [avatarUrl, setAvatarUrl] = React.useState(user.avatarUrl ?? "");
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
 
   React.useEffect(() => {
     setUsername(user.alias);
-  }, [user.id, user.alias]);
+    setAvatarUrl(user.avatarUrl ?? "");
+  }, [user.id, user.alias, user.avatarUrl]);
 
   async function saveProfile() {
     setSaving(true);
     try {
       const trimmed = username.trim();
+      const body: {
+        username?: string;
+        email: string | null;
+        avatarUrl?: string | null;
+      } = {
+        username: trimmed || undefined,
+        email: email.trim() || null,
+      };
+      if (user.isIb) {
+        body.avatarUrl = avatarUrl.trim() || null;
+      }
       await apiFetch(`/api/admin/users/${user.id}/profile`, {
         method: "PATCH",
-        body: JSON.stringify({
-          username: trimmed || undefined,
-          email: email.trim() || null,
-        }),
+        body: JSON.stringify(body),
       });
-      if (trimmed) {
-        updateUserProfile(user.id, { username: trimmed });
-      }
+      updateUserProfile(user.id, {
+        ...(trimmed ? { username: trimmed } : {}),
+        ...(user.isIb ? { avatarUrl: avatarUrl.trim() || null } : {}),
+      });
       toast.success(t("admin.userAccount.saved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("errors.signInFailed"));
@@ -90,6 +101,32 @@ export function AdminUserAccountCard({ user }: { user: AdminUser }) {
             />
           </div>
         </div>
+        {user.isIb ? (
+          <div className="space-y-1.5">
+            <label className="text-xs uppercase tracking-wider text-text-muted">
+              {t("admin.userAccount.avatarUrl")}
+            </label>
+            <Input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="https://…"
+              className="font-mono text-xs"
+            />
+            <p className="text-[11px] text-text-muted">
+              {t("admin.userAccount.avatarHint")}
+            </p>
+            {avatarUrl.trim() ? (
+              <div className="flex h-14 w-14 overflow-hidden rounded-full border border-border-subtle">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={avatarUrl.trim()}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" size="sm" onClick={() => void saveProfile()} loading={saving}>
             <Save className="h-4 w-4" />

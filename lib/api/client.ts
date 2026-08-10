@@ -77,6 +77,7 @@ export async function fetchCurrentUser() {
         tradeBonusExtraBps: number;
       } | null;
       isIb?: boolean;
+      avatarUrl?: string | null;
       ibNetDeposit?: {
         enabled: boolean;
         level1DepositBps: number;
@@ -187,6 +188,7 @@ export async function fetchAdminUsers() {
         tradeBonusExtraBps: number;
       } | null;
       isIb?: boolean;
+      avatarUrl?: string | null;
       ibNetDeposit?: {
         enabled: boolean;
         level1DepositBps: number;

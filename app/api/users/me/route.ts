@@ -7,10 +7,12 @@ import {
   findUserByWalletWithReferrer,
   serializeUserWithReferrerAsync,
   setInitialUsername,
+  setUserAvatarUrl,
   UsernameLockedError,
   UsernameTakenError,
   upsertUserByWallet,
 } from "@/lib/services/users";
+import { AvatarUrlError } from "@/lib/user/avatar";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,10 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   username: z.string().trim().min(2).max(32).optional(),
   referralCode: z.string().trim().max(32).optional(),
+  /** IB-only. Empty string or null clears the avatar. */
+  avatarUrl: z
+    .union([z.string().max(500), z.null()])
+    .optional(),
 });
 
 export async function GET() {
@@ -62,7 +68,11 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
-  if (!parsed.username && !parsed.referralCode) {
+  if (
+    parsed.username === undefined &&
+    parsed.referralCode === undefined &&
+    parsed.avatarUrl === undefined
+  ) {
     return NextResponse.json({ error: t("api.invalidBody") }, { status: 400 });
   }
 
@@ -96,12 +106,29 @@ export async function PATCH(req: Request) {
     }
   }
 
+  if (parsed.avatarUrl !== undefined) {
+    try {
+      await setUserAvatarUrl(dbUserId, parsed.avatarUrl);
+    } catch (err) {
+      if (err instanceof AvatarUrlError) {
+        const status =
+          err.code === "NOT_IB" ? 403 : err.code === "NOT_FOUND" ? 404 : 400;
+        return NextResponse.json(
+          { error: err.message, code: err.code },
+          { status },
+        );
+      }
+      throw err;
+    }
+  }
+
   const withReferrer = await findUserByWalletWithReferrer(auth.session.address);
   if (!withReferrer) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   return NextResponse.json({
+    backend: true,
     user: await serializeUserWithReferrerAsync(withReferrer),
   });
 }

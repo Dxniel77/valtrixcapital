@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   username: z.string().trim().min(2).max(32).optional(),
   email: z.string().email().nullable().optional(),
+  avatarUrl: z.union([z.string().max(500), z.null()]).optional(),
 });
 
 export async function PATCH(
@@ -45,6 +46,7 @@ export async function PATCH(
       userId: id,
       username: parsed.username,
       email: parsed.email,
+      avatarUrl: parsed.avatarUrl,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

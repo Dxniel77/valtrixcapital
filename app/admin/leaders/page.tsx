@@ -47,6 +47,7 @@ function mapApiRow(
       ibStrategyId: null,
       ibBoost: null,
       isIb: false,
+      avatarUrl: null,
       ibNetDeposit: null,
       withdrawalRule: {
         mode: "either",

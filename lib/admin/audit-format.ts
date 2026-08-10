@@ -76,6 +76,13 @@ export function formatAuditPayload(
           : "—";
       parts.push(`email: ${email}`);
     }
+    if (payload.avatarUrl !== undefined) {
+      const url =
+        typeof payload.avatarUrl === "string" && payload.avatarUrl.trim()
+          ? payload.avatarUrl.trim()
+          : "cleared";
+      parts.push(`avatar: ${url}`);
+    }
     return parts.join(" · ") || "profile updated";
   }
 

@@ -32,6 +32,7 @@ export interface AdminUserShape {
     tradeBonusExtraBps: number;
   } | null;
   isIb: boolean;
+  avatarUrl: string | null;
   ibNetDeposit: {
     enabled: boolean;
     level1DepositBps: number;
@@ -79,6 +80,7 @@ export function enrichDemoUser(
     ibStrategyId: null,
     ibBoost: null,
     isIb: false,
+    avatarUrl: null,
     ibNetDeposit: null,
   };
 }

@@ -18,6 +18,8 @@ export interface AccountDeletionRequestDto {
 export interface UserProfileUpdateInput {
   username?: string;
   email?: string | null;
+  /** IB-only. Pass null or "" to clear. */
+  avatarUrl?: string | null;
 }
 
 export class AccountManagementError extends Error {
@@ -27,7 +29,9 @@ export class AccountManagementError extends Error {
       | "USERNAME_TAKEN"
       | "DELETION_PENDING"
       | "ALREADY_REQUESTED"
-      | "INVALID_STATUS",
+      | "INVALID_STATUS"
+      | "NOT_IB"
+      | "INVALID_AVATAR_URL",
   ) {
     super(code);
     this.name = "AccountManagementError";
@@ -52,7 +56,10 @@ export async function updateUserProfile(
   userId: string,
   input: UserProfileUpdateInput,
 ): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { ibAgreement: { select: { isIb: true } } },
+  });
   if (!user) throw new AccountManagementError("NOT_FOUND");
 
   const deletion = await prisma.accountDeletionRequest.findUnique({
@@ -70,6 +77,24 @@ export async function updateUserProfile(
     await assertUsernameAvailable(input.username, userId);
   }
 
+  let nextAvatar: string | null | undefined;
+  if (input.avatarUrl !== undefined) {
+    const { normalizeAvatarUrl, AvatarUrlError } = await import(
+      "@/lib/user/avatar"
+    );
+    try {
+      nextAvatar = normalizeAvatarUrl(input.avatarUrl);
+    } catch (err) {
+      if (err instanceof AvatarUrlError) {
+        throw new AccountManagementError("INVALID_AVATAR_URL");
+      }
+      throw err;
+    }
+    if (nextAvatar != null && user.ibAgreement?.isIb !== true) {
+      throw new AccountManagementError("NOT_IB");
+    }
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -79,6 +104,7 @@ export async function updateUserProfile(
       ...(input.email !== undefined
         ? { email: input.email?.trim().toLowerCase() || null }
         : {}),
+      ...(nextAvatar !== undefined ? { avatarUrl: nextAvatar } : {}),
     },
   });
 }
@@ -169,10 +195,12 @@ export async function adminUpdateUserProfile(input: {
   userId: string;
   username?: string;
   email?: string | null;
+  avatarUrl?: string | null;
 }): Promise<void> {
   await updateUserProfile(input.userId, {
     username: input.username,
     email: input.email,
+    avatarUrl: input.avatarUrl,
   });
 
   await prisma.adminAction.create({
@@ -183,6 +211,10 @@ export async function adminUpdateUserProfile(input: {
       payload: {
         username: input.username ?? null,
         email: input.email ?? null,
+        avatarUrl:
+          input.avatarUrl === undefined
+            ? undefined
+            : input.avatarUrl?.trim() || null,
       },
     },
   });
@@ -223,6 +255,7 @@ export async function adminProcessDeletionRequest(input: {
         isActive: false,
         username: null,
         email: null,
+        avatarUrl: null,
       },
     });
 
@@ -264,6 +297,7 @@ export async function adminDeleteUserAccount(input: {
         isActive: false,
         username: null,
         email: null,
+        avatarUrl: null,
       },
     });
 

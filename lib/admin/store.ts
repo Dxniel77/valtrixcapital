@@ -65,6 +65,8 @@ export interface AdminUser {
   ibBoost: { strategyId: string; name: string; passiveBonusBps: number; tradeBonusExtraBps: number } | null;
   /** Marked as Introducing Broker. */
   isIb: boolean;
+  /** IB profile image URL. */
+  avatarUrl: string | null;
   /** Net Deposit terms when isIb. */
   ibNetDeposit: {
     enabled: boolean;
@@ -140,7 +142,10 @@ interface AdminState {
     id: string,
     sponsorQuery: string | null,
   ) => { ok: true } | { ok: false; error: SponsorUpdateError };
-  updateUserProfile: (id: string, patch: { username?: string }) => void;
+  updateUserProfile: (
+    id: string,
+    patch: { username?: string; avatarUrl?: string | null },
+  ) => void;
   removeUser: (id: string) => void;
   updateWithdrawalRule: (id: string, rule: WithdrawalRule) => void;
   syncLiveUserMetrics: (
@@ -232,6 +237,7 @@ function buildDemoUsers(): AdminUser[] {
           ibStrategyId: null,
           ibBoost: null,
           isIb: false,
+          avatarUrl: null,
           ibNetDeposit: null,
           withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
           directSalesVolume: 0,
@@ -342,7 +348,8 @@ export const useAdminStore = create<AdminState>()(
               prev.referrals === u.referrals &&
               prev.accountGranted === u.accountGranted &&
               prev.withdrawalUnlocked === u.withdrawalUnlocked &&
-              (prev.withdrawalAllowance ?? 0) === (u.withdrawalAllowance ?? 0)
+              (prev.withdrawalAllowance ?? 0) === (u.withdrawalAllowance ?? 0) &&
+              (prev.avatarUrl ?? null) === (u.avatarUrl ?? null)
             );
           });
 
@@ -415,6 +422,7 @@ export const useAdminStore = create<AdminState>()(
               ibStrategyId: null,
               ibBoost: null,
               isIb: false,
+              avatarUrl: null,
               ibNetDeposit: null,
               withdrawalRule: { ...DEFAULT_WITHDRAWAL_RULE },
               directSalesVolume: 0,
@@ -493,6 +501,7 @@ export const useAdminStore = create<AdminState>()(
           ibStrategyId: null,
           ibBoost: null,
           isIb: false,
+          avatarUrl: null,
           ibNetDeposit: null,
           withdrawalRule: rule,
           directSalesVolume: 0,
@@ -579,16 +588,24 @@ export const useAdminStore = create<AdminState>()(
         if (!user) return;
 
         const trimmed = patch.username?.trim();
-        if (!trimmed) return;
-
         const walletKey = user.wallet.toLowerCase();
+        const nextAvatar =
+          patch.avatarUrl !== undefined
+            ? patch.avatarUrl?.trim() || null
+            : undefined;
+
+        if (!trimmed && nextAvatar === undefined) return;
 
         set((s) => ({
           users: s.users.map((u) => {
             if (u.id === id) {
-              return { ...u, alias: trimmed };
+              return {
+                ...u,
+                ...(trimmed ? { alias: trimmed } : {}),
+                ...(nextAvatar !== undefined ? { avatarUrl: nextAvatar } : {}),
+              };
             }
-            if (u.uplineWallet?.toLowerCase() === walletKey) {
+            if (trimmed && u.uplineWallet?.toLowerCase() === walletKey) {
               return { ...u, referrerUsername: trimmed };
             }
             return u;

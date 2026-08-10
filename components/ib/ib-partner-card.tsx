@@ -10,17 +10,20 @@ export function IbPartnerCard({
   isIb,
   netDepositEnabled = false,
   name,
+  avatarUrl,
   className,
 }: {
   isIb: boolean | null | undefined;
   netDepositEnabled?: boolean;
   name?: string | null;
+  avatarUrl?: string | null;
   className?: string;
 }) {
   const { t } = useI18n();
   if (!isIb) return null;
 
   const displayName = name?.trim();
+  const photo = avatarUrl?.trim();
 
   return (
     <Card
@@ -31,11 +34,20 @@ export function IbPartnerCard({
     >
       <CardContent className="flex flex-col items-center gap-5 p-6 sm:flex-row sm:gap-8">
         <div className="flex flex-col items-center gap-2">
-          <span className="relative inline-flex h-24 w-24 items-center justify-center rounded-full border-2 border-gold/70 bg-bg-elevated shadow-[0_0_24px_hsl(var(--gold)/0.25)]">
+          <span className="relative inline-flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold/70 bg-bg-elevated shadow-[0_0_24px_hsl(var(--gold)/0.25)]">
             <span className="absolute inset-1 rounded-full border border-gold/25" />
-            <span className="text-gradient-gold font-display text-3xl font-bold tracking-wide">
-              IB
-            </span>
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo}
+                alt=""
+                className="relative z-[1] h-full w-full object-cover"
+              />
+            ) : (
+              <span className="relative z-[1] text-gradient-gold font-display text-3xl font-bold tracking-wide">
+                IB
+              </span>
+            )}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
             <Handshake className="h-3 w-3" />
