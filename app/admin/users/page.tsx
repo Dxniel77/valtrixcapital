@@ -242,6 +242,24 @@ export default function AdminUsersPage() {
                 >
                   <TD className="px-2 font-mono text-xs text-text-muted">{rowOffset + idx + 1}</TD>
                   <TD className="px-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      {u.isIb ? (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/35 bg-bg-elevated">
+                          {u.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={u.avatarUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-semibold text-gold/70">
+                              {(u.alias?.trim()?.[0] ?? "?").toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                      <div className="min-w-0">
                     <p className="truncate font-medium text-text-primary">
                       {u.alias}
                       {u.role === "ADMIN" ? (
@@ -263,6 +281,8 @@ export default function AdminUsersPage() {
                     <p className="truncate font-mono text-xs text-text-muted">
                       {shortenAddress(u.wallet)}
                     </p>
+                      </div>
+                    </div>
                   </TD>
                   <TD className="px-2">
                     <Badge

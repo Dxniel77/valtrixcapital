@@ -49,7 +49,9 @@ export function UserDetailPanel({
 }) {
   const { t } = useI18n();
   const users = useAdminStore((s) => s.users);
-  const { user, totals } = detail;
+  const { user: detailUser, totals } = detail;
+  const user =
+    users.find((u) => u.id === detailUser.id) ?? detailUser;
   const isSponsored = user.accountGranted;
   const sponsor = React.useMemo(
     () => findSponsorUser(users, user.uplineWallet),
@@ -81,7 +83,22 @@ export function UserDetailPanel({
       ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-bg-elevated">
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="font-display text-lg font-semibold text-gold/70">
+                {(user.alias?.trim()?.[0] ?? "?").toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
           <h2 className="font-display text-xl font-semibold text-text-primary">
             {user.alias}
           </h2>
@@ -140,6 +157,7 @@ export function UserDetailPanel({
               {t("admin.userDetail.referredBy")}: {t("admin.users.referredByNone")}
             </p>
           ) : null}
+          </div>
         </div>
         <Button
           variant="outline"

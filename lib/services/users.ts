@@ -287,8 +287,21 @@ export function serializeUserWithReferrer(
   });
 }
 
-export async function findUserById(id: string): Promise<User | null> {
-  return prisma.user.findUnique({ where: { id } });
+export async function findUserById(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    include: {
+      ibAgreement: {
+        select: {
+          isIb: true,
+          netDepositEnabled: true,
+          level1DepositBps: true,
+          level2DepositBps: true,
+          notes: true,
+        },
+      },
+    },
+  });
 }
 
 export async function upsertUserByWallet(

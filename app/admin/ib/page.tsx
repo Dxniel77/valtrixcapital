@@ -24,6 +24,7 @@ interface IbAgreementRow {
   notes: string;
   walletAddress: string;
   displayName: string;
+  avatarUrl: string | null;
   totalCredited: number;
   creditCount: number;
 }
@@ -93,6 +94,22 @@ export default function AdminIbPage() {
                   {agreements.map((a) => (
                     <TR key={a.id}>
                       <TD>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-bg-elevated">
+                            {a.avatarUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={a.avatarUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs font-semibold text-gold/70">
+                                {(a.displayName?.trim()?.[0] ?? "?").toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
                         <p className="font-medium text-text-primary">
                           {a.displayName}
                           <Badge variant="gold" className="ml-1.5">
@@ -107,6 +124,8 @@ export default function AdminIbPage() {
                             {a.notes}
                           </p>
                         ) : null}
+                          </div>
+                        </div>
                       </TD>
                       <TD>
                         {a.netDepositEnabled ? (

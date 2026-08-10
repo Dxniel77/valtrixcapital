@@ -127,6 +127,7 @@ export function mergeBackendUsers(
       ibStrategyId: fromDb.ibStrategyId ?? null,
       ibBoost: fromDb.ibBoost ?? null,
       isIb: fromDb.isIb ?? false,
+      avatarUrl: fromDb.avatarUrl ?? null,
       ibNetDeposit: fromDb.ibNetDeposit ?? null,
       withdrawalRule: fromDb.withdrawalRule,
       uplineWallet,

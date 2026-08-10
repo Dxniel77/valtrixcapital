@@ -18,6 +18,7 @@ export interface IbAgreementDto {
   walletAddress: string;
   username: string | null;
   displayName: string;
+  avatarUrl: string | null;
   totalCredited: number;
   creditCount: number;
   updatedAt: string;
@@ -53,6 +54,9 @@ function serializeAgreement(row: {
   user: {
     walletAddress: string;
     username: string | null;
+    avatarMime: string | null;
+    avatarUrl: string | null;
+    updatedAt: Date;
   };
   _count?: { credits: number };
   credits?: { creditedAmount: bigint }[];
@@ -61,6 +65,7 @@ function serializeAgreement(row: {
     (a, c) => a + c.creditedAmount,
     0n,
   );
+  const hasStoredAvatar = Boolean(row.user.avatarMime);
   return {
     id: row.id,
     userId: row.userId,
@@ -73,6 +78,11 @@ function serializeAgreement(row: {
     walletAddress: row.user.walletAddress,
     username: row.user.username,
     displayName: displayName(row.user.username, row.user.walletAddress),
+    avatarUrl: row.isIb
+      ? hasStoredAvatar
+        ? `/api/avatars/${row.userId}?v=${row.user.updatedAt.getTime()}`
+        : row.user.avatarUrl ?? null
+      : null,
     totalCredited: fromMicro(totalCredited),
     creditCount: row._count?.credits ?? row.credits?.length ?? 0,
     updatedAt: row.updatedAt.toISOString(),
@@ -85,6 +95,9 @@ const agreementInclude = {
     select: {
       walletAddress: true,
       username: true,
+      avatarMime: true,
+      avatarUrl: true,
+      updatedAt: true,
     },
   },
   _count: { select: { credits: true } },

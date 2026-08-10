@@ -62,8 +62,10 @@ export function AdminUserAccountCard({ user }: { user: AdminUser }) {
         method: "POST",
         body: JSON.stringify({ dataBase64: dataUrl, mime }),
       });
-      const next = res.user?.avatarUrl ?? null;
-      setAvatarPreview(next ?? "");
+      const next =
+        res.user?.avatarUrl?.trim() ||
+        `/api/avatars/${user.id}?v=${Date.now()}`;
+      setAvatarPreview(next);
       updateUserProfile(user.id, { avatarUrl: next });
       toast.success(t("admin.userAccount.avatarSaved"));
     } catch (err) {
