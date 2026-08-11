@@ -53,6 +53,12 @@ type Trader = {
 };
 
 type Dashboard = {
+  config?: {
+    investFeeBps: number;
+    withdrawFeeBps: number;
+    settlementCutoffHour: number;
+    globalMinInvestment: number;
+  };
   metrics: {
     traders: number;
     activeTraders: number;
@@ -199,6 +205,9 @@ export default function AdminCopyTradingPage() {
   const [traderSearch, setTraderSearch] = React.useState("");
   const [traderPage, setTraderPage] = React.useState(1);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [investFeePct, setInvestFeePct] = React.useState("0");
+  const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
+  const [cutoffHour, setCutoffHour] = React.useState("22");
 
   const TRADER_PAGE_SIZE = 15;
 
@@ -297,7 +306,13 @@ export default function AdminCopyTradingPage() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      setData(await apiFetch<Dashboard & { ok: boolean }>("/api/admin/copy"));
+      const next = await apiFetch<Dashboard & { ok: boolean }>("/api/admin/copy");
+      setData(next);
+      if (next.config) {
+        setInvestFeePct(String(next.config.investFeeBps / 100));
+        setWithdrawFeePct(String(next.config.withdrawFeeBps / 100));
+        setCutoffHour(String(next.config.settlementCutoffHour));
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("errors.signInFailed"),
@@ -426,6 +441,32 @@ export default function AdminCopyTradingPage() {
     }
   }
 
+  async function saveFees() {
+    setBusy("config");
+    try {
+      await apiFetch("/api/admin/copy/config", {
+        method: "PATCH",
+        body: JSON.stringify({
+          investFeeBps: Math.round((Number(investFeePct) || 0) * 100),
+          withdrawFeeBps: Math.round((Number(withdrawFeePct) || 0) * 100),
+          settlementCutoffHour: Math.min(
+            23,
+            Math.max(0, Math.trunc(Number(cutoffHour) || 22)),
+          ),
+          withdrawalMode: "INSTANT",
+        }),
+      });
+      toast.success(t("admin.copyTrading.feesSaved"));
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -491,6 +532,53 @@ export default function AdminCopyTradingPage() {
               value={String(data.metrics.pendingWithdrawals)}
             />
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.feesTitle")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-4">
+              <Field label={t("admin.copyTrading.investFee")}>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={investFeePct}
+                  onChange={(e) => setInvestFeePct(e.target.value)}
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.withdrawFee")}>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={withdrawFeePct}
+                  onChange={(e) => setWithdrawFeePct(e.target.value)}
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.cutoffHour")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={cutoffHour}
+                  onChange={(e) => setCutoffHour(e.target.value)}
+                />
+              </Field>
+              <div className="flex items-end">
+                <Button
+                  size="sm"
+                  loading={busy === "config"}
+                  onClick={() => void saveFees()}
+                >
+                  {t("admin.copyTrading.saveFees")}
+                </Button>
+              </div>
+              <p className="sm:col-span-4 text-xs text-text-muted">
+                {t("admin.copyTrading.feesHint")}
+              </p>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

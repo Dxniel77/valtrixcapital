@@ -897,8 +897,14 @@ model CopyWithdrawal {
 model CopyTradingConfig {
   id                  Int                @id @default(1)
   globalMinInvestment BigInt             @default(15000000)
-  withdrawalMode      CopyWithdrawalMode @default(APPROVAL)
+  withdrawalMode      CopyWithdrawalMode @default(INSTANT)
   notifyOnPerformance Boolean            @default(true)
+  /// Fee taken from the amount when starting a copy (bps, 100 = 1%).
+  investFeeBps        Int                @default(0)
+  /// Fee taken from the amount when leaving a copy (bps).
+  withdrawFeeBps      Int                @default(0)
+  /// UTC hour (0–23). Copies started after the last cutoff skip the next result.
+  settlementCutoffHour Int               @default(22)
   updatedAt           DateTime           @updatedAt
 }
 

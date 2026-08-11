@@ -93,6 +93,9 @@ export type CopyTradingConfigDto = {
   globalMinInvestment: number;
   withdrawalMode: CopyWithdrawalMode;
   notifyOnPerformance: boolean;
+  investFeeBps: number;
+  withdrawFeeBps: number;
+  settlementCutoffHour: number;
 };
 
 export type CopyInvestmentDto = {
@@ -203,6 +206,25 @@ function roiBpsOf(principal: bigint, currentValue: bigint): number {
   return Number(((currentValue - principal) * 10_000n) / principal);
 }
 
+function feeMicro(amount: bigint, bps: number): bigint {
+  if (bps <= 0 || amount <= 0n) return 0n;
+  return (amount * BigInt(bps)) / 10_000n;
+}
+
+/** Last settlement cutoff at `hour` UTC on or before `now`. */
+export function lastSettlementCutoff(
+  hour: number,
+  now = new Date(),
+): Date {
+  const h = Math.min(23, Math.max(0, Math.trunc(hour)));
+  const cutoff = new Date(now);
+  cutoff.setUTCHours(h, 0, 0, 0);
+  if (cutoff.getTime() > now.getTime()) {
+    cutoff.setUTCDate(cutoff.getUTCDate() - 1);
+  }
+  return cutoff;
+}
+
 function serializeTrader(
   t: Prisma.CopyTraderGetPayload<{ include?: { performances?: true } }>,
   opts?: { includePerformances?: boolean },
@@ -304,11 +326,77 @@ export async function ensureCopyTradingConfig(): Promise<CopyTradingConfigDto> {
     update: {},
     create: { id: 1 },
   });
+  return serializeCopyConfig(row);
+}
+
+function serializeCopyConfig(row: {
+  globalMinInvestment: bigint;
+  withdrawalMode: CopyWithdrawalMode;
+  notifyOnPerformance: boolean;
+  investFeeBps?: number;
+  withdrawFeeBps?: number;
+  settlementCutoffHour?: number;
+}): CopyTradingConfigDto {
   return {
     globalMinInvestment: fromMicro(row.globalMinInvestment),
     withdrawalMode: row.withdrawalMode,
     notifyOnPerformance: row.notifyOnPerformance,
+    investFeeBps: row.investFeeBps ?? 0,
+    withdrawFeeBps: row.withdrawFeeBps ?? 0,
+    settlementCutoffHour: row.settlementCutoffHour ?? 22,
   };
+}
+
+export async function updateCopyTradingConfig(input: {
+  investFeeBps?: number;
+  withdrawFeeBps?: number;
+  settlementCutoffHour?: number;
+  withdrawalMode?: CopyWithdrawalMode;
+  globalMinInvestment?: number;
+}): Promise<CopyTradingConfigDto> {
+  await ensureCopyTradingConfig();
+  const data: {
+    investFeeBps?: number;
+    withdrawFeeBps?: number;
+    settlementCutoffHour?: number;
+    withdrawalMode?: CopyWithdrawalMode;
+    globalMinInvestment?: bigint;
+  } = {};
+  if (input.investFeeBps !== undefined) {
+    if (!Number.isInteger(input.investFeeBps) || input.investFeeBps < 0 || input.investFeeBps > 2000) {
+      throw new CopyTradingError("Invalid invest fee", "INVALID_AMOUNT");
+    }
+    data.investFeeBps = input.investFeeBps;
+  }
+  if (input.withdrawFeeBps !== undefined) {
+    if (
+      !Number.isInteger(input.withdrawFeeBps) ||
+      input.withdrawFeeBps < 0 ||
+      input.withdrawFeeBps > 2000
+    ) {
+      throw new CopyTradingError("Invalid withdraw fee", "INVALID_AMOUNT");
+    }
+    data.withdrawFeeBps = input.withdrawFeeBps;
+  }
+  if (input.settlementCutoffHour !== undefined) {
+    if (
+      !Number.isInteger(input.settlementCutoffHour) ||
+      input.settlementCutoffHour < 0 ||
+      input.settlementCutoffHour > 23
+    ) {
+      throw new CopyTradingError("Invalid cutoff hour", "INVALID_AMOUNT");
+    }
+    data.settlementCutoffHour = input.settlementCutoffHour;
+  }
+  if (input.withdrawalMode) data.withdrawalMode = input.withdrawalMode;
+  if (input.globalMinInvestment !== undefined) {
+    data.globalMinInvestment = toMicro(input.globalMinInvestment);
+  }
+  const row = await prisma.copyTradingConfig.update({
+    where: { id: 1 },
+    data,
+  });
+  return serializeCopyConfig(row);
 }
 
 export async function listCopyTraders(input?: {
@@ -778,6 +866,12 @@ export async function investInCopyTrader(input: {
   if (amountMicro < minMicro) {
     throw new CopyTradingError("Below minimum investment", "INVALID_AMOUNT");
   }
+
+  const investFee = feeMicro(amountMicro, config.investFeeBps);
+  const copiedMicro = amountMicro - investFee;
+  if (copiedMicro <= 0n) {
+    throw new CopyTradingError("Amount too small after fee", "INVALID_AMOUNT");
+  }
   if (user.earningsBalance < amountMicro) {
     throw new CopyTradingError("Insufficient balance", "INSUFFICIENT_BALANCE");
   }
@@ -820,8 +914,8 @@ export async function investInCopyTrader(input: {
       data: {
         userId: input.userId,
         traderId: input.traderId,
-        principal: amountMicro,
-        currentValue: amountMicro,
+        principal: copiedMicro,
+        currentValue: copiedMicro,
         realizedPnl: 0n,
         status: "ACTIVE",
       },
@@ -832,17 +926,20 @@ export async function investInCopyTrader(input: {
       data: {
         investmentId: created.id,
         kind: "INVEST",
-        amount: amountMicro,
-        balanceAfter: amountMicro,
-        note: "Initial copy investment",
+        amount: copiedMicro,
+        balanceAfter: copiedMicro,
+        note:
+          investFee > 0n
+            ? `Initial copy investment (fee ${fromMicro(investFee)} USDT)`
+            : "Initial copy investment",
       },
     });
 
     await tx.copyTrader.update({
       where: { id: input.traderId },
       data: {
-        aum: { increment: amountMicro },
-        totalInvested: { increment: amountMicro },
+        aum: { increment: copiedMicro },
+        totalInvested: { increment: copiedMicro },
         investorsCount: prior === 0 ? { increment: 1 } : undefined,
       },
     });
@@ -909,56 +1006,58 @@ export async function requestCopyWithdrawal(input: {
     if (math.withdrawn <= 0n)
       throw new CopyTradingError("Invalid amount", "INVALID_AMOUNT");
 
-    const instant = config.withdrawalMode === "INSTANT";
     const now = new Date();
+    const withdrawFee = feeMicro(math.withdrawn, config.withdrawFeeBps);
+    const credited = math.withdrawn - withdrawFee;
 
     const withdrawal = await tx.copyWithdrawal.create({
       data: {
         investmentId: inv.id,
         userId: input.userId,
         amount: math.withdrawn,
-        status: instant ? "COMPLETED" : "REQUESTED",
-        processedAt: instant ? now : null,
+        status: "COMPLETED",
+        processedAt: now,
       },
       include: { investment: { include: { trader: true } } },
     });
 
-    if (instant) {
-      const updatedInv = await tx.copyInvestment.update({
-        where: { id: inv.id },
-        data: {
-          principal: math.principal,
-          currentValue: math.currentValue,
-          status: math.closed ? "CLOSED" : "ACTIVE",
-          closedAt: math.closed ? now : null,
-        },
-        include: { trader: true },
-      });
+    const updatedInv = await tx.copyInvestment.update({
+      where: { id: inv.id },
+      data: {
+        principal: math.principal,
+        currentValue: math.currentValue,
+        status: math.closed ? "CLOSED" : "ACTIVE",
+        closedAt: math.closed ? now : null,
+      },
+      include: { trader: true },
+    });
 
-      await tx.copyInvestmentLedger.create({
-        data: {
-          investmentId: inv.id,
-          kind: "WITHDRAWAL",
-          amount: -math.withdrawn,
-          balanceAfter: math.currentValue,
-          note: "Instant copy withdrawal",
-        },
-      });
+    await tx.copyInvestmentLedger.create({
+      data: {
+        investmentId: inv.id,
+        kind: "WITHDRAWAL",
+        amount: -math.withdrawn,
+        balanceAfter: math.currentValue,
+        note:
+          withdrawFee > 0n
+            ? `Copy withdrawal (fee ${fromMicro(withdrawFee)} USDT)`
+            : "Instant copy withdrawal",
+      },
+    });
 
+    if (credited > 0n) {
       await tx.user.update({
         where: { id: input.userId },
-        data: { earningsBalance: { increment: math.withdrawn } },
+        data: { earningsBalance: { increment: credited } },
       });
-
-      await tx.copyTrader.update({
-        where: { id: inv.traderId },
-        data: { aum: { decrement: math.withdrawn } },
-      });
-
-      return { withdrawal, investment: updatedInv };
     }
 
-    return { withdrawal, investment: inv };
+    await tx.copyTrader.update({
+      where: { id: inv.traderId },
+      data: { aum: { decrement: math.withdrawn } },
+    });
+
+    return { withdrawal, investment: updatedInv };
   });
 
   return {
@@ -1054,13 +1153,18 @@ export async function applyTraderPerformanceUpdate(input: {
           });
         }
 
-    const active = await tx.copyInvestment.findMany({
+        const cutoff = lastSettlementCutoff(
+          (await tx.copyTradingConfig.findUnique({ where: { id: 1 } }))
+            ?.settlementCutoffHour ?? 22,
+        );
+        const active = await tx.copyInvestment.findMany({
           where: {
             traderId: input.traderId,
             status: "ACTIVE",
             currentValue: { gt: 0 },
+            startedAt: { lte: cutoff },
           },
-    });
+        });
 
     const syncInput = active.map((i) => ({
       id: i.id,
@@ -1179,6 +1283,7 @@ export async function applyTraderPerformanceUpdate(input: {
 
 export async function getAdminCopyDashboard() {
   const [
+    config,
     traders,
     activeAggregate,
     activeUsers,
@@ -1186,6 +1291,7 @@ export async function getAdminCopyDashboard() {
     recentRows,
     openOperations,
   ] = await Promise.all([
+    ensureCopyTradingConfig(),
     listAdminCopyTraders(),
     prisma.copyInvestment.aggregate({
       where: { status: "ACTIVE" },
@@ -1219,6 +1325,7 @@ export async function getAdminCopyDashboard() {
   const principal = activeAggregate._sum.principal ?? 0n;
   const currentValue = activeAggregate._sum.currentValue ?? 0n;
   return {
+    config,
     metrics: {
       traders: traders.length,
       activeTraders: traders.filter((t) => t.isActive && t.isVisible).length,
