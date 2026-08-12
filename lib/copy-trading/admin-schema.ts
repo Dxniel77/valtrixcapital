@@ -19,3 +19,34 @@ export const adminCopyTraderSchema = z.object({
   simulationMaxBps: z.number().int().min(-10_000).max(10_000),
   simulationIntervalHours: z.number().int().min(1).max(720),
 });
+
+export const adminCopyVitrinaSchema = z.object({
+  roiBps: z.number().int().min(-1_000_000).max(1_000_000),
+  cumulativeRoiBps: z.number().int().min(-1_000_000).max(1_000_000),
+  winRateBps: z.number().int().min(0).max(10_000),
+  maxDrawdownBps: z.number().int().min(0).max(10_000),
+  profitDays: z.number().int().min(0).max(36_500),
+  winningTrades: z.number().int().min(0).max(1_000_000),
+  losingTrades: z.number().int().min(0).max(1_000_000),
+  experienceDays: z.number().int().min(0).max(36_500),
+  followersCount: z.number().int().min(0).max(1_000_000_000),
+});
+
+export const adminCopyChartSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  valueBps: z.number().int().min(-1_000_000).max(1_000_000).optional(),
+});
+
+export const adminCopyOperationSchema = z.object({
+  symbol: z.string().trim().min(2).max(20),
+  direction: z.enum(["LONG", "SHORT"]),
+  leverage: z.number().int().min(1).max(125),
+  entryPrice: z.number().finite().positive(),
+  targetReturnBps: z.number().int().min(-10_000).max(10_000),
+  status: z.enum(["OPEN", "CLOSED"]),
+  openedAt: z.string().min(1).optional(),
+  closesAt: z.string().min(1),
+  closedAt: z.string().min(1).nullable().optional(),
+  exitPrice: z.number().finite().positive().nullable().optional(),
+  settledReturnBps: z.number().int().min(-10_000).max(10_000).nullable().optional(),
+});

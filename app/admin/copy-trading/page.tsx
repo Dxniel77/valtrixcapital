@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Activity, Bot, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -68,6 +69,7 @@ type Dashboard = {
     totalPrincipal: number;
     currentValue: number;
     totalPnl: number;
+    companyFees: number;
     pendingWithdrawals: number;
   };
   traders: Trader[];
@@ -261,38 +263,26 @@ export default function AdminCopyTradingPage() {
     });
   }
 
-  async function deleteSelected() {
-    const ids = [...selectedIds];
+  async function deleteTraders(ids: string[], busyKey: string) {
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        t("admin.copyTrading.confirmDelete", { n: ids.length }),
-      )
-    ) {
-      return;
-    }
-    setBusy("delete");
+    setBusy(busyKey);
     try {
       const result = await apiFetch<{
         deleted: number;
-        skipped: number;
+        refunded: number;
+        refundedAmount: number;
       }>("/api/admin/copy/traders/delete", {
         method: "POST",
         body: JSON.stringify({ ids }),
       });
       setSelectedIds(new Set());
-      if (result.skipped > 0) {
-        toast.success(
-          t("admin.copyTrading.deletedWithSkipped", {
-            deleted: result.deleted,
-            skipped: result.skipped,
-          }),
-        );
-      } else {
-        toast.success(
-          t("admin.copyTrading.deleted", { n: result.deleted }),
-        );
-      }
+      toast.success(
+        t("admin.copyTrading.deleted", {
+          n: result.deleted,
+          refunded: result.refunded,
+          amount: formatNumber(result.refundedAmount, { decimals: 2 }),
+        }),
+      );
       await load();
     } catch (error) {
       toast.error(
@@ -301,6 +291,28 @@ export default function AdminCopyTradingPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(t("admin.copyTrading.confirmDelete", { n: ids.length }))
+    ) {
+      return;
+    }
+    await deleteTraders(ids, "delete");
+  }
+
+  async function deleteOne(trader: Trader) {
+    if (
+      !window.confirm(
+        t("admin.copyTrading.confirmDeleteOne", { name: trader.name }),
+      )
+    ) {
+      return;
+    }
+    await deleteTraders([trader.id], `delete:${trader.id}`);
   }
 
   const load = React.useCallback(async () => {
@@ -526,6 +538,11 @@ export default function AdminCopyTradingPage() {
               label={t("admin.copyTrading.platformPnl")}
               value={`${data.metrics.totalPnl >= 0 ? "+" : ""}$${formatNumber(data.metrics.totalPnl, { decimals: 2 })}`}
               tone={data.metrics.totalPnl >= 0 ? "positive" : "negative"}
+            />
+            <Metric
+              label={t("admin.copyTrading.companyIncome")}
+              value={`$${formatNumber(data.metrics.companyFees ?? 0, { decimals: 2 })}`}
+              tone="gold"
             />
             <Metric
               label={t("admin.copyTrading.pendingWithdrawals")}
@@ -774,12 +791,25 @@ export default function AdminCopyTradingPage() {
                               <Play className="h-3.5 w-3.5" />
                             </Button>
                           ) : null}
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/admin/copy-trading/${trader.id}`}>
+                              {t("admin.copyTrading.openDesk")}
+                            </Link>
+                          </Button>
                           <Button
                             size="icon-sm"
                             variant="ghost"
                             onClick={() => openEdit(trader)}
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            loading={busy === `delete:${trader.id}`}
+                            onClick={() => void deleteOne(trader)}
+                          >
+                            <Trash2 className="h-4 w-4 text-danger" />
                           </Button>
                         </div>
                       </div>
