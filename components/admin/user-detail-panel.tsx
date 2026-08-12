@@ -17,6 +17,7 @@ import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsors
 import { AdminPartialWithdrawalReleaseCard } from "@/components/admin/admin-partial-withdrawal-release-card";
 import { AdminManualPayoutCard } from "@/components/admin/admin-manual-payout-card";
 import { AdminIbAgreementCard } from "@/components/admin/admin-ib-agreement-card";
+import { AdminUserCopyCard } from "@/components/admin/admin-user-copy-card";
 import { SponsoredUnlockProgressCard } from "@/components/wallet/sponsored-unlock-progress-card";
 import { IbStatusBadge } from "@/components/ib/ib-status-badge";
 import { findSponsorUser, getReferrerInfo } from "@/lib/admin/sponsor";
@@ -229,6 +230,8 @@ export function UserDetailPanel({
       <AdminIbAgreementCard user={user} />
 
       <AdminManualPayoutCard user={user} />
+
+      <AdminUserCopyCard userId={user.id} />
 
       {isSponsored ? (
         <>

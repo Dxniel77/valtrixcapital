@@ -21,7 +21,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
 import { useI18n } from "@/lib/i18n/context";
-import { formatNumber, shortenAddress } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 type Risk = "LOW" | "MEDIUM" | "HIGH";
 
@@ -51,6 +51,25 @@ type Trader = {
   simulationIntervalHours: number;
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
+  copierPrincipal: number;
+  copierValue: number;
+  copierPnl: number;
+  lastReturnBps: number | null;
+  lastReturnAt: string | null;
+};
+
+type CopierFilter = "copiers" | "empty" | "all";
+type TraderSort = "aum" | "copiers" | "pnl" | "last" | "name";
+
+type BulkTotals = {
+  traders: number;
+  eligible: number;
+  skippedAfterCutoff: number;
+  userDelta: number;
+  companyFee: number;
+  green: number;
+  red: number;
+  flat: number;
 };
 
 type Dashboard = {
@@ -70,7 +89,6 @@ type Dashboard = {
     currentValue: number;
     totalPnl: number;
     companyFees: number;
-    pendingWithdrawals: number;
   };
   traders: Trader[];
   openOperations: Array<{
@@ -83,14 +101,6 @@ type Dashboard = {
     markPrice: number;
     floatingReturnBps: number;
     closesAt: string;
-  }>;
-  pendingWithdrawals: Array<{
-    id: string;
-    traderName: string;
-    userName: string;
-    walletAddress: string;
-    amount: number;
-    requestedAt: string;
   }>;
   recentEvents: Array<{
     id: string;
@@ -150,6 +160,14 @@ function idempotencyKey(traderId: string): string {
   return `admin:${traderId}:${unique}`;
 }
 
+function suggestReturnBps(minBps: number, maxBps: number): number {
+  if (minBps === maxBps) return minBps;
+  const lo = Math.min(minBps, maxBps);
+  const hi = Math.max(minBps, maxBps);
+  const span = hi - lo;
+  return Math.min(hi, Math.max(lo, lo + Math.round(span * (0.4 + Math.random() * 0.6))));
+}
+
 function traderToForm(trader: Trader): TraderForm {
   return {
     name: trader.name,
@@ -207,18 +225,36 @@ export default function AdminCopyTradingPage() {
   const [traderSearch, setTraderSearch] = React.useState("");
   const [traderPage, setTraderPage] = React.useState(1);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [copierFilter, setCopierFilter] = React.useState<CopierFilter>("copiers");
+  const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
+  const [bulkPreview, setBulkPreview] = React.useState<BulkTotals | null>(null);
   const [investFeePct, setInvestFeePct] = React.useState("0");
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
 
-  const TRADER_PAGE_SIZE = 15;
+  const TRADER_PAGE_SIZE = 25;
 
   const filteredTraders = React.useMemo(() => {
     const q = traderSearch.trim().toLowerCase();
-    const list = data?.traders ?? [];
-    if (!q) return list;
-    return list.filter((tr) => tr.name.toLowerCase().includes(q));
-  }, [data?.traders, traderSearch]);
+    let list = data?.traders ?? [];
+    if (copierFilter === "copiers") {
+      list = list.filter((tr) => tr.activeInvestments > 0);
+    } else if (copierFilter === "empty") {
+      list = list.filter((tr) => tr.activeInvestments === 0);
+    }
+    if (q) {
+      list = list.filter((tr) => tr.name.toLowerCase().includes(q));
+    }
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      if (traderSort === "copiers") return b.activeInvestments - a.activeInvestments;
+      if (traderSort === "pnl") return (b.copierPnl ?? 0) - (a.copierPnl ?? 0);
+      if (traderSort === "last") return (b.lastReturnBps ?? -99999) - (a.lastReturnBps ?? -99999);
+      if (traderSort === "name") return a.name.localeCompare(b.name);
+      return (b.copierValue ?? b.aum) - (a.copierValue ?? a.aum);
+    });
+    return sorted;
+  }, [data?.traders, traderSearch, copierFilter, traderSort]);
 
   const traderPageCount = Math.max(
     1,
@@ -236,7 +272,8 @@ export default function AdminCopyTradingPage() {
   React.useEffect(() => {
     setTraderPage(1);
     setSelectedIds(new Set());
-  }, [traderSearch]);
+    setBulkPreview(null);
+  }, [traderSearch, copierFilter, traderSort]);
 
   React.useEffect(() => {
     if (traderPage > traderPageCount) setTraderPage(traderPageCount);
@@ -435,14 +472,104 @@ export default function AdminCopyTradingPage() {
     }
   }
 
-  async function decideWithdrawal(id: string, decision: "APPROVE" | "REJECT") {
-    setBusy(`withdrawal:${id}`);
-    try {
-      await apiFetch(`/api/admin/copy/withdrawals/${id}/decision`, {
-        method: "POST",
-        body: JSON.stringify({ decision }),
+  function filledItems(traders: Trader[]) {
+    const items: Array<{ traderId: string; returnBps: number; idempotencyKey: string }> =
+      [];
+    for (const trader of traders) {
+      const pct = Number(returns[trader.id]);
+      if (!Number.isFinite(pct) || pct < -100 || pct > 100) continue;
+      items.push({
+        traderId: trader.id,
+        returnBps: Math.round(pct * 100),
+        idempotencyKey: idempotencyKey(trader.id),
       });
-      toast.success(t("admin.copyTrading.withdrawalUpdated"));
+    }
+    return items;
+  }
+
+  function suggestDay() {
+    const targets = filteredTraders.filter((trader) => trader.activeInvestments > 0);
+    if (targets.length === 0) {
+      toast.error(t("admin.copyTrading.noCopiersToSuggest"));
+      return;
+    }
+    setReturns((current) => {
+      const next = { ...current };
+      for (const trader of targets) {
+        next[trader.id] = (suggestReturnBps(trader.simulationMinBps, trader.simulationMaxBps) / 100).toFixed(2);
+      }
+      return next;
+    });
+    setBulkPreview(null);
+    toast.success(t("admin.copyTrading.suggested", { n: targets.length }));
+  }
+
+  async function previewAll() {
+    const items = filledItems(filteredTraders);
+    if (items.length === 0) {
+      toast.error(t("admin.copyTrading.noResultsToPreview"));
+      return;
+    }
+    setBusy("preview");
+    try {
+      const result = await apiFetch<{ totals: BulkTotals }>(
+        "/api/admin/copy/performance/preview",
+        { method: "POST", body: JSON.stringify({ items }) },
+      );
+      setBulkPreview(result.totals);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function publishAll() {
+    const items = filledItems(filteredTraders);
+    if (items.length === 0) {
+      toast.error(t("admin.copyTrading.noResultsToPreview"));
+      return;
+    }
+    if (
+      !window.confirm(
+        t("admin.copyTrading.publishAllConfirm", {
+          n: items.length,
+          delta: formatNumber(bulkPreview?.userDelta ?? 0, { decimals: 2 }),
+          fee: formatNumber(bulkPreview?.companyFee ?? 0, { decimals: 2 }),
+        }),
+      )
+    ) {
+      return;
+    }
+    setBusy("publish-all");
+    try {
+      const result = await apiFetch<{
+        published: number;
+        affected: number;
+        failed: Array<{ traderId: string; error: string }>;
+      }>("/api/admin/copy/performance/publish", {
+        method: "POST",
+        body: JSON.stringify({ items }),
+      });
+      if (result.failed.length > 0) {
+        toast.error(
+          t("admin.copyTrading.publishedWithErrors", {
+            n: result.published,
+            failed: result.failed.length,
+          }),
+        );
+      } else {
+        toast.success(
+          t("admin.copyTrading.publishedAll", {
+            n: result.published,
+            affected: result.affected,
+          }),
+        );
+      }
+      setReturns({});
+      setBulkPreview(null);
       await load();
     } catch (error) {
       toast.error(
@@ -486,6 +613,12 @@ export default function AdminCopyTradingPage() {
         subtitle={t("admin.copyTrading.subtitle")}
         actions={
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/copy-trading/copiers">
+                <Users className="h-3.5 w-3.5" />
+                {t("admin.copyTrading.allCopiers")}
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -544,10 +677,6 @@ export default function AdminCopyTradingPage() {
               value={`$${formatNumber(data.metrics.companyFees ?? 0, { decimals: 2 })}`}
               tone="gold"
             />
-            <Metric
-              label={t("admin.copyTrading.pendingWithdrawals")}
-              value={String(data.metrics.pendingWithdrawals)}
-            />
           </div>
 
           <Card>
@@ -598,225 +727,275 @@ export default function AdminCopyTradingPage() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Users className="h-4 w-4 text-gold" />
-                {t("admin.copyTrading.traders")}
-                <span className="font-mono text-xs font-normal text-text-muted">
-                  ({filteredTraders.length})
-                </span>
-              </CardTitle>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                <div className="w-full sm:w-64">
-                  <Input
-                    value={traderSearch}
-                    onChange={(e) => setTraderSearch(e.target.value)}
-                    placeholder={t("admin.copyTrading.searchTraders")}
-                  />
-                </div>
-                {selectedIds.size > 0 ? (
+            <CardHeader className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="h-4 w-4 text-gold" />
+                  {t("admin.copyTrading.traders")}
+                  <span className="font-mono text-xs font-normal text-text-muted">
+                    ({filteredTraders.length})
+                  </span>
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
-                    variant="danger"
-                    loading={busy === "delete"}
-                    onClick={() => void deleteSelected()}
+                    variant="outline"
+                    onClick={suggestDay}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {t("admin.copyTrading.deleteSelected", {
-                      n: selectedIds.size,
-                    })}
+                    {t("admin.copyTrading.suggestDay")}
                   </Button>
-                ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={busy === "preview"}
+                    onClick={() => void previewAll()}
+                  >
+                    {t("admin.copyTrading.previewAll")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="success"
+                    loading={busy === "publish-all"}
+                    onClick={() => void publishAll()}
+                  >
+                    {t("admin.copyTrading.publishAll")}
+                  </Button>
+                  {selectedIds.size > 0 ? (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      loading={busy === "delete"}
+                      onClick={() => void deleteSelected()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t("admin.copyTrading.deleteSelected", {
+                        n: selectedIds.size,
+                      })}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
+              <div className="flex flex-col gap-2 lg:flex-row">
+                <Select
+                  value={copierFilter}
+                  onChange={(e) =>
+                    setCopierFilter(e.target.value as CopierFilter)
+                  }
+                >
+                  <option value="copiers">
+                    {t("admin.copyTrading.filterCopiers")}
+                  </option>
+                  <option value="empty">
+                    {t("admin.copyTrading.filterEmpty")}
+                  </option>
+                  <option value="all">{t("admin.copyTrading.filterAll")}</option>
+                </Select>
+                <Select
+                  value={traderSort}
+                  onChange={(e) => setTraderSort(e.target.value as TraderSort)}
+                >
+                  <option value="aum">{t("admin.copyTrading.sortAum")}</option>
+                  <option value="copiers">
+                    {t("admin.copyTrading.sortCopiers")}
+                  </option>
+                  <option value="pnl">{t("admin.copyTrading.sortPnl")}</option>
+                  <option value="last">{t("admin.copyTrading.sortLast")}</option>
+                  <option value="name">{t("admin.copyTrading.sortName")}</option>
+                </Select>
+                <Input
+                  value={traderSearch}
+                  onChange={(e) => setTraderSearch(e.target.value)}
+                  placeholder={t("admin.copyTrading.searchTraders")}
+                />
+              </div>
+              {bulkPreview ? (
+                <div className="grid gap-2 rounded-md border border-gold/20 bg-gold/5 p-3 text-xs sm:grid-cols-4">
+                  <span>
+                    {t("admin.copyTrading.bulkTraders", {
+                      n: bulkPreview.traders,
+                    })}{" "}
+                    · {t("admin.copyTrading.bulkGreen", { n: bulkPreview.green })}{" "}
+                    / {t("admin.copyTrading.bulkRed", { n: bulkPreview.red })}
+                  </span>
+                  <span>
+                    {t("admin.copyTrading.previewEligible", {
+                      n: bulkPreview.eligible,
+                    })}
+                  </span>
+                  <span
+                    className={
+                      bulkPreview.userDelta >= 0 ? "text-success" : "text-danger"
+                    }
+                  >
+                    {t("admin.copyTrading.previewUserDelta")}:{" "}
+                    {bulkPreview.userDelta >= 0 ? "+" : ""}$
+                    {formatNumber(bulkPreview.userDelta, { decimals: 2 })}
+                  </span>
+                  <span className="text-gold">
+                    {t("admin.copyTrading.previewCompanyFee")}: $
+                    {formatNumber(bulkPreview.companyFee, { decimals: 2 })}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.bulkHint")}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {pagedTraders.length > 0 ? (
-                <label className="flex items-center gap-2 text-xs text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={
-                      pagedTraders.length > 0 &&
-                      pagedTraders.every((trader) => selectedIds.has(trader.id))
-                    }
-                    onChange={toggleSelectPage}
-                  />
-                  {t("admin.copyTrading.selectPage")}
-                </label>
-              ) : null}
-              {pagedTraders.map((trader) =>
-                (() => {
-                  const operation = data.openOperations.find(
-                    (item) => item.traderId === trader.id,
-                  );
-                  return (
-                    <div
-                      key={trader.id}
-                      className="rounded-lg border border-border-subtle bg-bg-base/40 p-4"
-                    >
-                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-                        <label className="flex shrink-0 items-start pt-1">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <thead>
+                      <THeadRow>
+                        <TH>
                           <input
                             type="checkbox"
-                            checked={selectedIds.has(trader.id)}
-                            onChange={() => toggleSelected(trader.id)}
+                            checked={
+                              pagedTraders.length > 0 &&
+                              pagedTraders.every((trader) =>
+                                selectedIds.has(trader.id),
+                              )
+                            }
+                            onChange={toggleSelectPage}
                           />
-                        </label>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-display font-semibold text-text-primary">
+                        </TH>
+                        <TH>{t("admin.copyTrading.trader")}</TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.connectedCapital")}
+                        </TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.copies")}
+                        </TH>
+                        <TH className="text-right">{t("admin.copyTrading.pnl")}</TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.lastResult")}
+                        </TH>
+                        <TH>{t("admin.copyTrading.returnPlaceholder")}</TH>
+                        <TH />
+                      </THeadRow>
+                    </thead>
+                    <TBody>
+                      {pagedTraders.map((trader) => (
+                        <TR key={trader.id}>
+                          <TD>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(trader.id)}
+                              onChange={() => toggleSelected(trader.id)}
+                            />
+                          </TD>
+                          <TD>
+                            <p className="font-medium text-text-primary">
                               {trader.name}
                             </p>
-                            <Badge
-                              variant={
-                                trader.riskLevel === "HIGH"
-                                  ? "danger"
-                                  : trader.riskLevel === "LOW"
-                                    ? "success"
-                                    : "warning"
-                              }
-                            >
-                              {trader.riskLevel}
-                            </Badge>
-                            {trader.isFeatured ? (
-                              <Badge variant="gold">
-                                {t("admin.copyTrading.featured")}
-                              </Badge>
-                            ) : null}
-                            {trader.simulationEnabled ? (
-                              <Badge variant="info">
-                                <Bot className="h-3 w-3" />
-                                {t("admin.copyTrading.automatic")}
-                              </Badge>
-                            ) : null}
-                            {!trader.isVisible ? (
-                              <Badge variant="outline">
-                                {t("admin.copyTrading.hidden")}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <p className="mt-1 line-clamp-1 text-xs text-text-muted">
-                            {trader.description}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-text-secondary">
-                            <span>
-                              ROI {trader.roiBps >= 0 ? "+" : ""}
-                              {(trader.roiBps / 100).toFixed(2)}%
-                            </span>
-                            <span>
-                              {trader.activeInvestments}{" "}
-                              {t("admin.copyTrading.copies")}
-                            </span>
-                            <span>
-                              AUM ${formatNumber(trader.aum, { decimals: 0 })}
-                            </span>
-                            {trader.simulationEnabled ? (
-                              <span>
-                                {(trader.simulationMinBps / 100).toFixed(2)}%…+
-                                {(trader.simulationMaxBps / 100).toFixed(2)}% /{" "}
-                                {trader.simulationIntervalHours}h
-                              </span>
-                            ) : null}
-                          </div>
-                          {operation ? (
-                            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2 font-mono text-xs">
-                              <Badge variant="info">SIM · OPEN</Badge>
-                              <span
-                                className={
-                                  operation.direction === "LONG"
-                                    ? "text-success"
-                                    : "text-danger"
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              <Badge
+                                variant={
+                                  trader.riskLevel === "HIGH"
+                                    ? "danger"
+                                    : trader.riskLevel === "LOW"
+                                      ? "success"
+                                      : "warning"
                                 }
                               >
-                                {operation.symbol} {operation.direction}{" "}
-                                {operation.leverage}×
-                              </span>
-                              <span className="text-text-muted">
-                                {formatNumber(operation.entryPrice, {
-                                  decimals: operation.entryPrice < 10 ? 4 : 2,
-                                })}
-                                {" → "}
-                                {formatNumber(operation.markPrice, {
-                                  decimals: operation.markPrice < 10 ? 4 : 2,
-                                })}
-                              </span>
-                              <span
-                                className={
-                                  operation.floatingReturnBps >= 0
-                                    ? "text-success"
-                                    : "text-danger"
-                                }
-                              >
-                                {operation.floatingReturnBps >= 0 ? "+" : ""}
-                                {(operation.floatingReturnBps / 100).toFixed(2)}
-                                %
-                              </span>
-                              <span className="text-text-muted">
-                                {new Date(operation.closesAt).toLocaleString()}
-                              </span>
+                                {trader.riskLevel}
+                              </Badge>
+                              {!trader.isVisible ? (
+                                <Badge variant="outline">
+                                  {t("admin.copyTrading.hidden")}
+                                </Badge>
+                              ) : null}
                             </div>
-                          ) : null}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder={t(
-                              "admin.copyTrading.returnPlaceholder",
-                            )}
-                            value={returns[trader.id] ?? ""}
-                            onChange={(event) =>
-                              setReturns((current) => ({
-                                ...current,
-                                [trader.id]: event.target.value,
-                              }))
-                            }
-                            className="w-28"
-                          />
-                          <Button
-                            size="sm"
-                            variant="success"
-                            loading={busy === `return:${trader.id}`}
-                            onClick={() => void publishReturn(trader)}
+                          </TD>
+                          <TD className="text-right font-mono">
+                            $
+                            {formatNumber(trader.copierValue ?? trader.aum, {
+                              decimals: 2,
+                            })}
+                          </TD>
+                          <TD className="text-right font-mono">
+                            {trader.activeInvestments}
+                          </TD>
+                          <TD
+                            className={`text-right font-mono ${
+                              (trader.copierPnl ?? 0) >= 0
+                                ? "text-success"
+                                : "text-danger"
+                            }`}
                           >
-                            {t("admin.copyTrading.publish")}
-                          </Button>
-                          {trader.simulationEnabled ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              loading={busy === `run:${trader.id}`}
-                              onClick={() => void runSimulation(trader.id)}
-                            >
-                              <Play className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : null}
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={`/admin/copy-trading/${trader.id}`}>
-                              {t("admin.copyTrading.openDesk")}
-                            </Link>
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => openEdit(trader)}
+                            {(trader.copierPnl ?? 0) >= 0 ? "+" : ""}$
+                            {formatNumber(trader.copierPnl ?? 0, { decimals: 2 })}
+                          </TD>
+                          <TD
+                            className={`text-right font-mono ${
+                              (trader.lastReturnBps ?? 0) >= 0
+                                ? "text-success"
+                                : "text-danger"
+                            }`}
                           >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            loading={busy === `delete:${trader.id}`}
-                            onClick={() => void deleteOne(trader)}
-                          >
-                            <Trash2 className="h-4 w-4 text-danger" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })(),
-              )}
+                            {trader.lastReturnBps == null
+                              ? "—"
+                              : `${trader.lastReturnBps >= 0 ? "+" : ""}${(trader.lastReturnBps / 100).toFixed(2)}%`}
+                          </TD>
+                          <TD>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="w-24"
+                                placeholder={t(
+                                  "admin.copyTrading.returnPlaceholder",
+                                )}
+                                value={returns[trader.id] ?? ""}
+                                onChange={(event) => {
+                                  setBulkPreview(null);
+                                  setReturns((current) => ({
+                                    ...current,
+                                    [trader.id]: event.target.value,
+                                  }));
+                                }}
+                              />
+                              <Button
+                                size="sm"
+                                variant="success"
+                                loading={busy === `return:${trader.id}`}
+                                onClick={() => void publishReturn(trader)}
+                              >
+                                {t("admin.copyTrading.publish")}
+                              </Button>
+                            </div>
+                          </TD>
+                          <TD>
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={`/admin/copy-trading/${trader.id}`}>
+                                  {t("admin.copyTrading.openDesk")}
+                                </Link>
+                              </Button>
+                              <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                onClick={() => openEdit(trader)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                loading={busy === `delete:${trader.id}`}
+                                onClick={() => void deleteOne(trader)}
+                              >
+                                <Trash2 className="h-4 w-4 text-danger" />
+                              </Button>
+                            </div>
+                          </TD>
+                        </TR>
+                      ))}
+                    </TBody>
+                  </Table>
+                </div>
+              ) : null}
               {filteredTraders.length === 0 ? (
                 <p className="text-sm text-text-muted">
                   {t("admin.copyTrading.noTradersMatch")}
@@ -855,91 +1034,7 @@ export default function AdminCopyTradingPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {t("admin.copyTrading.pendingWithdrawals")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {data.pendingWithdrawals.length === 0 ? (
-                  <p className="text-sm text-text-muted">
-                    {t("admin.copyTrading.noPendingWithdrawals")}
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <thead>
-                        <THeadRow>
-                          <TH>{t("common.user")}</TH>
-                          <TH>{t("admin.copyTrading.trader")}</TH>
-                          <TH className="text-right">
-                            {t("admin.copyTrading.amount")}
-                          </TH>
-                          <TH />
-                        </THeadRow>
-                      </thead>
-                      <TBody>
-                        {data.pendingWithdrawals.map((withdrawal) => (
-                          <TR key={withdrawal.id}>
-                            <TD>
-                              <p className="text-sm text-text-primary">
-                                {withdrawal.userName}
-                              </p>
-                              <p className="font-mono text-xs text-text-muted">
-                                {shortenAddress(withdrawal.walletAddress)}
-                              </p>
-                            </TD>
-                            <TD>{withdrawal.traderName}</TD>
-                            <TD className="text-right font-mono">
-                              $
-                              {formatNumber(withdrawal.amount, { decimals: 2 })}
-                            </TD>
-                            <TD>
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="success"
-                                  disabled={
-                                    busy === `withdrawal:${withdrawal.id}`
-                                  }
-                                  onClick={() =>
-                                    void decideWithdrawal(
-                                      withdrawal.id,
-                                      "APPROVE",
-                                    )
-                                  }
-                                >
-                                  {t("admin.copyTrading.approve")}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="danger"
-                                  disabled={
-                                    busy === `withdrawal:${withdrawal.id}`
-                                  }
-                                  onClick={() =>
-                                    void decideWithdrawal(
-                                      withdrawal.id,
-                                      "REJECT",
-                                    )
-                                  }
-                                >
-                                  {t("admin.copyTrading.reject")}
-                                </Button>
-                              </div>
-                            </TD>
-                          </TR>
-                        ))}
-                      </TBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Activity className="h-4 w-4 text-gold" />
@@ -979,7 +1074,6 @@ export default function AdminCopyTradingPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
         </>
       )}
 

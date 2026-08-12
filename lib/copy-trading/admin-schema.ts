@@ -50,3 +50,16 @@ export const adminCopyOperationSchema = z.object({
   exitPrice: z.number().finite().positive().nullable().optional(),
   settledReturnBps: z.number().int().min(-10_000).max(10_000).nullable().optional(),
 });
+
+export const adminCopyBulkPerformanceSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        traderId: z.string().min(1),
+        returnBps: z.number().int().min(-10_000).max(10_000),
+        idempotencyKey: z.string().trim().min(8).max(200).optional(),
+      }),
+    )
+    .min(1)
+    .max(100),
+});

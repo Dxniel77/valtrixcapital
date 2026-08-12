@@ -87,6 +87,11 @@ export type AdminCopyTraderDto = CopyTraderDto & {
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
   activeInvestments: number;
+  copierPrincipal: number;
+  copierValue: number;
+  copierPnl: number;
+  lastReturnBps: number | null;
+  lastReturnAt: string | null;
 };
 
 export type CopyTradingConfigDto = {
@@ -292,7 +297,15 @@ function serializeAdminTrader(
   t: Prisma.CopyTraderGetPayload<{
     include: { _count: { select: { investments: true } } };
   }>,
+  extra?: {
+    copierPrincipal?: bigint;
+    copierValue?: bigint;
+    lastReturnBps?: number | null;
+    lastReturnAt?: Date | null;
+  },
 ): AdminCopyTraderDto {
+  const principal = extra?.copierPrincipal ?? 0n;
+  const value = extra?.copierValue ?? 0n;
   return {
     ...serializeTrader(t),
     simulationEnabled: t.simulationEnabled,
@@ -302,6 +315,11 @@ function serializeAdminTrader(
     simulationLastRunAt: t.simulationLastRunAt?.toISOString() ?? null,
     simulationNextRunAt: t.simulationNextRunAt?.toISOString() ?? null,
     activeInvestments: t._count.investments,
+    copierPrincipal: fromMicro(principal),
+    copierValue: fromMicro(value),
+    copierPnl: fromMicro(value - principal),
+    lastReturnBps: extra?.lastReturnBps ?? null,
+    lastReturnAt: extra?.lastReturnAt?.toISOString() ?? null,
   };
 }
 
@@ -572,7 +590,52 @@ export async function listAdminCopyTraders(): Promise<AdminCopyTraderDto[]> {
       },
     },
   });
-  return rows.map(serializeAdminTrader);
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((row) => row.id);
+  const [agg, lastEvents] = await Promise.all([
+    prisma.copyInvestment.groupBy({
+      by: ["traderId"],
+      where: { traderId: { in: ids }, status: "ACTIVE" },
+      _sum: { principal: true, currentValue: true },
+    }),
+    prisma.copyPerformanceEvent.findMany({
+      where: { traderId: { in: ids } },
+      orderBy: { createdAt: "desc" },
+      select: { traderId: true, returnBps: true, createdAt: true },
+      take: 500,
+    }),
+  ]);
+
+  const money = new Map(
+    agg.map((row) => [
+      row.traderId,
+      {
+        principal: row._sum.principal ?? 0n,
+        value: row._sum.currentValue ?? 0n,
+      },
+    ]),
+  );
+  const lastByTrader = new Map<
+    string,
+    { returnBps: number; createdAt: Date }
+  >();
+  for (const event of lastEvents) {
+    if (!lastByTrader.has(event.traderId)) {
+      lastByTrader.set(event.traderId, event);
+    }
+  }
+
+  return rows.map((row) => {
+    const last = lastByTrader.get(row.id);
+    const sums = money.get(row.id);
+    return serializeAdminTrader(row, {
+      copierPrincipal: sums?.principal,
+      copierValue: sums?.value,
+      lastReturnBps: last?.returnBps ?? null,
+      lastReturnAt: last?.createdAt ?? null,
+    });
+  });
 }
 
 export async function createAdminCopyTrader(
@@ -1521,6 +1584,297 @@ export async function previewTraderPerformance(
     usersAfterFee: fromMicro(result.totalDelta - companyFee),
     feeApplied: false,
     cutoffAt: cutoff.toISOString(),
+  };
+}
+
+export type AdminBulkPerformanceItem = {
+  traderId: string;
+  returnBps: number;
+  idempotencyKey?: string;
+};
+
+export type AdminBulkPreviewRow = AdminPerformancePreviewDto & {
+  traderId: string;
+  traderName: string;
+};
+
+export async function previewManyTraderPerformance(
+  items: AdminBulkPerformanceItem[],
+): Promise<{
+  rows: AdminBulkPreviewRow[];
+  totals: {
+    traders: number;
+    eligible: number;
+    skippedAfterCutoff: number;
+    userDelta: number;
+    companyFee: number;
+    green: number;
+    red: number;
+    flat: number;
+  };
+}> {
+  if (items.length === 0) {
+    throw new CopyTradingError("No traders selected", "INVALID_AMOUNT");
+  }
+  if (items.length > 100) {
+    throw new CopyTradingError(
+      "Preview at most 100 traders at once",
+      "INVALID_AMOUNT",
+    );
+  }
+
+  const ids = [...new Set(items.map((item) => item.traderId))];
+  const [traders, config, investments] = await Promise.all([
+    prisma.copyTrader.findMany({ where: { id: { in: ids } } }),
+    ensureCopyTradingConfig(),
+    prisma.copyInvestment.findMany({
+      where: { traderId: { in: ids }, status: "ACTIVE", currentValue: { gt: 0 } },
+    }),
+  ]);
+  const traderById = new Map(traders.map((row) => [row.id, row]));
+  const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
+  const byTrader = new Map<string, typeof investments>();
+  for (const inv of investments) {
+    const list = byTrader.get(inv.traderId) ?? [];
+    list.push(inv);
+    byTrader.set(inv.traderId, list);
+  }
+
+  const rows: AdminBulkPreviewRow[] = [];
+  for (const item of items) {
+    if (
+      !Number.isInteger(item.returnBps) ||
+      item.returnBps < -10_000 ||
+      item.returnBps > 10_000
+    ) {
+      throw new CopyTradingError(
+        "returnBps must be an integer",
+        "INVALID_AMOUNT",
+      );
+    }
+    const trader = traderById.get(item.traderId);
+    if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+    const active = byTrader.get(item.traderId) ?? [];
+    const eligible = active.filter((row) => row.startedAt <= cutoff);
+    const result = applyPerformance(
+      eligible.map((row) => ({
+        id: row.id,
+        principal: row.principal,
+        currentValue: row.currentValue,
+        realizedPnl: row.realizedPnl,
+      })),
+      item.returnBps,
+    );
+    let profitMicro = 0n;
+    for (const entry of result.ledger) {
+      if (entry.amount > 0n) profitMicro += entry.amount;
+    }
+    const companyFee = feeMicro(profitMicro, trader.performanceFeeBps ?? 1000);
+    rows.push({
+      traderId: trader.id,
+      traderName: trader.name,
+      returnBps: item.returnBps,
+      eligible: eligible.length,
+      skippedAfterCutoff: active.length - eligible.length,
+      userDelta: fromMicro(result.totalDelta),
+      companyFee: fromMicro(companyFee),
+      usersAfterFee: fromMicro(result.totalDelta - companyFee),
+      feeApplied: false,
+      cutoffAt: cutoff.toISOString(),
+    });
+  }
+
+  const totals = rows.reduce(
+    (acc, row) => {
+      acc.eligible += row.eligible;
+      acc.skippedAfterCutoff += row.skippedAfterCutoff;
+      acc.userDelta += row.userDelta;
+      acc.companyFee += row.companyFee;
+      if (row.returnBps > 0) acc.green += 1;
+      else if (row.returnBps < 0) acc.red += 1;
+      else acc.flat += 1;
+      return acc;
+    },
+    {
+      traders: rows.length,
+      eligible: 0,
+      skippedAfterCutoff: 0,
+      userDelta: 0,
+      companyFee: 0,
+      green: 0,
+      red: 0,
+      flat: 0,
+    },
+  );
+
+  return { rows, totals };
+}
+
+export async function publishManyTraderPerformance(
+  items: AdminBulkPerformanceItem[],
+  adminUserId: string,
+): Promise<{
+  published: number;
+  affected: number;
+  failed: Array<{ traderId: string; error: string }>;
+}> {
+  if (items.length === 0) {
+    throw new CopyTradingError("No traders selected", "INVALID_AMOUNT");
+  }
+  if (items.length > 100) {
+    throw new CopyTradingError(
+      "Publish at most 100 traders at once",
+      "INVALID_AMOUNT",
+    );
+  }
+
+  let published = 0;
+  let affected = 0;
+  const failed: Array<{ traderId: string; error: string }> = [];
+
+  for (const item of items) {
+    try {
+      const result = await applyTraderPerformanceUpdate({
+        traderId: item.traderId,
+        period: "TODAY",
+        returnBps: item.returnBps,
+        adminUserId,
+        idempotencyKey: item.idempotencyKey,
+        source: "ADMIN",
+      });
+      published += 1;
+      affected += result.affected;
+    } catch (error) {
+      failed.push({
+        traderId: item.traderId,
+        error: error instanceof Error ? error.message : "Publish failed",
+      });
+    }
+  }
+
+  return { published, affected, failed };
+}
+
+export async function listAdminCopyCopiers(): Promise<{
+  total: number;
+  winning: number;
+  losing: number;
+  principal: number;
+  currentValue: number;
+  pnl: number;
+  copiers: Array<{
+    investmentId: string;
+    userId: string;
+    username: string | null;
+    walletAddress: string;
+    traderId: string;
+    traderName: string;
+    principal: number;
+    currentValue: number;
+    pnl: number;
+    roiBps: number;
+    startedAt: string;
+  }>;
+}> {
+  const rows = await prisma.copyInvestment.findMany({
+    where: { status: "ACTIVE" },
+    include: {
+      user: { select: { id: true, username: true, walletAddress: true } },
+      trader: { select: { id: true, name: true } },
+    },
+    orderBy: { startedAt: "desc" },
+    take: 500,
+  });
+
+  let principal = 0n;
+  let currentValue = 0n;
+  let winning = 0;
+  let losing = 0;
+  const copiers = rows.map((row) => {
+    principal += row.principal;
+    currentValue += row.currentValue;
+    const pnlMicro = row.currentValue - row.principal;
+    if (pnlMicro > 0n) winning += 1;
+    if (pnlMicro < 0n) losing += 1;
+    return {
+      investmentId: row.id,
+      userId: row.userId,
+      username: row.user.username,
+      walletAddress: row.user.walletAddress,
+      traderId: row.traderId,
+      traderName: row.trader.name,
+      principal: fromMicro(row.principal),
+      currentValue: fromMicro(row.currentValue),
+      pnl: fromMicro(pnlMicro),
+      roiBps: roiBpsOf(row.principal, row.currentValue),
+      startedAt: row.startedAt.toISOString(),
+    };
+  });
+
+  return {
+    total: copiers.length,
+    winning,
+    losing,
+    principal: fromMicro(principal),
+    currentValue: fromMicro(currentValue),
+    pnl: fromMicro(currentValue - principal),
+    copiers,
+  };
+}
+
+export async function listAdminUserCopyInvestments(userId: string): Promise<{
+  summary: {
+    active: number;
+    principal: number;
+    currentValue: number;
+    pnl: number;
+  };
+  investments: Array<{
+    id: string;
+    traderId: string;
+    traderName: string;
+    status: CopyInvestmentStatus;
+    principal: number;
+    currentValue: number;
+    pnl: number;
+    roiBps: number;
+    startedAt: string;
+    closedAt: string | null;
+  }>;
+}> {
+  const rows = await prisma.copyInvestment.findMany({
+    where: { userId },
+    include: { trader: { select: { id: true, name: true } } },
+    orderBy: { startedAt: "desc" },
+    take: 100,
+  });
+
+  const activeRows = rows.filter((row) => row.status === "ACTIVE");
+  const principal = activeRows.reduce((sum, row) => sum + row.principal, 0n);
+  const currentValue = activeRows.reduce(
+    (sum, row) => sum + row.currentValue,
+    0n,
+  );
+
+  return {
+    summary: {
+      active: activeRows.length,
+      principal: fromMicro(principal),
+      currentValue: fromMicro(currentValue),
+      pnl: fromMicro(currentValue - principal),
+    },
+    investments: rows.map((row) => ({
+      id: row.id,
+      traderId: row.traderId,
+      traderName: row.trader.name,
+      status: row.status,
+      principal: fromMicro(row.principal),
+      currentValue: fromMicro(row.currentValue),
+      pnl: fromMicro(row.currentValue - row.principal),
+      roiBps: roiBpsOf(row.principal, row.currentValue),
+      startedAt: row.startedAt.toISOString(),
+      closedAt: row.closedAt?.toISOString() ?? null,
+    })),
   };
 }
 
