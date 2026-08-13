@@ -44,6 +44,10 @@ type Desk = {
     id: string;
     name: string;
     riskLevel: "LOW" | "MEDIUM" | "HIGH";
+    aum: number;
+    totalInvested: number;
+    investorsCount: number;
+    maxInvestors: number;
     roiBps: number;
     cumulativeRoiBps: number;
     winRateBps: number;
@@ -56,6 +60,7 @@ type Desk = {
     performanceFeeBps: number;
     isVisible: boolean;
     isActive: boolean;
+    isFeatured: boolean;
   };
   situation: {
     activeCopies: number;
@@ -67,6 +72,20 @@ type Desk = {
     companyFees: number;
     cutoffAt: string;
     cutoffHour: number;
+  };
+  publicFacing: {
+    aum: number;
+    totalInvested: number;
+    performanceFeeBps: number;
+    investorsCount: number;
+    maxInvestors: number;
+    roiBps: number;
+    cumulativeRoiBps: number;
+    winRateBps: number;
+    avgReturnBps: number | null;
+    opsCount: number;
+    periodWinRateBps: number;
+    curve7dReturnBps: number | null;
   };
   copiers: Array<{
     investmentId: string;
@@ -539,6 +558,110 @@ export default function AdminCopyTraderDeskPage() {
             {desk.situation.skippedAfterCutoff} · UTC {desk.situation.cutoffHour}
             :00
           </p>
+
+          <Card>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.publicFacing")}
+              </CardTitle>
+              <div className="flex flex-wrap gap-1">
+                {desk.trader.isFeatured ? (
+                  <Badge variant="warning">
+                    {t("admin.copyTrading.featured")}
+                  </Badge>
+                ) : null}
+                {!desk.trader.isVisible ? (
+                  <Badge variant="outline">
+                    {t("admin.copyTrading.hidden")}
+                  </Badge>
+                ) : (
+                  <Badge variant="success">
+                    {t("admin.copyTrading.visible")}
+                  </Badge>
+                )}
+                <Badge variant="outline">{desk.trader.riskLevel}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-text-muted">
+                {t("admin.copyTrading.publicFacingHint")}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <Metric
+                  label={t("admin.copyTrading.publicAum")}
+                  value={`$${formatNumber(desk.publicFacing.aum, { decimals: 2 })}`}
+                />
+                <Metric
+                  label={t("admin.copyTrading.publicCapital")}
+                  value={`$${formatNumber(desk.publicFacing.totalInvested, { decimals: 2 })}`}
+                />
+                <Metric
+                  label={t("admin.copyTrading.performanceFee")}
+                  value={`${(desk.publicFacing.performanceFeeBps / 100).toFixed(2)}%`}
+                />
+                <Metric
+                  label={t("admin.copyTrading.publicCopiers")}
+                  value={`${desk.publicFacing.investorsCount} / ${desk.publicFacing.maxInvestors}`}
+                />
+                <Metric
+                  label={t("admin.copyTrading.roi")}
+                  value={`${desk.publicFacing.roiBps >= 0 ? "+" : ""}${(desk.publicFacing.roiBps / 100).toFixed(2)}%`}
+                  tone={desk.publicFacing.roiBps >= 0 ? "positive" : "negative"}
+                />
+                <Metric
+                  label={t("admin.copyTrading.cumulativeRoi")}
+                  value={`${desk.publicFacing.cumulativeRoiBps >= 0 ? "+" : ""}${(desk.publicFacing.cumulativeRoiBps / 100).toFixed(2)}%`}
+                  tone={
+                    desk.publicFacing.cumulativeRoiBps >= 0
+                      ? "positive"
+                      : "negative"
+                  }
+                />
+                <Metric
+                  label={t("admin.copyTrading.winRate")}
+                  value={`${(desk.publicFacing.winRateBps / 100).toFixed(2)}%`}
+                />
+                <Metric
+                  label={t("admin.copyTrading.curve7d")}
+                  value={
+                    desk.publicFacing.curve7dReturnBps == null
+                      ? "—"
+                      : `${desk.publicFacing.curve7dReturnBps >= 0 ? "+" : ""}${(desk.publicFacing.curve7dReturnBps / 100).toFixed(2)}%`
+                  }
+                  tone={
+                    desk.publicFacing.curve7dReturnBps == null
+                      ? undefined
+                      : desk.publicFacing.curve7dReturnBps >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                />
+                <Metric
+                  label={t("admin.copyTrading.avgReturnWeek")}
+                  value={
+                    desk.publicFacing.avgReturnBps == null
+                      ? "—"
+                      : `${desk.publicFacing.avgReturnBps >= 0 ? "+" : ""}${(desk.publicFacing.avgReturnBps / 100).toFixed(2)}%`
+                  }
+                  tone={
+                    desk.publicFacing.avgReturnBps == null
+                      ? undefined
+                      : desk.publicFacing.avgReturnBps >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                />
+                <Metric
+                  label={t("admin.copyTrading.opsWeek")}
+                  value={String(desk.publicFacing.opsCount)}
+                />
+                <Metric
+                  label={t("admin.copyTrading.periodWinRate")}
+                  value={`${(desk.publicFacing.periodWinRateBps / 100).toFixed(2)}%`}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

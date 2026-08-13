@@ -757,6 +757,55 @@ export async function updateAdminCopyTrader(
   return serializeAdminTrader(row);
 }
 
+export async function patchAdminCopyTraderFlags(
+  traderId: string,
+  flags: {
+    isFeatured?: boolean;
+    isVisible?: boolean;
+    isActive?: boolean;
+  },
+  adminUserId: string,
+): Promise<AdminCopyTraderDto> {
+  const existing = await prisma.copyTrader.findUnique({
+    where: { id: traderId },
+  });
+  if (!existing) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  const data: {
+    isFeatured?: boolean;
+    isVisible?: boolean;
+    isActive?: boolean;
+  } = {};
+  if (flags.isFeatured !== undefined) data.isFeatured = flags.isFeatured;
+  if (flags.isVisible !== undefined) data.isVisible = flags.isVisible;
+  if (flags.isActive !== undefined) data.isActive = flags.isActive;
+  if (Object.keys(data).length === 0) {
+    throw new CopyTradingError("No flags to update", "INVALID_AMOUNT");
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    await tx.copyTrader.update({ where: { id: traderId }, data });
+    await tx.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: "UPDATE_CONFIG",
+        payload: {
+          kind: "COPY_TRADER_FLAGS",
+          traderId,
+          ...data,
+        },
+      },
+    });
+    return tx.copyTrader.findUniqueOrThrow({
+      where: { id: traderId },
+      include: {
+        _count: { select: { investments: { where: { status: "ACTIVE" } } } },
+      },
+    });
+  });
+  return serializeAdminTrader(row);
+}
+
 /**
  * Hard-deletes traders. Active copies are refunded to user earnings first,
  * then investments / withdrawals / the trader row are removed.
@@ -1594,6 +1643,21 @@ export type AdminCopyTraderDeskDto = {
     cutoffAt: string;
     cutoffHour: number;
   };
+  /** Same numbers the mobile public profile / performance tab show. */
+  publicFacing: {
+    aum: number;
+    totalInvested: number;
+    performanceFeeBps: number;
+    investorsCount: number;
+    maxInvestors: number;
+    roiBps: number;
+    cumulativeRoiBps: number;
+    winRateBps: number;
+    avgReturnBps: number | null;
+    opsCount: number;
+    periodWinRateBps: number;
+    curve7dReturnBps: number | null;
+  };
   copiers: Array<{
     investmentId: string;
     userId: string;
@@ -1989,7 +2053,8 @@ export async function getAdminCopyTraderDesk(
   const config = await ensureCopyTradingConfig();
   const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
 
-  const [active, chartPoints, operations, events, feeRows] = await Promise.all([
+  const [active, chartPoints, operations, events, feeRows, weekStats] =
+    await Promise.all([
     prisma.copyInvestment.findMany({
       where: { traderId, status: "ACTIVE" },
       include: {
@@ -2021,6 +2086,7 @@ export async function getAdminCopyTraderDesk(
       },
       select: { note: true },
     }),
+    getCopyTraderStats(traderId, "WEEK", { requireVisible: false }),
   ]);
 
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
@@ -2032,8 +2098,27 @@ export async function getAdminCopyTraderDesk(
   );
   const now = new Date();
 
+  const chartAsc = [...chartPoints]
+    .map((point) => ({
+      date: point.date.toISOString().slice(0, 10),
+      valueBps: point.valueBps,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const weekAgo = new Date(now);
+  weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
+  const weekKey = weekAgo.toISOString().slice(0, 10);
+  const curveWindow = chartAsc.filter((point) => point.date >= weekKey);
+  const curve7dReturnBps =
+    curveWindow.length >= 2
+      ? curveWindow[curveWindow.length - 1]!.valueBps - curveWindow[0]!.valueBps
+      : chartAsc.length >= 2
+        ? chartAsc[chartAsc.length - 1]!.valueBps - chartAsc[0]!.valueBps
+        : null;
+
+  const serialized = serializeAdminTrader(trader);
+
   return {
-    trader: serializeAdminTrader(trader),
+    trader: serialized,
     config,
     situation: {
       activeCopies: active.length,
@@ -2045,6 +2130,20 @@ export async function getAdminCopyTraderDesk(
       companyFees: fromMicro(companyFees),
       cutoffAt: cutoff.toISOString(),
       cutoffHour: config.settlementCutoffHour,
+    },
+    publicFacing: {
+      aum: serialized.aum,
+      totalInvested: serialized.totalInvested,
+      performanceFeeBps: serialized.performanceFeeBps ?? 1000,
+      investorsCount: serialized.investorsCount,
+      maxInvestors: serialized.maxInvestors ?? 180,
+      roiBps: serialized.roiBps,
+      cumulativeRoiBps: serialized.cumulativeRoiBps,
+      winRateBps: serialized.winRateBps,
+      avgReturnBps: weekStats?.avgReturnBps ?? null,
+      opsCount: weekStats?.opsCount ?? 0,
+      periodWinRateBps: weekStats?.winRateBps ?? 0,
+      curve7dReturnBps,
     },
     copiers: active.map((row) => ({
       investmentId: row.id,
@@ -2579,9 +2678,13 @@ function periodStartMs(period: CopyTraderStatsPeriod, now = Date.now()): number 
 export async function getCopyTraderStats(
   traderId: string,
   period: CopyTraderStatsPeriod = "ALL",
+  opts?: { requireVisible?: boolean },
 ): Promise<CopyTraderStatsDto | null> {
   const trader = await prisma.copyTrader.findFirst({
-    where: { id: traderId, isVisible: true },
+    where: {
+      id: traderId,
+      ...(opts?.requireVisible === false ? {} : { isVisible: true }),
+    },
     select: { id: true },
   });
   if (!trader) return null;

@@ -2,7 +2,18 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Activity, Bot, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
+import {
+  Activity,
+  Bot,
+  Eye,
+  EyeOff,
+  Pencil,
+  Play,
+  Plus,
+  Star,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +70,7 @@ type Trader = {
 };
 
 type CopierFilter = "copiers" | "empty" | "all";
+type FlagFilter = "all" | "featured" | "hidden" | "visible";
 type TraderSort = "aum" | "copiers" | "pnl" | "last" | "name";
 
 type BulkTotals = {
@@ -226,6 +238,7 @@ export default function AdminCopyTradingPage() {
   const [traderPage, setTraderPage] = React.useState(1);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [copierFilter, setCopierFilter] = React.useState<CopierFilter>("copiers");
+  const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
   const [bulkPreview, setBulkPreview] = React.useState<BulkTotals | null>(null);
   const [investFeePct, setInvestFeePct] = React.useState("0");
@@ -242,6 +255,13 @@ export default function AdminCopyTradingPage() {
     } else if (copierFilter === "empty") {
       list = list.filter((tr) => tr.activeInvestments === 0);
     }
+    if (flagFilter === "featured") {
+      list = list.filter((tr) => tr.isFeatured);
+    } else if (flagFilter === "hidden") {
+      list = list.filter((tr) => !tr.isVisible);
+    } else if (flagFilter === "visible") {
+      list = list.filter((tr) => tr.isVisible);
+    }
     if (q) {
       list = list.filter((tr) => tr.name.toLowerCase().includes(q));
     }
@@ -254,7 +274,7 @@ export default function AdminCopyTradingPage() {
       return (b.copierValue ?? b.aum) - (a.copierValue ?? a.aum);
     });
     return sorted;
-  }, [data?.traders, traderSearch, copierFilter, traderSort]);
+  }, [data?.traders, traderSearch, copierFilter, flagFilter, traderSort]);
 
   const traderPageCount = Math.max(
     1,
@@ -273,7 +293,7 @@ export default function AdminCopyTradingPage() {
     setTraderPage(1);
     setSelectedIds(new Set());
     setBulkPreview(null);
-  }, [traderSearch, copierFilter, traderSort]);
+  }, [traderSearch, copierFilter, flagFilter, traderSort]);
 
   React.useEffect(() => {
     if (traderPage > traderPageCount) setTraderPage(traderPageCount);
@@ -350,6 +370,59 @@ export default function AdminCopyTradingPage() {
       return;
     }
     await deleteTraders([trader.id], `delete:${trader.id}`);
+  }
+
+  async function patchFlags(
+    trader: Trader,
+    flags: { isFeatured?: boolean; isVisible?: boolean },
+  ) {
+    const key = `flags:${trader.id}`;
+    setBusy(key);
+    try {
+      const result = await apiFetch<{ trader: Trader }>(
+        `/api/admin/copy/traders/${trader.id}/flags`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(flags),
+        },
+      );
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              traders: current.traders.map((row) =>
+                row.id === trader.id
+                  ? {
+                      ...row,
+                      isFeatured: result.trader.isFeatured,
+                      isVisible: result.trader.isVisible,
+                      isActive: result.trader.isActive,
+                    }
+                  : row,
+              ),
+            }
+          : current,
+      );
+      if (flags.isFeatured !== undefined) {
+        toast.success(
+          flags.isFeatured
+            ? t("admin.copyTrading.featuredOn")
+            : t("admin.copyTrading.featuredOff"),
+        );
+      } else if (flags.isVisible !== undefined) {
+        toast.success(
+          flags.isVisible
+            ? t("admin.copyTrading.visibleOn")
+            : t("admin.copyTrading.visibleOff"),
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
   }
 
   const load = React.useCallback(async () => {
@@ -791,6 +864,23 @@ export default function AdminCopyTradingPage() {
                   <option value="all">{t("admin.copyTrading.filterAll")}</option>
                 </Select>
                 <Select
+                  value={flagFilter}
+                  onChange={(e) => setFlagFilter(e.target.value as FlagFilter)}
+                >
+                  <option value="all">
+                    {t("admin.copyTrading.filterFlagsAll")}
+                  </option>
+                  <option value="featured">
+                    {t("admin.copyTrading.filterFeatured")}
+                  </option>
+                  <option value="visible">
+                    {t("admin.copyTrading.filterVisible")}
+                  </option>
+                  <option value="hidden">
+                    {t("admin.copyTrading.filterHidden")}
+                  </option>
+                </Select>
+                <Select
                   value={traderSort}
                   onChange={(e) => setTraderSort(e.target.value as TraderSort)}
                 >
@@ -901,9 +991,19 @@ export default function AdminCopyTradingPage() {
                               >
                                 {trader.riskLevel}
                               </Badge>
+                              {trader.isFeatured ? (
+                                <Badge variant="warning">
+                                  {t("admin.copyTrading.featured")}
+                                </Badge>
+                              ) : null}
                               {!trader.isVisible ? (
                                 <Badge variant="outline">
                                   {t("admin.copyTrading.hidden")}
+                                </Badge>
+                              ) : null}
+                              {!trader.isActive ? (
+                                <Badge variant="outline">
+                                  {t("admin.copyTrading.inactive")}
                                 </Badge>
                               ) : null}
                             </div>
@@ -968,6 +1068,42 @@ export default function AdminCopyTradingPage() {
                           </TD>
                           <TD>
                             <div className="flex justify-end gap-1">
+                              <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                title={t("admin.copyTrading.toggleFeatured")}
+                                loading={busy === `flags:${trader.id}`}
+                                onClick={() =>
+                                  void patchFlags(trader, {
+                                    isFeatured: !trader.isFeatured,
+                                  })
+                                }
+                              >
+                                <Star
+                                  className={`h-4 w-4 ${
+                                    trader.isFeatured
+                                      ? "fill-gold text-gold"
+                                      : "text-text-muted"
+                                  }`}
+                                />
+                              </Button>
+                              <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                title={t("admin.copyTrading.toggleVisible")}
+                                loading={busy === `flags:${trader.id}`}
+                                onClick={() =>
+                                  void patchFlags(trader, {
+                                    isVisible: !trader.isVisible,
+                                  })
+                                }
+                              >
+                                {trader.isVisible ? (
+                                  <Eye className="h-4 w-4 text-text-muted" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-danger" />
+                                )}
+                              </Button>
                               <Button size="sm" variant="outline" asChild>
                                 <Link href={`/admin/copy-trading/${trader.id}`}>
                                   {t("admin.copyTrading.openDesk")}

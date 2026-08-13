@@ -20,6 +20,21 @@ export const adminCopyTraderSchema = z.object({
   simulationIntervalHours: z.number().int().min(1).max(720),
 });
 
+/** Quick toggles from the admin list (Featured / Visible / Active). */
+export const adminCopyTraderFlagsSchema = z
+  .object({
+    isFeatured: z.boolean().optional(),
+    isVisible: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (value) =>
+      value.isFeatured !== undefined ||
+      value.isVisible !== undefined ||
+      value.isActive !== undefined,
+    { message: "At least one flag is required" },
+  );
+
 export const adminCopyVitrinaSchema = z.object({
   roiBps: z.number().int().min(-1_000_000).max(1_000_000),
   cumulativeRoiBps: z.number().int().min(-1_000_000).max(1_000_000),
