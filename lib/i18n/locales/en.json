@@ -1096,7 +1096,10 @@
       "filterLosing": "Losing",
       "winLose": "Winning / losing",
       "userCopyTitle": "Copy trading",
-      "userCopyEmpty": "This user has no copy investments."
+      "userCopyEmpty": "This user has no copy investments.",
+      "repairChart": "Fix equity curve",
+      "repairChartHint": "If the app chart shows a huge crash after a small daily result, use this. It rebuilds the curve so each day continues from the previous day.",
+      "repairChartDone": "Equity curve repaired for {n} result day(s)."
     },
     "notifications": {
       "title": "Send notifications",

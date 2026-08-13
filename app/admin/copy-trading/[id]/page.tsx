@@ -272,6 +272,26 @@ export default function AdminCopyTraderDeskPage() {
     }
   }
 
+  async function repairChart() {
+    setBusy("repair");
+    try {
+      const result = await apiFetch<{ fixedDays: number }>(
+        `/api/admin/copy/traders/${traderId}/repair-chart`,
+        { method: "POST" },
+      );
+      toast.success(
+        t("admin.copyTrading.repairChartDone", { n: result.fixedDays }),
+      );
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function saveStats() {
     setBusy("stats");
     try {
@@ -552,7 +572,18 @@ export default function AdminCopyTraderDeskPage() {
                 >
                   {t("admin.copyTrading.publish")}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  loading={busy === "repair"}
+                  onClick={() => void repairChart()}
+                >
+                  {t("admin.copyTrading.repairChart")}
+                </Button>
               </div>
+              <p className="text-xs text-text-muted">
+                {t("admin.copyTrading.repairChartHint")}
+              </p>
               {desk.preview ? (
                 <div className="grid gap-3 sm:grid-cols-3">
                   <PreviewStat

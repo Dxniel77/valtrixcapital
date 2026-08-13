@@ -1154,7 +1154,10 @@
       "filterLosing": "Perdiendo",
       "winLose": "Ganando / perdiendo",
       "userCopyTitle": "Copy trading",
-      "userCopyEmpty": "Este usuario no tiene copias."
+      "userCopyEmpty": "Este usuario no tiene copias.",
+      "repairChart": "Reparar curva",
+      "repairChartHint": "Si la app muestra una caída enorme después de un resultado diario pequeño, usa esto. Reconstruye la curva para que cada día continúe desde el día anterior.",
+      "repairChartDone": "Curva reparada en {n} día(s) con resultado."
     },
     "notifications": {
       "title": "Enviar notificaciones",

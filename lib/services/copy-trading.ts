@@ -488,6 +488,15 @@ export async function listCopyTraders(input?: {
 export async function getCopyTraderDetail(
   id: string,
 ): Promise<CopyTraderDetailDto | null> {
+  const exists = await prisma.copyTrader.findFirst({
+    where: { id, isVisible: true, isActive: true },
+    select: { id: true },
+  });
+  if (!exists) return null;
+
+  // Heal cliffs where a daily result was stored as an absolute curve value.
+  await repairTraderChartFromEvents(id);
+
   const row = await prisma.copyTrader.findFirst({
     where: { id, isVisible: true, isActive: true },
     include: {
@@ -1282,56 +1291,77 @@ export async function applyTraderPerformanceUpdate(input: {
           },
         });
 
-    const syncInput = active.map((i) => ({
-      id: i.id,
-      principal: i.principal,
-      currentValue: i.currentValue,
-      realizedPnl: i.realizedPnl,
-    }));
+        const syncInput = active.map((i) => ({
+          id: i.id,
+          principal: i.principal,
+          currentValue: i.currentValue,
+          realizedPnl: i.realizedPnl,
+        }));
 
-    const result = applyPerformance(syncInput, input.returnBps);
+        const result = applyPerformance(syncInput, input.returnBps);
 
-    for (const next of result.investments) {
-      const closed = next.currentValue <= 0n;
-      await tx.copyInvestment.update({
-        where: { id: next.id },
-        data: {
-          currentValue: next.currentValue,
-          realizedPnl: next.realizedPnl,
-          status: closed ? "CLOSED" : "ACTIVE",
-          closedAt: closed ? new Date() : null,
-        },
-      });
-    }
+        for (const next of result.investments) {
+          const closed = next.currentValue <= 0n;
+          await tx.copyInvestment.update({
+            where: { id: next.id },
+            data: {
+              currentValue: next.currentValue,
+              realizedPnl: next.realizedPnl,
+              status: closed ? "CLOSED" : "ACTIVE",
+              closedAt: closed ? new Date() : null,
+            },
+          });
+        }
 
         if (result.ledger.length > 0) {
           await tx.copyInvestmentLedger.createMany({
             data: result.ledger.map((entry) => ({
-          investmentId: entry.investmentId,
-          kind: "PNL" satisfies CopyLedgerKind,
-          amount: entry.amount,
-          balanceAfter: entry.balanceAfter,
+              investmentId: entry.investmentId,
+              kind: "PNL" satisfies CopyLedgerKind,
+              amount: entry.amount,
+              balanceAfter: entry.balanceAfter,
               performanceId: event.id,
             })),
           });
         }
 
+        // Equity curve is cumulative. Continue from the previous day, then add
+        // every result published on this UTC day (never write the daily % alone).
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        const [prevPoint, dayEvents] = await Promise.all([
+          tx.copyTraderChartPoint.findFirst({
+            where: { traderId: input.traderId, date: { lt: today } },
+            orderBy: { date: "desc" },
+          }),
+          tx.copyPerformanceEvent.findMany({
+            where: {
+              traderId: input.traderId,
+              createdAt: { gte: today, lt: tomorrow },
+            },
+            select: { returnBps: true },
+          }),
+        ]);
+        const daySum = dayEvents.reduce((sum, row) => sum + row.returnBps, 0);
+        const baseBps = prevPoint?.valueBps ?? trader.cumulativeRoiBps;
+        const curveBps = baseBps + daySum;
+
         await tx.copyTraderChartPoint.upsert({
           where: { traderId_date: { traderId: input.traderId, date: today } },
-          update: { valueBps: { increment: input.returnBps } },
+          update: { valueBps: curveBps },
           create: {
             traderId: input.traderId,
             date: today,
-            valueBps: trader.cumulativeRoiBps + input.returnBps,
+            valueBps: curveBps,
           },
         });
         await tx.copyTrader.update({
           where: { id: input.traderId },
           data: {
             roiBps: { increment: input.returnBps },
-            cumulativeRoiBps: { increment: input.returnBps },
+            cumulativeRoiBps: curveBps,
             aum: { increment: result.totalDelta },
             winningTrades: input.returnBps > 0 ? { increment: 1 } : undefined,
             losingTrades: input.returnBps < 0 ? { increment: 1 } : undefined,
@@ -1339,24 +1369,25 @@ export async function applyTraderPerformanceUpdate(input: {
           },
         });
 
-    await tx.adminAction.create({
-      data: {
-        adminId: input.adminUserId,
-        action: "UPDATE_CONFIG",
-        targetUserId: null,
-        payload: {
-          kind: "COPY_PERFORMANCE",
-          traderId: input.traderId,
-          period: input.period,
-          returnBps: input.returnBps,
+        await tx.adminAction.create({
+          data: {
+            adminId: input.adminUserId,
+            action: "UPDATE_CONFIG",
+            targetUserId: null,
+            payload: {
+              kind: "COPY_PERFORMANCE",
+              traderId: input.traderId,
+              period: input.period,
+              returnBps: input.returnBps,
               source: input.source ?? "ADMIN",
               eventId: event.id,
               idempotencyKey,
-          affected: active.length,
-          totalDelta: result.totalDelta.toString(),
-        },
-      },
-    });
+              affected: active.length,
+              totalDelta: result.totalDelta.toString(),
+              curveBps,
+            },
+          },
+        });
 
         return {
           event,
@@ -1389,12 +1420,70 @@ export async function applyTraderPerformanceUpdate(input: {
     throw error;
   }
 
+  // Heal any older event-days that were stored as absolute daily % instead of cumulative.
+  await repairTraderChartFromEvents(input.traderId);
+
   return {
     affected: performance.affected,
     totalDelta: fromMicro(performance.totalDelta),
     eventId: performance.event.id,
     alreadyApplied: false,
   };
+}
+
+/**
+ * Rebuild equity-curve points for every UTC day that has performance events.
+ * Each day = previous curve point + sum(results that day). Fixes cliffs where a
+ * daily % was written as an absolute curve value (e.g. -7% after +165%).
+ */
+export async function repairTraderChartFromEvents(
+  traderId: string,
+): Promise<{ fixedDays: number; cumulativeRoiBps: number | null }> {
+  const events = await prisma.copyPerformanceEvent.findMany({
+    where: { traderId },
+    orderBy: { createdAt: "asc" },
+    select: { returnBps: true, createdAt: true },
+  });
+  if (events.length === 0) {
+    return { fixedDays: 0, cumulativeRoiBps: null };
+  }
+
+  const byDay = new Map<string, number>();
+  for (const event of events) {
+    const key = event.createdAt.toISOString().slice(0, 10);
+    byDay.set(key, (byDay.get(key) ?? 0) + event.returnBps);
+  }
+  const days = [...byDay.keys()].sort();
+
+  let fixedDays = 0;
+  let lastValue: number | null = null;
+
+  for (const day of days) {
+    const date = new Date(`${day}T00:00:00.000Z`);
+    const prev = await prisma.copyTraderChartPoint.findFirst({
+      where: { traderId, date: { lt: date } },
+      orderBy: { date: "desc" },
+      select: { valueBps: true },
+    });
+    const base = prev?.valueBps ?? 0;
+    const next = base + (byDay.get(day) ?? 0);
+    await prisma.copyTraderChartPoint.upsert({
+      where: { traderId_date: { traderId, date } },
+      update: { valueBps: next },
+      create: { traderId, date, valueBps: next },
+    });
+    lastValue = next;
+    fixedDays += 1;
+  }
+
+  if (lastValue != null) {
+    await prisma.copyTrader.update({
+      where: { id: traderId },
+      data: { cumulativeRoiBps: lastValue },
+    });
+  }
+
+  return { fixedDays, cumulativeRoiBps: lastValue };
 }
 
 export async function getAdminCopyDashboard() {
@@ -1881,6 +1970,14 @@ export async function listAdminUserCopyInvestments(userId: string): Promise<{
 export async function getAdminCopyTraderDesk(
   traderId: string,
 ): Promise<AdminCopyTraderDeskDto> {
+  const exists = await prisma.copyTrader.findUnique({
+    where: { id: traderId },
+    select: { id: true },
+  });
+  if (!exists) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  await repairTraderChartFromEvents(traderId);
+
   const trader = await prisma.copyTrader.findUnique({
     where: { id: traderId },
     include: {
