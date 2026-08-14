@@ -25,6 +25,24 @@ export type SyncResult = {
   totalDelta: bigint;
 };
 
+export type SyncPerformanceFeeEntry = {
+  investmentId: string;
+  kind: "PERFORMANCE_FEE";
+  /** Negative amount deducted from the investment. */
+  amount: bigint;
+  balanceAfter: bigint;
+};
+
+export type SyncResultWithPerformanceFee = {
+  investments: SyncInvestment[];
+  pnlLedger: SyncLedgerEntry[];
+  feeLedger: SyncPerformanceFeeEntry[];
+  grossTotalDelta: bigint;
+  totalFee: bigint;
+  /** Net change credited to copy investments after the profit-only fee. */
+  totalDelta: bigint;
+};
+
 export function mulDivHalfEven(value: bigint, numerator: bigint, denominator: bigint): bigint {
   if (denominator === 0n) throw new Error("mulDivHalfEven: denominator must be non-zero");
   const product = value * numerator;
@@ -81,4 +99,61 @@ export function applyPerformance(
   }
 
   return { investments: nextInvestments, ledger, totalDelta };
+}
+
+/**
+ * Applies gross trader performance and deducts a fee only from positive P&L.
+ * Losses never generate a fee. The two ledger streams make gross return and
+ * company revenue independently auditable.
+ */
+export function applyPerformanceWithFee(
+  investments: readonly SyncInvestment[],
+  returnBps: number,
+  performanceFeeBps: number,
+): SyncResultWithPerformanceFee {
+  if (
+    !Number.isInteger(performanceFeeBps) ||
+    performanceFeeBps < 0 ||
+    performanceFeeBps > 10_000
+  ) {
+    throw new Error(
+      "applyPerformanceWithFee: performanceFeeBps must be between 0 and 10000",
+    );
+  }
+
+  const gross = applyPerformance(investments, returnBps);
+  const feeLedger: SyncPerformanceFeeEntry[] = [];
+  let totalFee = 0n;
+
+  const nextInvestments = gross.investments.map((investment, index) => {
+    const pnl = gross.ledger[index]!;
+    const fee =
+      pnl.amount > 0n
+        ? (pnl.amount * BigInt(performanceFeeBps)) / BPS_DENOMINATOR
+        : 0n;
+    if (fee <= 0n) return investment;
+
+    const balanceAfter = investment.currentValue - fee;
+    totalFee += fee;
+    feeLedger.push({
+      investmentId: investment.id,
+      kind: "PERFORMANCE_FEE",
+      amount: -fee,
+      balanceAfter,
+    });
+    return {
+      ...investment,
+      currentValue: balanceAfter,
+      realizedPnl: investment.realizedPnl - fee,
+    };
+  });
+
+  return {
+    investments: nextInvestments,
+    pnlLedger: gross.ledger,
+    feeLedger,
+    grossTotalDelta: gross.totalDelta,
+    totalFee,
+    totalDelta: gross.totalDelta - totalFee,
+  };
 }

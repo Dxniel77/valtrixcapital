@@ -9,7 +9,14 @@ import type {
 } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
-import { applyPerformance } from "@/lib/copy-trading/sync-engine";
+import {
+  applyPerformance,
+  applyPerformanceWithFee,
+} from "@/lib/copy-trading/sync-engine";
+import {
+  eligibleForPerformance,
+  protectedFromLoss,
+} from "@/lib/copy-trading/eligibility";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -101,6 +108,7 @@ export type CopyTradingConfigDto = {
   investFeeBps: number;
   withdrawFeeBps: number;
   settlementCutoffHour: number;
+  lossGraceDays: number;
 };
 
 export type CopyInvestmentDto = {
@@ -224,6 +232,17 @@ function parseFeeUsdtFromNote(note: string | null | undefined): bigint {
   const value = Number(match[1]);
   if (!Number.isFinite(value) || value <= 0) return 0n;
   return toMicro(value);
+}
+
+function companyFeeFromLedger(row: {
+  kind: CopyLedgerKind;
+  amount: bigint;
+  note?: string | null;
+}): bigint {
+  if (row.kind === "PERFORMANCE_FEE") {
+    return row.amount < 0n ? -row.amount : row.amount;
+  }
+  return parseFeeUsdtFromNote(row.note);
 }
 
 function utcDateOnly(dateStr: string): Date {
@@ -371,6 +390,7 @@ function serializeCopyConfig(row: {
   investFeeBps?: number;
   withdrawFeeBps?: number;
   settlementCutoffHour?: number;
+  lossGraceDays?: number;
 }): CopyTradingConfigDto {
   return {
     globalMinInvestment: fromMicro(row.globalMinInvestment),
@@ -379,6 +399,7 @@ function serializeCopyConfig(row: {
     investFeeBps: row.investFeeBps ?? 0,
     withdrawFeeBps: row.withdrawFeeBps ?? 0,
     settlementCutoffHour: row.settlementCutoffHour ?? 22,
+    lossGraceDays: row.lossGraceDays ?? 2,
   };
 }
 
@@ -386,6 +407,7 @@ export async function updateCopyTradingConfig(input: {
   investFeeBps?: number;
   withdrawFeeBps?: number;
   settlementCutoffHour?: number;
+  lossGraceDays?: number;
   withdrawalMode?: CopyWithdrawalMode;
   globalMinInvestment?: number;
 }): Promise<CopyTradingConfigDto> {
@@ -394,6 +416,7 @@ export async function updateCopyTradingConfig(input: {
     investFeeBps?: number;
     withdrawFeeBps?: number;
     settlementCutoffHour?: number;
+    lossGraceDays?: number;
     withdrawalMode?: CopyWithdrawalMode;
     globalMinInvestment?: bigint;
   } = {};
@@ -422,6 +445,16 @@ export async function updateCopyTradingConfig(input: {
       throw new CopyTradingError("Invalid cutoff hour", "INVALID_AMOUNT");
     }
     data.settlementCutoffHour = input.settlementCutoffHour;
+  }
+  if (input.lossGraceDays !== undefined) {
+    if (
+      !Number.isInteger(input.lossGraceDays) ||
+      input.lossGraceDays < 0 ||
+      input.lossGraceDays > 30
+    ) {
+      throw new CopyTradingError("Invalid loss grace days", "INVALID_AMOUNT");
+    }
+    data.lossGraceDays = input.lossGraceDays;
   }
   if (input.withdrawalMode) data.withdrawalMode = input.withdrawalMode;
   if (input.globalMinInvestment !== undefined) {
@@ -1327,11 +1360,13 @@ export async function applyTraderPerformanceUpdate(input: {
           });
         }
 
+        const copyConfig = await tx.copyTradingConfig.findUnique({
+          where: { id: 1 },
+        });
         const cutoff = lastSettlementCutoff(
-          (await tx.copyTradingConfig.findUnique({ where: { id: 1 } }))
-            ?.settlementCutoffHour ?? 22,
+          copyConfig?.settlementCutoffHour ?? 22,
         );
-        const active = await tx.copyInvestment.findMany({
+        const candidates = await tx.copyInvestment.findMany({
           where: {
             traderId: input.traderId,
             status: "ACTIVE",
@@ -1339,6 +1374,14 @@ export async function applyTraderPerformanceUpdate(input: {
             startedAt: { lte: cutoff },
           },
         });
+        const active = candidates.filter((investment) =>
+          eligibleForPerformance(
+            investment.startedAt,
+            cutoff,
+            input.returnBps,
+            copyConfig?.lossGraceDays ?? 2,
+          ),
+        );
 
         const syncInput = active.map((i) => ({
           id: i.id,
@@ -1347,7 +1390,11 @@ export async function applyTraderPerformanceUpdate(input: {
           realizedPnl: i.realizedPnl,
         }));
 
-        const result = applyPerformance(syncInput, input.returnBps);
+        const result = applyPerformanceWithFee(
+          syncInput,
+          input.returnBps,
+          trader.performanceFeeBps ?? 1000,
+        );
 
         for (const next of result.investments) {
           const closed = next.currentValue <= 0n;
@@ -1362,14 +1409,28 @@ export async function applyTraderPerformanceUpdate(input: {
           });
         }
 
-        if (result.ledger.length > 0) {
+        if (result.pnlLedger.length > 0) {
           await tx.copyInvestmentLedger.createMany({
-            data: result.ledger.map((entry) => ({
+            data: result.pnlLedger.map((entry) => ({
               investmentId: entry.investmentId,
               kind: "PNL" satisfies CopyLedgerKind,
               amount: entry.amount,
               balanceAfter: entry.balanceAfter,
               performanceId: event.id,
+            })),
+          });
+        }
+        if (result.feeLedger.length > 0) {
+          await tx.copyInvestmentLedger.createMany({
+            data: result.feeLedger.map((entry) => ({
+              investmentId: entry.investmentId,
+              kind: "PERFORMANCE_FEE" satisfies CopyLedgerKind,
+              amount: entry.amount,
+              balanceAfter: entry.balanceAfter,
+              performanceId: event.id,
+              note: `Profit-only performance fee (${(
+                (trader.performanceFeeBps ?? 1000) / 100
+              ).toFixed(2)}%)`,
             })),
           });
         }
@@ -1577,17 +1638,22 @@ export async function getAdminCopyDashboard() {
     }),
     prisma.copyInvestmentLedger.findMany({
       where: {
-        kind: { in: ["INVEST", "WITHDRAWAL"] },
-        note: { contains: "fee " },
+        OR: [
+          { kind: "PERFORMANCE_FEE" },
+          {
+            kind: { in: ["INVEST", "WITHDRAWAL"] },
+            note: { contains: "fee " },
+          },
+        ],
       },
-      select: { note: true },
+      select: { kind: true, amount: true, note: true },
     }),
   ]);
 
   const principal = activeAggregate._sum.principal ?? 0n;
   const currentValue = activeAggregate._sum.currentValue ?? 0n;
   const companyFees = feeRows.reduce(
-    (sum, row) => sum + parseFeeUsdtFromNote(row.note),
+    (sum, row) => sum + companyFeeFromLedger(row),
     0n,
   );
   return {
@@ -1636,6 +1702,7 @@ export type AdminCopyTraderDeskDto = {
     activeCopies: number;
     eligibleTonight: number;
     skippedAfterCutoff: number;
+    lossProtectedTonight: number;
     principal: number;
     currentValue: number;
     pnl: number;
@@ -1669,6 +1736,7 @@ export type AdminCopyTraderDeskDto = {
     roiBps: number;
     startedAt: string;
     eligibleTonight: boolean;
+    lossProtected: boolean;
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: CopyTraderOperationDto[];
@@ -1679,10 +1747,12 @@ export type AdminPerformancePreviewDto = {
   returnBps: number;
   eligible: number;
   skippedAfterCutoff: number;
+  lossProtected: number;
+  grossUserDelta: number;
   userDelta: number;
   companyFee: number;
   usersAfterFee: number;
-  feeApplied: false;
+  feeApplied: true;
   cutoffAt: string;
 };
 
@@ -1711,8 +1781,22 @@ export async function previewTraderPerformance(
   const active = await prisma.copyInvestment.findMany({
     where: { traderId, status: "ACTIVE", currentValue: { gt: 0 } },
   });
-  const eligible = active.filter((row) => row.startedAt <= cutoff);
-  const result = applyPerformance(
+  const cutoffEligible = active.filter((row) => row.startedAt <= cutoff);
+  const lossProtected =
+    returnBps < 0
+      ? cutoffEligible.filter((row) =>
+          protectedFromLoss(row.startedAt, cutoff, config.lossGraceDays),
+        ).length
+      : 0;
+  const eligible = active.filter((row) =>
+    eligibleForPerformance(
+      row.startedAt,
+      cutoff,
+      returnBps,
+      config.lossGraceDays,
+    ),
+  );
+  const result = applyPerformanceWithFee(
     eligible.map((row) => ({
       id: row.id,
       principal: row.principal,
@@ -1720,22 +1804,19 @@ export async function previewTraderPerformance(
       realizedPnl: row.realizedPnl,
     })),
     returnBps,
+    trader.performanceFeeBps ?? 1000,
   );
-
-  let profitMicro = 0n;
-  for (const entry of result.ledger) {
-    if (entry.amount > 0n) profitMicro += entry.amount;
-  }
-  const companyFee = feeMicro(profitMicro, trader.performanceFeeBps ?? 1000);
 
   return {
     returnBps,
     eligible: eligible.length,
-    skippedAfterCutoff: active.length - eligible.length,
+    skippedAfterCutoff: active.length - cutoffEligible.length,
+    lossProtected,
+    grossUserDelta: fromMicro(result.grossTotalDelta),
     userDelta: fromMicro(result.totalDelta),
-    companyFee: fromMicro(companyFee),
-    usersAfterFee: fromMicro(result.totalDelta - companyFee),
-    feeApplied: false,
+    companyFee: fromMicro(result.totalFee),
+    usersAfterFee: fromMicro(result.totalDelta),
+    feeApplied: true,
     cutoffAt: cutoff.toISOString(),
   };
 }
@@ -1767,6 +1848,7 @@ export type AdminTargetAllocationDto = {
     traders: number;
     eligible: number;
     skippedAfterCutoff: number;
+    lossProtected: number;
     userDelta: number;
     companyFee: number;
     green: number;
@@ -1819,16 +1901,30 @@ export async function allocateTargetTraderPerformance(input: {
     list.push(investment);
     byTrader.set(investment.traderId, list);
   }
+  const traderById = new Map(traders.map((trader) => [trader.id, trader]));
 
-  const syncRows = (traderId: string) =>
-    (byTrader.get(traderId) ?? []).map((row) => ({
-      id: row.id,
-      principal: row.principal,
-      currentValue: row.currentValue,
-      realizedPnl: row.realizedPnl,
-    }));
+  const syncRows = (traderId: string, returnBps: number) =>
+    (byTrader.get(traderId) ?? [])
+      .filter((row) =>
+        eligibleForPerformance(
+          row.startedAt,
+          cutoff,
+          returnBps,
+          config.lossGraceDays,
+        ),
+      )
+      .map((row) => ({
+        id: row.id,
+        principal: row.principal,
+        currentValue: row.currentValue,
+        realizedPnl: row.realizedPnl,
+      }));
   const deltaAt = (traderId: string, bps: number) =>
-    applyPerformance(syncRows(traderId), bps).totalDelta;
+    applyPerformanceWithFee(
+      syncRows(traderId, bps),
+      bps,
+      traderById.get(traderId)?.performanceFeeBps ?? 1000,
+    ).totalDelta;
 
   const requested =
     input.mode === "NEUTRAL"
@@ -1960,6 +2056,7 @@ export async function previewManyTraderPerformance(
     traders: number;
     eligible: number;
     skippedAfterCutoff: number;
+    lossProtected: number;
     userDelta: number;
     companyFee: number;
     green: number;
@@ -2009,8 +2106,22 @@ export async function previewManyTraderPerformance(
     const trader = traderById.get(item.traderId);
     if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
     const active = byTrader.get(item.traderId) ?? [];
-    const eligible = active.filter((row) => row.startedAt <= cutoff);
-    const result = applyPerformance(
+    const cutoffEligible = active.filter((row) => row.startedAt <= cutoff);
+    const lossProtected =
+      item.returnBps < 0
+        ? cutoffEligible.filter((row) =>
+            protectedFromLoss(row.startedAt, cutoff, config.lossGraceDays),
+          ).length
+        : 0;
+    const eligible = active.filter((row) =>
+      eligibleForPerformance(
+        row.startedAt,
+        cutoff,
+        item.returnBps,
+        config.lossGraceDays,
+      ),
+    );
+    const result = applyPerformanceWithFee(
       eligible.map((row) => ({
         id: row.id,
         principal: row.principal,
@@ -2018,22 +2129,20 @@ export async function previewManyTraderPerformance(
         realizedPnl: row.realizedPnl,
       })),
       item.returnBps,
+      trader.performanceFeeBps ?? 1000,
     );
-    let profitMicro = 0n;
-    for (const entry of result.ledger) {
-      if (entry.amount > 0n) profitMicro += entry.amount;
-    }
-    const companyFee = feeMicro(profitMicro, trader.performanceFeeBps ?? 1000);
     rows.push({
       traderId: trader.id,
       traderName: trader.name,
       returnBps: item.returnBps,
       eligible: eligible.length,
-      skippedAfterCutoff: active.length - eligible.length,
+      skippedAfterCutoff: active.length - cutoffEligible.length,
+      lossProtected,
+      grossUserDelta: fromMicro(result.grossTotalDelta),
       userDelta: fromMicro(result.totalDelta),
-      companyFee: fromMicro(companyFee),
-      usersAfterFee: fromMicro(result.totalDelta - companyFee),
-      feeApplied: false,
+      companyFee: fromMicro(result.totalFee),
+      usersAfterFee: fromMicro(result.totalDelta),
+      feeApplied: true,
       cutoffAt: cutoff.toISOString(),
     });
   }
@@ -2042,6 +2151,7 @@ export async function previewManyTraderPerformance(
     (acc, row) => {
       acc.eligible += row.eligible;
       acc.skippedAfterCutoff += row.skippedAfterCutoff;
+      acc.lossProtected += row.lossProtected;
       acc.userDelta += row.userDelta;
       acc.companyFee += row.companyFee;
       if (row.returnBps > 0) acc.green += 1;
@@ -2053,6 +2163,7 @@ export async function previewManyTraderPerformance(
       traders: rows.length,
       eligible: 0,
       skippedAfterCutoff: 0,
+      lossProtected: 0,
       userDelta: 0,
       companyFee: 0,
       green: 0,
@@ -2281,11 +2392,16 @@ export async function getAdminCopyTraderDesk(
     }),
     prisma.copyInvestmentLedger.findMany({
       where: {
-        kind: { in: ["INVEST", "WITHDRAWAL"] },
-        note: { contains: "fee " },
+        OR: [
+          { kind: "PERFORMANCE_FEE" },
+          {
+            kind: { in: ["INVEST", "WITHDRAWAL"] },
+            note: { contains: "fee " },
+          },
+        ],
         investment: { traderId },
       },
-      select: { note: true },
+      select: { kind: true, amount: true, note: true },
     }),
     getCopyTraderStats(traderId, "WEEK", { requireVisible: false }),
   ]);
@@ -2293,8 +2409,11 @@ export async function getAdminCopyTraderDesk(
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
   const currentValue = active.reduce((sum, row) => sum + row.currentValue, 0n);
   const eligibleTonight = active.filter((row) => row.startedAt <= cutoff).length;
+  const lossProtectedTonight = active.filter((row) =>
+    protectedFromLoss(row.startedAt, cutoff, config.lossGraceDays),
+  ).length;
   const companyFees = feeRows.reduce(
-    (sum, row) => sum + parseFeeUsdtFromNote(row.note),
+    (sum, row) => sum + companyFeeFromLedger(row),
     0n,
   );
   const now = new Date();
@@ -2325,6 +2444,7 @@ export async function getAdminCopyTraderDesk(
       activeCopies: active.length,
       eligibleTonight,
       skippedAfterCutoff: active.length - eligibleTonight,
+      lossProtectedTonight,
       principal: fromMicro(principal),
       currentValue: fromMicro(currentValue),
       pnl: fromMicro(currentValue - principal),
@@ -2357,6 +2477,11 @@ export async function getAdminCopyTraderDesk(
       roiBps: roiBpsOf(row.principal, row.currentValue),
       startedAt: row.startedAt.toISOString(),
       eligibleTonight: row.startedAt <= cutoff,
+      lossProtected: protectedFromLoss(
+        row.startedAt,
+        cutoff,
+        config.lossGraceDays,
+      ),
     })),
     chartPoints: chartPoints.map((point) => ({
       id: point.id,

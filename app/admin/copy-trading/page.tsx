@@ -77,6 +77,7 @@ type BulkTotals = {
   traders: number;
   eligible: number;
   skippedAfterCutoff: number;
+  lossProtected: number;
   userDelta: number;
   companyFee: number;
   green: number;
@@ -100,6 +101,7 @@ type Dashboard = {
     investFeeBps: number;
     withdrawFeeBps: number;
     settlementCutoffHour: number;
+    lossGraceDays: number;
     globalMinInvestment: number;
   };
   metrics: {
@@ -259,6 +261,7 @@ export default function AdminCopyTradingPage() {
   const [investFeePct, setInvestFeePct] = React.useState("0");
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
+  const [lossGraceDays, setLossGraceDays] = React.useState("2");
 
   const TRADER_PAGE_SIZE = 25;
 
@@ -450,6 +453,7 @@ export default function AdminCopyTradingPage() {
         setInvestFeePct(String(next.config.investFeeBps / 100));
         setWithdrawFeePct(String(next.config.withdrawFeeBps / 100));
         setCutoffHour(String(next.config.settlementCutoffHour));
+        setLossGraceDays(String(next.config.lossGraceDays ?? 2));
       }
     } catch (error) {
       toast.error(
@@ -710,6 +714,10 @@ export default function AdminCopyTradingPage() {
             23,
             Math.max(0, Math.trunc(Number(cutoffHour) || 22)),
           ),
+          lossGraceDays: Math.min(
+            30,
+            Math.max(0, Math.trunc(Number(lossGraceDays) || 0)),
+          ),
           withdrawalMode: "INSTANT",
         }),
       });
@@ -794,7 +802,7 @@ export default function AdminCopyTradingPage() {
                 {t("admin.copyTrading.feesTitle")}
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-4">
+            <CardContent className="grid gap-4 sm:grid-cols-5">
               <Field label={t("admin.copyTrading.investFee")}>
                 <Input
                   type="number"
@@ -820,6 +828,15 @@ export default function AdminCopyTradingPage() {
                   onChange={(e) => setCutoffHour(e.target.value)}
                 />
               </Field>
+              <Field label={t("admin.copyTrading.lossGraceDays")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={lossGraceDays}
+                  onChange={(e) => setLossGraceDays(e.target.value)}
+                />
+              </Field>
               <div className="flex items-end">
                 <Button
                   size="sm"
@@ -829,7 +846,7 @@ export default function AdminCopyTradingPage() {
                   {t("admin.copyTrading.saveFees")}
                 </Button>
               </div>
-              <p className="sm:col-span-4 text-xs text-text-muted">
+              <p className="sm:col-span-5 text-xs text-text-muted">
                 {t("admin.copyTrading.feesHint")}
               </p>
             </CardContent>
@@ -1027,7 +1044,7 @@ export default function AdminCopyTradingPage() {
                 />
               </div>
               {bulkPreview ? (
-                <div className="grid gap-2 rounded-md border border-gold/20 bg-gold/5 p-3 text-xs sm:grid-cols-4">
+                <div className="grid gap-2 rounded-md border border-gold/20 bg-gold/5 p-3 text-xs sm:grid-cols-5">
                   <span>
                     {t("admin.copyTrading.bulkTraders", {
                       n: bulkPreview.traders,
@@ -1038,6 +1055,11 @@ export default function AdminCopyTradingPage() {
                   <span>
                     {t("admin.copyTrading.previewEligible", {
                       n: bulkPreview.eligible,
+                    })}
+                  </span>
+                  <span className="text-info">
+                    {t("admin.copyTrading.lossProtected", {
+                      n: bulkPreview.lossProtected,
                     })}
                   </span>
                   <span

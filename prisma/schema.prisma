@@ -170,6 +170,7 @@ enum CopyWithdrawalMode {
 enum CopyLedgerKind {
   INVEST
   PNL
+  PERFORMANCE_FEE
   WITHDRAWAL
 }
 
@@ -905,6 +906,8 @@ model CopyTradingConfig {
   withdrawFeeBps      Int                @default(0)
   /// UTC hour (0–23). Copies started after the last cutoff skip the next result.
   settlementCutoffHour Int               @default(22)
+  /// New copies receive positive/flat results but skip losses for this many settlement days.
+  lossGraceDays       Int                @default(2)
   updatedAt           DateTime           @updatedAt
 }
 

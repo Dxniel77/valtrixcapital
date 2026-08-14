@@ -66,6 +66,7 @@ type Desk = {
     activeCopies: number;
     eligibleTonight: number;
     skippedAfterCutoff: number;
+    lossProtectedTonight: number;
     principal: number;
     currentValue: number;
     pnl: number;
@@ -97,6 +98,7 @@ type Desk = {
     roiBps: number;
     startedAt: string;
     eligibleTonight: boolean;
+    lossProtected: boolean;
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: Operation[];
@@ -109,9 +111,10 @@ type Desk = {
   preview: {
     eligible: number;
     skippedAfterCutoff: number;
+    lossProtected: number;
     userDelta: number;
     companyFee: number;
-    feeApplied: false;
+    feeApplied: true;
   } | null;
 };
 
@@ -556,7 +559,9 @@ export default function AdminCopyTraderDeskPage() {
             {desk.situation.eligibleTonight} ·{" "}
             {t("admin.copyTrading.afterCutoff")}:{" "}
             {desk.situation.skippedAfterCutoff} · UTC {desk.situation.cutoffHour}
-            :00
+            :00 · {t("admin.copyTrading.lossProtected", {
+              n: desk.situation.lossProtectedTonight,
+            })}
           </p>
 
           <Card>
@@ -713,9 +718,11 @@ export default function AdminCopyTraderDeskPage() {
                     label={t("admin.copyTrading.previewEligible", {
                       n: desk.preview.eligible,
                     })}
-                    value={t("admin.copyTrading.previewSkipped", {
+                    value={`${t("admin.copyTrading.previewSkipped", {
                       n: desk.preview.skippedAfterCutoff,
-                    })}
+                    })} · ${t("admin.copyTrading.lossProtected", {
+                      n: desk.preview.lossProtected,
+                    })}`}
                   />
                   <PreviewStat
                     label={t("admin.copyTrading.previewUserDelta")}
@@ -781,9 +788,15 @@ export default function AdminCopyTraderDeskPage() {
                           </TD>
                           <TD>
                             {row.eligibleTonight ? (
-                              <Badge variant="success">
-                                {t("admin.copyTrading.eligibleTonight")}
-                              </Badge>
+                              row.lossProtected ? (
+                                <Badge variant="info">
+                                  {t("admin.copyTrading.lossGraceBadge")}
+                                </Badge>
+                              ) : (
+                                <Badge variant="success">
+                                  {t("admin.copyTrading.eligibleTonight")}
+                                </Badge>
+                              )
                             ) : (
                               <Badge variant="outline">
                                 {t("admin.copyTrading.afterCutoff")}
