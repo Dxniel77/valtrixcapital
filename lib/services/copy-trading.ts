@@ -17,7 +17,10 @@ import {
   eligibleForPerformance,
   protectedFromLoss,
 } from "@/lib/copy-trading/eligibility";
-import { generateShowcaseCopiers } from "@/lib/copy-trading/showcase-copiers";
+import {
+  generateShowcaseCopiers,
+  showcaseCountForTrader,
+} from "@/lib/copy-trading/showcase-copiers";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -283,7 +286,7 @@ function serializeTrader(
     experienceDays: t.experienceDays,
     profitDays: t.profitDays,
     followersCount: t.followersCount,
-    investorsCount: t.investorsCount,
+    investorsCount: Math.max(t.investorsCount, t.showcaseCopiers ?? 0),
     aum: fromMicro(t.aum),
     totalInvested: fromMicro(t.totalInvested),
     roiBps: t.roiBps,
@@ -329,6 +332,8 @@ function serializeAdminTrader(
   const value = extra?.copierValue ?? 0n;
   return {
     ...serializeTrader(t),
+    // Admin views always report the real copier count, never the showcase total.
+    investorsCount: t.investorsCount,
     showcaseCopiers: t.showcaseCopiers,
     simulationEnabled: t.simulationEnabled,
     simulationMinBps: t.simulationMinBps,
@@ -854,6 +859,63 @@ export async function patchAdminCopyTraderFlags(
     });
   });
   return serializeAdminTrader(row);
+}
+
+export async function assignShowcaseCopierRange(
+  input: { min: number; max: number },
+  adminUserId: string,
+): Promise<{ updated: number; min: number; max: number }> {
+  const min = Math.trunc(input.min);
+  const max = Math.trunc(input.max);
+  if (
+    !Number.isInteger(min) ||
+    !Number.isInteger(max) ||
+    min < 0 ||
+    max > 200 ||
+    min > max
+  ) {
+    throw new CopyTradingError(
+      "Displayed copier range must be between 0 and 200",
+      "INVALID_AMOUNT",
+    );
+  }
+
+  const traders = await prisma.copyTrader.findMany({
+    select: { id: true, maxInvestors: true },
+  });
+  if (traders.length === 0) return { updated: 0, min, max };
+
+  const updates = traders.map((trader) =>
+    prisma.copyTrader.update({
+      where: { id: trader.id },
+      data: {
+        showcaseCopiers: showcaseCountForTrader(
+          trader.id,
+          min,
+          max,
+          trader.maxInvestors,
+        ),
+      },
+      select: { id: true },
+    }),
+  );
+  await prisma.$transaction([
+    ...updates,
+    prisma.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: "UPDATE_CONFIG",
+        payload: {
+          kind: "COPY_SHOWCASE_RANGE_ASSIGNED",
+          traders: traders.length,
+          min,
+          max,
+        },
+      },
+    }),
+  ]);
+
+  return { updated: traders.length, min, max };
 }
 
 /**

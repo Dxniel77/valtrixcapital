@@ -270,6 +270,8 @@ export default function AdminCopyTradingPage() {
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
   const [lossGraceDays, setLossGraceDays] = React.useState("2");
+  const [showcaseMin, setShowcaseMin] = React.useState("15");
+  const [showcaseMax, setShowcaseMax] = React.useState("90");
 
   const TRADER_PAGE_SIZE = 25;
 
@@ -740,6 +742,49 @@ export default function AdminCopyTradingPage() {
     }
   }
 
+  async function applyShowcaseRange() {
+    const min = Math.trunc(Number(showcaseMin));
+    const max = Math.trunc(Number(showcaseMax));
+    if (
+      !Number.isFinite(min) ||
+      !Number.isFinite(max) ||
+      min < 0 ||
+      max > 200 ||
+      min > max
+    ) {
+      toast.error(t("admin.copyTrading.showcaseRangeInvalid"));
+      return;
+    }
+    if (
+      !window.confirm(
+        t("admin.copyTrading.showcaseRangeConfirm", { min, max }),
+      )
+    ) {
+      return;
+    }
+
+    setBusy("showcase-range");
+    try {
+      const result = await apiFetch<{ updated: number }>(
+        "/api/admin/copy/traders/showcase",
+        {
+          method: "POST",
+          body: JSON.stringify({ min, max }),
+        },
+      );
+      toast.success(
+        t("admin.copyTrading.showcaseRangeApplied", { n: result.updated }),
+      );
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -856,6 +901,47 @@ export default function AdminCopyTradingPage() {
               </div>
               <p className="sm:col-span-5 text-xs text-text-muted">
                 {t("admin.copyTrading.feesHint")}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.showcaseRangeTitle")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label={t("admin.copyTrading.showcaseMin")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={200}
+                    value={showcaseMin}
+                    onChange={(event) => setShowcaseMin(event.target.value)}
+                  />
+                </Field>
+                <Field label={t("admin.copyTrading.showcaseMax")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={200}
+                    value={showcaseMax}
+                    onChange={(event) => setShowcaseMax(event.target.value)}
+                  />
+                </Field>
+                <div className="flex items-end">
+                  <Button
+                    loading={busy === "showcase-range"}
+                    onClick={() => void applyShowcaseRange()}
+                  >
+                    {t("admin.copyTrading.applyShowcaseRange")}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-text-muted">
+                {t("admin.copyTrading.showcaseRangeHint")}
               </p>
             </CardContent>
           </Card>

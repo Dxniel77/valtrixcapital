@@ -41,6 +41,20 @@ function hashSeed(value: string): number {
   return hash >>> 0;
 }
 
+/** Stable inclusive count for bulk assignment; capped by each trader's capacity. */
+export function showcaseCountForTrader(
+  traderId: string,
+  min: number,
+  max: number,
+  maxInvestors: number,
+): number {
+  const low = Math.max(0, Math.min(200, Math.trunc(min)));
+  const high = Math.max(low, Math.min(200, Math.trunc(max)));
+  const capacity = Math.max(0, Math.trunc(maxInvestors));
+  const span = high - low + 1;
+  return Math.min(capacity, low + (hashSeed(`${traderId}:showcase-count`) % span));
+}
+
 function seededRandom(seed: number): () => number {
   let state = seed;
   return () => {

@@ -36,6 +36,15 @@ export const adminCopyTraderFlagsSchema = z
     { message: "At least one flag is required" },
   );
 
+export const adminCopyShowcaseRangeSchema = z
+  .object({
+    min: z.number().int().min(0).max(200),
+    max: z.number().int().min(0).max(200),
+  })
+  .refine((value) => value.min <= value.max, {
+    message: "Minimum cannot exceed maximum",
+  });
+
 export const adminCopyVitrinaSchema = z.object({
   roiBps: z.number().int().min(-1_000_000).max(1_000_000),
   cumulativeRoiBps: z.number().int().min(-1_000_000).max(1_000_000),
