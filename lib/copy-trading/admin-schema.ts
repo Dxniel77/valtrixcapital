@@ -78,3 +78,9 @@ export const adminCopyBulkPerformanceSchema = z.object({
     .min(1)
     .max(100),
 });
+
+export const adminCopyTargetPerformanceSchema = z.object({
+  traderIds: z.array(z.string().min(1)).min(1).max(100),
+  mode: z.enum(["GROWTH", "NEUTRAL", "HARVEST"]),
+  targetAmount: z.number().finite().min(0).max(1_000_000_000),
+});

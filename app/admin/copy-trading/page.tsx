@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   Pencil,
-  Play,
   Plus,
   Star,
   Trash2,
@@ -72,6 +71,7 @@ type Trader = {
 type CopierFilter = "copiers" | "empty" | "all";
 type FlagFilter = "all" | "featured" | "hidden" | "visible";
 type TraderSort = "aum" | "copiers" | "pnl" | "last" | "name";
+type TargetMode = "GROWTH" | "NEUTRAL" | "HARVEST";
 
 type BulkTotals = {
   traders: number;
@@ -82,6 +82,17 @@ type BulkTotals = {
   green: number;
   red: number;
   flat: number;
+};
+
+type TargetAllocation = {
+  requestedUserDelta: number;
+  achievedUserDelta: number;
+  difference: number;
+  reachable: boolean;
+  minUserDelta: number;
+  maxUserDelta: number;
+  items: Array<{ traderId: string; returnBps: number }>;
+  totals: BulkTotals;
 };
 
 type Dashboard = {
@@ -241,6 +252,10 @@ export default function AdminCopyTradingPage() {
   const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
   const [bulkPreview, setBulkPreview] = React.useState<BulkTotals | null>(null);
+  const [targetMode, setTargetMode] = React.useState<TargetMode>("HARVEST");
+  const [targetAmount, setTargetAmount] = React.useState("100");
+  const [targetAllocation, setTargetAllocation] =
+    React.useState<TargetAllocation | null>(null);
   const [investFeePct, setInvestFeePct] = React.useState("0");
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
@@ -293,6 +308,7 @@ export default function AdminCopyTradingPage() {
     setTraderPage(1);
     setSelectedIds(new Set());
     setBulkPreview(null);
+    setTargetAllocation(null);
   }, [traderSearch, copierFilter, flagFilter, traderSort]);
 
   React.useEffect(() => {
@@ -518,33 +534,6 @@ export default function AdminCopyTradingPage() {
     }
   }
 
-  async function runSimulation(traderId?: string) {
-    const key = `run:${traderId ?? "all"}`;
-    setBusy(key);
-    try {
-      const result = await apiFetch<{
-        processed: number;
-        affectedInvestments: number;
-      }>("/api/admin/copy/simulate", {
-        method: "POST",
-        body: JSON.stringify(traderId ? { traderId } : {}),
-      });
-      toast.success(
-        t("admin.copyTrading.simulationApplied", {
-          traders: result.processed,
-          investments: result.affectedInvestments,
-        }),
-      );
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function filledItems(traders: Trader[]) {
     const items: Array<{ traderId: string; returnBps: number; idempotencyKey: string }> =
       [];
@@ -574,7 +563,58 @@ export default function AdminCopyTradingPage() {
       return next;
     });
     setBulkPreview(null);
+    setTargetAllocation(null);
     toast.success(t("admin.copyTrading.suggested", { n: targets.length }));
+  }
+
+  async function allocateTarget() {
+    const targets = filteredTraders.filter(
+      (trader) => trader.activeInvestments > 0 && trader.isActive,
+    );
+    if (targets.length === 0) {
+      toast.error(t("admin.copyTrading.noCopiersToSuggest"));
+      return;
+    }
+    const amount = targetMode === "NEUTRAL" ? 0 : Number(targetAmount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      toast.error(t("admin.copyTrading.invalidTarget"));
+      return;
+    }
+
+    setBusy("target");
+    try {
+      const result = await apiFetch<TargetAllocation>(
+        "/api/admin/copy/performance/target",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            traderIds: targets.map((trader) => trader.id),
+            mode: targetMode,
+            targetAmount: amount,
+          }),
+        },
+      );
+      setReturns((current) => {
+        const next = { ...current };
+        for (const item of result.items) {
+          next[item.traderId] = (item.returnBps / 100).toFixed(2);
+        }
+        return next;
+      });
+      setBulkPreview(result.totals);
+      setTargetAllocation(result);
+      toast.success(
+        t("admin.copyTrading.targetAllocated", {
+          amount: formatNumber(result.achievedUserDelta, { decimals: 2 }),
+        }),
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function previewAll() {
@@ -603,6 +643,10 @@ export default function AdminCopyTradingPage() {
     const items = filledItems(filteredTraders);
     if (items.length === 0) {
       toast.error(t("admin.copyTrading.noResultsToPreview"));
+      return;
+    }
+    if (!bulkPreview) {
+      toast.error(t("admin.copyTrading.previewRequired"));
       return;
     }
     if (
@@ -643,6 +687,7 @@ export default function AdminCopyTradingPage() {
       }
       setReturns({});
       setBulkPreview(null);
+      setTargetAllocation(null);
       await load();
     } catch (error) {
       toast.error(
@@ -691,15 +736,6 @@ export default function AdminCopyTradingPage() {
                 <Users className="h-3.5 w-3.5" />
                 {t("admin.copyTrading.allCopiers")}
               </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              loading={busy === "run:all"}
-              onClick={() => void runSimulation()}
-            >
-              <Play className="h-3.5 w-3.5" />
-              {t("admin.copyTrading.runAll")}
             </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="h-3.5 w-3.5" />
@@ -799,6 +835,97 @@ export default function AdminCopyTradingPage() {
             </CardContent>
           </Card>
 
+          <Card className="border-gold/25">
+            <CardHeader>
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.bookTargetTitle")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label={t("admin.copyTrading.bookMode")}>
+                  <Select
+                    value={targetMode}
+                    onChange={(event) => {
+                      setTargetMode(event.target.value as TargetMode);
+                      setBulkPreview(null);
+                      setTargetAllocation(null);
+                    }}
+                  >
+                    <option value="GROWTH">
+                      {t("admin.copyTrading.modeGrowth")}
+                    </option>
+                    <option value="NEUTRAL">
+                      {t("admin.copyTrading.modeNeutral")}
+                    </option>
+                    <option value="HARVEST">
+                      {t("admin.copyTrading.modeHarvest")}
+                    </option>
+                  </Select>
+                </Field>
+                <Field label={t("admin.copyTrading.targetAmount")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="1"
+                    disabled={targetMode === "NEUTRAL"}
+                    value={targetMode === "NEUTRAL" ? "0" : targetAmount}
+                    onChange={(event) => {
+                      setTargetAmount(event.target.value);
+                      setBulkPreview(null);
+                      setTargetAllocation(null);
+                    }}
+                  />
+                </Field>
+                <div className="flex items-end">
+                  <Button
+                    loading={busy === "target"}
+                    onClick={() => void allocateTarget()}
+                  >
+                    {t("admin.copyTrading.allocateTarget")}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-text-muted">
+                {targetMode === "GROWTH"
+                  ? t("admin.copyTrading.modeGrowthHint")
+                  : targetMode === "NEUTRAL"
+                    ? t("admin.copyTrading.modeNeutralHint")
+                    : t("admin.copyTrading.modeHarvestHint")}
+              </p>
+              {targetAllocation ? (
+                <div
+                  className={`rounded-md border p-3 text-xs ${
+                    targetAllocation.reachable
+                      ? "border-success/25 bg-success/5"
+                      : "border-warning/25 bg-warning/5"
+                  }`}
+                >
+                  {t("admin.copyTrading.targetResult", {
+                    requested: formatNumber(
+                      targetAllocation.requestedUserDelta,
+                      { decimals: 2 },
+                    ),
+                    achieved: formatNumber(
+                      targetAllocation.achievedUserDelta,
+                      { decimals: 2 },
+                    ),
+                  })}
+                  {!targetAllocation.reachable
+                    ? ` · ${t("admin.copyTrading.targetCapped", {
+                        min: formatNumber(targetAllocation.minUserDelta, {
+                          decimals: 2,
+                        }),
+                        max: formatNumber(targetAllocation.maxUserDelta, {
+                          decimals: 2,
+                        }),
+                      })}`
+                    : null}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-col gap-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -815,7 +942,7 @@ export default function AdminCopyTradingPage() {
                     variant="outline"
                     onClick={suggestDay}
                   >
-                    {t("admin.copyTrading.suggestDay")}
+                    {t("admin.copyTrading.randomDraft")}
                   </Button>
                   <Button
                     size="sm"
@@ -829,6 +956,7 @@ export default function AdminCopyTradingPage() {
                     size="sm"
                     variant="success"
                     loading={busy === "publish-all"}
+                    disabled={!bulkPreview}
                     onClick={() => void publishAll()}
                   >
                     {t("admin.copyTrading.publishAll")}
@@ -1050,6 +1178,7 @@ export default function AdminCopyTradingPage() {
                                 value={returns[trader.id] ?? ""}
                                 onChange={(event) => {
                                   setBulkPreview(null);
+                                  setTargetAllocation(null);
                                   setReturns((current) => ({
                                     ...current,
                                     [trader.id]: event.target.value,

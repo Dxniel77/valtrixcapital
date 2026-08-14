@@ -1751,6 +1751,207 @@ export type AdminBulkPreviewRow = AdminPerformancePreviewDto & {
   traderName: string;
 };
 
+export type AdminTargetMode = "GROWTH" | "NEUTRAL" | "HARVEST";
+
+export type AdminTargetAllocationDto = {
+  mode: AdminTargetMode;
+  requestedUserDelta: number;
+  achievedUserDelta: number;
+  difference: number;
+  reachable: boolean;
+  minUserDelta: number;
+  maxUserDelta: number;
+  items: AdminBulkPerformanceItem[];
+  rows: AdminBulkPreviewRow[];
+  totals: {
+    traders: number;
+    eligible: number;
+    skippedAfterCutoff: number;
+    userDelta: number;
+    companyFee: number;
+    green: number;
+    red: number;
+    flat: number;
+  };
+};
+
+/**
+ * Builds a mixed set of trader returns that targets the requested copier P&L.
+ * A positive target is a growth budget; a negative target is the inverse
+ * company-book result. Values always stay inside each trader's simulation range.
+ */
+export async function allocateTargetTraderPerformance(input: {
+  traderIds: string[];
+  mode: AdminTargetMode;
+  targetAmount: number;
+}): Promise<AdminTargetAllocationDto> {
+  const ids = [...new Set(input.traderIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0 || ids.length > 100) {
+    throw new CopyTradingError("Select between 1 and 100 traders", "INVALID_AMOUNT");
+  }
+  if (!Number.isFinite(input.targetAmount) || input.targetAmount < 0) {
+    throw new CopyTradingError("Target amount must be zero or greater", "INVALID_AMOUNT");
+  }
+
+  const [traders, config] = await Promise.all([
+    prisma.copyTrader.findMany({
+      where: { id: { in: ids }, isActive: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    ensureCopyTradingConfig(),
+  ]);
+  if (traders.length !== ids.length) {
+    throw new CopyTradingError("One or more traders are unavailable", "NOT_FOUND");
+  }
+
+  const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
+  const investments = await prisma.copyInvestment.findMany({
+    where: {
+      traderId: { in: ids },
+      status: "ACTIVE",
+      currentValue: { gt: 0 },
+      startedAt: { lte: cutoff },
+    },
+  });
+  const byTrader = new Map<string, typeof investments>();
+  for (const investment of investments) {
+    const list = byTrader.get(investment.traderId) ?? [];
+    list.push(investment);
+    byTrader.set(investment.traderId, list);
+  }
+
+  const syncRows = (traderId: string) =>
+    (byTrader.get(traderId) ?? []).map((row) => ({
+      id: row.id,
+      principal: row.principal,
+      currentValue: row.currentValue,
+      realizedPnl: row.realizedPnl,
+    }));
+  const deltaAt = (traderId: string, bps: number) =>
+    applyPerformance(syncRows(traderId), bps).totalDelta;
+
+  const requested =
+    input.mode === "NEUTRAL"
+      ? 0n
+      : toMicro(input.mode === "GROWTH" ? input.targetAmount : -input.targetAmount);
+  const minDelta = traders.reduce(
+    (sum, trader) => sum + deltaAt(trader.id, trader.simulationMinBps),
+    0n,
+  );
+  const maxDelta = traders.reduce(
+    (sum, trader) => sum + deltaAt(trader.id, trader.simulationMaxBps),
+    0n,
+  );
+  const target = requested < minDelta ? minDelta : requested > maxDelta ? maxDelta : requested;
+
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const score = (id: string) =>
+    Number.parseInt(
+      createHash("sha256").update(`${dayKey}:${input.mode}:${id}`).digest("hex").slice(0, 8),
+      16,
+    );
+  const winnerShare =
+    input.mode === "GROWTH" ? 0.55 : input.mode === "HARVEST" ? 0.35 : 0.45;
+  const ranked = [...traders].sort((a, b) => score(a.id) - score(b.id));
+  const winnerCount = Math.round(ranked.length * winnerShare);
+  const winners = new Set(ranked.slice(0, winnerCount).map((trader) => trader.id));
+  const returns = new Map<string, number>();
+
+  for (const trader of traders) {
+    const positive = winners.has(trader.id);
+    const modest = 10 + (score(trader.id) % 26); // 0.10%–0.35% starting pattern
+    returns.set(
+      trader.id,
+      positive
+        ? Math.min(trader.simulationMaxBps, Math.max(0, modest))
+        : Math.max(trader.simulationMinBps, Math.min(0, -modest)),
+    );
+  }
+
+  const totalAtCurrent = () =>
+    traders.reduce(
+      (sum, trader) => sum + deltaAt(trader.id, returns.get(trader.id) ?? 0),
+      0n,
+    );
+
+  // Move the mixed starting pattern toward the target, largest books first.
+  const byCapital = [...traders].sort((a, b) => {
+    const capitalA = (byTrader.get(a.id) ?? []).reduce(
+      (sum, row) => sum + row.currentValue,
+      0n,
+    );
+    const capitalB = (byTrader.get(b.id) ?? []).reduce(
+      (sum, row) => sum + row.currentValue,
+      0n,
+    );
+    return capitalA === capitalB ? score(a.id) - score(b.id) : capitalA > capitalB ? -1 : 1;
+  });
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    let currentTotal = totalAtCurrent();
+    for (const trader of byCapital) {
+      const remaining = target - currentTotal;
+      if (remaining === 0n) break;
+      const currentBps = returns.get(trader.id) ?? 0;
+      const bound =
+        remaining > 0n ? trader.simulationMaxBps : trader.simulationMinBps;
+      if (currentBps === bound) continue;
+
+      const capital = (byTrader.get(trader.id) ?? []).reduce(
+        (sum, row) => sum + row.currentValue,
+        0n,
+      );
+      if (capital <= 0n) continue;
+      const estimatedStep = Number((remaining * 10_000n) / capital);
+      const direction = remaining > 0n ? 1 : -1;
+      const step =
+        estimatedStep === 0
+          ? direction
+          : remaining > 0n
+            ? Math.max(1, estimatedStep)
+            : Math.min(-1, estimatedStep);
+      const candidate = Math.max(
+        trader.simulationMinBps,
+        Math.min(trader.simulationMaxBps, currentBps + step),
+      );
+      const before = deltaAt(trader.id, currentBps);
+      const after = deltaAt(trader.id, candidate);
+      if (
+        (remaining > 0n && after > before) ||
+        (remaining < 0n && after < before)
+      ) {
+        returns.set(trader.id, candidate);
+        currentTotal += after - before;
+      }
+    }
+  }
+
+  const items = traders.map((trader) => ({
+    traderId: trader.id,
+    returnBps: returns.get(trader.id) ?? 0,
+  }));
+  const preview = await previewManyTraderPerformance(items);
+  const achieved = toMicro(preview.totals.userDelta);
+  const tolerance = 10_000n; // one cent, plus unavoidable basis-point granularity
+  const difference = achieved - requested;
+
+  return {
+    mode: input.mode,
+    requestedUserDelta: fromMicro(requested),
+    achievedUserDelta: preview.totals.userDelta,
+    difference: fromMicro(difference),
+    reachable:
+      requested >= minDelta &&
+      requested <= maxDelta &&
+      (difference < 0n ? -difference : difference) <=
+        (tolerance + BigInt(traders.length) * 10_000n),
+    minUserDelta: fromMicro(minDelta),
+    maxUserDelta: fromMicro(maxDelta),
+    items,
+    ...preview,
+  };
+}
+
 export async function previewManyTraderPerformance(
   items: AdminBulkPerformanceItem[],
 ): Promise<{
