@@ -17,6 +17,7 @@ import {
   eligibleForPerformance,
   protectedFromLoss,
 } from "@/lib/copy-trading/eligibility";
+import { generateShowcaseCopiers } from "@/lib/copy-trading/showcase-copiers";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -87,6 +88,7 @@ export type CopyTraderDetailDto = CopyTraderDto & {
 };
 
 export type AdminCopyTraderDto = CopyTraderDto & {
+  showcaseCopiers: number;
   simulationEnabled: boolean;
   simulationMinBps: number;
   simulationMaxBps: number;
@@ -327,6 +329,7 @@ function serializeAdminTrader(
   const value = extra?.copierValue ?? 0n;
   return {
     ...serializeTrader(t),
+    showcaseCopiers: t.showcaseCopiers,
     simulationEnabled: t.simulationEnabled,
     simulationMinBps: t.simulationMinBps,
     simulationMaxBps: t.simulationMaxBps,
@@ -563,6 +566,7 @@ export type AdminCopyTraderInput = {
   minInvestment: number;
   performanceFeeBps: number;
   maxInvestors: number;
+  showcaseCopiers: number;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
@@ -596,6 +600,17 @@ function validateAdminTraderInput(input: AdminCopyTraderInput): void {
     input.maxInvestors > 1_000_000
   ) {
     throw new CopyTradingError("Invalid max investors", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(input.showcaseCopiers) ||
+    input.showcaseCopiers < 0 ||
+    input.showcaseCopiers > 200 ||
+    input.showcaseCopiers > input.maxInvestors
+  ) {
+    throw new CopyTradingError(
+      "Showcase copiers must be between 0 and 200 and cannot exceed max investors",
+      "INVALID_AMOUNT",
+    );
   }
   if (
     !Number.isInteger(input.simulationMinBps) ||
@@ -699,6 +714,7 @@ export async function createAdminCopyTrader(
         minInvestment: toMicro(input.minInvestment),
         performanceFeeBps: Math.trunc(input.performanceFeeBps),
         maxInvestors: Math.trunc(input.maxInvestors),
+        showcaseCopiers: Math.trunc(input.showcaseCopiers),
         isActive: input.isActive,
         isVisible: input.isVisible,
         isFeatured: input.isFeatured,
@@ -755,6 +771,7 @@ export async function updateAdminCopyTrader(
         minInvestment: toMicro(input.minInvestment),
         performanceFeeBps: Math.trunc(input.performanceFeeBps),
         maxInvestors: Math.trunc(input.maxInvestors),
+        showcaseCopiers: Math.trunc(input.showcaseCopiers),
         isActive: input.isActive,
         isVisible: input.isVisible,
         isFeatured: input.isFeatured,
@@ -3098,7 +3115,7 @@ export async function listCopyTraderCopiers(
 ): Promise<CopyTraderCopiersDto | null> {
   const trader = await prisma.copyTrader.findFirst({
     where: { id: traderId, isVisible: true },
-    select: { id: true, maxInvestors: true },
+    select: { id: true, maxInvestors: true, showcaseCopiers: true },
   });
   if (!trader) return null;
 
@@ -3159,6 +3176,11 @@ export async function listCopyTraderCopiers(
       startedAt: u.startedAt.toISOString(),
     };
   });
+
+  const showcaseNeeded = Math.max(0, trader.showcaseCopiers - copiers.length);
+  copiers.push(
+    ...generateShowcaseCopiers(trader.id, showcaseNeeded, new Date(now)),
+  );
 
   const sort = opts?.sort ?? "pnl_desc";
   copiers.sort((a, b) => {

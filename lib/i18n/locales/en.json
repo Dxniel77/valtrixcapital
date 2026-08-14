@@ -995,6 +995,7 @@
       "feesHint": "Entry fee is taken when the user copies. Exit fee is taken when they leave. Copies after cutoff skip the result. During the loss-grace period, eligible new copies receive positive/flat results but skip negative ones.",
       "performanceFee": "Profit share %",
       "maxInvestors": "Max real investors",
+      "showcaseCopiers": "Displayed copiers",
       "order": "Order",
       "active": "Active",
       "visible": "Visible",

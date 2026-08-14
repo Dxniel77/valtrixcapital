@@ -1053,6 +1053,7 @@
       "feesHint": "La comisión de entrada se cobra al copiar y la de salida al retirarse. Las copias posteriores al corte omiten el resultado. Durante la gracia, las nuevas copias elegibles reciben resultados positivos o planos, pero omiten los negativos.",
       "performanceFee": "Participación en ganancias %",
       "maxInvestors": "Máx. inversores reales",
+      "showcaseCopiers": "Copiadores mostrados",
       "order": "Orden",
       "active": "Activo",
       "visible": "Visible",

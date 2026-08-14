@@ -51,6 +51,7 @@ type Trader = {
   minInvestment: number;
   performanceFeeBps: number;
   maxInvestors: number;
+  showcaseCopiers: number;
   isActive: boolean;
   isVisible: boolean;
   isFeatured: boolean;
@@ -146,6 +147,7 @@ type TraderForm = {
   minInvestment: string;
   performanceFeePct: string;
   maxInvestors: string;
+  showcaseCopiers: string;
   sortOrder: string;
   isActive: boolean;
   isVisible: boolean;
@@ -166,6 +168,7 @@ const EMPTY_FORM: TraderForm = {
   minInvestment: "15",
   performanceFeePct: "10",
   maxInvestors: "180",
+  showcaseCopiers: "20",
   sortOrder: "0",
   isActive: true,
   isVisible: true,
@@ -204,6 +207,7 @@ function traderToForm(trader: Trader): TraderForm {
     minInvestment: String(trader.minInvestment),
     performanceFeePct: String((trader.performanceFeeBps ?? 1000) / 100),
     maxInvestors: String(trader.maxInvestors ?? 180),
+    showcaseCopiers: String(trader.showcaseCopiers ?? 0),
     sortOrder: String(trader.sortOrder),
     isActive: trader.isActive,
     isVisible: trader.isVisible,
@@ -226,6 +230,10 @@ function formPayload(form: TraderForm) {
     minInvestment: Number(form.minInvestment) || 0,
     performanceFeeBps: Math.round((Number(form.performanceFeePct) || 0) * 100),
     maxInvestors: Math.max(1, Math.trunc(Number(form.maxInvestors) || 180)),
+    showcaseCopiers: Math.max(
+      0,
+      Math.min(200, Math.trunc(Number(form.showcaseCopiers) || 0)),
+    ),
     sortOrder: Math.trunc(Number(form.sortOrder) || 0),
     isActive: form.isActive,
     isVisible: form.isVisible,
@@ -1485,7 +1493,7 @@ function TraderDialog({
               onChange={(event) => update("photoUrl", event.target.value)}
             />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-7">
             <Field label={t("admin.copyTrading.experienceDays")}>
               <Input
                 type="number"
@@ -1529,6 +1537,17 @@ function TraderDialog({
                 value={form.maxInvestors}
                 onChange={(event) =>
                   update("maxInvestors", event.target.value)
+                }
+              />
+            </Field>
+            <Field label={t("admin.copyTrading.showcaseCopiers")}>
+              <Input
+                type="number"
+                min="0"
+                max="200"
+                value={form.showcaseCopiers}
+                onChange={(event) =>
+                  update("showcaseCopiers", event.target.value)
                 }
               />
             </Field>

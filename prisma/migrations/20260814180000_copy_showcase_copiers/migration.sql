@@ -1,0 +1,2 @@
+ALTER TABLE "CopyTrader"
+ADD COLUMN "showcaseCopiers" INTEGER NOT NULL DEFAULT 0;

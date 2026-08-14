@@ -751,6 +751,8 @@ model CopyTrader {
   performanceFeeBps       Int           @default(1000)
   /// Max real investors allowed to copy this trader.
   maxInvestors            Int           @default(180)
+  /// Public copier-list target. Real copiers are shown first; stable showcase rows fill the gap.
+  showcaseCopiers         Int           @default(0)
   isActive                Boolean       @default(true)
   isVisible               Boolean       @default(true)
   isFeatured              Boolean       @default(false)
