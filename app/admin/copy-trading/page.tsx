@@ -928,16 +928,21 @@ export default function AdminCopyTradingPage() {
                       { decimals: 2 },
                     ),
                   })}
-                  {!targetAllocation.reachable
-                    ? ` · ${t("admin.copyTrading.targetCapped", {
-                        min: formatNumber(targetAllocation.minUserDelta, {
-                          decimals: 2,
-                        }),
-                        max: formatNumber(targetAllocation.maxUserDelta, {
-                          decimals: 2,
-                        }),
+                  {targetAllocation.totals.eligible === 0
+                    ? ` · ${t("admin.copyTrading.targetNoEligible", {
+                        n: targetAllocation.totals.skippedAfterCutoff,
+                        hour: data?.config?.settlementCutoffHour ?? 22,
                       })}`
-                    : null}
+                    : !targetAllocation.reachable
+                      ? ` · ${t("admin.copyTrading.targetCapped", {
+                          min: formatNumber(targetAllocation.minUserDelta, {
+                            decimals: 2,
+                          }),
+                          max: formatNumber(targetAllocation.maxUserDelta, {
+                            decimals: 2,
+                          }),
+                        })}`
+                      : null}
                 </div>
               ) : null}
             </CardContent>

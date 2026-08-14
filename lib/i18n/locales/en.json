@@ -1135,6 +1135,7 @@
       "targetAllocated": "Draft allocated and previewed. Copier P&L: {amount} USDT.",
       "targetResult": "Requested copier P&L: {requested} USDT · Preview: {achieved} USDT",
       "targetCapped": "Target was outside trader limits. Available range: {min} to {max} USDT.",
+      "targetNoEligible": "No copies are eligible tonight: {n} started after the {hour}:00 UTC cutoff. Lower the cutoff hour or wait for the next cutoff.",
       "previewRequired": "Preview the current draft before publishing.",
       "randomDraft": "Random draft",
       "lossProtected": "{n} protected from loss",

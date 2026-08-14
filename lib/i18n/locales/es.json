@@ -1193,6 +1193,7 @@
       "targetAllocated": "Borrador asignado y previsualizado. P&L de copiadores: {amount} USDT.",
       "targetResult": "P&L solicitado de copiadores: {requested} USDT · Vista previa: {achieved} USDT",
       "targetCapped": "El objetivo superó los límites de traders. Rango disponible: {min} a {max} USDT.",
+      "targetNoEligible": "Ninguna copia es elegible esta noche: {n} empezaron después del corte de las {hour}:00 UTC. Baja la hora de corte o espera al próximo corte.",
       "previewRequired": "Previsualiza el borrador actual antes de publicar.",
       "randomDraft": "Borrador aleatorio",
       "lossProtected": "{n} protegidos contra pérdidas",
