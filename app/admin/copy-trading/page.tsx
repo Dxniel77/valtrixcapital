@@ -247,6 +247,11 @@ function formPayload(form: TraderForm) {
   };
 }
 
+/** Traders shown per admin list page. */
+const TRADER_PAGE_SIZE = 25;
+/** Bulk range UI kept for later; set true to show again. */
+const SHOW_BULK_SHOWCASE_COPIERS = false;
+
 export default function AdminCopyTradingPage() {
   const { t } = useI18n();
   const [data, setData] = React.useState<Dashboard | null>(null);
@@ -272,8 +277,6 @@ export default function AdminCopyTradingPage() {
   const [lossGraceDays, setLossGraceDays] = React.useState("2");
   const [showcaseMin, setShowcaseMin] = React.useState("15");
   const [showcaseMax, setShowcaseMax] = React.useState("90");
-
-  const TRADER_PAGE_SIZE = 25;
 
   const filteredTraders = React.useMemo(() => {
     const q = traderSearch.trim().toLowerCase();
@@ -905,46 +908,48 @@ export default function AdminCopyTradingPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t("admin.copyTrading.showcaseRangeTitle")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label={t("admin.copyTrading.showcaseMin")}>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={200}
-                    value={showcaseMin}
-                    onChange={(event) => setShowcaseMin(event.target.value)}
-                  />
-                </Field>
-                <Field label={t("admin.copyTrading.showcaseMax")}>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={200}
-                    value={showcaseMax}
-                    onChange={(event) => setShowcaseMax(event.target.value)}
-                  />
-                </Field>
-                <div className="flex items-end">
-                  <Button
-                    loading={busy === "showcase-range"}
-                    onClick={() => void applyShowcaseRange()}
-                  >
-                    {t("admin.copyTrading.applyShowcaseRange")}
-                  </Button>
+          {SHOW_BULK_SHOWCASE_COPIERS ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.showcaseRangeTitle")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label={t("admin.copyTrading.showcaseMin")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={200}
+                      value={showcaseMin}
+                      onChange={(event) => setShowcaseMin(event.target.value)}
+                    />
+                  </Field>
+                  <Field label={t("admin.copyTrading.showcaseMax")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={200}
+                      value={showcaseMax}
+                      onChange={(event) => setShowcaseMax(event.target.value)}
+                    />
+                  </Field>
+                  <div className="flex items-end">
+                    <Button
+                      loading={busy === "showcase-range"}
+                      onClick={() => void applyShowcaseRange()}
+                    >
+                      {t("admin.copyTrading.applyShowcaseRange")}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <p className="text-xs text-text-muted">
-                {t("admin.copyTrading.showcaseRangeHint")}
-              </p>
-            </CardContent>
-          </Card>
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.showcaseRangeHint")}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="border-gold/25">
             <CardHeader>
