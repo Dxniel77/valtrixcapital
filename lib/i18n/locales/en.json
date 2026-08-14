@@ -1151,6 +1151,7 @@
       "previewRequired": "Preview the current draft before publishing.",
       "randomDraft": "Random draft",
       "modeDraft": "Draft for selected mode",
+      "draftModeBlocked": "{n} trader(s) could not follow this objective because their simulation range excludes it ({names}). Edit the trader's min/max % to allow it.",
       "lossProtected": "{n} protected from loss",
       "lossGraceBadge": "Loss grace"
     },

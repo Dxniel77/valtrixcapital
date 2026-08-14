@@ -1209,6 +1209,7 @@
       "previewRequired": "Previsualiza el borrador actual antes de publicar.",
       "randomDraft": "Borrador aleatorio",
       "modeDraft": "Borrador del modo elegido",
+      "draftModeBlocked": "{n} trader(s) no pudieron seguir este objetivo porque su rango de simulación lo excluye ({names}). Edita el mín./máx. % del trader para permitirlo.",
       "lossProtected": "{n} protegidos contra pérdidas",
       "lossGraceBadge": "Gracia sin pérdidas"
     },

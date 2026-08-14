@@ -594,6 +594,27 @@ export default function AdminCopyTradingPage() {
       }
       return next;
     });
+
+    // A trader whose configured range excludes the mode's direction cannot follow it.
+    const blocked = targets.filter((trader) =>
+      targetMode === "HARVEST"
+        ? trader.simulationMinBps >= 0
+        : targetMode === "GROWTH"
+          ? trader.simulationMaxBps <= 0
+          : false,
+    );
+    if (blocked.length > 0) {
+      toast.warning(
+        t("admin.copyTrading.draftModeBlocked", {
+          n: blocked.length,
+          names: blocked
+            .slice(0, 3)
+            .map((trader) => trader.name)
+            .join(", "),
+        }),
+      );
+    }
+
     setTargetAllocation(null);
     setBusy("draft");
     try {
