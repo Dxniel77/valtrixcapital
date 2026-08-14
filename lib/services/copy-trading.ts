@@ -1911,6 +1911,18 @@ export type AdminBulkPreviewRow = AdminPerformancePreviewDto & {
   traderName: string;
 };
 
+export type AdminCopierImpactRow = {
+  investmentId: string;
+  traderId: string;
+  traderName: string;
+  username: string | null;
+  walletAddress: string;
+  currentValue: number;
+  grossDelta: number;
+  companyFee: number;
+  netDelta: number;
+};
+
 export type AdminTargetMode = "GROWTH" | "NEUTRAL" | "HARVEST";
 
 export type AdminTargetAllocationDto = {
@@ -1923,6 +1935,7 @@ export type AdminTargetAllocationDto = {
   maxUserDelta: number;
   items: AdminBulkPerformanceItem[];
   rows: AdminBulkPreviewRow[];
+  copierImpacts: AdminCopierImpactRow[];
   totals: {
     traders: number;
     eligible: number;
@@ -2131,6 +2144,7 @@ export async function previewManyTraderPerformance(
   items: AdminBulkPerformanceItem[],
 ): Promise<{
   rows: AdminBulkPreviewRow[];
+  copierImpacts: AdminCopierImpactRow[];
   totals: {
     traders: number;
     eligible: number;
@@ -2159,6 +2173,11 @@ export async function previewManyTraderPerformance(
     ensureCopyTradingConfig(),
     prisma.copyInvestment.findMany({
       where: { traderId: { in: ids }, status: "ACTIVE", currentValue: { gt: 0 } },
+      include: {
+        user: {
+          select: { username: true, walletAddress: true },
+        },
+      },
     }),
   ]);
   const traderById = new Map(traders.map((row) => [row.id, row]));
@@ -2171,6 +2190,7 @@ export async function previewManyTraderPerformance(
   }
 
   const rows: AdminBulkPreviewRow[] = [];
+  const copierImpacts: AdminCopierImpactRow[] = [];
   for (const item of items) {
     if (
       !Number.isInteger(item.returnBps) ||
@@ -2210,6 +2230,26 @@ export async function previewManyTraderPerformance(
       item.returnBps,
       trader.performanceFeeBps ?? 1000,
     );
+    const eligibleById = new Map(eligible.map((row) => [row.id, row]));
+    const feeByInvestment = new Map(
+      result.feeLedger.map((entry) => [entry.investmentId, -entry.amount]),
+    );
+    for (const pnl of result.pnlLedger) {
+      const investment = eligibleById.get(pnl.investmentId);
+      if (!investment) continue;
+      const fee = feeByInvestment.get(pnl.investmentId) ?? 0n;
+      copierImpacts.push({
+        investmentId: investment.id,
+        traderId: trader.id,
+        traderName: trader.name,
+        username: investment.user.username,
+        walletAddress: investment.user.walletAddress,
+        currentValue: fromMicro(investment.currentValue),
+        grossDelta: fromMicro(pnl.amount),
+        companyFee: fromMicro(fee),
+        netDelta: fromMicro(pnl.amount - fee),
+      });
+    }
     rows.push({
       traderId: trader.id,
       traderName: trader.name,
@@ -2251,7 +2291,7 @@ export async function previewManyTraderPerformance(
     },
   );
 
-  return { rows, totals };
+  return { rows, copierImpacts, totals };
 }
 
 export async function publishManyTraderPerformance(

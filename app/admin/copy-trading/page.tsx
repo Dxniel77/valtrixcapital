@@ -30,6 +30,7 @@ import {
 import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
+import { draftReturnBps } from "@/lib/copy-trading/admin-draft";
 import { useI18n } from "@/lib/i18n/context";
 import { formatNumber } from "@/lib/utils";
 
@@ -94,7 +95,20 @@ type TargetAllocation = {
   minUserDelta: number;
   maxUserDelta: number;
   items: Array<{ traderId: string; returnBps: number }>;
+  copierImpacts: CopierImpact[];
   totals: BulkTotals;
+};
+
+type CopierImpact = {
+  investmentId: string;
+  traderId: string;
+  traderName: string;
+  username: string | null;
+  walletAddress: string;
+  currentValue: number;
+  grossDelta: number;
+  companyFee: number;
+  netDelta: number;
 };
 
 type Dashboard = {
@@ -188,14 +202,6 @@ function idempotencyKey(traderId: string): string {
   return `admin:${traderId}:${unique}`;
 }
 
-function suggestReturnBps(minBps: number, maxBps: number): number {
-  if (minBps === maxBps) return minBps;
-  const lo = Math.min(minBps, maxBps);
-  const hi = Math.max(minBps, maxBps);
-  const span = hi - lo;
-  return Math.min(hi, Math.max(lo, lo + Math.round(span * (0.4 + Math.random() * 0.6))));
-}
-
 function traderToForm(trader: Trader): TraderForm {
   return {
     name: trader.name,
@@ -267,6 +273,7 @@ export default function AdminCopyTradingPage() {
   const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
   const [bulkPreview, setBulkPreview] = React.useState<BulkTotals | null>(null);
+  const [copierImpacts, setCopierImpacts] = React.useState<CopierImpact[]>([]);
   const [targetMode, setTargetMode] = React.useState<TargetMode>("HARVEST");
   const [targetAmount, setTargetAmount] = React.useState("100");
   const [targetAllocation, setTargetAllocation] =
@@ -566,22 +573,49 @@ export default function AdminCopyTradingPage() {
     return items;
   }
 
-  function suggestDay() {
+  async function suggestDay() {
     const targets = filteredTraders.filter((trader) => trader.activeInvestments > 0);
     if (targets.length === 0) {
       toast.error(t("admin.copyTrading.noCopiersToSuggest"));
       return;
     }
+    const items = targets.slice(0, 100).map((trader) => ({
+      traderId: trader.id,
+      returnBps: draftReturnBps(
+        trader.simulationMinBps,
+        trader.simulationMaxBps,
+        targetMode,
+      ),
+    }));
     setReturns((current) => {
       const next = { ...current };
-      for (const trader of targets) {
-        next[trader.id] = (suggestReturnBps(trader.simulationMinBps, trader.simulationMaxBps) / 100).toFixed(2);
+      for (const item of items) {
+        next[item.traderId] = (item.returnBps / 100).toFixed(2);
       }
       return next;
     });
-    setBulkPreview(null);
     setTargetAllocation(null);
-    toast.success(t("admin.copyTrading.suggested", { n: targets.length }));
+    setBusy("draft");
+    try {
+      const result = await apiFetch<{
+        totals: BulkTotals;
+        copierImpacts: CopierImpact[];
+      }>("/api/admin/copy/performance/preview", {
+        method: "POST",
+        body: JSON.stringify({ items }),
+      });
+      setBulkPreview(result.totals);
+      setCopierImpacts(result.copierImpacts);
+      toast.success(t("admin.copyTrading.suggested", { n: items.length }));
+    } catch (error) {
+      setBulkPreview(null);
+      setCopierImpacts([]);
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function allocateTarget() {
@@ -619,6 +653,7 @@ export default function AdminCopyTradingPage() {
         return next;
       });
       setBulkPreview(result.totals);
+      setCopierImpacts(result.copierImpacts);
       setTargetAllocation(result);
       toast.success(
         t("admin.copyTrading.targetAllocated", {
@@ -642,11 +677,15 @@ export default function AdminCopyTradingPage() {
     }
     setBusy("preview");
     try {
-      const result = await apiFetch<{ totals: BulkTotals }>(
+      const result = await apiFetch<{
+        totals: BulkTotals;
+        copierImpacts: CopierImpact[];
+      }>(
         "/api/admin/copy/performance/preview",
         { method: "POST", body: JSON.stringify({ items }) },
       );
       setBulkPreview(result.totals);
+      setCopierImpacts(result.copierImpacts);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("errors.signInFailed"),
@@ -1061,9 +1100,10 @@ export default function AdminCopyTradingPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={suggestDay}
+                    loading={busy === "draft"}
+                    onClick={() => void suggestDay()}
                   >
-                    {t("admin.copyTrading.randomDraft")}
+                    {t("admin.copyTrading.modeDraft")}
                   </Button>
                   <Button
                     size="sm"
@@ -1185,6 +1225,68 @@ export default function AdminCopyTradingPage() {
                   {t("admin.copyTrading.bulkHint")}
                 </p>
               )}
+              {bulkPreview && copierImpacts.length > 0 ? (
+                <div className="max-h-72 overflow-auto rounded-md border border-border-subtle">
+                  <Table>
+                    <thead>
+                      <THeadRow>
+                        <TH>{t("admin.copyTrading.previewCopier")}</TH>
+                        <TH>{t("admin.copyTrading.trader")}</TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.previewCurrentValue")}
+                        </TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.previewUserImpact")}
+                        </TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.previewCompanyFee")}
+                        </TH>
+                      </THeadRow>
+                    </thead>
+                    <TBody>
+                      {[...copierImpacts]
+                        .sort((a, b) => a.netDelta - b.netDelta)
+                        .slice(0, 100)
+                        .map((impact) => (
+                          <TR key={impact.investmentId}>
+                            <TD>
+                              <p>
+                                {impact.username ||
+                                  (impact.walletAddress.length > 12
+                                    ? `${impact.walletAddress.slice(0, 6)}…${impact.walletAddress.slice(-4)}`
+                                    : impact.walletAddress)}
+                              </p>
+                              {impact.username ? (
+                                <p className="font-mono text-[11px] text-text-muted">
+                                  {impact.walletAddress.length > 12
+                                    ? `${impact.walletAddress.slice(0, 6)}…${impact.walletAddress.slice(-4)}`
+                                    : impact.walletAddress}
+                                </p>
+                              ) : null}
+                            </TD>
+                            <TD>{impact.traderName}</TD>
+                            <TD className="text-right font-mono">
+                              ${formatNumber(impact.currentValue, { decimals: 2 })}
+                            </TD>
+                            <TD
+                              className={`text-right font-mono ${
+                                impact.netDelta >= 0
+                                  ? "text-success"
+                                  : "text-danger"
+                              }`}
+                            >
+                              {impact.netDelta >= 0 ? "+" : ""}$
+                              {formatNumber(impact.netDelta, { decimals: 2 })}
+                            </TD>
+                            <TD className="text-right font-mono text-gold">
+                              ${formatNumber(impact.companyFee, { decimals: 2 })}
+                            </TD>
+                          </TR>
+                        ))}
+                    </TBody>
+                  </Table>
+                </div>
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
               {pagedTraders.length > 0 ? (
