@@ -15,7 +15,6 @@ import { ChangeSponsorCard } from "@/components/admin/change-sponsor-card";
 import { AdminUserAccountCard } from "@/components/admin/admin-user-account-card";
 import { AdminUserSponsorshipCard } from "@/components/admin/admin-user-sponsorship-card";
 import { AdminPartialWithdrawalReleaseCard } from "@/components/admin/admin-partial-withdrawal-release-card";
-import { AdminUnlockVolumeCard } from "@/components/admin/admin-unlock-volume-card";
 import { AdminManualPayoutCard } from "@/components/admin/admin-manual-payout-card";
 import { AdminIbAgreementCard } from "@/components/admin/admin-ib-agreement-card";
 import { AdminUserCopyCard } from "@/components/admin/admin-user-copy-card";
@@ -237,7 +236,8 @@ export function UserDetailPanel({
       {isSponsored ? (
         <>
           <AdminUserSponsorshipCard user={user} />
-          <AdminUnlockVolumeCard user={user} />
+          {/* Unlock-volume repair UI hidden for now; API remains at POST /api/admin/users/[id]/unlock-volume */}
+          {/* <AdminUnlockVolumeCard user={user} /> */}
           <AdminPartialWithdrawalReleaseCard user={user} />
           <SponsoredUnlockProgressCard user={user} />
         </>
