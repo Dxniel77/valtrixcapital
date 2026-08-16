@@ -1379,6 +1379,20 @@
       "tooMuch": "Solo puedes liberar hasta ${max}",
       "success": "Se liberaron ${amount} USDT para retiro"
     },
+    "unlockVolume": {
+      "title": "Sumar volumen al progreso de desbloqueo",
+      "hint": "Suma volumen de ventas directas a este usuario patrocinado (solo la barra de progreso). No cambia ganancias ni capital activo. Úsalo cuando el depósito de un referido se registró a mano como saldo de empresa.",
+      "currentDirect": "Ventas directas actuales",
+      "status": "Retiros",
+      "unlocked": "Totalmente desbloqueado",
+      "locked": "Aún bloqueado",
+      "amount": "Volumen a sumar (USDT)",
+      "note": "Nota",
+      "notePlaceholder": "ej. Daned 490+35 reparación manual",
+      "cta": "Sumar al progreso",
+      "invalidAmount": "Introduce un monto positivo válido",
+      "success": "Se sumaron ${amount} USDT al progreso de desbloqueo"
+    },
     "manualPayout": {
       "title": "Ya pagado manualmente",
       "hint": "Úsalo solo después de haber enviado USDT fuera de la app (tesorería / SafePal). Quita ese monto del saldo en Valtrix y de lo liberado, para que el usuario no pueda retirarlo otra vez. No envía USDT.",

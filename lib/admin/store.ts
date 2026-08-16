@@ -349,6 +349,7 @@ export const useAdminStore = create<AdminState>()(
               prev.accountGranted === u.accountGranted &&
               prev.withdrawalUnlocked === u.withdrawalUnlocked &&
               (prev.withdrawalAllowance ?? 0) === (u.withdrawalAllowance ?? 0) &&
+              (prev.directSalesVolume ?? 0) === (u.directSalesVolume ?? 0) &&
               (prev.avatarUrl ?? null) === (u.avatarUrl ?? null)
             );
           });

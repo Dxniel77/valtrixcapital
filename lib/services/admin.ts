@@ -218,6 +218,67 @@ export async function releaseWithdrawalAllowance(input: {
 }
 
 /**
+ * Admin credits unlock progress (direct sales / L2 volume) without touching
+ * earnings or active capital. Used to repair cases where a referral deposit
+ * was registered as company-sponsored adjust instead of a real deposit.
+ */
+export async function creditUnlockVolume(input: {
+  adminUserId: string;
+  targetUserId: string;
+  amount: number;
+  level?: "direct" | "l2";
+  note?: string;
+}): Promise<UserDto> {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new AdminServiceError("Amount must be a positive number", "INVALID_DELTA");
+  }
+
+  const target = await findUserById(input.targetUserId);
+  if (!target) {
+    throw new AdminServiceError("User not found", "NOT_FOUND");
+  }
+  if (!target.accountGranted) {
+    throw new AdminServiceError(
+      "Unlock volume credit is only for sponsored accounts",
+      "FORBIDDEN",
+    );
+  }
+
+  const level = input.level ?? "direct";
+  const amountMicro = toMicro(input.amount);
+  const { creditUnlockVolumeForUser } = await import(
+    "@/lib/services/unlock-volume"
+  );
+
+  await creditUnlockVolumeForUser({
+    userId: target.id,
+    amountMicro,
+    level,
+  });
+
+  await prisma.adminAction.create({
+    data: {
+      adminId: input.adminUserId,
+      targetUserId: target.id,
+      action: "UPDATE_SPONSORSHIP",
+      payload: {
+        kind: "UNLOCK_VOLUME_CREDIT",
+        amount: input.amount,
+        level,
+        note: input.note?.trim() || "",
+        previousDirectSalesVolume: fromMicro(target.unlockDirectVolume),
+      },
+    },
+  });
+
+  const fresh = await findUserById(target.id);
+  if (!fresh) {
+    throw new AdminServiceError("User not found", "NOT_FOUND");
+  }
+  return serializeUser(fresh);
+}
+
+/**
  * Admin marks an amount as already paid outside the app (e.g. SafePal/treasury send).
  * Debits earnings and matching withdrawal allowance so the user cannot withdraw again.
  */

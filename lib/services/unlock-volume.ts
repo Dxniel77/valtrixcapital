@@ -268,3 +268,61 @@ export function unlockVolumesFromUser(user: UnlockVolumeMicro): {
     ],
   };
 }
+
+/**
+ * Admin repair: credit direct-sales unlock volume on a sponsored account.
+ * Does NOT change earnings or active capital — only the progress bar counters.
+ */
+export async function creditUnlockVolumeForUser(input: {
+  userId: string;
+  amountMicro: bigint;
+  level?: "direct" | "l2";
+}): Promise<{
+  directSalesVolume: number;
+  levelVolumes: number[];
+  withdrawalUnlocked: boolean;
+}> {
+  if (input.amountMicro <= 0n) {
+    throw new Error("Amount must be positive");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: {
+      id: true,
+      accountGranted: true,
+      unlockDirectVolume: true,
+      unlockLevel1Volume: true,
+      unlockLevel2Volume: true,
+      withdrawalUnlocked: true,
+    },
+  });
+  if (!user) throw new Error("User not found");
+  if (!user.accountGranted) {
+    throw new Error("Unlock volume credit is only for sponsored accounts");
+  }
+
+  const level = input.level ?? "direct";
+  if (level === "l2") {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { unlockLevel2Volume: { increment: input.amountMicro } },
+    });
+  } else {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        unlockDirectVolume: { increment: input.amountMicro },
+        unlockLevel1Volume: { increment: input.amountMicro },
+      },
+    });
+  }
+
+  const unlocked = await evaluateAndPersistWithdrawalUnlock(user.id);
+  const volumes = await resolveUnlockVolumes(user.id);
+
+  return {
+    ...volumes,
+    withdrawalUnlocked: unlocked || user.withdrawalUnlocked,
+  };
+}

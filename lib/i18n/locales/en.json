@@ -1321,6 +1321,20 @@
       "tooMuch": "You can release at most ${max}",
       "success": "Released ${amount} USDT for withdrawal"
     },
+    "unlockVolume": {
+      "title": "Add unlock progress volume",
+      "hint": "Adds Direct sales volume for this sponsored user (progress bar only). Does not change earnings or active capital. Use when a referral deposit was registered manually as company balance.",
+      "currentDirect": "Current direct sales",
+      "status": "Withdrawals",
+      "unlocked": "Fully unlocked",
+      "locked": "Still locked",
+      "amount": "Volume to add (USDT)",
+      "note": "Note",
+      "notePlaceholder": "e.g. Daned 490+35 manual repair",
+      "cta": "Add to progress",
+      "invalidAmount": "Enter a valid positive amount",
+      "success": "Added ${amount} USDT to unlock progress"
+    },
     "manualPayout": {
       "title": "Already paid manually",
       "hint": "Use this only after you already sent USDT outside the app (treasury / SafePal). It removes that amount from Valtrix balance and from any released allowance so the user cannot withdraw it again. It does not send USDT.",
