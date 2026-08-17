@@ -116,6 +116,16 @@ type Desk = {
     currentClosesAt: string | null;
     currentOperationId: string | null;
   };
+  target: {
+    enabled: boolean;
+    targetBps: number;
+    cycleDays: number;
+    startedAt: string | null;
+    elapsedDays: number;
+    dayIndex: number;
+    progressBps: number;
+    expectedBps: number;
+  };
   events: Array<{
     id: string;
     returnBps: number;
@@ -506,6 +516,28 @@ export default function AdminCopyTraderDeskPage() {
     }
   }
 
+  async function setTarget(input: {
+    targetMode: boolean;
+    monthlyTargetBps?: number;
+    targetCycleDays?: number;
+  }) {
+    setBusy("target");
+    try {
+      await apiFetch(`/api/admin/copy/traders/${traderId}/target`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      });
+      toast.success(t("admin.copyTrading.targetSaved"));
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function removeOperation(id: string) {
     if (!window.confirm(t("admin.copyTrading.confirmDeleteOp"))) return;
     setBusy(`op:${id}`);
@@ -653,7 +685,9 @@ export default function AdminCopyTraderDeskPage() {
                     {t("admin.copyTrading.visible")}
                   </Badge>
                 )}
-                <Badge variant="outline">{desk.trader.riskLevel}</Badge>
+                <Badge variant="outline">
+                  {t(`admin.copyTrading.risk${desk.trader.riskLevel}`)}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1136,6 +1170,75 @@ export default function AdminCopyTraderDeskPage() {
                       "—"
                     )}
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.monthlyTargetTitle")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {desk.target.enabled ? (
+                  <p className="text-sm text-text-secondary">
+                    {t("admin.copyTrading.targetActive", {
+                      pct: (desk.target.targetBps / 100).toFixed(2),
+                      days: desk.target.cycleDays,
+                      day: desk.target.dayIndex,
+                      progress: (desk.target.progressBps / 100).toFixed(2),
+                      expected: (desk.target.expectedBps / 100).toFixed(2),
+                    })}
+                  </p>
+                ) : (
+                  <p className="text-sm text-text-muted">
+                    {t("admin.copyTrading.targetInactive")}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={busy === "target"}
+                    onClick={() =>
+                      void setTarget({
+                        targetMode: true,
+                        monthlyTargetBps: -5000,
+                        targetCycleDays: 10,
+                      })
+                    }
+                  >
+                    {t("admin.copyTrading.quickTarget50")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={busy === "target"}
+                    onClick={() =>
+                      void setTarget({
+                        targetMode: true,
+                        monthlyTargetBps: -9000,
+                        targetCycleDays: 10,
+                      })
+                    }
+                  >
+                    {t("admin.copyTrading.quickTarget90")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={busy === "target"}
+                    onClick={() =>
+                      void setTarget({
+                        targetMode: false,
+                        monthlyTargetBps: 0,
+                        targetCycleDays: 30,
+                      })
+                    }
+                  >
+                    {t("admin.copyTrading.clearTarget")}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

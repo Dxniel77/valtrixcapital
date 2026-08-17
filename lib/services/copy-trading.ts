@@ -52,6 +52,17 @@ import {
   platformOpenFeeMicro,
   platformOpenFeeNote,
 } from "@/lib/copy-trading/platform-open-fee";
+import {
+  DEFAULT_LOSS_PROB_BPS,
+  DEFAULT_TARGET_CYCLE_DAYS,
+  DEFAULT_WIN_PROB_BPS,
+  assignOperationRole,
+  pickLiveReturnBps,
+  resolveTargetCycleStart,
+  targetElapsedDays,
+  targetProgressSnapshot,
+} from "@/lib/copy-trading/monthly-target";
+import { riskProfileOf } from "@/lib/copy-trading/risk-profiles";
 import { resolveUplineChain } from "@/lib/services/referral-chain";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
@@ -138,6 +149,12 @@ export type AdminCopyTraderDto = CopyTraderDto & {
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
   nextOperationAt: string | null;
+  winProbBps: number;
+  lossProbBps: number;
+  targetMode: boolean;
+  monthlyTargetBps: number;
+  targetCycleDays: number;
+  targetCycleStartedAt: string | null;
   activeInvestments: number;
   copierPrincipal: number;
   copierValue: number;
@@ -508,6 +525,12 @@ function serializeAdminTrader(
     simulationLastRunAt: t.simulationLastRunAt?.toISOString() ?? null,
     simulationNextRunAt: t.simulationNextRunAt?.toISOString() ?? null,
     nextOperationAt: t.nextOperationAt?.toISOString() ?? null,
+    winProbBps: t.winProbBps ?? DEFAULT_WIN_PROB_BPS,
+    lossProbBps: t.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
+    targetMode: t.targetMode ?? false,
+    monthlyTargetBps: t.monthlyTargetBps ?? 0,
+    targetCycleDays: t.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS,
+    targetCycleStartedAt: t.targetCycleStartedAt?.toISOString() ?? null,
     activeInvestments: t._count.investments,
     copierPrincipal: fromMicro(principal),
     copierValue: fromMicro(value),
@@ -784,6 +807,11 @@ export type AdminCopyTraderInput = {
   simulationMaxOpsPerDay: number;
   simulationDurationMinMinutes: number;
   simulationDurationMaxMinutes: number;
+  winProbBps?: number;
+  lossProbBps?: number;
+  targetMode?: boolean;
+  monthlyTargetBps?: number;
+  targetCycleDays?: number;
 };
 
 function validateAdminTraderInput(input: AdminCopyTraderInput): void {
@@ -868,6 +896,65 @@ function validateAdminTraderInput(input: AdminCopyTraderInput): void {
       "INVALID_AMOUNT",
     );
   }
+  const winProbBps = input.winProbBps ?? DEFAULT_WIN_PROB_BPS;
+  const lossProbBps = input.lossProbBps ?? DEFAULT_LOSS_PROB_BPS;
+  if (
+    !Number.isInteger(winProbBps) ||
+    !Number.isInteger(lossProbBps) ||
+    winProbBps < 0 ||
+    lossProbBps < 0 ||
+    winProbBps > 10_000 ||
+    lossProbBps > 10_000
+  ) {
+    throw new CopyTradingError("Invalid win/loss mix", "INVALID_AMOUNT");
+  }
+  const monthlyTargetBps = input.monthlyTargetBps ?? 0;
+  const targetCycleDays = input.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS;
+  if (
+    !Number.isInteger(monthlyTargetBps) ||
+    monthlyTargetBps < -10_000 ||
+    monthlyTargetBps > 10_000
+  ) {
+    throw new CopyTradingError("Invalid monthly target", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(targetCycleDays) ||
+    targetCycleDays < 1 ||
+    targetCycleDays > 90
+  ) {
+    throw new CopyTradingError("Invalid target cycle", "INVALID_AMOUNT");
+  }
+}
+
+function targetFieldsFromInput(
+  input: AdminCopyTraderInput,
+  existing?: {
+    targetMode: boolean;
+    targetCycleDays: number;
+    targetCycleStartedAt: Date | null;
+  },
+  now = new Date(),
+) {
+  const targetMode = input.targetMode ?? false;
+  const monthlyTargetBps = input.monthlyTargetBps ?? 0;
+  const targetCycleDays = input.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS;
+  const restart =
+    targetMode &&
+    (!existing?.targetMode ||
+      existing.targetCycleDays !== targetCycleDays ||
+      existing.targetCycleStartedAt == null);
+  return {
+    winProbBps: input.winProbBps ?? DEFAULT_WIN_PROB_BPS,
+    lossProbBps: input.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
+    targetMode,
+    monthlyTargetBps,
+    targetCycleDays,
+    targetCycleStartedAt: restart
+      ? now
+      : targetMode
+        ? existing?.targetCycleStartedAt ?? now
+        : existing?.targetCycleStartedAt ?? null,
+  };
 }
 
 export async function listAdminCopyTraders(): Promise<AdminCopyTraderDto[]> {
@@ -961,6 +1048,7 @@ export async function createAdminCopyTrader(
         simulationMaxOpsPerDay: input.simulationMaxOpsPerDay,
         simulationDurationMinMinutes: input.simulationDurationMinMinutes,
         simulationDurationMaxMinutes: input.simulationDurationMaxMinutes,
+        ...targetFieldsFromInput(input, undefined, now),
         simulationNextRunAt: input.simulationEnabled ? now : null,
         nextOperationAt: input.simulationEnabled ? now : null,
       },
@@ -1024,6 +1112,7 @@ export async function updateAdminCopyTrader(
         simulationMaxOpsPerDay: input.simulationMaxOpsPerDay,
         simulationDurationMinMinutes: input.simulationDurationMinMinutes,
         simulationDurationMaxMinutes: input.simulationDurationMaxMinutes,
+        ...targetFieldsFromInput(input, existing, now),
         simulationNextRunAt: !input.simulationEnabled
           ? null
           : input.simulationEnabled && !existing.simulationEnabled
@@ -1044,6 +1133,81 @@ export async function updateAdminCopyTrader(
           kind: "COPY_TRADER_UPDATED",
           traderId,
           name: input.name.trim(),
+        },
+      },
+    });
+    return tx.copyTrader.findUniqueOrThrow({
+      where: { id: traderId },
+      include: {
+        _count: { select: { investments: { where: { status: "ACTIVE" } } } },
+      },
+    });
+  });
+  return serializeAdminTrader(row);
+}
+
+export async function updateAdminCopyTraderTarget(
+  traderId: string,
+  input: {
+    targetMode: boolean;
+    monthlyTargetBps?: number;
+    targetCycleDays?: number;
+  },
+  adminUserId: string,
+): Promise<AdminCopyTraderDto> {
+  const existing = await prisma.copyTrader.findUnique({
+    where: { id: traderId },
+  });
+  if (!existing) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  const monthlyTargetBps = input.monthlyTargetBps ?? existing.monthlyTargetBps;
+  const targetCycleDays = input.targetCycleDays ?? existing.targetCycleDays;
+  if (
+    !Number.isInteger(monthlyTargetBps) ||
+    monthlyTargetBps < -10_000 ||
+    monthlyTargetBps > 10_000
+  ) {
+    throw new CopyTradingError("Invalid monthly target", "INVALID_AMOUNT");
+  }
+  if (
+    !Number.isInteger(targetCycleDays) ||
+    targetCycleDays < 1 ||
+    targetCycleDays > 90
+  ) {
+    throw new CopyTradingError("Invalid target cycle", "INVALID_AMOUNT");
+  }
+
+  const now = new Date();
+  const restart =
+    input.targetMode &&
+    (!existing.targetMode ||
+      existing.targetCycleDays !== targetCycleDays ||
+      existing.targetCycleStartedAt == null);
+
+  const row = await prisma.$transaction(async (tx) => {
+    await tx.copyTrader.update({
+      where: { id: traderId },
+      data: {
+        targetMode: input.targetMode,
+        monthlyTargetBps,
+        targetCycleDays,
+        targetCycleStartedAt: restart
+          ? now
+          : input.targetMode
+            ? existing.targetCycleStartedAt ?? now
+            : existing.targetCycleStartedAt,
+      },
+    });
+    await tx.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: "UPDATE_CONFIG",
+        payload: {
+          kind: "COPY_TRADER_TARGET",
+          traderId,
+          targetMode: input.targetMode,
+          monthlyTargetBps,
+          targetCycleDays,
         },
       },
     });
@@ -2079,6 +2243,16 @@ export type CopyLiveTraderRow = {
   opsToday: number;
   opsTarget: number;
   status: CopyLiveTraderStatus;
+  target: {
+    enabled: boolean;
+    targetBps: number;
+    cycleDays: number;
+    startedAt: string | null;
+    elapsedDays: number;
+    dayIndex: number;
+    progressBps: number;
+    expectedBps: number;
+  };
 };
 
 export type AdminCopyLiveBoardDto = {
@@ -2185,6 +2359,10 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
         simulationOpsTarget: true,
         simulationOpsDayKey: true,
         nextOperationAt: true,
+        targetMode: true,
+        monthlyTargetBps: true,
+        targetCycleDays: true,
+        targetCycleStartedAt: true,
       },
     }),
     prisma.copyTraderOperation.findMany({
@@ -2335,6 +2513,25 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
           open,
           now,
         ),
+        target: targetProgressSnapshot({
+          enabled: trader.targetMode,
+          targetBps: trader.monthlyTargetBps,
+          cycleDays: trader.targetCycleDays,
+          startedAt: trader.targetCycleStartedAt,
+          progressBps: trader.targetMode
+            ? closed
+                .filter((op) => {
+                  const start = resolveTargetCycleStart(
+                    trader.targetCycleStartedAt,
+                    trader.targetCycleDays,
+                    now,
+                  );
+                  return op.closedAt != null && op.closedAt >= start;
+                })
+                .reduce((sum, op) => sum + (op.settledReturnBps ?? 0), 0)
+            : 0,
+          now,
+        }),
       };
     }),
   };
@@ -2398,6 +2595,16 @@ export type AdminCopyTraderDeskDto = {
     nextOperationAt: string | null;
     currentClosesAt: string | null;
     currentOperationId: string | null;
+  };
+  target: {
+    enabled: boolean;
+    targetBps: number;
+    cycleDays: number;
+    startedAt: string | null;
+    elapsedDays: number;
+    dayIndex: number;
+    progressBps: number;
+    expectedBps: number;
   };
 };
 
@@ -3114,7 +3321,7 @@ export async function getAdminCopyTraderDesk(
   const config = await ensureCopyTradingConfig();
   const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
 
-  const [active, chartPoints, operations, events, feeRows, weekStats, networkPaid] =
+  const [active, chartPoints, operations, events, feeRows, weekStats, networkPaid, cycleSum] =
     await Promise.all([
     prisma.copyInvestment.findMany({
       where: { traderId, status: "ACTIVE" },
@@ -3148,6 +3355,22 @@ export async function getAdminCopyTraderDesk(
     }),
     getCopyTraderStats(traderId, "WEEK", { requireVisible: false }),
     copyNetworkPaidMicro(traderId),
+    trader.targetMode
+      ? prisma.copyTraderOperation.aggregate({
+          where: {
+            traderId,
+            status: "CLOSED",
+            closedAt: {
+              gte: resolveTargetCycleStart(
+                trader.targetCycleStartedAt,
+                trader.targetCycleDays,
+                new Date(),
+              ),
+            },
+          },
+          _sum: { settledReturnBps: true },
+        })
+      : Promise.resolve({ _sum: { settledReturnBps: null } }),
   ]);
 
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
@@ -3261,6 +3484,14 @@ export async function getAdminCopyTraderDesk(
       currentOperationId:
         operations.find((operation) => operation.status === "OPEN")?.id ?? null,
     },
+    target: targetProgressSnapshot({
+      enabled: trader.targetMode,
+      targetBps: trader.monthlyTargetBps,
+      cycleDays: trader.targetCycleDays,
+      startedAt: trader.targetCycleStartedAt,
+      progressBps: cycleSum._sum.settledReturnBps ?? 0,
+      now,
+    }),
   };
 }
 
@@ -3954,24 +4185,58 @@ async function openSimulatedOperation(
   const digest = scheduleDigest(operationKey);
   const market = SIMULATED_MARKETS[digest[0] % SIMULATED_MARKETS.length];
   const direction = digest[1] % 2 === 0 ? "LONG" : "SHORT";
-  const leverageRange =
-    trader.riskLevel === "LOW"
-      ? ([1, 3] as const)
-      : trader.riskLevel === "HIGH"
-        ? ([5, 12] as const)
-        : ([2, 6] as const);
+  const profile = riskProfileOf(trader.riskLevel);
   const leverage = deterministicRange(
     digest,
     4,
-    leverageRange[0],
-    leverageRange[1],
+    profile.leverageMin,
+    profile.leverageMax,
   );
-  const targetReturnBps = deterministicRange(
+  let progressBps = 0;
+  let elapsedDays = 0.15;
+  if (trader.targetMode) {
+    const cycleStart = resolveTargetCycleStart(
+      trader.targetCycleStartedAt,
+      trader.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS,
+      now,
+    );
+    if (
+      trader.targetCycleStartedAt == null ||
+      trader.targetCycleStartedAt.getTime() !== cycleStart.getTime()
+    ) {
+      await prisma.copyTrader.update({
+        where: { id: trader.id },
+        data: { targetCycleStartedAt: cycleStart },
+      });
+      trader.targetCycleStartedAt = cycleStart;
+    }
+    const closed = await prisma.copyTraderOperation.aggregate({
+      where: {
+        traderId: trader.id,
+        status: "CLOSED",
+        closedAt: { gte: cycleStart },
+      },
+      _sum: { settledReturnBps: true },
+    });
+    progressBps = closed._sum.settledReturnBps ?? 0;
+    elapsedDays = targetElapsedDays(cycleStart, now);
+  }
+  const role = assignOperationRole({
+    targetMode: trader.targetMode,
+    monthlyTargetBps: trader.monthlyTargetBps,
+    progressBps,
+    elapsedDays,
+    cycleDays: trader.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS,
     digest,
-    8,
-    trader.simulationMinBps,
-    trader.simulationMaxBps,
-  );
+  });
+  const targetReturnBps = pickLiveReturnBps({
+    role,
+    winProbBps: trader.winProbBps ?? DEFAULT_WIN_PROB_BPS,
+    lossProbBps: trader.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
+    minBps: trader.simulationMinBps,
+    maxBps: trader.simulationMaxBps,
+    digest,
+  });
   const entryNoiseBps = deterministicRange(digest, 12, -180, 180);
   const entryPrice = market.basePrice * (1 + entryNoiseBps / 10_000);
   const durationMs = operationDurationMs(

@@ -793,6 +793,15 @@ model CopyTrader {
   simulationNextRunAt     DateTime?
   /// Admin-only next OPEN time. Never expose to users.
   nextOperationAt         DateTime?
+  /// Share of winner-role ops that close green (bps, 6000 = 60%).
+  winProbBps              Int           @default(6000)
+  /// Share of loser-role ops that close red (bps, 4000 = 40%).
+  lossProbBps             Int           @default(4000)
+  /// When true, live ops bias toward monthlyTargetBps over targetCycleDays.
+  targetMode              Boolean       @default(false)
+  monthlyTargetBps        Int           @default(0)
+  targetCycleDays         Int           @default(30)
+  targetCycleStartedAt    DateTime?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 

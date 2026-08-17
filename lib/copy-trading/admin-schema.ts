@@ -23,6 +23,11 @@ export const adminCopyTraderSchema = z.object({
   simulationMaxOpsPerDay: z.number().int().min(1).max(48).default(20),
   simulationDurationMinMinutes: z.number().int().min(1).max(120).default(3),
   simulationDurationMaxMinutes: z.number().int().min(1).max(120).default(10),
+  winProbBps: z.number().int().min(0).max(10_000).default(6000),
+  lossProbBps: z.number().int().min(0).max(10_000).default(4000),
+  targetMode: z.boolean().default(false),
+  monthlyTargetBps: z.number().int().min(-10_000).max(10_000).default(0),
+  targetCycleDays: z.number().int().min(1).max(90).default(30),
 })
   .refine((value) => value.simulationMinBps <= value.simulationMaxBps, {
     message: "Minimum return cannot exceed maximum",
@@ -35,6 +40,12 @@ export const adminCopyTraderSchema = z.object({
       value.simulationDurationMinMinutes <= value.simulationDurationMaxMinutes,
     { message: "Minimum duration cannot exceed maximum" },
   );
+
+export const adminCopyTraderTargetSchema = z.object({
+  targetMode: z.boolean(),
+  monthlyTargetBps: z.number().int().min(-10_000).max(10_000).optional(),
+  targetCycleDays: z.number().int().min(1).max(90).optional(),
+});
 
 /** Quick toggles from the admin list (Featured / Visible / Active). */
 export const adminCopyTraderFlagsSchema = z

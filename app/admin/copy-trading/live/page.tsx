@@ -80,6 +80,14 @@ type Payload = {
     opsToday: number;
     opsTarget: number;
     status: LiveStatus;
+    target: {
+      enabled: boolean;
+      targetBps: number;
+      cycleDays: number;
+      dayIndex: number;
+      progressBps: number;
+      expectedBps: number;
+    };
   }>;
 };
 
@@ -452,6 +460,7 @@ export default function AdminCopyLiveBoardPage() {
                       {t("admin.copyTrading.livePerformanceFeeCol")}
                     </TH>
                     <TH>{t("admin.copyTrading.opsToday")}</TH>
+                    <TH>{t("admin.copyTrading.monthlyTarget")}</TH>
                     <TH>{t("admin.copyTrading.liveCurrentOp")}</TH>
                   </THeadRow>
                   <TBody>
@@ -485,6 +494,16 @@ export default function AdminCopyLiveBoardPage() {
                         </TD>
                         <TD className="font-mono">
                           {trader.opsToday} / {trader.opsTarget}
+                        </TD>
+                        <TD className="text-xs text-text-secondary">
+                          {trader.target.enabled
+                            ? t("admin.copyTrading.liveTargetCell", {
+                                pct: (trader.target.targetBps / 100).toFixed(1),
+                                progress: (trader.target.progressBps / 100).toFixed(1),
+                                day: trader.target.dayIndex,
+                                days: trader.target.cycleDays,
+                              })
+                            : "—"}
                         </TD>
                         <TD className="max-w-[280px] text-xs text-text-secondary">
                           {statusLabel(trader.status)}

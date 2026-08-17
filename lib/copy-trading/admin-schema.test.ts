@@ -29,6 +29,11 @@ describe("admin copy trader schema", () => {
     assert.equal(parsed.simulationDurationMinMinutes, 3);
     assert.equal(parsed.simulationDurationMaxMinutes, 10);
     assert.equal(parsed.simulationIntervalHours, 24);
+    assert.equal(parsed.winProbBps, 6000);
+    assert.equal(parsed.lossProbBps, 4000);
+    assert.equal(parsed.targetMode, false);
+    assert.equal(parsed.monthlyTargetBps, 0);
+    assert.equal(parsed.targetCycleDays, 30);
   });
 
   it("rejects inverted daily operation bounds", () => {

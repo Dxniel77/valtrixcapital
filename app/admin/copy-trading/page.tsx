@@ -31,6 +31,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
 import { draftReturnBps } from "@/lib/copy-trading/admin-draft";
+import { COPY_RISK_PROFILES } from "@/lib/copy-trading/risk-profiles";
 import { useI18n } from "@/lib/i18n/context";
 import { formatNumber } from "@/lib/utils";
 
@@ -68,6 +69,11 @@ type Trader = {
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
   nextOperationAt: string | null;
+  winProbBps?: number;
+  lossProbBps?: number;
+  targetMode?: boolean;
+  monthlyTargetBps?: number;
+  targetCycleDays?: number;
   copierPrincipal: number;
   copierValue: number;
   copierPnl: number;
@@ -181,6 +187,11 @@ type TraderForm = {
   simulationMaxOpsPerDay: string;
   simulationDurationMinMinutes: string;
   simulationDurationMaxMinutes: string;
+  winProbPct: string;
+  lossProbPct: string;
+  targetMode: boolean;
+  monthlyTargetPct: string;
+  targetCycleDays: string;
 };
 
 const EMPTY_FORM: TraderForm = {
@@ -203,8 +214,13 @@ const EMPTY_FORM: TraderForm = {
   simulationMaxPct: "1",
   simulationMinOpsPerDay: "8",
   simulationMaxOpsPerDay: "20",
-  simulationDurationMinMinutes: "3",
-  simulationDurationMaxMinutes: "10",
+  simulationDurationMinMinutes: "4",
+  simulationDurationMaxMinutes: "8",
+  winProbPct: "60",
+  lossProbPct: "40",
+  targetMode: false,
+  monthlyTargetPct: "6",
+  targetCycleDays: "30",
 };
 
 /** `crypto.randomUUID` is unavailable outside secure contexts (plain-HTTP hosts). */
@@ -239,6 +255,11 @@ function traderToForm(trader: Trader): TraderForm {
     simulationMaxOpsPerDay: String(trader.simulationMaxOpsPerDay ?? 20),
     simulationDurationMinMinutes: String(trader.simulationDurationMinMinutes ?? 3),
     simulationDurationMaxMinutes: String(trader.simulationDurationMaxMinutes ?? 10),
+    winProbPct: String(((trader.winProbBps ?? 6000) / 100).toFixed(0)),
+    lossProbPct: String(((trader.lossProbBps ?? 4000) / 100).toFixed(0)),
+    targetMode: trader.targetMode ?? false,
+    monthlyTargetPct: String(((trader.monthlyTargetBps ?? 0) / 100).toFixed(1)),
+    targetCycleDays: String(trader.targetCycleDays ?? 30),
   };
 }
 
@@ -279,6 +300,20 @@ function formPayload(form: TraderForm) {
     simulationDurationMaxMinutes: Math.max(
       1,
       Math.trunc(Number(form.simulationDurationMaxMinutes) || 10),
+    ),
+    winProbBps: Math.max(
+      0,
+      Math.min(10_000, Math.round((Number(form.winProbPct) || 0) * 100)),
+    ),
+    lossProbBps: Math.max(
+      0,
+      Math.min(10_000, Math.round((Number(form.lossProbPct) || 0) * 100)),
+    ),
+    targetMode: form.targetMode,
+    monthlyTargetBps: Math.round((Number(form.monthlyTargetPct) || 0) * 100),
+    targetCycleDays: Math.min(
+      90,
+      Math.max(1, Math.trunc(Number(form.targetCycleDays) || 30)),
     ),
   };
 }
@@ -1471,7 +1506,7 @@ export default function AdminCopyTradingPage() {
                                       : "warning"
                                 }
                               >
-                                {trader.riskLevel}
+                                {t(`admin.copyTrading.risk${trader.riskLevel}`)}
                               </Badge>
                               {trader.isFeatured ? (
                                 <Badge variant="warning">
@@ -1788,13 +1823,24 @@ function TraderDialog({
             <Field label={t("admin.copyTrading.risk")}>
               <Select
                 value={form.riskLevel}
-                onChange={(event) =>
-                  update("riskLevel", event.target.value as Risk)
-                }
+                onChange={(event) => {
+                  const risk = event.target.value as Risk;
+                  const profile = COPY_RISK_PROFILES[risk];
+                  setForm((current) => ({
+                    ...current,
+                    riskLevel: risk,
+                    simulationDurationMinMinutes: String(
+                      profile.durationMinMinutes,
+                    ),
+                    simulationDurationMaxMinutes: String(
+                      profile.durationMaxMinutes,
+                    ),
+                  }));
+                }}
               >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
+                <option value="LOW">{t("admin.copyTrading.riskLOW")}</option>
+                <option value="MEDIUM">{t("admin.copyTrading.riskMEDIUM")}</option>
+                <option value="HIGH">{t("admin.copyTrading.riskHIGH")}</option>
               </Select>
             </Field>
           </div>
@@ -1966,7 +2012,60 @@ function TraderDialog({
                   }
                 />
               </Field>
+              <Field label={t("admin.copyTrading.winProb")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="1"
+                  value={form.winProbPct}
+                  onChange={(event) => update("winProbPct", event.target.value)}
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.lossProb")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="1"
+                  value={form.lossProbPct}
+                  onChange={(event) => update("lossProbPct", event.target.value)}
+                />
+              </Field>
             </div>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="flex items-end">
+                <Check
+                  label={t("admin.copyTrading.targetMode")}
+                  checked={form.targetMode}
+                  onChange={(value) => update("targetMode", value)}
+                />
+              </div>
+              <Field label={t("admin.copyTrading.monthlyTarget")}>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={form.monthlyTargetPct}
+                  onChange={(event) =>
+                    update("monthlyTargetPct", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.targetCycleDays")}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={form.targetCycleDays}
+                  onChange={(event) =>
+                    update("targetCycleDays", event.target.value)
+                  }
+                />
+              </Field>
+            </div>
+            <p className="mt-2 text-xs text-text-muted">
+              {t("admin.copyTrading.targetHint")}
+            </p>
           </div>
         </DialogBody>
         <DialogFooter>
