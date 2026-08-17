@@ -21,6 +21,25 @@ import {
   generateShowcaseCopiers,
   showcaseCountForTrader,
 } from "@/lib/copy-trading/showcase-copiers";
+import {
+  DEFAULT_DURATION_MAX_MINUTES,
+  DEFAULT_DURATION_MIN_MINUTES,
+  DEFAULT_MAX_OPS_PER_DAY,
+  DEFAULT_MIN_OPS_PER_DAY,
+  afterCloseSchedule,
+  deterministicRange,
+  ensureDayPlan,
+  nextWakeAt,
+  operationDurationMs,
+  operationOpenIdempotencyKey,
+  operationSettlementKey,
+  scheduleDigest,
+  simulatedOpenKey,
+  type DayPlan,
+  type ScheduleSettings,
+  utcDayStart,
+  utcNextDayStart,
+} from "@/lib/copy-trading/operation-schedule";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -96,8 +115,16 @@ export type AdminCopyTraderDto = CopyTraderDto & {
   simulationMinBps: number;
   simulationMaxBps: number;
   simulationIntervalHours: number;
+  simulationMinOpsPerDay: number;
+  simulationMaxOpsPerDay: number;
+  simulationDurationMinMinutes: number;
+  simulationDurationMaxMinutes: number;
+  simulationOpsDayKey: string | null;
+  simulationOpsToday: number;
+  simulationOpsTarget: number;
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
+  nextOperationAt: string | null;
   activeInvestments: number;
   copierPrincipal: number;
   copierValue: number;
@@ -167,14 +194,17 @@ export type CopyTraderOperationDto = {
   entryPrice: number;
   markPrice: number;
   exitPrice: number | null;
-  targetReturnBps: number;
   floatingReturnBps: number;
   settledReturnBps: number | null;
   status: "OPEN" | "CLOSED";
   openedAt: string;
-  closesAt: string;
   closedAt: string | null;
   simulated: true;
+};
+
+export type AdminCopyTraderOperationDto = CopyTraderOperationDto & {
+  targetReturnBps: number;
+  closesAt: string;
 };
 
 export type CopyTraderStatsPeriod = "TODAY" | "WEEK" | "MONTH" | "ALL";
@@ -339,8 +369,16 @@ function serializeAdminTrader(
     simulationMinBps: t.simulationMinBps,
     simulationMaxBps: t.simulationMaxBps,
     simulationIntervalHours: t.simulationIntervalHours,
+    simulationMinOpsPerDay: t.simulationMinOpsPerDay,
+    simulationMaxOpsPerDay: t.simulationMaxOpsPerDay,
+    simulationDurationMinMinutes: t.simulationDurationMinMinutes,
+    simulationDurationMaxMinutes: t.simulationDurationMaxMinutes,
+    simulationOpsDayKey: t.simulationOpsDayKey,
+    simulationOpsToday: t.simulationOpsToday,
+    simulationOpsTarget: t.simulationOpsTarget,
     simulationLastRunAt: t.simulationLastRunAt?.toISOString() ?? null,
     simulationNextRunAt: t.simulationNextRunAt?.toISOString() ?? null,
+    nextOperationAt: t.nextOperationAt?.toISOString() ?? null,
     activeInvestments: t._count.investments,
     copierPrincipal: fromMicro(principal),
     copierValue: fromMicro(value),
@@ -579,7 +617,11 @@ export type AdminCopyTraderInput = {
   simulationEnabled: boolean;
   simulationMinBps: number;
   simulationMaxBps: number;
-  simulationIntervalHours: number;
+  simulationIntervalHours?: number;
+  simulationMinOpsPerDay: number;
+  simulationMaxOpsPerDay: number;
+  simulationDurationMinMinutes: number;
+  simulationDurationMaxMinutes: number;
 };
 
 function validateAdminTraderInput(input: AdminCopyTraderInput): void {
@@ -629,13 +671,38 @@ function validateAdminTraderInput(input: AdminCopyTraderInput): void {
       "INVALID_AMOUNT",
     );
   }
+  const intervalHours = input.simulationIntervalHours ?? 24;
   if (
-    !Number.isInteger(input.simulationIntervalHours) ||
-    input.simulationIntervalHours < 1 ||
-    input.simulationIntervalHours > 720
+    !Number.isInteger(intervalHours) ||
+    intervalHours < 1 ||
+    intervalHours > 720
   ) {
     throw new CopyTradingError(
       "Simulation interval must be between 1 and 720 hours",
+      "INVALID_AMOUNT",
+    );
+  }
+  if (
+    !Number.isInteger(input.simulationMinOpsPerDay) ||
+    !Number.isInteger(input.simulationMaxOpsPerDay) ||
+    input.simulationMinOpsPerDay < 1 ||
+    input.simulationMaxOpsPerDay > 48 ||
+    input.simulationMinOpsPerDay > input.simulationMaxOpsPerDay
+  ) {
+    throw new CopyTradingError(
+      "Daily operations must be between 1 and 48",
+      "INVALID_AMOUNT",
+    );
+  }
+  if (
+    !Number.isInteger(input.simulationDurationMinMinutes) ||
+    !Number.isInteger(input.simulationDurationMaxMinutes) ||
+    input.simulationDurationMinMinutes < 1 ||
+    input.simulationDurationMaxMinutes > 120 ||
+    input.simulationDurationMinMinutes > input.simulationDurationMaxMinutes
+  ) {
+    throw new CopyTradingError(
+      "Operation duration must be between 1 and 120 minutes",
       "INVALID_AMOUNT",
     );
   }
@@ -727,8 +794,13 @@ export async function createAdminCopyTrader(
         simulationEnabled: input.simulationEnabled,
         simulationMinBps: input.simulationMinBps,
         simulationMaxBps: input.simulationMaxBps,
-        simulationIntervalHours: input.simulationIntervalHours,
+        simulationIntervalHours: input.simulationIntervalHours ?? 24,
+        simulationMinOpsPerDay: input.simulationMinOpsPerDay,
+        simulationMaxOpsPerDay: input.simulationMaxOpsPerDay,
+        simulationDurationMinMinutes: input.simulationDurationMinMinutes,
+        simulationDurationMaxMinutes: input.simulationDurationMaxMinutes,
         simulationNextRunAt: input.simulationEnabled ? now : null,
+        nextOperationAt: input.simulationEnabled ? now : null,
       },
     });
     await tx.adminAction.create({
@@ -762,6 +834,7 @@ export async function updateAdminCopyTrader(
     where: { id: traderId },
   });
   if (!existing) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+  const now = new Date();
 
   const row = await prisma.$transaction(async (tx) => {
     await tx.copyTrader.update({
@@ -784,10 +857,20 @@ export async function updateAdminCopyTrader(
         simulationEnabled: input.simulationEnabled,
         simulationMinBps: input.simulationMinBps,
         simulationMaxBps: input.simulationMaxBps,
-        simulationIntervalHours: input.simulationIntervalHours,
-        simulationNextRunAt:
-          input.simulationEnabled && !existing.simulationEnabled
-            ? new Date()
+        simulationIntervalHours: input.simulationIntervalHours ?? 24,
+        simulationMinOpsPerDay: input.simulationMinOpsPerDay,
+        simulationMaxOpsPerDay: input.simulationMaxOpsPerDay,
+        simulationDurationMinMinutes: input.simulationDurationMinMinutes,
+        simulationDurationMaxMinutes: input.simulationDurationMaxMinutes,
+        simulationNextRunAt: !input.simulationEnabled
+          ? null
+          : input.simulationEnabled && !existing.simulationEnabled
+            ? now
+            : undefined,
+        nextOperationAt: !input.simulationEnabled
+          ? null
+          : input.simulationEnabled && !existing.simulationEnabled
+            ? now
             : undefined,
       },
     });
@@ -1751,7 +1834,7 @@ export async function getAdminCopyDashboard() {
     },
     traders,
     openOperations: openOperations.map((operation) =>
-      serializeCopyOperation(operation),
+      serializeCopyOperation(operation, undefined, { forAdmin: true }),
     ),
     pendingWithdrawals: pendingRows.map((w) => ({
       id: w.id,
@@ -1818,8 +1901,20 @@ export type AdminCopyTraderDeskDto = {
     lossProtected: boolean;
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
-  operations: CopyTraderOperationDto[];
+  operations: AdminCopyTraderOperationDto[];
   events: CopyPerformanceEventDto[];
+  liveSchedule: {
+    enabled: boolean;
+    opsToday: number;
+    opsTarget: number;
+    minOpsPerDay: number;
+    maxOpsPerDay: number;
+    durationMinMinutes: number;
+    durationMaxMinutes: number;
+    nextOperationAt: string | null;
+    currentClosesAt: string | null;
+    currentOperationId: string | null;
+  };
 };
 
 export type AdminPerformancePreviewDto = {
@@ -2608,7 +2703,7 @@ export async function getAdminCopyTraderDesk(
       valueBps: point.valueBps,
     })),
     operations: operations.map((operation) =>
-      serializeCopyOperation(operation, now),
+      serializeCopyOperation(operation, now, { forAdmin: true }),
     ),
     events: events.map((event) => ({
       id: event.id,
@@ -2619,6 +2714,21 @@ export async function getAdminCopyTraderDesk(
       source: event.source,
       createdAt: event.createdAt.toISOString(),
     })),
+    liveSchedule: {
+      enabled: trader.simulationEnabled,
+      opsToday: trader.simulationOpsToday,
+      opsTarget: trader.simulationOpsTarget,
+      minOpsPerDay: trader.simulationMinOpsPerDay,
+      maxOpsPerDay: trader.simulationMaxOpsPerDay,
+      durationMinMinutes: trader.simulationDurationMinMinutes,
+      durationMaxMinutes: trader.simulationDurationMaxMinutes,
+      nextOperationAt: trader.nextOperationAt?.toISOString() ?? null,
+      currentClosesAt:
+        operations.find((operation) => operation.status === "OPEN")?.closesAt.toISOString() ??
+        null,
+      currentOperationId:
+        operations.find((operation) => operation.status === "OPEN")?.id ?? null,
+    },
   };
 }
 
@@ -2810,7 +2920,7 @@ export async function createAdminCopyOperation(
   traderId: string,
   input: AdminCopyOperationInput,
   adminUserId: string,
-): Promise<CopyTraderOperationDto> {
+): Promise<AdminCopyTraderOperationDto> {
   validateOperationInput(input);
   const trader = await prisma.copyTrader.findUnique({ where: { id: traderId } });
   if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
@@ -2855,10 +2965,7 @@ export async function createAdminCopyOperation(
             ? (input.settledReturnBps ?? input.targetReturnBps)
             : null,
         idempotencyKey: `admin-op:${traderId}:${randomUUID()}`,
-        openKey:
-          input.status === "OPEN"
-            ? `admin-open:${traderId}:${randomUUID()}`
-            : null,
+        openKey: input.status === "OPEN" ? simulatedOpenKey(traderId) : null,
       },
     });
     await tx.adminAction.create({
@@ -2875,14 +2982,14 @@ export async function createAdminCopyOperation(
     return created;
   });
 
-  return serializeCopyOperation(row);
+  return serializeCopyOperation(row, undefined, { forAdmin: true });
 }
 
 export async function updateAdminCopyOperation(
   operationId: string,
   input: AdminCopyOperationInput,
   adminUserId: string,
-): Promise<CopyTraderOperationDto> {
+): Promise<AdminCopyTraderOperationDto> {
   validateOperationInput(input);
   const existing = await prisma.copyTraderOperation.findUnique({
     where: { id: operationId },
@@ -2934,7 +3041,7 @@ export async function updateAdminCopyOperation(
             : null,
         openKey:
           input.status === "OPEN"
-            ? (existing.openKey ?? `admin-open:${existing.traderId}:${randomUUID()}`)
+            ? simulatedOpenKey(existing.traderId)
             : null,
       },
     });
@@ -2952,7 +3059,7 @@ export async function updateAdminCopyOperation(
     return updated;
   });
 
-  return serializeCopyOperation(row);
+  return serializeCopyOperation(row, undefined, { forAdmin: true });
 }
 
 export async function deleteAdminCopyOperation(
@@ -2993,20 +3100,6 @@ const SIMULATED_MARKETS = [
   { symbol: "DOTUSDT", basePrice: 4.2 },
 ] as const;
 
-function operationDigest(seed: string): Buffer {
-  return createHash("sha256").update(seed).digest();
-}
-
-function deterministicRange(
-  digest: Buffer,
-  offset: number,
-  min: number,
-  max: number,
-): number {
-  if (min === max) return min;
-  return min + (digest.readUInt32BE(offset) % (max - min + 1));
-}
-
 function operationMark(
   operation: Prisma.CopyTraderOperationGetPayload<object>,
   now = new Date(),
@@ -3027,7 +3120,7 @@ function operationMark(
     0,
     Math.min(1, (now.getTime() - operation.openedAt.getTime()) / duration),
   );
-  const waveSeed = operationDigest(operation.id).readUInt16BE(0) / 65_535;
+  const waveSeed = scheduleDigest(operation.id).readUInt16BE(0) / 65_535;
   const wave = Math.sin(progress * Math.PI) * (waveSeed - 0.5) * 36;
   const floatingReturnBps = Math.round(
     operation.targetReturnBps * progress + wave,
@@ -3043,10 +3136,21 @@ function operationMark(
 
 function serializeCopyOperation(
   operation: Prisma.CopyTraderOperationGetPayload<object>,
+  now: Date | undefined,
+  opts: { forAdmin: true },
+): AdminCopyTraderOperationDto;
+function serializeCopyOperation(
+  operation: Prisma.CopyTraderOperationGetPayload<object>,
+  now?: Date,
+  opts?: { forAdmin?: false },
+): CopyTraderOperationDto;
+function serializeCopyOperation(
+  operation: Prisma.CopyTraderOperationGetPayload<object>,
   now = new Date(),
-): CopyTraderOperationDto {
+  opts?: { forAdmin?: boolean },
+): CopyTraderOperationDto | AdminCopyTraderOperationDto {
   const mark = operationMark(operation, now);
-  return {
+  const dto: CopyTraderOperationDto = {
     id: operation.id,
     traderId: operation.traderId,
     symbol: operation.symbol,
@@ -3055,14 +3159,18 @@ function serializeCopyOperation(
     entryPrice: Number(operation.entryPrice),
     markPrice: mark.markPrice,
     exitPrice: operation.exitPrice == null ? null : Number(operation.exitPrice),
-    targetReturnBps: operation.targetReturnBps,
     floatingReturnBps: mark.floatingReturnBps,
     settledReturnBps: operation.settledReturnBps,
     status: operation.status as "OPEN" | "CLOSED",
     openedAt: operation.openedAt.toISOString(),
-    closesAt: operation.closesAt.toISOString(),
     closedAt: operation.closedAt?.toISOString() ?? null,
     simulated: true,
+  };
+  if (!opts?.forAdmin) return dto;
+  return {
+    ...dto,
+    targetReturnBps: operation.targetReturnBps,
+    closesAt: operation.closesAt.toISOString(),
   };
 }
 
@@ -3301,15 +3409,17 @@ export async function listCopyTraderCopiers(
 
 async function openSimulatedOperation(
   trader: Prisma.CopyTraderGetPayload<object>,
+  plan: DayPlan,
   now: Date,
-  force: boolean,
+  attempt = 0,
 ): Promise<Prisma.CopyTraderOperationGetPayload<object>> {
-  const intervalMs = trader.simulationIntervalHours * 60 * 60 * 1000;
-  const bucket = Math.floor(now.getTime() / intervalMs);
-  const operationKey = force
-    ? `operation:${trader.id}:manual:${randomUUID()}`
-    : `operation:${trader.id}:${bucket}`;
-  const digest = operationDigest(operationKey);
+  if (attempt > 5) {
+    throw new CopyTradingError("Could not open operation", "INVALID_AMOUNT");
+  }
+  const settings = scheduleSettingsFromTrader(trader);
+  const seq = plan.opsToday;
+  const operationKey = operationOpenIdempotencyKey(trader.id, plan.dayKey, seq);
+  const digest = scheduleDigest(operationKey);
   const market = SIMULATED_MARKETS[digest[0] % SIMULATED_MARKETS.length];
   const direction = digest[1] % 2 === 0 ? "LONG" : "SHORT";
   const leverageRange =
@@ -3332,7 +3442,14 @@ async function openSimulatedOperation(
   );
   const entryNoiseBps = deterministicRange(digest, 12, -180, 180);
   const entryPrice = market.basePrice * (1 + entryNoiseBps / 10_000);
-  const closesAt = new Date(now.getTime() + intervalMs);
+  const durationMs = operationDurationMs(
+    trader.id,
+    plan.dayKey,
+    seq,
+    settings.durationMinMinutes,
+    settings.durationMaxMinutes,
+  );
+  const closesAt = new Date(now.getTime() + durationMs);
 
   try {
     const operation = await prisma.copyTraderOperation.create({
@@ -3344,15 +3461,15 @@ async function openSimulatedOperation(
         entryPrice,
         targetReturnBps,
         status: "OPEN",
-        openKey: trader.id,
+        openKey: simulatedOpenKey(trader.id),
         idempotencyKey: operationKey,
         openedAt: now,
         closesAt,
       },
     });
-    await prisma.copyTrader.update({
-      where: { id: trader.id },
-      data: { simulationNextRunAt: closesAt },
+    await persistTraderPlan(trader.id, plan, now, {
+      closesAt,
+      clearNextOpen: true,
     });
     return operation;
   } catch (error) {
@@ -3362,10 +3479,21 @@ async function openSimulatedOperation(
       "code" in error &&
       error.code === "P2002"
     ) {
-      const existing = await prisma.copyTraderOperation.findFirst({
+      const existingOpen = await prisma.copyTraderOperation.findFirst({
         where: { traderId: trader.id, status: "OPEN" },
       });
-      if (existing) return existing;
+      if (existingOpen) return existingOpen;
+      const used = await prisma.copyTraderOperation.findUnique({
+        where: { idempotencyKey: operationKey },
+      });
+      if (used) {
+        const closedToday = await countClosedOpsToday(trader.id, now);
+        const recovered: DayPlan = {
+          ...plan,
+          opsToday: Math.max(plan.opsToday, closedToday, seq + 1),
+        };
+        return openSimulatedOperation(trader, recovered, now, attempt + 1);
+      }
     }
     throw error;
   }
@@ -3383,14 +3511,14 @@ async function closeSimulatedOperation(input: {
     period: "TODAY",
     returnBps: operation.targetReturnBps,
     adminUserId,
-    idempotencyKey: `operation-settlement:${operation.id}`,
+    idempotencyKey: operationSettlementKey(operation.id),
     source: "SIMULATION",
   });
   const directionSign = operation.direction === "LONG" ? 1 : -1;
   const priceMove =
     (operation.targetReturnBps / operation.leverage / 10_000) * directionSign;
   const exitPrice = Number(operation.entryPrice) * (1 + priceMove);
-  await prisma.copyTraderOperation.updateMany({
+  const updated = await prisma.copyTraderOperation.updateMany({
     where: { id: operation.id, status: "OPEN" },
     data: {
       status: "CLOSED",
@@ -3401,11 +3529,248 @@ async function closeSimulatedOperation(input: {
       closedAt: now,
     },
   });
-  await prisma.copyTrader.update({
-    where: { id: trader.id },
-    data: { simulationLastRunAt: now },
+  return { ...result, closedNow: updated.count > 0 };
+}
+
+type SimulationAction = "OPENED" | "CLOSED" | "WAITING" | "RESTING";
+
+function scheduleSettingsFromTrader(
+  trader: Prisma.CopyTraderGetPayload<object>,
+): ScheduleSettings {
+  return {
+    traderId: trader.id,
+    minOpsPerDay: trader.simulationMinOpsPerDay ?? DEFAULT_MIN_OPS_PER_DAY,
+    maxOpsPerDay: trader.simulationMaxOpsPerDay ?? DEFAULT_MAX_OPS_PER_DAY,
+    durationMinMinutes:
+      trader.simulationDurationMinMinutes ?? DEFAULT_DURATION_MIN_MINUTES,
+    durationMaxMinutes:
+      trader.simulationDurationMaxMinutes ?? DEFAULT_DURATION_MAX_MINUTES,
+  };
+}
+
+async function countClosedOpsToday(traderId: string, now: Date): Promise<number> {
+  return prisma.copyTraderOperation.count({
+    where: {
+      traderId,
+      status: "CLOSED",
+      closedAt: { gte: utcDayStart(now), lt: utcNextDayStart(now) },
+    },
   });
-  return result;
+}
+
+async function persistTraderPlan(
+  traderId: string,
+  plan: DayPlan,
+  now: Date,
+  extra?: {
+    lastRunAt?: Date;
+    closesAt?: Date | null;
+    clearNextOpen?: boolean;
+  },
+) {
+  const nextOpen = extra?.clearNextOpen ? null : plan.nextOperationAt;
+  await prisma.copyTrader.update({
+    where: { id: traderId },
+    data: {
+      simulationOpsDayKey: plan.dayKey,
+      simulationOpsToday: plan.opsToday,
+      simulationOpsTarget: plan.opsTarget,
+      nextOperationAt: nextOpen,
+      simulationLastRunAt: extra?.lastRunAt,
+      simulationNextRunAt: nextWakeAt({
+        closesAt: extra?.closesAt,
+        nextOperationAt: nextOpen,
+        now,
+      }),
+    },
+  });
+}
+
+async function syncTraderDayPlan(
+  trader: Prisma.CopyTraderGetPayload<object>,
+  now: Date,
+): Promise<{ trader: Prisma.CopyTraderGetPayload<object>; plan: DayPlan }> {
+  const closedToday = await countClosedOpsToday(trader.id, now);
+  const plan = ensureDayPlan(
+    {
+      dayKey: trader.simulationOpsDayKey ?? "",
+      opsToday: Math.max(trader.simulationOpsToday, closedToday),
+      opsTarget: trader.simulationOpsTarget,
+      nextOperationAt: trader.nextOperationAt,
+    },
+    scheduleSettingsFromTrader(trader),
+    now,
+  );
+  if (plan.dayKey === utcDayStart(now).toISOString().slice(0, 10)) {
+    plan.opsToday = Math.max(plan.opsToday, closedToday);
+  }
+  await persistTraderPlan(trader.id, plan, now, {
+    closesAt: undefined,
+  });
+  return {
+    trader: {
+      ...trader,
+      simulationOpsDayKey: plan.dayKey,
+      simulationOpsToday: plan.opsToday,
+      simulationOpsTarget: plan.opsTarget,
+      nextOperationAt: plan.nextOperationAt,
+    },
+    plan,
+  };
+}
+
+async function processTraderLifecycle(input: {
+  trader: Prisma.CopyTraderGetPayload<object>;
+  now: Date;
+  adminUserId: string;
+  closeOperationId?: string;
+}): Promise<{
+  traderId: string;
+  operationId: string;
+  action: SimulationAction;
+  returnBps: number;
+  affected: number;
+  alreadyApplied: boolean;
+  totalDelta: number;
+}> {
+  const { now, adminUserId } = input;
+  const { trader, plan } = await syncTraderDayPlan(input.trader, now);
+  const settings = scheduleSettingsFromTrader(trader);
+  const current = await prisma.copyTraderOperation.findFirst({
+    where: { traderId: trader.id, status: "OPEN" },
+    orderBy: { openedAt: "desc" },
+  });
+
+  const shouldClose =
+    current != null &&
+    (current.closesAt.getTime() <= now.getTime() ||
+      (input.closeOperationId != null && current.id === input.closeOperationId));
+
+  if (input.closeOperationId && (!current || current.id !== input.closeOperationId)) {
+    throw new CopyTradingError("Operation is not open", "INVALID_AMOUNT");
+  }
+
+  if (current && shouldClose) {
+    const settlement = await closeSimulatedOperation({
+      operation: current,
+      trader,
+      adminUserId,
+      now,
+    });
+    const closedToday = await countClosedOpsToday(trader.id, now);
+    const nextPlan = afterCloseSchedule(
+      { ...plan, opsToday: Math.max(0, closedToday - 1) },
+      settings,
+      now,
+    );
+    nextPlan.opsToday = closedToday;
+    await persistTraderPlan(trader.id, nextPlan, now, { lastRunAt: now });
+    return {
+      traderId: trader.id,
+      operationId: current.id,
+      action: "CLOSED",
+      returnBps: current.targetReturnBps,
+      affected: settlement.affected,
+      alreadyApplied: settlement.alreadyApplied,
+      totalDelta: settlement.totalDelta,
+    };
+  }
+
+  if (current) {
+    await persistTraderPlan(trader.id, plan, now, { closesAt: current.closesAt });
+    return {
+      traderId: trader.id,
+      operationId: current.id,
+      action: "WAITING",
+      returnBps: 0,
+      affected: 0,
+      alreadyApplied: false,
+      totalDelta: 0,
+    };
+  }
+
+  if (plan.opsToday >= plan.opsTarget) {
+    const resting: DayPlan = {
+      ...plan,
+      nextOperationAt: utcNextDayStart(now),
+    };
+    await persistTraderPlan(trader.id, resting, now);
+    return {
+      traderId: trader.id,
+      operationId: "",
+      action: "RESTING",
+      returnBps: 0,
+      affected: 0,
+      alreadyApplied: false,
+      totalDelta: 0,
+    };
+  }
+
+  if (plan.nextOperationAt && plan.nextOperationAt.getTime() > now.getTime()) {
+    await persistTraderPlan(trader.id, plan, now);
+    return {
+      traderId: trader.id,
+      operationId: "",
+      action: "WAITING",
+      returnBps: 0,
+      affected: 0,
+      alreadyApplied: false,
+      totalDelta: 0,
+    };
+  }
+
+  const opened = await openSimulatedOperation(trader, plan, now);
+  return {
+    traderId: trader.id,
+    operationId: opened.id,
+    action: "OPENED",
+    returnBps: 0,
+    affected: 0,
+    alreadyApplied: false,
+    totalDelta: 0,
+  };
+}
+
+export async function closeAdminCopyOperationNow(
+  operationId: string,
+  adminUserId: string,
+  now = new Date(),
+): Promise<AdminCopyTraderOperationDto> {
+  const operation = await prisma.copyTraderOperation.findUnique({
+    where: { id: operationId },
+  });
+  if (!operation) throw new CopyTradingError("Operation not found", "NOT_FOUND");
+  if (operation.status !== "OPEN") {
+    return serializeCopyOperation(operation, now, { forAdmin: true });
+  }
+
+  const trader = await prisma.copyTrader.findUnique({
+    where: { id: operation.traderId },
+  });
+  if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  await processTraderLifecycle({
+    trader,
+    now,
+    adminUserId,
+    closeOperationId: operationId,
+  });
+  await prisma.adminAction.create({
+    data: {
+      adminId: adminUserId,
+      action: "UPDATE_CONFIG",
+      payload: {
+        kind: "COPY_OPERATION_CLOSED",
+        traderId: trader.id,
+        operationId,
+      },
+    },
+  });
+
+  const closed = await prisma.copyTraderOperation.findUniqueOrThrow({
+    where: { id: operationId },
+  });
+  return serializeCopyOperation(closed, now, { forAdmin: true });
 }
 
 export async function runCopyTradingSimulation(input?: {
@@ -3421,7 +3786,7 @@ export async function runCopyTradingSimulation(input?: {
   results: Array<{
     traderId: string;
     operationId: string;
-    action: "OPENED" | "CLOSED_AND_OPENED" | "WAITING";
+    action: SimulationAction;
     returnBps: number;
     affected: number;
     alreadyApplied: boolean;
@@ -3446,6 +3811,12 @@ export async function runCopyTradingSimulation(input?: {
             OR: [
               { simulationNextRunAt: null },
               { simulationNextRunAt: { lte: now } },
+              { nextOperationAt: { lte: now } },
+              {
+                operations: {
+                  some: { status: "OPEN", closesAt: { lte: now } },
+                },
+              },
             ],
           }
         : {}),
@@ -3456,7 +3827,7 @@ export async function runCopyTradingSimulation(input?: {
   const results: Array<{
     traderId: string;
     operationId: string;
-    action: "OPENED" | "CLOSED_AND_OPENED" | "WAITING";
+    action: SimulationAction;
     returnBps: number;
     affected: number;
     alreadyApplied: boolean;
@@ -3465,48 +3836,21 @@ export async function runCopyTradingSimulation(input?: {
   let affectedInvestments = 0;
 
   for (const trader of rows) {
-    const current = await prisma.copyTraderOperation.findFirst({
-      where: { traderId: trader.id, status: "OPEN" },
-      orderBy: { openedAt: "desc" },
-    });
-
-    if (current && !input?.force && current.closesAt > now) {
-      results.push({
-        traderId: trader.id,
-        operationId: current.id,
-        action: "WAITING",
-        returnBps: 0,
-        affected: 0,
-        alreadyApplied: false,
-      });
-      continue;
-    }
-
-    let settlement: Awaited<ReturnType<typeof closeSimulatedOperation>> | null =
-      null;
-    if (current) {
-      settlement = await closeSimulatedOperation({
-        operation: current,
-        trader,
-        adminUserId,
-        now,
-      });
-    }
-    const next = await openSimulatedOperation(
+    const result = await processTraderLifecycle({
       trader,
       now,
-      input?.force === true,
-    );
-    results.push({
-      traderId: trader.id,
-      operationId: next.id,
-      action: current ? "CLOSED_AND_OPENED" : "OPENED",
-      returnBps: settlement ? current!.targetReturnBps : 0,
-      affected: settlement?.affected ?? 0,
-      alreadyApplied: settlement?.alreadyApplied ?? false,
+      adminUserId,
     });
-    totalDelta += settlement?.totalDelta ?? 0;
-    affectedInvestments += settlement?.affected ?? 0;
+    results.push({
+      traderId: result.traderId,
+      operationId: result.operationId,
+      action: result.action,
+      returnBps: result.returnBps,
+      affected: result.affected,
+      alreadyApplied: result.alreadyApplied,
+    });
+    totalDelta += result.totalDelta;
+    affectedInvestments += result.affected;
   }
 
   return {

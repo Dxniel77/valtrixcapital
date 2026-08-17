@@ -61,6 +61,7 @@ type Desk = {
     isVisible: boolean;
     isActive: boolean;
     isFeatured: boolean;
+    simulationEnabled: boolean;
   };
   situation: {
     activeCopies: number;
@@ -102,6 +103,18 @@ type Desk = {
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: Operation[];
+  liveSchedule: {
+    enabled: boolean;
+    opsToday: number;
+    opsTarget: number;
+    minOpsPerDay: number;
+    maxOpsPerDay: number;
+    durationMinMinutes: number;
+    durationMaxMinutes: number;
+    nextOperationAt: string | null;
+    currentClosesAt: string | null;
+    currentOperationId: string | null;
+  };
   events: Array<{
     id: string;
     returnBps: number;
@@ -143,6 +156,38 @@ const EMPTY_OP: OpForm = {
   exitPrice: "",
   settledPct: "0.40",
 };
+
+function formatCountdown(iso: string | null | undefined, nowMs: number): string | null {
+  if (!iso) return null;
+  const remaining = new Date(iso).getTime() - nowMs;
+  if (!Number.isFinite(remaining)) return null;
+  if (remaining <= 0) return "due";
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  return `${minutes}:${pad(seconds)}`;
+}
+
+function LiveCountdown({
+  iso,
+  dueLabel,
+}: {
+  iso: string | null;
+  dueLabel: string;
+}) {
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const label = formatCountdown(iso, nowMs);
+  if (!iso) return <span>—</span>;
+  if (label === "due") return <span>{dueLabel}</span>;
+  return <span className="font-mono">{label}</span>;
+}
 
 function toLocalInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -389,7 +434,7 @@ export default function AdminCopyTraderDeskPage() {
 
   function openNewOp() {
     const now = new Date();
-    const later = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const later = new Date(now.getTime() + 10 * 60 * 1000);
     setOpForm({
       ...EMPTY_OP,
       openedAt: toLocalInput(now.toISOString()),
@@ -432,6 +477,22 @@ export default function AdminCopyTraderDeskPage() {
       }
       toast.success(t("admin.copyTrading.operationSaved"));
       setEditingOp(null);
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function closeOperationNow(id: string) {
+    if (!window.confirm(t("admin.copyTrading.closeNowConfirm"))) return;
+    setBusy(`close:${id}`);
+    try {
+      await apiFetch(`/api/admin/copy/operations/${id}/close`, { method: "POST" });
+      toast.success(t("admin.copyTrading.closedNow"));
       await load();
     } catch (error) {
       toast.error(
@@ -675,6 +736,11 @@ export default function AdminCopyTraderDeskPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {desk.trader.simulationEnabled ? (
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.publishVsLiveHint")}
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-end gap-2">
                 <Field label={t("admin.copyTrading.returnPlaceholder")}>
                   <Input
@@ -991,6 +1057,80 @@ export default function AdminCopyTraderDeskPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">
+                  {t("admin.copyTrading.liveSchedule")}
+                </CardTitle>
+                {desk.liveSchedule.currentOperationId ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={busy === `close:${desk.liveSchedule.currentOperationId}`}
+                    onClick={() =>
+                      void closeOperationNow(desk.liveSchedule.currentOperationId!)
+                    }
+                  >
+                    {t("admin.copyTrading.closeNow")}
+                  </Button>
+                ) : null}
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <div className="text-sm">
+                  <p className="text-xs text-text-muted">
+                    {t("admin.copyTrading.opsToday")}
+                  </p>
+                  <p className="font-mono">
+                    {desk.liveSchedule.opsToday} / {desk.liveSchedule.opsTarget}{" "}
+                    <span className="text-text-muted">
+                      ({t("admin.copyTrading.maxOpsPerDay")} {desk.liveSchedule.maxOpsPerDay})
+                    </span>
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs text-text-muted">
+                    {t("admin.copyTrading.durationMinMinutes")}
+                  </p>
+                  <p className="font-mono">
+                    {desk.liveSchedule.durationMinMinutes}–
+                    {desk.liveSchedule.durationMaxMinutes} min
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs text-text-muted">
+                    {t("admin.copyTrading.currentCloseCountdown")}
+                  </p>
+                  <p>
+                    {desk.liveSchedule.currentClosesAt ? (
+                      <LiveCountdown
+                        iso={desk.liveSchedule.currentClosesAt}
+                        dueLabel={t("admin.copyTrading.dueNow")}
+                      />
+                    ) : (
+                      t("admin.copyTrading.noOpenOp")
+                    )}
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs text-text-muted">
+                    {t("admin.copyTrading.nextOpenCountdown")}
+                  </p>
+                  <p>
+                    {desk.liveSchedule.currentClosesAt ? (
+                      t("admin.copyTrading.waitingNext")
+                    ) : desk.liveSchedule.nextOperationAt ? (
+                      <LiveCountdown
+                        iso={desk.liveSchedule.nextOperationAt}
+                        dueLabel={t("admin.copyTrading.dueNow")}
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">
                   {t("admin.copyTrading.operations")}
                 </CardTitle>
                 <Button size="sm" onClick={openNewOp}>
@@ -1036,6 +1176,16 @@ export default function AdminCopyTraderDeskPage() {
                         </span>
                       </div>
                       <div className="flex gap-1">
+                        {op.status === "OPEN" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={busy === `close:${op.id}`}
+                            onClick={() => void closeOperationNow(op.id)}
+                          >
+                            {t("admin.copyTrading.closeNow")}
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
                           variant="outline"

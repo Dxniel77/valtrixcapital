@@ -61,8 +61,13 @@ type Trader = {
   simulationMinBps: number;
   simulationMaxBps: number;
   simulationIntervalHours: number;
+  simulationMinOpsPerDay: number;
+  simulationMaxOpsPerDay: number;
+  simulationDurationMinMinutes: number;
+  simulationDurationMaxMinutes: number;
   simulationLastRunAt: string | null;
   simulationNextRunAt: string | null;
+  nextOperationAt: string | null;
   copierPrincipal: number;
   copierValue: number;
   copierPnl: number;
@@ -169,7 +174,10 @@ type TraderForm = {
   simulationEnabled: boolean;
   simulationMinPct: string;
   simulationMaxPct: string;
-  simulationIntervalHours: string;
+  simulationMinOpsPerDay: string;
+  simulationMaxOpsPerDay: string;
+  simulationDurationMinMinutes: string;
+  simulationDurationMaxMinutes: string;
 };
 
 const EMPTY_FORM: TraderForm = {
@@ -190,7 +198,10 @@ const EMPTY_FORM: TraderForm = {
   simulationEnabled: true,
   simulationMinPct: "-0.5",
   simulationMaxPct: "1",
-  simulationIntervalHours: "24",
+  simulationMinOpsPerDay: "8",
+  simulationMaxOpsPerDay: "20",
+  simulationDurationMinMinutes: "3",
+  simulationDurationMaxMinutes: "10",
 };
 
 /** `crypto.randomUUID` is unavailable outside secure contexts (plain-HTTP hosts). */
@@ -221,7 +232,10 @@ function traderToForm(trader: Trader): TraderForm {
     simulationEnabled: trader.simulationEnabled,
     simulationMinPct: String(trader.simulationMinBps / 100),
     simulationMaxPct: String(trader.simulationMaxBps / 100),
-    simulationIntervalHours: String(trader.simulationIntervalHours),
+    simulationMinOpsPerDay: String(trader.simulationMinOpsPerDay ?? 8),
+    simulationMaxOpsPerDay: String(trader.simulationMaxOpsPerDay ?? 20),
+    simulationDurationMinMinutes: String(trader.simulationDurationMinMinutes ?? 3),
+    simulationDurationMaxMinutes: String(trader.simulationDurationMaxMinutes ?? 10),
   };
 }
 
@@ -247,8 +261,21 @@ function formPayload(form: TraderForm) {
     simulationEnabled: form.simulationEnabled,
     simulationMinBps: Math.round((Number(form.simulationMinPct) || 0) * 100),
     simulationMaxBps: Math.round((Number(form.simulationMaxPct) || 0) * 100),
-    simulationIntervalHours: Math.trunc(
-      Number(form.simulationIntervalHours) || 24,
+    simulationMinOpsPerDay: Math.max(
+      1,
+      Math.trunc(Number(form.simulationMinOpsPerDay) || 8),
+    ),
+    simulationMaxOpsPerDay: Math.max(
+      1,
+      Math.trunc(Number(form.simulationMaxOpsPerDay) || 20),
+    ),
+    simulationDurationMinMinutes: Math.max(
+      1,
+      Math.trunc(Number(form.simulationDurationMinMinutes) || 3),
+    ),
+    simulationDurationMaxMinutes: Math.max(
+      1,
+      Math.trunc(Number(form.simulationDurationMaxMinutes) || 10),
     ),
   };
 }
@@ -1796,7 +1823,7 @@ function TraderDialog({
               checked={form.simulationEnabled}
               onChange={(value) => update("simulationEnabled", value)}
             />
-            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <Field label={t("admin.copyTrading.minimumReturn")}>
                 <Input
                   type="number"
@@ -1817,12 +1844,47 @@ function TraderDialog({
                   }
                 />
               </Field>
-              <Field label={t("admin.copyTrading.intervalHours")}>
+              <Field label={t("admin.copyTrading.minOpsPerDay")}>
                 <Input
                   type="number"
-                  value={form.simulationIntervalHours}
+                  min={1}
+                  max={48}
+                  value={form.simulationMinOpsPerDay}
                   onChange={(event) =>
-                    update("simulationIntervalHours", event.target.value)
+                    update("simulationMinOpsPerDay", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.maxOpsPerDay")}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={48}
+                  value={form.simulationMaxOpsPerDay}
+                  onChange={(event) =>
+                    update("simulationMaxOpsPerDay", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.durationMinMinutes")}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={form.simulationDurationMinMinutes}
+                  onChange={(event) =>
+                    update("simulationDurationMinMinutes", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label={t("admin.copyTrading.durationMaxMinutes")}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={form.simulationDurationMaxMinutes}
+                  onChange={(event) =>
+                    update("simulationDurationMaxMinutes", event.target.value)
                   }
                 />
               </Field>

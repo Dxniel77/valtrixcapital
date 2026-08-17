@@ -773,8 +773,20 @@ model CopyTrader {
   simulationMinBps        Int           @default(-50)
   simulationMaxBps        Int           @default(100)
   simulationIntervalHours Int           @default(24)
+  /// Daily live-operation range (UTC day).
+  simulationMinOpsPerDay  Int           @default(8)
+  simulationMaxOpsPerDay  Int           @default(20)
+  /// Open duration range in minutes.
+  simulationDurationMinMinutes Int      @default(3)
+  simulationDurationMaxMinutes Int      @default(10)
+  /// Persisted UTC day plan so restarts do not redraw the schedule.
+  simulationOpsDayKey     String?
+  simulationOpsToday      Int           @default(0)
+  simulationOpsTarget     Int           @default(0)
   simulationLastRunAt     DateTime?
   simulationNextRunAt     DateTime?
+  /// Admin-only next OPEN time. Never expose to users.
+  nextOperationAt         DateTime?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 
@@ -787,6 +799,7 @@ model CopyTrader {
   @@index([isVisible, isActive, sortOrder])
   @@index([roiBps])
   @@index([simulationEnabled, simulationNextRunAt])
+  @@index([simulationEnabled, nextOperationAt])
 }
 
 model CopyTraderPerformance {

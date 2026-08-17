@@ -741,7 +741,12 @@ export async function seedCopyTraders(prisma: PrismaClient): Promise<void> {
         simulationMinBps: t.simulationMinBps,
         simulationMaxBps: t.simulationMaxBps,
         simulationIntervalHours: 24,
+        simulationMinOpsPerDay: 8,
+        simulationMaxOpsPerDay: 20,
+        simulationDurationMinMinutes: 3,
+        simulationDurationMaxMinutes: 10,
         simulationNextRunAt: new Date(),
+        nextOperationAt: new Date(),
       },
     });
 
