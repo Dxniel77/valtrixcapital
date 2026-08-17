@@ -809,7 +809,8 @@ model CopyTrader {
   performanceEvents CopyPerformanceEvent[]
   operations        CopyTraderOperation[]
   chartPoints       CopyTraderChartPoint[]
-  investments       CopyInvestment[]
+  investments              CopyInvestment[]
+  scheduledManualResults   CopyScheduledManualResult[]
 
   @@index([isVisible, isActive, sortOrder])
   @@index([roiBps])
@@ -870,12 +871,15 @@ model CopyTraderOperation {
   performanceFeeMicro BigInt  @default(0)
   /// Sum of copier gross P&L at close, before the Performance Fee.
   grossPnlMicro      BigInt   @default(0)
+  /// Showcase/history only. Never settles copier balances or company fees.
+  synthetic          Boolean  @default(false)
 
   trader           CopyTrader            @relation(fields: [traderId], references: [id], onDelete: Cascade)
   performanceEvent CopyPerformanceEvent? @relation(fields: [performanceEventId], references: [id], onDelete: SetNull)
 
   @@index([traderId, status, openedAt(sort: Desc)])
   @@index([status, closesAt])
+  @@index([traderId, synthetic, closedAt])
 }
 
 model CopyTraderChartPoint {
@@ -961,7 +965,26 @@ model CopyTradingConfig {
   performanceFeeNetworkBps Int[]         @default([3000, 1500, 1000, 500, 500, 500])
   /// Platform fee charged when a live operation opens (bps of notional = capital × leverage). 5 = 0.05%.
   openFeeBps          Int                @default(5)
+  /// Symbols the live engine may open. At least one is required.
+  activeSymbols       String[]           @default(["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LINKUSDT", "AVAXUSDT"])
   updatedAt           DateTime           @updatedAt
+}
+
+/// Admin-only delayed showcase result. Does not move copier balances.
+model CopyScheduledManualResult {
+  id          String    @id @default(uuid())
+  traderId    String
+  returnBps   Int
+  executeAt   DateTime
+  createdById String
+  createdAt   DateTime  @default(now())
+  canceledAt  DateTime?
+  executedAt  DateTime?
+
+  trader CopyTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@index([executeAt, canceledAt, executedAt])
+  @@index([traderId, executeAt])
 }
 
 model DeviceToken {

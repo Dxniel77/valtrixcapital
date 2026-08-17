@@ -167,7 +167,7 @@ export async function getAdminCopyIncomeReport(
       },
     }),
     prisma.copyTraderOperation.findMany({
-      where: { status: "CLOSED", closedAt },
+      where: { status: "CLOSED", synthetic: false, closedAt },
       select: {
         traderId: true,
         closedAt: true,

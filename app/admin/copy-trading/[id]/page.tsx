@@ -37,6 +37,7 @@ type Operation = {
   openedAt: string;
   closesAt: string;
   closedAt: string | null;
+  synthetic?: boolean;
 };
 
 type Desk = {
@@ -130,6 +131,12 @@ type Desk = {
     id: string;
     returnBps: number;
     source: string;
+    createdAt: string;
+  }>;
+  scheduledManual: Array<{
+    id: string;
+    returnBps: number;
+    executeAt: string;
     createdAt: string;
   }>;
 };
@@ -253,6 +260,12 @@ export default function AdminCopyTraderDeskPage() {
   const [editingOp, setEditingOp] = React.useState<Operation | "new" | null>(
     null,
   );
+  const [histMonths, setHistMonths] = React.useState("3");
+  const [histBias, setHistBias] = React.useState<"neutral" | "positive" | "negative">(
+    "neutral",
+  );
+  const [manualPct, setManualPct] = React.useState("");
+  const [manualDelay, setManualDelay] = React.useState("0");
 
   const load = React.useCallback(
     async () => {
@@ -521,6 +534,91 @@ export default function AdminCopyTraderDeskPage() {
       toast.error(
         error instanceof Error ? error.message : t("errors.signInFailed"),
       );
+      setBusy(null);
+    }
+  }
+
+  async function generateHistory() {
+    const months = Math.trunc(Number(histMonths));
+    if (!Number.isInteger(months) || months < 1 || months > 12) {
+      toast.error(t("admin.copyTrading.historyMonthsInvalid"));
+      return;
+    }
+    if (
+      !window.confirm(t("admin.copyTrading.historyConfirm", { n: months }))
+    ) {
+      return;
+    }
+    setBusy("history");
+    try {
+      const result = await apiFetch<{ created: number }>(
+        `/api/admin/copy/traders/${traderId}/history`,
+        {
+          method: "POST",
+          body: JSON.stringify({ months, bias: histBias }),
+        },
+      );
+      toast.success(
+        t("admin.copyTrading.historyDone", { n: result.created }),
+      );
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function applyManual(sign: 1 | -1) {
+    const mag = Math.abs(Number(manualPct));
+    if (!Number.isFinite(mag) || mag <= 0 || mag > 100) {
+      toast.error(t("admin.copyTrading.manualPctInvalid"));
+      return;
+    }
+    const delayMinutes = Math.max(0, Number(manualDelay) || 0);
+    setBusy(sign > 0 ? "manual-gain" : "manual-loss");
+    try {
+      const result = await apiFetch<{ scheduled: boolean }>(
+        `/api/admin/copy/traders/${traderId}/manual`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            returnBps: Math.round(mag * 100) * sign,
+            delayMinutes,
+          }),
+        },
+      );
+      toast.success(
+        result.scheduled
+          ? t("admin.copyTrading.manualScheduled")
+          : t("admin.copyTrading.manualApplied"),
+      );
+      setManualPct("");
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function cancelScheduled(actionId: string) {
+    setBusy(`sched:${actionId}`);
+    try {
+      await apiFetch(`/api/admin/copy/traders/${traderId}/manual/${actionId}`, {
+        method: "DELETE",
+      });
+      toast.success(t("admin.copyTrading.manualCanceled"));
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
       setBusy(null);
     }
   }
@@ -1117,6 +1215,144 @@ export default function AdminCopyTraderDeskPage() {
                     {t("admin.copyTrading.clearTarget")}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.historyTitle")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.historyHint")}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label={t("admin.copyTrading.historyMonths")}>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={histMonths}
+                      onChange={(event) => setHistMonths(event.target.value)}
+                    />
+                  </Field>
+                  <Field label={t("admin.copyTrading.historyBias")}>
+                    <Select
+                      value={histBias}
+                      onChange={(event) =>
+                        setHistBias(
+                          event.target.value as
+                            | "neutral"
+                            | "positive"
+                            | "negative",
+                        )
+                      }
+                    >
+                      <option value="neutral">
+                        {t("admin.copyTrading.biasNeutral")}
+                      </option>
+                      <option value="positive">
+                        {t("admin.copyTrading.biasPositive")}
+                      </option>
+                      <option value="negative">
+                        {t("admin.copyTrading.biasNegative")}
+                      </option>
+                    </Select>
+                  </Field>
+                  <div className="flex items-end">
+                    <Button
+                      size="sm"
+                      loading={busy === "history"}
+                      onClick={() => void generateHistory()}
+                    >
+                      {t("admin.copyTrading.generateHistory")}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.manualTitle")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.manualHint")}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t("admin.copyTrading.manualPct")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      value={manualPct}
+                      onChange={(event) => setManualPct(event.target.value)}
+                    />
+                  </Field>
+                  <Field label={t("admin.copyTrading.manualDelay")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={manualDelay}
+                      onChange={(event) => setManualDelay(event.target.value)}
+                    />
+                  </Field>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="success"
+                    loading={busy === "manual-gain"}
+                    onClick={() => void applyManual(1)}
+                  >
+                    {t("admin.copyTrading.manualGain")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    loading={busy === "manual-loss"}
+                    onClick={() => void applyManual(-1)}
+                  >
+                    {t("admin.copyTrading.manualLoss")}
+                  </Button>
+                </div>
+                {(desk.scheduledManual ?? []).length > 0 ? (
+                  <div className="space-y-2 rounded-md border border-warning/25 bg-warning/5 p-3">
+                    <p className="text-xs text-warning">
+                      {t("admin.copyTrading.manualPending")}
+                    </p>
+                    {desk.scheduledManual.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span
+                          className={
+                            row.returnBps >= 0 ? "text-success" : "text-danger"
+                          }
+                        >
+                          {row.returnBps >= 0 ? "+" : ""}
+                          {(row.returnBps / 100).toFixed(2)}% ·{" "}
+                          {new Date(row.executeAt).toLocaleString()}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={busy === `sched:${row.id}`}
+                          onClick={() => void cancelScheduled(row.id)}
+                        >
+                          {t("common.cancel")}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 

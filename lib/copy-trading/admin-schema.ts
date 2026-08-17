@@ -88,6 +88,16 @@ export const adminCopyChartSchema = z.object({
   valueBps: z.number().int().min(-1_000_000).max(1_000_000).optional(),
 });
 
+export const adminCopyHistorySchema = z.object({
+  months: z.number().int().min(1).max(12),
+  bias: z.enum(["neutral", "positive", "negative"]),
+});
+
+export const adminCopyManualHistorySchema = z.object({
+  returnBps: z.number().int().min(-10_000).max(10_000),
+  delayMinutes: z.number().finite().min(0).max(24 * 60).optional().default(0),
+});
+
 export const adminCopyOperationSchema = z.object({
   symbol: z.string().trim().min(2).max(20),
   direction: z.enum(["LONG", "SHORT"]),

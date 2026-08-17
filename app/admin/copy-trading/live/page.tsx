@@ -44,6 +44,8 @@ type Payload = {
     tradersWithFee: number;
     traders: number;
     openFeeBps: number;
+    activeSymbols: string[];
+    markets: Array<{ symbol: string; short: string }>;
   };
   openOperations: Array<{
     id: string;
@@ -146,6 +148,7 @@ export default function AdminCopyLiveBoardPage() {
   const [data, setData] = React.useState<Payload | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [coinBusy, setCoinBusy] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -182,6 +185,43 @@ export default function AdminCopyLiveBoardPage() {
       );
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function toggleCoin(symbol: string, enabled: boolean) {
+    const current = data?.summary.activeSymbols ?? [];
+    const next = enabled
+      ? [...new Set([...current, symbol])]
+      : current.filter((item) => item !== symbol);
+    if (next.length === 0) {
+      toast.error(t("admin.copyTrading.coinsNeedOne"));
+      return;
+    }
+    setCoinBusy(symbol);
+    try {
+      const result = await apiFetch<{
+        config: { activeSymbols: string[] };
+      }>("/api/admin/copy/config", {
+        method: "PATCH",
+        body: JSON.stringify({ activeSymbols: next }),
+      });
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              summary: {
+                ...prev.summary,
+                activeSymbols: result.config.activeSymbols,
+              },
+            }
+          : prev,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setCoinBusy(null);
     }
   }
 
@@ -322,7 +362,52 @@ export default function AdminCopyLiveBoardPage() {
               value={money(summary.connectedCapital)}
               tone="gold"
             />
+            <Metric
+              label={t("admin.copyTrading.activeCoins")}
+              value={`${summary.activeSymbols.length} / ${summary.markets.length}`}
+            />
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.activeCoins")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-text-muted">
+                {t("admin.copyTrading.activeCoinsHint")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {summary.markets.map((market) => {
+                  const on = summary.activeSymbols.includes(market.symbol);
+                  return (
+                    <label
+                      key={market.symbol}
+                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                        on
+                          ? "border-gold/40 bg-gold/10"
+                          : "border-border-subtle text-text-muted"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={coinBusy != null}
+                        onChange={(event) =>
+                          void toggleCoin(market.symbol, event.target.checked)
+                        }
+                      />
+                      {market.short}
+                      <span className="text-xs text-text-muted">
+                        {market.symbol.replace("USDT", "/USDT")}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
