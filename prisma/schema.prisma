@@ -182,6 +182,7 @@ enum CopyLedgerKind {
   INVEST
   PNL
   PERFORMANCE_FEE
+  PLATFORM_FEE
   WITHDRAWAL
 }
 
@@ -854,6 +855,12 @@ model CopyTraderOperation {
   closesAt           DateTime
   closedAt           DateTime?
   createdAt          DateTime @default(now())
+  /// Sum of copier platform fees charged at open (0.05% of notional).
+  platformFeeMicro   BigInt   @default(0)
+  /// Sum of copier Performance Fees charged at close (profit only).
+  performanceFeeMicro BigInt  @default(0)
+  /// Sum of copier gross P&L at close, before the Performance Fee.
+  grossPnlMicro      BigInt   @default(0)
 
   trader           CopyTrader            @relation(fields: [traderId], references: [id], onDelete: Cascade)
   performanceEvent CopyPerformanceEvent? @relation(fields: [performanceEventId], references: [id], onDelete: SetNull)
@@ -943,6 +950,8 @@ model CopyTradingConfig {
   lossGraceDays       Int                @default(2)
   /// Six-level share of each copier's Performance Fee (bps of the fee). Remainder stays with the company.
   performanceFeeNetworkBps Int[]         @default([3000, 1500, 1000, 500, 500, 500])
+  /// Platform fee charged when a live operation opens (bps of notional = capital × leverage). 5 = 0.05%.
+  openFeeBps          Int                @default(5)
   updatedAt           DateTime           @updatedAt
 }
 

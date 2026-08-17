@@ -20,6 +20,7 @@ const bodySchema = z.object({
     .array(z.number().int().min(0).max(10_000))
     .length(6)
     .optional(),
+  openFeeBps: z.number().int().min(0).max(2000).optional(),
 });
 
 export async function PATCH(req: Request) {

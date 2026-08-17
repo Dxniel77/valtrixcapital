@@ -47,6 +47,11 @@ import {
   splitPerformanceFeeNetwork,
 } from "@/lib/copy-trading/performance-fee-network";
 import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
+import {
+  DEFAULT_OPEN_FEE_BPS,
+  platformOpenFeeMicro,
+  platformOpenFeeNote,
+} from "@/lib/copy-trading/platform-open-fee";
 import { resolveUplineChain } from "@/lib/services/referral-chain";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
@@ -150,6 +155,7 @@ export type CopyTradingConfigDto = {
   settlementCutoffHour: number;
   lossGraceDays: number;
   performanceFeeNetworkBps: number[];
+  openFeeBps: number;
 };
 
 export type CopyInvestmentDto = {
@@ -283,10 +289,114 @@ function companyFeeFromLedger(row: {
   amount: bigint;
   note?: string | null;
 }): bigint {
-  if (row.kind === "PERFORMANCE_FEE") {
+  if (row.kind === "PERFORMANCE_FEE" || row.kind === "PLATFORM_FEE") {
     return row.amount < 0n ? -row.amount : row.amount;
   }
   return parseFeeUsdtFromNote(row.note);
+}
+
+const COMPANY_FEE_LEDGER_WHERE = {
+  OR: [
+    { kind: "PERFORMANCE_FEE" as const },
+    { kind: "PLATFORM_FEE" as const },
+    {
+      kind: { in: ["INVEST" as const, "WITHDRAWAL" as const] },
+      note: { contains: "fee " },
+    },
+  ],
+};
+
+async function chargePlatformOpenFee(
+  tx: Prisma.TransactionClient,
+  operation: { id: string; traderId: string; leverage: number },
+  openFeeBps: number,
+): Promise<bigint> {
+  const note = platformOpenFeeNote(operation.id);
+  const existing = await tx.copyInvestmentLedger.aggregate({
+    where: { note },
+    _sum: { amount: true },
+  });
+  const already = existing._sum.amount ?? 0n;
+  if (already !== 0n) {
+    return already < 0n ? -already : already;
+  }
+
+  const investments = await tx.copyInvestment.findMany({
+    where: {
+      traderId: operation.traderId,
+      status: "ACTIVE",
+      currentValue: { gt: 0 },
+    },
+    select: { id: true, currentValue: true },
+  });
+  let total = 0n;
+  for (const investment of investments) {
+    const fee = platformOpenFeeMicro(
+      investment.currentValue,
+      operation.leverage,
+      openFeeBps,
+    );
+    if (fee <= 0n) continue;
+    const next =
+      investment.currentValue > fee ? investment.currentValue - fee : 0n;
+    await tx.copyInvestment.update({
+      where: { id: investment.id },
+      data: {
+        currentValue: next,
+        realizedPnl: { decrement: fee },
+      },
+    });
+    await tx.copyInvestmentLedger.create({
+      data: {
+        investmentId: investment.id,
+        kind: "PLATFORM_FEE",
+        amount: -fee,
+        balanceAfter: next,
+        note,
+      },
+    });
+    total += fee;
+  }
+  if (total > 0n) {
+    await tx.copyTrader.update({
+      where: { id: operation.traderId },
+      data: { aum: { decrement: total } },
+    });
+  }
+  await tx.copyTraderOperation.update({
+    where: { id: operation.id },
+    data: { platformFeeMicro: total },
+  });
+  return total;
+}
+
+async function stampOperationSettlementFees(
+  operationId: string,
+  eventId: string | null,
+) {
+  if (!eventId) {
+    await prisma.copyTraderOperation.update({
+      where: { id: operationId },
+      data: { grossPnlMicro: 0n, performanceFeeMicro: 0n },
+    });
+    return;
+  }
+  const ledgers = await prisma.copyInvestmentLedger.findMany({
+    where: { performanceId: eventId },
+    select: { kind: true, amount: true },
+  });
+  let gross = 0n;
+  let perf = 0n;
+  for (const row of ledgers) {
+    if (row.kind === "PNL") gross += row.amount;
+    if (row.kind === "PERFORMANCE_FEE") {
+      perf += row.amount < 0n ? -row.amount : row.amount;
+    }
+  }
+  await prisma.copyTraderOperation.update({
+    where: { id: operationId },
+    data: { grossPnlMicro: gross, performanceFeeMicro: perf },
+  });
 }
 
 async function copyNetworkPaidMicro(traderId?: string): Promise<bigint> {
@@ -457,6 +567,7 @@ function serializeCopyConfig(row: {
   settlementCutoffHour?: number;
   lossGraceDays?: number;
   performanceFeeNetworkBps?: number[] | null;
+  openFeeBps?: number;
 }): CopyTradingConfigDto {
   return {
     globalMinInvestment: fromMicro(row.globalMinInvestment),
@@ -469,6 +580,7 @@ function serializeCopyConfig(row: {
     performanceFeeNetworkBps: normalizePerformanceFeeNetworkBps(
       row.performanceFeeNetworkBps ?? DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
     ),
+    openFeeBps: row.openFeeBps ?? DEFAULT_OPEN_FEE_BPS,
   };
 }
 
@@ -480,6 +592,7 @@ export async function updateCopyTradingConfig(input: {
   withdrawalMode?: CopyWithdrawalMode;
   globalMinInvestment?: number;
   performanceFeeNetworkBps?: number[];
+  openFeeBps?: number;
 }): Promise<CopyTradingConfigDto> {
   await ensureCopyTradingConfig();
   const data: {
@@ -490,6 +603,7 @@ export async function updateCopyTradingConfig(input: {
     withdrawalMode?: CopyWithdrawalMode;
     globalMinInvestment?: bigint;
     performanceFeeNetworkBps?: number[];
+    openFeeBps?: number;
   } = {};
   if (input.investFeeBps !== undefined) {
     if (!Number.isInteger(input.investFeeBps) || input.investFeeBps < 0 || input.investFeeBps > 2000) {
@@ -543,6 +657,16 @@ export async function updateCopyTradingConfig(input: {
       );
     }
     data.performanceFeeNetworkBps = rates;
+  }
+  if (input.openFeeBps !== undefined) {
+    if (
+      !Number.isInteger(input.openFeeBps) ||
+      input.openFeeBps < 0 ||
+      input.openFeeBps > 2000
+    ) {
+      throw new CopyTradingError("Invalid open fee", "INVALID_AMOUNT");
+    }
+    data.openFeeBps = input.openFeeBps;
   }
   const row = await prisma.copyTradingConfig.update({
     where: { id: 1 },
@@ -1859,15 +1983,7 @@ export async function getAdminCopyDashboard() {
       orderBy: { openedAt: "desc" },
     }),
     prisma.copyInvestmentLedger.findMany({
-      where: {
-        OR: [
-          { kind: "PERFORMANCE_FEE" },
-          {
-            kind: { in: ["INVEST", "WITHDRAWAL"] },
-            note: { contains: "fee " },
-          },
-        ],
-      },
+      where: COMPANY_FEE_LEDGER_WHERE,
       select: { kind: true, amount: true, note: true },
     }),
     copyNetworkPaidMicro(),
@@ -1917,6 +2033,310 @@ export async function getAdminCopyDashboard() {
       source: event.source,
       createdAt: event.createdAt.toISOString(),
     })),
+  };
+}
+
+export type CopyLivePeriodStats = {
+  avgBps: number;
+  count: number;
+};
+
+export type CopyLiveTraderStatus =
+  | {
+      kind: "OPEN";
+      symbol: string;
+      direction: "LONG" | "SHORT";
+      leverage: number;
+      openedAt: string;
+      closesAt: string;
+    }
+  | { kind: "NEXT"; nextAt: string }
+  | { kind: "RESTING"; nextAt: string }
+  | { kind: "DUE" };
+
+export type CopyLiveClosedFeeRow = {
+  id: string;
+  traderId: string;
+  traderName: string;
+  symbol: string;
+  settledReturnBps: number;
+  platformFee: number;
+  performanceFee: number;
+  closedAt: string;
+};
+
+export type CopyLiveTraderRow = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  capital: number;
+  today: CopyLivePeriodStats;
+  week: CopyLivePeriodStats;
+  month: CopyLivePeriodStats;
+  all: CopyLivePeriodStats;
+  platformFees: number;
+  performanceFees: number;
+  opsToday: number;
+  opsTarget: number;
+  status: CopyLiveTraderStatus;
+};
+
+export type AdminCopyLiveBoardDto = {
+  generatedAt: string;
+  summary: {
+    platformFees: number;
+    performanceFees: number;
+    networkPaid: number;
+    companyKept: number;
+    totalIncome: number;
+    grossPositive: number;
+    grossNegative: number;
+    netGross: number;
+    realDeposits: number;
+    connectedCapital: number;
+    tradersWithFee: number;
+    traders: number;
+    openFeeBps: number;
+  };
+  openOperations: Array<
+    AdminCopyTraderOperationDto & {
+      traderName: string;
+      platformFee: number;
+    }
+  >;
+  closedFees: CopyLiveClosedFeeRow[];
+  traders: CopyLiveTraderRow[];
+};
+
+function periodReturnStats(
+  ops: Array<{ settledReturnBps: number | null; closedAt: Date | null }>,
+  since: Date | null,
+): CopyLivePeriodStats {
+  const filtered = ops.filter((op) => {
+    if (since == null) return true;
+    return op.closedAt != null && op.closedAt.getTime() >= since.getTime();
+  });
+  if (filtered.length === 0) return { avgBps: 0, count: 0 };
+  const sum = filtered.reduce(
+    (total, op) => total + (op.settledReturnBps ?? 0),
+    0,
+  );
+  return { avgBps: Math.round(sum / filtered.length), count: filtered.length };
+}
+
+function liveTraderStatus(
+  trader: {
+    simulationOpsToday: number;
+    simulationOpsTarget: number;
+    nextOperationAt: Date | null;
+  },
+  open: Prisma.CopyTraderOperationGetPayload<object> | undefined,
+  now: Date,
+): CopyLiveTraderStatus {
+  if (open) {
+    return {
+      kind: "OPEN",
+      symbol: open.symbol,
+      direction: open.direction as "LONG" | "SHORT",
+      leverage: open.leverage,
+      openedAt: open.openedAt.toISOString(),
+      closesAt: open.closesAt.toISOString(),
+    };
+  }
+  if (trader.simulationOpsToday >= trader.simulationOpsTarget) {
+    return { kind: "RESTING", nextAt: utcNextDayStart(now).toISOString() };
+  }
+  if (
+    trader.nextOperationAt &&
+    trader.nextOperationAt.getTime() > now.getTime()
+  ) {
+    return { kind: "NEXT", nextAt: trader.nextOperationAt.toISOString() };
+  }
+  return { kind: "DUE" };
+}
+
+export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
+  const now = new Date();
+  const todayStart = utcDayStart(now);
+  const dayKey = todayStart.toISOString().slice(0, 10);
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    config,
+    traders,
+    openRows,
+    closedRows,
+    capitalGroups,
+    platformLedger,
+    performanceLedger,
+    investLedger,
+    networkPaid,
+  ] = await Promise.all([
+    ensureCopyTradingConfig(),
+    prisma.copyTrader.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        performanceFeeBps: true,
+        simulationOpsToday: true,
+        simulationOpsTarget: true,
+        simulationOpsDayKey: true,
+        nextOperationAt: true,
+      },
+    }),
+    prisma.copyTraderOperation.findMany({
+      where: { status: "OPEN" },
+      include: { trader: { select: { name: true } } },
+      orderBy: { openedAt: "desc" },
+    }),
+    prisma.copyTraderOperation.findMany({
+      where: { status: "CLOSED" },
+      include: { trader: { select: { name: true } } },
+      orderBy: { closedAt: "desc" },
+    }),
+    prisma.copyInvestment.groupBy({
+      by: ["traderId"],
+      where: { status: "ACTIVE" },
+      _sum: { currentValue: true },
+    }),
+    prisma.copyInvestmentLedger.aggregate({
+      where: { kind: "PLATFORM_FEE" },
+      _sum: { amount: true },
+    }),
+    prisma.copyInvestmentLedger.aggregate({
+      where: { kind: "PERFORMANCE_FEE" },
+      _sum: { amount: true },
+    }),
+    prisma.copyInvestmentLedger.aggregate({
+      where: { kind: "INVEST" },
+      _sum: { amount: true },
+    }),
+    copyNetworkPaidMicro(),
+  ]);
+
+  const absFee = (amount: bigint | null | undefined) => {
+    const value = amount ?? 0n;
+    return value < 0n ? -value : value;
+  };
+  const platformFees = absFee(platformLedger._sum.amount);
+  const performanceFees = absFee(performanceLedger._sum.amount);
+  const companyKeptPerf =
+    performanceFees > networkPaid ? performanceFees - networkPaid : 0n;
+
+  let grossPositive = 0n;
+  let grossNegative = 0n;
+  const closedByTrader = new Map<
+    string,
+    Array<{
+      settledReturnBps: number | null;
+      closedAt: Date | null;
+      platformFeeMicro: bigint;
+      performanceFeeMicro: bigint;
+    }>
+  >();
+  for (const op of closedRows) {
+    if (op.grossPnlMicro > 0n) grossPositive += op.grossPnlMicro;
+    else if (op.grossPnlMicro < 0n) grossNegative += op.grossPnlMicro;
+    const list = closedByTrader.get(op.traderId) ?? [];
+    list.push({
+      settledReturnBps: op.settledReturnBps,
+      closedAt: op.closedAt,
+      platformFeeMicro: op.platformFeeMicro,
+      performanceFeeMicro: op.performanceFeeMicro,
+    });
+    closedByTrader.set(op.traderId, list);
+  }
+
+  const capitalByTrader = new Map(
+    capitalGroups.map((row) => [row.traderId, row._sum.currentValue ?? 0n]),
+  );
+  const openByTrader = new Map(openRows.map((row) => [row.traderId, row]));
+  const connectedCapital = capitalGroups.reduce(
+    (sum, row) => sum + (row._sum.currentValue ?? 0n),
+    0n,
+  );
+
+  return {
+    generatedAt: now.toISOString(),
+    summary: {
+      platformFees: fromMicro(platformFees),
+      performanceFees: fromMicro(performanceFees),
+      networkPaid: fromMicro(networkPaid),
+      companyKept: fromMicro(platformFees + companyKeptPerf),
+      totalIncome: fromMicro(platformFees + performanceFees),
+      grossPositive: fromMicro(grossPositive),
+      grossNegative: fromMicro(grossNegative),
+      netGross: fromMicro(grossPositive + grossNegative),
+      realDeposits: fromMicro(investLedger._sum.amount ?? 0n),
+      connectedCapital: fromMicro(connectedCapital),
+      tradersWithFee: traders.filter((trader) => trader.performanceFeeBps > 0)
+        .length,
+      traders: traders.length,
+      openFeeBps: config.openFeeBps,
+    },
+    openOperations: openRows.map((operation) => ({
+      ...serializeCopyOperation(operation, now, { forAdmin: true }),
+      traderName: operation.trader.name,
+      platformFee: fromMicro(operation.platformFeeMicro),
+    })),
+    closedFees: closedRows.slice(0, 40).map((operation) => ({
+      id: operation.id,
+      traderId: operation.traderId,
+      traderName: operation.trader.name,
+      symbol: operation.symbol,
+      settledReturnBps: operation.settledReturnBps ?? 0,
+      platformFee: fromMicro(operation.platformFeeMicro),
+      performanceFee: fromMicro(operation.performanceFeeMicro),
+      closedAt: operation.closedAt?.toISOString() ?? operation.openedAt.toISOString(),
+    })),
+    traders: traders.map((trader) => {
+      const closed = closedByTrader.get(trader.id) ?? [];
+      const open = openByTrader.get(trader.id);
+      const opsTodayClosed = closed.filter(
+        (op) => op.closedAt != null && op.closedAt >= todayStart,
+      ).length;
+      const opsToday =
+        trader.simulationOpsDayKey === dayKey
+          ? Math.max(
+              trader.simulationOpsToday,
+              opsTodayClosed + (open ? 1 : 0),
+            )
+          : opsTodayClosed + (open ? 1 : 0);
+      const platformSum = closed.reduce(
+        (sum, op) => sum + op.platformFeeMicro,
+        0n,
+      ) + (open?.platformFeeMicro ?? 0n);
+      const perfSum = closed.reduce(
+        (sum, op) => sum + op.performanceFeeMicro,
+        0n,
+      );
+      return {
+        id: trader.id,
+        name: trader.name,
+        isActive: trader.isActive,
+        capital: fromMicro(capitalByTrader.get(trader.id) ?? 0n),
+        today: periodReturnStats(closed, todayStart),
+        week: periodReturnStats(closed, weekStart),
+        month: periodReturnStats(closed, monthStart),
+        all: periodReturnStats(closed, null),
+        platformFees: fromMicro(platformSum),
+        performanceFees: fromMicro(perfSum),
+        opsToday,
+        opsTarget: trader.simulationOpsTarget,
+        status: liveTraderStatus(
+          {
+            simulationOpsToday: opsToday,
+            simulationOpsTarget: trader.simulationOpsTarget,
+            nextOperationAt: trader.nextOperationAt,
+          },
+          open,
+          now,
+        ),
+      };
+    }),
   };
 }
 
@@ -2721,13 +3141,7 @@ export async function getAdminCopyTraderDesk(
     }),
     prisma.copyInvestmentLedger.findMany({
       where: {
-        OR: [
-          { kind: "PERFORMANCE_FEE" },
-          {
-            kind: { in: ["INVEST", "WITHDRAWAL"] },
-            note: { contains: "fee " },
-          },
-        ],
+        ...COMPANY_FEE_LEDGER_WHERE,
         investment: { traderId },
       },
       select: { kind: true, amount: true, note: true },
@@ -3570,20 +3984,32 @@ async function openSimulatedOperation(
   const closesAt = new Date(now.getTime() + durationMs);
 
   try {
-    const operation = await prisma.copyTraderOperation.create({
-      data: {
-        traderId: trader.id,
-        symbol: market.symbol,
-        direction,
-        leverage,
-        entryPrice,
-        targetReturnBps,
-        status: "OPEN",
-        openKey: simulatedOpenKey(trader.id),
-        idempotencyKey: operationKey,
-        openedAt: now,
-        closesAt,
-      },
+    const operation = await prisma.$transaction(async (tx) => {
+      const created = await tx.copyTraderOperation.create({
+        data: {
+          traderId: trader.id,
+          symbol: market.symbol,
+          direction,
+          leverage,
+          entryPrice,
+          targetReturnBps,
+          status: "OPEN",
+          openKey: simulatedOpenKey(trader.id),
+          idempotencyKey: operationKey,
+          openedAt: now,
+          closesAt,
+        },
+      });
+      const config = await tx.copyTradingConfig.findUnique({
+        where: { id: 1 },
+        select: { openFeeBps: true },
+      });
+      await chargePlatformOpenFee(
+        tx,
+        created,
+        config?.openFeeBps ?? DEFAULT_OPEN_FEE_BPS,
+      );
+      return created;
     });
     await persistTraderPlan(trader.id, plan, now, {
       closesAt,
@@ -3647,6 +4073,7 @@ async function closeSimulatedOperation(input: {
       closedAt: now,
     },
   });
+  await stampOperationSettlementFees(operation.id, result.eventId);
   return { ...result, closedNow: updated.count > 0 };
 }
 
