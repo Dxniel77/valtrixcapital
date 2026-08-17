@@ -72,6 +72,7 @@ type Desk = {
     currentValue: number;
     pnl: number;
     companyFees: number;
+    networkCommissions?: number;
     cutoffAt: string;
     cutoffHour: number;
   };
@@ -127,6 +128,8 @@ type Desk = {
     lossProtected: number;
     userDelta: number;
     companyFee: number;
+    networkPayout?: number;
+    companyKeptFee?: number;
     feeApplied: true;
   } | null;
 };
@@ -616,7 +619,12 @@ export default function AdminCopyTraderDeskPage() {
           </div>
           <p className="text-xs text-text-muted">
             {t("admin.copyTrading.companyIncomeHint")} ·{" "}
-            {t("admin.copyTrading.eligibleTonight")}:{" "}
+            {t("admin.copyTrading.networkPaid", {
+              amount: formatNumber(desk.situation.networkCommissions ?? 0, {
+                decimals: 2,
+              }),
+            })}{" "}
+            · {t("admin.copyTrading.eligibleTonight")}:{" "}
             {desk.situation.eligibleTonight} ·{" "}
             {t("admin.copyTrading.afterCutoff")}:{" "}
             {desk.situation.skippedAfterCutoff} · UTC {desk.situation.cutoffHour}
@@ -797,8 +805,12 @@ export default function AdminCopyTraderDeskPage() {
                   />
                   <PreviewStat
                     label={t("admin.copyTrading.previewCompanyFee")}
-                    value={`$${formatNumber(desk.preview.companyFee, { decimals: 2 })}`}
+                    value={`$${formatNumber(desk.preview.companyKeptFee ?? desk.preview.companyFee, { decimals: 2 })}`}
                     hint={t("admin.copyTrading.previewNotCharged")}
+                  />
+                  <PreviewStat
+                    label={t("admin.copyTrading.previewNetworkPayout")}
+                    value={`$${formatNumber(desk.preview.networkPayout ?? 0, { decimals: 2 })}`}
                   />
                 </div>
               ) : null}

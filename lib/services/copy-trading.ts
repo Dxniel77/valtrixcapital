@@ -40,6 +40,14 @@ import {
   utcDayStart,
   utcNextDayStart,
 } from "@/lib/copy-trading/operation-schedule";
+import {
+  COPY_NETWORK_LEVELS,
+  DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+  normalizePerformanceFeeNetworkBps,
+  splitPerformanceFeeNetwork,
+} from "@/lib/copy-trading/performance-fee-network";
+import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
+import { resolveUplineChain } from "@/lib/services/referral-chain";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -141,6 +149,7 @@ export type CopyTradingConfigDto = {
   withdrawFeeBps: number;
   settlementCutoffHour: number;
   lossGraceDays: number;
+  performanceFeeNetworkBps: number[];
 };
 
 export type CopyInvestmentDto = {
@@ -278,6 +287,16 @@ function companyFeeFromLedger(row: {
     return row.amount < 0n ? -row.amount : row.amount;
   }
   return parseFeeUsdtFromNote(row.note);
+}
+
+async function copyNetworkPaidMicro(traderId?: string): Promise<bigint> {
+  const result = await prisma.commission.aggregate({
+    where: traderId
+      ? { copyLedger: { is: { investment: { is: { traderId } } } } }
+      : { sourceCopyLedgerId: { not: null } },
+    _sum: { amount: true },
+  });
+  return result._sum.amount ?? 0n;
 }
 
 function utcDateOnly(dateStr: string): Date {
@@ -437,6 +456,7 @@ function serializeCopyConfig(row: {
   withdrawFeeBps?: number;
   settlementCutoffHour?: number;
   lossGraceDays?: number;
+  performanceFeeNetworkBps?: number[] | null;
 }): CopyTradingConfigDto {
   return {
     globalMinInvestment: fromMicro(row.globalMinInvestment),
@@ -446,6 +466,9 @@ function serializeCopyConfig(row: {
     withdrawFeeBps: row.withdrawFeeBps ?? 0,
     settlementCutoffHour: row.settlementCutoffHour ?? 22,
     lossGraceDays: row.lossGraceDays ?? 2,
+    performanceFeeNetworkBps: normalizePerformanceFeeNetworkBps(
+      row.performanceFeeNetworkBps ?? DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+    ),
   };
 }
 
@@ -456,6 +479,7 @@ export async function updateCopyTradingConfig(input: {
   lossGraceDays?: number;
   withdrawalMode?: CopyWithdrawalMode;
   globalMinInvestment?: number;
+  performanceFeeNetworkBps?: number[];
 }): Promise<CopyTradingConfigDto> {
   await ensureCopyTradingConfig();
   const data: {
@@ -465,6 +489,7 @@ export async function updateCopyTradingConfig(input: {
     lossGraceDays?: number;
     withdrawalMode?: CopyWithdrawalMode;
     globalMinInvestment?: bigint;
+    performanceFeeNetworkBps?: number[];
   } = {};
   if (input.investFeeBps !== undefined) {
     if (!Number.isInteger(input.investFeeBps) || input.investFeeBps < 0 || input.investFeeBps > 2000) {
@@ -505,6 +530,19 @@ export async function updateCopyTradingConfig(input: {
   if (input.withdrawalMode) data.withdrawalMode = input.withdrawalMode;
   if (input.globalMinInvestment !== undefined) {
     data.globalMinInvestment = toMicro(input.globalMinInvestment);
+  }
+  if (input.performanceFeeNetworkBps !== undefined) {
+    const rates = normalizePerformanceFeeNetworkBps(
+      input.performanceFeeNetworkBps,
+    );
+    const sum = rates.reduce((total, value) => total + value, 0);
+    if (sum > 10_000) {
+      throw new CopyTradingError(
+        "Network shares cannot exceed 100% of the Performance Fee",
+        "INVALID_AMOUNT",
+      );
+    }
+    data.performanceFeeNetworkBps = rates;
   }
   const row = await prisma.copyTradingConfig.update({
     where: { id: 1 },
@@ -1595,6 +1633,27 @@ export async function applyTraderPerformanceUpdate(input: {
               ).toFixed(2)}%)`,
             })),
           });
+          const feeRows = await tx.copyInvestmentLedger.findMany({
+            where: { performanceId: event.id, kind: "PERFORMANCE_FEE" },
+            select: {
+              id: true,
+              amount: true,
+              investment: { select: { userId: true } },
+            },
+          });
+          const networkRates = normalizePerformanceFeeNetworkBps(
+            copyConfig?.performanceFeeNetworkBps ??
+              DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+          );
+          for (const row of feeRows) {
+            const feeMicro = row.amount < 0n ? -row.amount : row.amount;
+            await distributePerformanceFeeNetwork(tx, {
+              sourceUserId: row.investment.userId,
+              feeLedgerId: row.id,
+              feeMicro,
+              ratesBps: networkRates,
+            });
+          }
         }
 
         // Equity curve is cumulative. Continue from the previous day, then add
@@ -1768,6 +1827,7 @@ export async function getAdminCopyDashboard() {
     recentRows,
     openOperations,
     feeRows,
+    networkPaid,
   ] = await Promise.all([
     ensureCopyTradingConfig(),
     listAdminCopyTraders(),
@@ -1810,14 +1870,16 @@ export async function getAdminCopyDashboard() {
       },
       select: { kind: true, amount: true, note: true },
     }),
+    copyNetworkPaidMicro(),
   ]);
 
   const principal = activeAggregate._sum.principal ?? 0n;
   const currentValue = activeAggregate._sum.currentValue ?? 0n;
-  const companyFees = feeRows.reduce(
+  const grossFees = feeRows.reduce(
     (sum, row) => sum + companyFeeFromLedger(row),
     0n,
   );
+  const companyFees = grossFees > networkPaid ? grossFees - networkPaid : 0n;
   return {
     config,
     metrics: {
@@ -1830,6 +1892,7 @@ export async function getAdminCopyDashboard() {
       currentValue: fromMicro(currentValue),
       totalPnl: fromMicro(currentValue - principal),
       companyFees: fromMicro(companyFees),
+      networkCommissions: fromMicro(networkPaid),
       pendingWithdrawals: pendingRows.length,
     },
     traders,
@@ -1869,6 +1932,7 @@ export type AdminCopyTraderDeskDto = {
     currentValue: number;
     pnl: number;
     companyFees: number;
+    networkCommissions: number;
     cutoffAt: string;
     cutoffHour: number;
   };
@@ -1925,6 +1989,8 @@ export type AdminPerformancePreviewDto = {
   grossUserDelta: number;
   userDelta: number;
   companyFee: number;
+  networkPayout: number;
+  companyKeptFee: number;
   usersAfterFee: number;
   feeApplied: true;
   cutoffAt: string;
@@ -1980,6 +2046,24 @@ export async function previewTraderPerformance(
     returnBps,
     trader.performanceFeeBps ?? 1000,
   );
+  const networkRates = normalizePerformanceFeeNetworkBps(
+    config.performanceFeeNetworkBps,
+  );
+  let networkPayout = 0n;
+  for (const entry of result.feeLedger) {
+    const investment = eligible.find((row) => row.id === entry.investmentId);
+    if (!investment) continue;
+    const feeMicro = entry.amount < 0n ? -entry.amount : entry.amount;
+    const uplines = await resolveUplineChain(
+      investment.userId,
+      COPY_NETWORK_LEVELS,
+    );
+    networkPayout += splitPerformanceFeeNetwork(
+      feeMicro,
+      networkRates,
+      uplines.length,
+    ).networkTotal;
+  }
 
   return {
     returnBps,
@@ -1989,6 +2073,10 @@ export async function previewTraderPerformance(
     grossUserDelta: fromMicro(result.grossTotalDelta),
     userDelta: fromMicro(result.totalDelta),
     companyFee: fromMicro(result.totalFee),
+    networkPayout: fromMicro(networkPayout),
+    companyKeptFee: fromMicro(
+      result.totalFee > networkPayout ? result.totalFee - networkPayout : 0n,
+    ),
     usersAfterFee: fromMicro(result.totalDelta),
     feeApplied: true,
     cutoffAt: cutoff.toISOString(),
@@ -2277,6 +2365,17 @@ export async function previewManyTraderPerformance(
   ]);
   const traderById = new Map(traders.map((row) => [row.id, row]));
   const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
+  const networkRates = normalizePerformanceFeeNetworkBps(
+    config.performanceFeeNetworkBps,
+  );
+  const uplineCache = new Map<string, string[]>();
+  async function uplinesFor(userId: string): Promise<string[]> {
+    const cached = uplineCache.get(userId);
+    if (cached) return cached;
+    const chain = await resolveUplineChain(userId, COPY_NETWORK_LEVELS);
+    uplineCache.set(userId, chain);
+    return chain;
+  }
   const byTrader = new Map<string, typeof investments>();
   for (const inv of investments) {
     const list = byTrader.get(inv.traderId) ?? [];
@@ -2329,6 +2428,18 @@ export async function previewManyTraderPerformance(
     const feeByInvestment = new Map(
       result.feeLedger.map((entry) => [entry.investmentId, -entry.amount]),
     );
+    let networkPayout = 0n;
+    for (const entry of result.feeLedger) {
+      const investment = eligibleById.get(entry.investmentId);
+      if (!investment) continue;
+      const feeMicro = entry.amount < 0n ? -entry.amount : entry.amount;
+      const uplines = await uplinesFor(investment.userId);
+      networkPayout += splitPerformanceFeeNetwork(
+        feeMicro,
+        networkRates,
+        uplines.length,
+      ).networkTotal;
+    }
     for (const pnl of result.pnlLedger) {
       const investment = eligibleById.get(pnl.investmentId);
       if (!investment) continue;
@@ -2355,6 +2466,10 @@ export async function previewManyTraderPerformance(
       grossUserDelta: fromMicro(result.grossTotalDelta),
       userDelta: fromMicro(result.totalDelta),
       companyFee: fromMicro(result.totalFee),
+      networkPayout: fromMicro(networkPayout),
+      companyKeptFee: fromMicro(
+        result.totalFee > networkPayout ? result.totalFee - networkPayout : 0n,
+      ),
       usersAfterFee: fromMicro(result.totalDelta),
       feeApplied: true,
       cutoffAt: cutoff.toISOString(),
@@ -2579,7 +2694,7 @@ export async function getAdminCopyTraderDesk(
   const config = await ensureCopyTradingConfig();
   const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
 
-  const [active, chartPoints, operations, events, feeRows, weekStats] =
+  const [active, chartPoints, operations, events, feeRows, weekStats, networkPaid] =
     await Promise.all([
     prisma.copyInvestment.findMany({
       where: { traderId, status: "ACTIVE" },
@@ -2618,6 +2733,7 @@ export async function getAdminCopyTraderDesk(
       select: { kind: true, amount: true, note: true },
     }),
     getCopyTraderStats(traderId, "WEEK", { requireVisible: false }),
+    copyNetworkPaidMicro(traderId),
   ]);
 
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
@@ -2626,10 +2742,11 @@ export async function getAdminCopyTraderDesk(
   const lossProtectedTonight = active.filter((row) =>
     protectedFromLoss(row.startedAt, cutoff, config.lossGraceDays),
   ).length;
-  const companyFees = feeRows.reduce(
+  const grossFees = feeRows.reduce(
     (sum, row) => sum + companyFeeFromLedger(row),
     0n,
   );
+  const companyFees = grossFees > networkPaid ? grossFees - networkPaid : 0n;
   const now = new Date();
 
   const chartAsc = [...chartPoints]
@@ -2663,6 +2780,7 @@ export async function getAdminCopyTraderDesk(
       currentValue: fromMicro(currentValue),
       pnl: fromMicro(currentValue - principal),
       companyFees: fromMicro(companyFees),
+      networkCommissions: fromMicro(networkPaid),
       cutoffAt: cutoff.toISOString(),
       cutoffHour: config.settlementCutoffHour,
     },

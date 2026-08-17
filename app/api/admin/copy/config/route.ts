@@ -16,6 +16,10 @@ const bodySchema = z.object({
   lossGraceDays: z.number().int().min(0).max(30).optional(),
   withdrawalMode: z.enum(["INSTANT", "APPROVAL"]).optional(),
   globalMinInvestment: z.number().finite().min(0).optional(),
+  performanceFeeNetworkBps: z
+    .array(z.number().int().min(0).max(10_000))
+    .length(6)
+    .optional(),
 });
 
 export async function PATCH(req: Request) {

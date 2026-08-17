@@ -410,16 +410,21 @@ model Commission {
   amount        BigInt
   sourceYieldId String?
   sourceTradeId String?
+  /// Copy Performance Fee ledger row this network share was paid from.
+  sourceCopyLedgerId String?
   createdAt     DateTime @default(now())
 
-  beneficiary User              @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
-  sourceUser  User              @relation("CommissionSource", fields: [sourceUserId], references: [id])
-  sourceYield DailyYieldRecord? @relation(fields: [sourceYieldId], references: [id])
-  sourceTrade Trade?            @relation(fields: [sourceTradeId], references: [id])
+  beneficiary User                  @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id])
+  sourceUser  User                  @relation("CommissionSource", fields: [sourceUserId], references: [id])
+  sourceYield DailyYieldRecord?     @relation(fields: [sourceYieldId], references: [id])
+  sourceTrade Trade?                @relation(fields: [sourceTradeId], references: [id])
+  copyLedger  CopyInvestmentLedger? @relation(fields: [sourceCopyLedgerId], references: [id], onDelete: SetNull)
 
+  @@unique([beneficiaryId, sourceCopyLedgerId, level])
   @@index([beneficiaryId])
   @@index([sourceUserId])
   @@index([sourceTradeId])
+  @@index([sourceCopyLedgerId])
 }
 
 model Deposit {
@@ -901,6 +906,7 @@ model CopyInvestmentLedger {
   createdAt     DateTime       @default(now())
 
   investment CopyInvestment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+  networkCommissions Commission[]
 
   @@index([investmentId, createdAt])
 }
@@ -935,6 +941,8 @@ model CopyTradingConfig {
   settlementCutoffHour Int               @default(22)
   /// New copies receive positive/flat results but skip losses for this many settlement days.
   lossGraceDays       Int                @default(2)
+  /// Six-level share of each copier's Performance Fee (bps of the fee). Remainder stays with the company.
+  performanceFeeNetworkBps Int[]         @default([3000, 1500, 1000, 500, 500, 500])
   updatedAt           DateTime           @updatedAt
 }
 

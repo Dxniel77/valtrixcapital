@@ -123,6 +123,7 @@ type Dashboard = {
     settlementCutoffHour: number;
     lossGraceDays: number;
     globalMinInvestment: number;
+    performanceFeeNetworkBps?: number[];
   };
   metrics: {
     traders: number;
@@ -134,6 +135,7 @@ type Dashboard = {
     currentValue: number;
     totalPnl: number;
     companyFees: number;
+    networkCommissions?: number;
   };
   traders: Trader[];
   openOperations: Array<{
@@ -309,6 +311,14 @@ export default function AdminCopyTradingPage() {
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
   const [lossGraceDays, setLossGraceDays] = React.useState("2");
+  const [networkPcts, setNetworkPcts] = React.useState([
+    "30",
+    "15",
+    "10",
+    "5",
+    "5",
+    "5",
+  ]);
   const [showcaseMin, setShowcaseMin] = React.useState("15");
   const [showcaseMax, setShowcaseMax] = React.useState("90");
 
@@ -501,6 +511,13 @@ export default function AdminCopyTradingPage() {
         setWithdrawFeePct(String(next.config.withdrawFeeBps / 100));
         setCutoffHour(String(next.config.settlementCutoffHour));
         setLossGraceDays(String(next.config.lossGraceDays ?? 2));
+        if (next.config.performanceFeeNetworkBps?.length === 6) {
+          setNetworkPcts(
+            next.config.performanceFeeNetworkBps.map((bps) =>
+              String(bps / 100),
+            ),
+          );
+        }
       }
     } catch (error) {
       toast.error(
@@ -818,6 +835,9 @@ export default function AdminCopyTradingPage() {
             30,
             Math.max(0, Math.trunc(Number(lossGraceDays) || 0)),
           ),
+          performanceFeeNetworkBps: networkPcts.map((value) =>
+            Math.max(0, Math.round((Number(value) || 0) * 100)),
+          ),
           withdrawalMode: "INSTANT",
         }),
       });
@@ -938,6 +958,15 @@ export default function AdminCopyTradingPage() {
               tone="gold"
             />
           </div>
+          {data.metrics.networkCommissions ? (
+            <p className="text-xs text-text-muted">
+              {t("admin.copyTrading.networkPaid", {
+                amount: formatNumber(data.metrics.networkCommissions, {
+                  decimals: 2,
+                }),
+              })}
+            </p>
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -991,6 +1020,34 @@ export default function AdminCopyTradingPage() {
               </div>
               <p className="sm:col-span-5 text-xs text-text-muted">
                 {t("admin.copyTrading.feesHint")}
+              </p>
+              <div className="sm:col-span-5 grid gap-3 sm:grid-cols-6">
+                {networkPcts.map((value, index) => (
+                  <Field
+                    key={`network-l${index + 1}`}
+                    label={t("admin.copyTrading.networkLevel", {
+                      n: index + 1,
+                    })}
+                  >
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      max={100}
+                      value={value}
+                      onChange={(event) =>
+                        setNetworkPcts((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index ? event.target.value : item,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
+              <p className="sm:col-span-5 text-xs text-text-muted">
+                {t("admin.copyTrading.networkHint")}
               </p>
             </CardContent>
           </Card>
