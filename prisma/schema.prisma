@@ -82,6 +82,17 @@ enum AdminActionType {
   ASSIGN_IB_STRATEGY
   UPSERT_IB_AGREEMENT
   IB_NET_DEPOSIT_CREDIT
+  RECONCILE_HOT_WALLET_TX
+}
+
+enum HotWalletAsset {
+  NATIVE
+  USDT
+}
+
+enum HotWalletOutflowReviewStatus {
+  IGNORED
+  REGISTERED_TREASURY
 }
 
 enum SponsorTermsStatus {
@@ -241,6 +252,7 @@ model User {
   ibAgreement             IbAgreement?
   ibNetDepositCredits     IbNetDepositCredit[]     @relation("IbNetDepositBeneficiary")
   ibNetDepositSources     IbNetDepositCredit[]     @relation("IbNetDepositSource")
+  hotWalletOutflowReviews HotWalletOutflowReview[] @relation("HotWalletOutflowReviewer")
 
   @@index([referrerId])
   @@index([walletAddress])
@@ -924,4 +936,27 @@ model DeviceToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Admin review of an on-chain hot-wallet outflow that was missing from Valtrix records.
+model HotWalletOutflowReview {
+  id           String                       @id @default(uuid())
+  network      Network
+  asset        HotWalletAsset
+  txHash       String
+  fromAddress  String
+  toAddress    String
+  amount       Float
+  amountUsd    Float
+  status       HotWalletOutflowReviewStatus
+  note         String                       @default("")
+  reviewedById String?
+  reviewedAt   DateTime                     @default(now())
+  createdAt    DateTime                     @default(now())
+
+  reviewedBy User? @relation("HotWalletOutflowReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([network, txHash])
+  @@index([reviewedAt(sort: Desc)])
+  @@index([status])
 }
