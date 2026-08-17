@@ -956,7 +956,7 @@
     "copyTrading": {
       "title": "Contrôle du trading de copie",
       "subtitle": "Gérez les traders, les résultats automatiques, les copieurs et les retraits.",
-      "simulationNotice": "Ce module génère des résultats de stratégie simulés par la plateforme. N'exécute pas d'ordres sur des bourses externes. Chaque résultat publié est audité et appliqué proportionnellement aux copieurs actifs.",
+      "simulationNotice": "Ce module n'exécute pas d'ordres sur des bourses externes. Le moteur ouvre et ferme des opérations en direct ; chaque clôture règle le P&L des copieurs, les frais d'ouverture et la Performance Fee.",
       "runAll": "Exécuter l'automatisation",
       "newTrader": "Nouveau commerçant",
       "saved": "Commerçant enregistré",

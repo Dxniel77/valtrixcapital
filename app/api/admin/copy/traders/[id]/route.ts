@@ -5,7 +5,6 @@ import { isDatabaseAvailable } from "@/lib/db/available";
 import {
   CopyTradingError,
   getAdminCopyTraderDesk,
-  previewTraderPerformance,
   updateAdminCopyTrader,
 } from "@/lib/services/copy-trading";
 import { findUserByWallet } from "@/lib/services/users";
@@ -14,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(req: Request, { params }: Params) {
+export async function GET(_req: Request, { params }: Params) {
   const auth = await requireAdminSession();
   if (auth.error) return auth.error;
   if (!(await isDatabaseAvailable())) {
@@ -24,13 +23,7 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const { id } = await params;
     const desk = await getAdminCopyTraderDesk(id);
-    const returnBpsRaw = new URL(req.url).searchParams.get("returnBps");
-    const returnBps = Math.trunc(Number(returnBpsRaw));
-    const preview =
-      returnBpsRaw != null && returnBpsRaw !== "" && Number.isInteger(returnBps)
-        ? await previewTraderPerformance(id, returnBps)
-        : null;
-    return NextResponse.json({ ok: true, ...desk, preview });
+    return NextResponse.json({ ok: true, ...desk });
   } catch (error) {
     if (error instanceof CopyTradingError) {
       return NextResponse.json(

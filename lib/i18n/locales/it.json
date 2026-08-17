@@ -956,7 +956,7 @@
     "copyTrading": {
       "title": "Copia il controllo del trading",
       "subtitle": "Gestisci trader, risultati automatici, fotocopiatrici e prelievi.",
-      "simulationNotice": "Questo modulo genera risultati strategici simulati dalla piattaforma. Non esegue ordini su borse esterne. Ogni risultato pubblicato viene controllato e applicato proporzionalmente ai fotocopiatori attivi.",
+      "simulationNotice": "Questo modulo non esegue ordini su exchange esterni. Il motore apre e chiude operazioni live; ogni chiusura liquida il P&L dei copier, la fee di piattaforma e la Performance Fee.",
       "runAll": "Esegui l'automazione",
       "newTrader": "Nuovo commerciante",
       "saved": "Commerciante salvato",

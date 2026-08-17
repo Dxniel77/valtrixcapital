@@ -956,7 +956,7 @@
     "copyTrading": {
       "title": "Handelskontrolle kopieren",
       "subtitle": "Verwalten Sie Händler, automatische Ergebnisse, Kopierer und Abhebungen.",
-      "simulationNotice": "Dieses Modul generiert Strategieergebnisse, die von der Plattform simuliert werden. Führt keine Aufträge an externen Börsen aus. Jedes veröffentlichte Ergebnis wird geprüft und anteilig auf aktive Kopierer angewendet.",
+      "simulationNotice": "Dieses Modul führt keine Aufträge an externen Börsen aus. Die Engine öffnet und schließt Live-Operationen; jeder Close rechnet Copier-P&L, die Plattformgebühr und die Performance Fee ab.",
       "runAll": "Automatisierung ausführen",
       "newTrader": "Neuer Händler",
       "saved": "Gespeicherter Händler",

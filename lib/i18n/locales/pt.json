@@ -955,7 +955,7 @@
     "copyTrading": {
       "title": "Controle de negociação de cópias",
       "subtitle": "Gerenciar traders, resultados automáticos, copiadoras e saques.",
-      "simulationNotice": "Este módulo gera resultados de estratégia simulados pela plataforma. Não executa ordens em bolsas externas. Cada resultado publicado é auditado e aplicado proporcionalmente às copiadoras ativas.",
+      "simulationNotice": "Este módulo não executa ordens em bolsas externas. O motor abre e fecha operações ao vivo; cada fechamento liquida o P&L dos copiadores, a taxa de plataforma e a Performance Fee.",
       "runAll": "Executar automação",
       "newTrader": "Novo comerciante",
       "saved": "Comerciante salvo",

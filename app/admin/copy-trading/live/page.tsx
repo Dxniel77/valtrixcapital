@@ -242,12 +242,19 @@ export default function AdminCopyLiveBoardPage() {
         title={t("admin.copyTrading.liveBoardTitle")}
         subtitle={t("admin.copyTrading.liveBoardSubtitle")}
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin/copy-trading">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              {t("admin.copyTrading.backToList")}
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/copy-trading/income">
+                {t("admin.copyTrading.incomeReports")}
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/copy-trading">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                {t("admin.copyTrading.backToList")}
+              </Link>
+            </Button>
+          </div>
         }
       />
 

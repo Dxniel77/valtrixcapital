@@ -132,16 +132,6 @@ type Desk = {
     source: string;
     createdAt: string;
   }>;
-  preview: {
-    eligible: number;
-    skippedAfterCutoff: number;
-    lossProtected: number;
-    userDelta: number;
-    companyFee: number;
-    networkPayout?: number;
-    companyKeptFee?: number;
-    feeApplied: true;
-  } | null;
 };
 
 type OpForm = {
@@ -244,7 +234,6 @@ export default function AdminCopyTraderDeskPage() {
   const [desk, setDesk] = React.useState<Desk | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState<string | null>(null);
-  const [resultPct, setResultPct] = React.useState("");
   const [chartDate, setChartDate] = React.useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -266,15 +255,11 @@ export default function AdminCopyTraderDeskPage() {
   );
 
   const load = React.useCallback(
-    async (returnBps?: number) => {
+    async () => {
       setLoading(true);
       try {
-        const query =
-          returnBps != null && Number.isFinite(returnBps)
-            ? `?returnBps=${returnBps}`
-            : "";
         const next = await apiFetch<Desk & { ok: boolean }>(
-          `/api/admin/copy/traders/${traderId}${query}`,
+          `/api/admin/copy/traders/${traderId}`,
         );
         setDesk(next);
         setStats({
@@ -302,55 +287,6 @@ export default function AdminCopyTraderDeskPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
-
-  async function previewResult() {
-    const pct = Number(resultPct);
-    if (!Number.isFinite(pct) || pct < -100 || pct > 100) {
-      toast.error(t("admin.copyTrading.invalidReturn"));
-      return;
-    }
-    await load(Math.round(pct * 100));
-  }
-
-  async function publishResult() {
-    const pct = Number(resultPct);
-    if (!Number.isFinite(pct) || pct < -100 || pct > 100) {
-      toast.error(t("admin.copyTrading.invalidReturn"));
-      return;
-    }
-    const preview = desk?.preview;
-    const ok = window.confirm(
-      t("admin.copyTrading.publishConfirm", {
-        pct: pct.toFixed(2),
-        delta: formatNumber(preview?.userDelta ?? 0, { decimals: 2 }),
-        fee: formatNumber(preview?.companyFee ?? 0, { decimals: 2 }),
-      }),
-    );
-    if (!ok) return;
-    setBusy("publish");
-    try {
-      const result = await apiFetch<{ affected: number }>(
-        `/api/admin/copy/traders/${traderId}/performance`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            period: "TODAY",
-            returnBps: Math.round(pct * 100),
-            idempotencyKey: `admin:${traderId}:${Date.now()}`,
-          }),
-        },
-      );
-      toast.success(t("admin.copyTrading.returnApplied", { n: result.affected }));
-      setResultPct("");
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
 
   async function repairChart() {
     setBusy("repair");
@@ -774,80 +710,21 @@ export default function AdminCopyTraderDeskPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {t("admin.copyTrading.publishTitle")}
+                {t("admin.copyTrading.repairChart")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {desk.trader.simulationEnabled ? (
-                <p className="text-xs text-text-muted">
-                  {t("admin.copyTrading.publishVsLiveHint")}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-end gap-2">
-                <Field label={t("admin.copyTrading.returnPlaceholder")}>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="w-32"
-                    value={resultPct}
-                    onChange={(event) => setResultPct(event.target.value)}
-                  />
-                </Field>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void previewResult()}
-                >
-                  {t("admin.copyTrading.preview")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="success"
-                  loading={busy === "publish"}
-                  onClick={() => void publishResult()}
-                >
-                  {t("admin.copyTrading.publish")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  loading={busy === "repair"}
-                  onClick={() => void repairChart()}
-                >
-                  {t("admin.copyTrading.repairChart")}
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={busy === "repair"}
+                onClick={() => void repairChart()}
+              >
+                {t("admin.copyTrading.repairChart")}
+              </Button>
               <p className="text-xs text-text-muted">
                 {t("admin.copyTrading.repairChartHint")}
               </p>
-              {desk.preview ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <PreviewStat
-                    label={t("admin.copyTrading.previewEligible", {
-                      n: desk.preview.eligible,
-                    })}
-                    value={`${t("admin.copyTrading.previewSkipped", {
-                      n: desk.preview.skippedAfterCutoff,
-                    })} · ${t("admin.copyTrading.lossProtected", {
-                      n: desk.preview.lossProtected,
-                    })}`}
-                  />
-                  <PreviewStat
-                    label={t("admin.copyTrading.previewUserDelta")}
-                    value={`${desk.preview.userDelta >= 0 ? "+" : ""}$${formatNumber(desk.preview.userDelta, { decimals: 2 })}`}
-                    tone={desk.preview.userDelta >= 0 ? "positive" : "negative"}
-                  />
-                  <PreviewStat
-                    label={t("admin.copyTrading.previewCompanyFee")}
-                    value={`$${formatNumber(desk.preview.companyKeptFee ?? desk.preview.companyFee, { decimals: 2 })}`}
-                    hint={t("admin.copyTrading.previewNotCharged")}
-                  />
-                  <PreviewStat
-                    label={t("admin.copyTrading.previewNetworkPayout")}
-                    value={`$${formatNumber(desk.preview.networkPayout ?? 0, { decimals: 2 })}`}
-                  />
-                </div>
-              ) : null}
             </CardContent>
           </Card>
 
@@ -1498,36 +1375,6 @@ function Metric({
         <p className={`mt-1 font-mono text-xl font-semibold ${color}`}>{value}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function PreviewStat({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "positive" | "negative";
-}) {
-  return (
-    <div className="rounded-md border border-border-subtle bg-bg-base/40 p-3">
-      <p className="text-xs text-text-muted">{label}</p>
-      <p
-        className={`mt-1 font-mono text-sm ${
-          tone === "positive"
-            ? "text-success"
-            : tone === "negative"
-              ? "text-danger"
-              : "text-text-primary"
-        }`}
-      >
-        {value}
-      </p>
-      {hint ? <p className="mt-1 text-[11px] text-text-muted">{hint}</p> : null}
-    </div>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   Bot,
   Eye,
   EyeOff,
+  FileSpreadsheet,
   Pencil,
   Plus,
   Star,
@@ -30,7 +31,6 @@ import {
 import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
-import { draftReturnBps } from "@/lib/copy-trading/admin-draft";
 import { COPY_RISK_PROFILES } from "@/lib/copy-trading/risk-profiles";
 import { useI18n } from "@/lib/i18n/context";
 import { formatNumber } from "@/lib/utils";
@@ -84,43 +84,6 @@ type Trader = {
 type CopierFilter = "copiers" | "empty" | "all";
 type FlagFilter = "all" | "featured" | "hidden" | "visible";
 type TraderSort = "aum" | "copiers" | "pnl" | "last" | "name";
-type TargetMode = "GROWTH" | "NEUTRAL" | "HARVEST";
-
-type BulkTotals = {
-  traders: number;
-  eligible: number;
-  skippedAfterCutoff: number;
-  lossProtected: number;
-  userDelta: number;
-  companyFee: number;
-  green: number;
-  red: number;
-  flat: number;
-};
-
-type TargetAllocation = {
-  requestedUserDelta: number;
-  achievedUserDelta: number;
-  difference: number;
-  reachable: boolean;
-  minUserDelta: number;
-  maxUserDelta: number;
-  items: Array<{ traderId: string; returnBps: number }>;
-  copierImpacts: CopierImpact[];
-  totals: BulkTotals;
-};
-
-type CopierImpact = {
-  investmentId: string;
-  traderId: string;
-  traderName: string;
-  username: string | null;
-  walletAddress: string;
-  currentValue: number;
-  grossDelta: number;
-  companyFee: number;
-  netDelta: number;
-};
 
 type Dashboard = {
   config?: {
@@ -223,15 +186,6 @@ const EMPTY_FORM: TraderForm = {
   targetCycleDays: "30",
 };
 
-/** `crypto.randomUUID` is unavailable outside secure contexts (plain-HTTP hosts). */
-function idempotencyKey(traderId: string): string {
-  const unique =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `admin:${traderId}:${unique}`;
-}
-
 function traderToForm(trader: Trader): TraderForm {
   return {
     name: trader.name,
@@ -330,19 +284,12 @@ export default function AdminCopyTradingPage() {
   const [busy, setBusy] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<Trader | null | "new">(null);
   const [form, setForm] = React.useState<TraderForm>(EMPTY_FORM);
-  const [returns, setReturns] = React.useState<Record<string, string>>({});
   const [traderSearch, setTraderSearch] = React.useState("");
   const [traderPage, setTraderPage] = React.useState(1);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [copierFilter, setCopierFilter] = React.useState<CopierFilter>("copiers");
   const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
-  const [bulkPreview, setBulkPreview] = React.useState<BulkTotals | null>(null);
-  const [copierImpacts, setCopierImpacts] = React.useState<CopierImpact[]>([]);
-  const [targetMode, setTargetMode] = React.useState<TargetMode>("HARVEST");
-  const [targetAmount, setTargetAmount] = React.useState("100");
-  const [targetAllocation, setTargetAllocation] =
-    React.useState<TargetAllocation | null>(null);
   const [investFeePct, setInvestFeePct] = React.useState("0");
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
   const [cutoffHour, setCutoffHour] = React.useState("22");
@@ -404,8 +351,6 @@ export default function AdminCopyTradingPage() {
   React.useEffect(() => {
     setTraderPage(1);
     setSelectedIds(new Set());
-    setBulkPreview(null);
-    setTargetAllocation(null);
   }, [traderSearch, copierFilter, flagFilter, traderSort]);
 
   React.useEffect(() => {
@@ -609,256 +554,6 @@ export default function AdminCopyTradingPage() {
     }
   }
 
-  async function publishReturn(trader: Trader) {
-    const pct = Number(returns[trader.id]);
-    if (!Number.isFinite(pct) || pct < -100 || pct > 100) {
-      toast.error(t("admin.copyTrading.invalidReturn"));
-      return;
-    }
-    setBusy(`return:${trader.id}`);
-    try {
-      const result = await apiFetch<{ affected: number }>(
-        `/api/admin/copy/traders/${trader.id}/performance`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            period: "TODAY",
-            returnBps: Math.round(pct * 100),
-            idempotencyKey: idempotencyKey(trader.id),
-          }),
-        },
-      );
-      toast.success(
-        t("admin.copyTrading.returnApplied", { n: result.affected }),
-      );
-      setReturns((current) => ({ ...current, [trader.id]: "" }));
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function filledItems(traders: Trader[]) {
-    const items: Array<{ traderId: string; returnBps: number; idempotencyKey: string }> =
-      [];
-    for (const trader of traders) {
-      const pct = Number(returns[trader.id]);
-      if (!Number.isFinite(pct) || pct < -100 || pct > 100) continue;
-      items.push({
-        traderId: trader.id,
-        returnBps: Math.round(pct * 100),
-        idempotencyKey: idempotencyKey(trader.id),
-      });
-    }
-    return items;
-  }
-
-  async function suggestDay() {
-    const targets = filteredTraders.filter((trader) => trader.activeInvestments > 0);
-    if (targets.length === 0) {
-      toast.error(t("admin.copyTrading.noCopiersToSuggest"));
-      return;
-    }
-    const items = targets.slice(0, 100).map((trader) => ({
-      traderId: trader.id,
-      returnBps: draftReturnBps(
-        trader.simulationMinBps,
-        trader.simulationMaxBps,
-        targetMode,
-      ),
-    }));
-    setReturns((current) => {
-      const next = { ...current };
-      for (const item of items) {
-        next[item.traderId] = (item.returnBps / 100).toFixed(2);
-      }
-      return next;
-    });
-
-    // A trader whose configured range excludes the mode's direction cannot follow it.
-    const blocked = targets.filter((trader) =>
-      targetMode === "HARVEST"
-        ? trader.simulationMinBps >= 0
-        : targetMode === "GROWTH"
-          ? trader.simulationMaxBps <= 0
-          : false,
-    );
-    if (blocked.length > 0) {
-      toast.warning(
-        t("admin.copyTrading.draftModeBlocked", {
-          n: blocked.length,
-          names: blocked
-            .slice(0, 3)
-            .map((trader) => trader.name)
-            .join(", "),
-        }),
-      );
-    }
-
-    setTargetAllocation(null);
-    setBusy("draft");
-    try {
-      const result = await apiFetch<{
-        totals: BulkTotals;
-        copierImpacts: CopierImpact[];
-      }>("/api/admin/copy/performance/preview", {
-        method: "POST",
-        body: JSON.stringify({ items }),
-      });
-      setBulkPreview(result.totals);
-      setCopierImpacts(result.copierImpacts);
-      toast.success(t("admin.copyTrading.suggested", { n: items.length }));
-    } catch (error) {
-      setBulkPreview(null);
-      setCopierImpacts([]);
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function allocateTarget() {
-    const targets = filteredTraders.filter(
-      (trader) => trader.activeInvestments > 0 && trader.isActive,
-    );
-    if (targets.length === 0) {
-      toast.error(t("admin.copyTrading.noCopiersToSuggest"));
-      return;
-    }
-    const amount = targetMode === "NEUTRAL" ? 0 : Number(targetAmount);
-    if (!Number.isFinite(amount) || amount < 0) {
-      toast.error(t("admin.copyTrading.invalidTarget"));
-      return;
-    }
-
-    setBusy("target");
-    try {
-      const result = await apiFetch<TargetAllocation>(
-        "/api/admin/copy/performance/target",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            traderIds: targets.map((trader) => trader.id),
-            mode: targetMode,
-            targetAmount: amount,
-          }),
-        },
-      );
-      setReturns((current) => {
-        const next = { ...current };
-        for (const item of result.items) {
-          next[item.traderId] = (item.returnBps / 100).toFixed(2);
-        }
-        return next;
-      });
-      setBulkPreview(result.totals);
-      setCopierImpacts(result.copierImpacts);
-      setTargetAllocation(result);
-      toast.success(
-        t("admin.copyTrading.targetAllocated", {
-          amount: formatNumber(result.achievedUserDelta, { decimals: 2 }),
-        }),
-      );
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function previewAll() {
-    const items = filledItems(filteredTraders);
-    if (items.length === 0) {
-      toast.error(t("admin.copyTrading.noResultsToPreview"));
-      return;
-    }
-    setBusy("preview");
-    try {
-      const result = await apiFetch<{
-        totals: BulkTotals;
-        copierImpacts: CopierImpact[];
-      }>(
-        "/api/admin/copy/performance/preview",
-        { method: "POST", body: JSON.stringify({ items }) },
-      );
-      setBulkPreview(result.totals);
-      setCopierImpacts(result.copierImpacts);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function publishAll() {
-    const items = filledItems(filteredTraders);
-    if (items.length === 0) {
-      toast.error(t("admin.copyTrading.noResultsToPreview"));
-      return;
-    }
-    if (!bulkPreview) {
-      toast.error(t("admin.copyTrading.previewRequired"));
-      return;
-    }
-    if (
-      !window.confirm(
-        t("admin.copyTrading.publishAllConfirm", {
-          n: items.length,
-          delta: formatNumber(bulkPreview?.userDelta ?? 0, { decimals: 2 }),
-          fee: formatNumber(bulkPreview?.companyFee ?? 0, { decimals: 2 }),
-        }),
-      )
-    ) {
-      return;
-    }
-    setBusy("publish-all");
-    try {
-      const result = await apiFetch<{
-        published: number;
-        affected: number;
-        failed: Array<{ traderId: string; error: string }>;
-      }>("/api/admin/copy/performance/publish", {
-        method: "POST",
-        body: JSON.stringify({ items }),
-      });
-      if (result.failed.length > 0) {
-        toast.error(
-          t("admin.copyTrading.publishedWithErrors", {
-            n: result.published,
-            failed: result.failed.length,
-          }),
-        );
-      } else {
-        toast.success(
-          t("admin.copyTrading.publishedAll", {
-            n: result.published,
-            affected: result.affected,
-          }),
-        );
-      }
-      setReturns({});
-      setBulkPreview(null);
-      setTargetAllocation(null);
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function saveFees() {
     setBusy("config");
     try {
@@ -947,6 +642,12 @@ export default function AdminCopyTradingPage() {
               <Link href="/admin/copy-trading/live">
                 <Activity className="h-3.5 w-3.5" />
                 {t("admin.copyTrading.liveBoard")}
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/copy-trading/income">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                {t("admin.copyTrading.incomeReports")}
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -1151,102 +852,6 @@ export default function AdminCopyTradingPage() {
             </Card>
           ) : null}
 
-          <Card className="border-gold/25">
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t("admin.copyTrading.bookTargetTitle")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label={t("admin.copyTrading.bookMode")}>
-                  <Select
-                    value={targetMode}
-                    onChange={(event) => {
-                      setTargetMode(event.target.value as TargetMode);
-                      setBulkPreview(null);
-                      setTargetAllocation(null);
-                    }}
-                  >
-                    <option value="GROWTH">
-                      {t("admin.copyTrading.modeGrowth")}
-                    </option>
-                    <option value="NEUTRAL">
-                      {t("admin.copyTrading.modeNeutral")}
-                    </option>
-                    <option value="HARVEST">
-                      {t("admin.copyTrading.modeHarvest")}
-                    </option>
-                  </Select>
-                </Field>
-                <Field label={t("admin.copyTrading.targetAmount")}>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="1"
-                    disabled={targetMode === "NEUTRAL"}
-                    value={targetMode === "NEUTRAL" ? "0" : targetAmount}
-                    onChange={(event) => {
-                      setTargetAmount(event.target.value);
-                      setBulkPreview(null);
-                      setTargetAllocation(null);
-                    }}
-                  />
-                </Field>
-                <div className="flex items-end">
-                  <Button
-                    loading={busy === "target"}
-                    onClick={() => void allocateTarget()}
-                  >
-                    {t("admin.copyTrading.allocateTarget")}
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-text-muted">
-                {targetMode === "GROWTH"
-                  ? t("admin.copyTrading.modeGrowthHint")
-                  : targetMode === "NEUTRAL"
-                    ? t("admin.copyTrading.modeNeutralHint")
-                    : t("admin.copyTrading.modeHarvestHint")}
-              </p>
-              {targetAllocation ? (
-                <div
-                  className={`rounded-md border p-3 text-xs ${
-                    targetAllocation.reachable
-                      ? "border-success/25 bg-success/5"
-                      : "border-warning/25 bg-warning/5"
-                  }`}
-                >
-                  {t("admin.copyTrading.targetResult", {
-                    requested: formatNumber(
-                      targetAllocation.requestedUserDelta,
-                      { decimals: 2 },
-                    ),
-                    achieved: formatNumber(
-                      targetAllocation.achievedUserDelta,
-                      { decimals: 2 },
-                    ),
-                  })}
-                  {targetAllocation.totals.eligible === 0
-                    ? ` · ${t("admin.copyTrading.targetNoEligible", {
-                        n: targetAllocation.totals.skippedAfterCutoff,
-                        hour: data?.config?.settlementCutoffHour ?? 22,
-                      })}`
-                    : !targetAllocation.reachable
-                      ? ` · ${t("admin.copyTrading.targetCapped", {
-                          min: formatNumber(targetAllocation.minUserDelta, {
-                            decimals: 2,
-                          }),
-                          max: formatNumber(targetAllocation.maxUserDelta, {
-                            decimals: 2,
-                          }),
-                        })}`
-                      : null}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader className="flex flex-col gap-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1258,31 +863,6 @@ export default function AdminCopyTradingPage() {
                   </span>
                 </CardTitle>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    loading={busy === "draft"}
-                    onClick={() => void suggestDay()}
-                  >
-                    {t("admin.copyTrading.modeDraft")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    loading={busy === "preview"}
-                    onClick={() => void previewAll()}
-                  >
-                    {t("admin.copyTrading.previewAll")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="success"
-                    loading={busy === "publish-all"}
-                    disabled={!bulkPreview}
-                    onClick={() => void publishAll()}
-                  >
-                    {t("admin.copyTrading.publishAll")}
-                  </Button>
                   {selectedIds.size > 0 ? (
                     <Button
                       size="sm"
@@ -1348,106 +928,6 @@ export default function AdminCopyTradingPage() {
                   placeholder={t("admin.copyTrading.searchTraders")}
                 />
               </div>
-              {bulkPreview ? (
-                <div className="grid gap-2 rounded-md border border-gold/20 bg-gold/5 p-3 text-xs sm:grid-cols-5">
-                  <span>
-                    {t("admin.copyTrading.bulkTraders", {
-                      n: bulkPreview.traders,
-                    })}{" "}
-                    · {t("admin.copyTrading.bulkGreen", { n: bulkPreview.green })}{" "}
-                    / {t("admin.copyTrading.bulkRed", { n: bulkPreview.red })}
-                  </span>
-                  <span>
-                    {t("admin.copyTrading.previewEligible", {
-                      n: bulkPreview.eligible,
-                    })}
-                  </span>
-                  <span className="text-info">
-                    {t("admin.copyTrading.lossProtected", {
-                      n: bulkPreview.lossProtected,
-                    })}
-                  </span>
-                  <span
-                    className={
-                      bulkPreview.userDelta >= 0 ? "text-success" : "text-danger"
-                    }
-                  >
-                    {t("admin.copyTrading.previewUserDelta")}:{" "}
-                    {bulkPreview.userDelta >= 0 ? "+" : ""}$
-                    {formatNumber(bulkPreview.userDelta, { decimals: 2 })}
-                  </span>
-                  <span className="text-gold">
-                    {t("admin.copyTrading.previewCompanyFee")}: $
-                    {formatNumber(bulkPreview.companyFee, { decimals: 2 })}
-                  </span>
-                </div>
-              ) : (
-                <p className="text-xs text-text-muted">
-                  {t("admin.copyTrading.bulkHint")}
-                </p>
-              )}
-              {bulkPreview && copierImpacts.length > 0 ? (
-                <div className="max-h-72 overflow-auto rounded-md border border-border-subtle">
-                  <Table>
-                    <thead>
-                      <THeadRow>
-                        <TH>{t("admin.copyTrading.previewCopier")}</TH>
-                        <TH>{t("admin.copyTrading.trader")}</TH>
-                        <TH className="text-right">
-                          {t("admin.copyTrading.previewCurrentValue")}
-                        </TH>
-                        <TH className="text-right">
-                          {t("admin.copyTrading.previewUserImpact")}
-                        </TH>
-                        <TH className="text-right">
-                          {t("admin.copyTrading.previewCompanyFee")}
-                        </TH>
-                      </THeadRow>
-                    </thead>
-                    <TBody>
-                      {[...copierImpacts]
-                        .sort((a, b) => a.netDelta - b.netDelta)
-                        .slice(0, 100)
-                        .map((impact) => (
-                          <TR key={impact.investmentId}>
-                            <TD>
-                              <p>
-                                {impact.username ||
-                                  (impact.walletAddress.length > 12
-                                    ? `${impact.walletAddress.slice(0, 6)}…${impact.walletAddress.slice(-4)}`
-                                    : impact.walletAddress)}
-                              </p>
-                              {impact.username ? (
-                                <p className="font-mono text-[11px] text-text-muted">
-                                  {impact.walletAddress.length > 12
-                                    ? `${impact.walletAddress.slice(0, 6)}…${impact.walletAddress.slice(-4)}`
-                                    : impact.walletAddress}
-                                </p>
-                              ) : null}
-                            </TD>
-                            <TD>{impact.traderName}</TD>
-                            <TD className="text-right font-mono">
-                              ${formatNumber(impact.currentValue, { decimals: 2 })}
-                            </TD>
-                            <TD
-                              className={`text-right font-mono ${
-                                impact.netDelta >= 0
-                                  ? "text-success"
-                                  : "text-danger"
-                              }`}
-                            >
-                              {impact.netDelta >= 0 ? "+" : ""}$
-                              {formatNumber(impact.netDelta, { decimals: 2 })}
-                            </TD>
-                            <TD className="text-right font-mono text-gold">
-                              ${formatNumber(impact.companyFee, { decimals: 2 })}
-                            </TD>
-                          </TR>
-                        ))}
-                    </TBody>
-                  </Table>
-                </div>
-              ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
               {pagedTraders.length > 0 ? (
@@ -1478,7 +958,6 @@ export default function AdminCopyTradingPage() {
                         <TH className="text-right">
                           {t("admin.copyTrading.lastResult")}
                         </TH>
-                        <TH>{t("admin.copyTrading.returnPlaceholder")}</TH>
                         <TH />
                       </THeadRow>
                     </thead>
@@ -1554,35 +1033,6 @@ export default function AdminCopyTradingPage() {
                             {trader.lastReturnBps == null
                               ? "—"
                               : `${trader.lastReturnBps >= 0 ? "+" : ""}${(trader.lastReturnBps / 100).toFixed(2)}%`}
-                          </TD>
-                          <TD>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                className="w-24"
-                                placeholder={t(
-                                  "admin.copyTrading.returnPlaceholder",
-                                )}
-                                value={returns[trader.id] ?? ""}
-                                onChange={(event) => {
-                                  setBulkPreview(null);
-                                  setTargetAllocation(null);
-                                  setReturns((current) => ({
-                                    ...current,
-                                    [trader.id]: event.target.value,
-                                  }));
-                                }}
-                              />
-                              <Button
-                                size="sm"
-                                variant="success"
-                                loading={busy === `return:${trader.id}`}
-                                onClick={() => void publishReturn(trader)}
-                              >
-                                {t("admin.copyTrading.publish")}
-                              </Button>
-                            </div>
                           </TD>
                           <TD>
                             <div className="flex justify-end gap-1">
