@@ -1,4 +1,4 @@
-import { utcDayKey, utcDayStart } from "./operation-schedule";
+import { utcDayKey, utcDayStart } from "./utc-day";
 
 export type CopyIncomePeriod = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "ALL";
 

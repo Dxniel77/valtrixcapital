@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import { utcDayKey, utcDayStart, utcNextDayStart } from "./utc-day";
+
+export { utcDayKey, utcDayStart, utcNextDayStart };
 
 export const DEFAULT_MIN_OPS_PER_DAY = 8;
 export const DEFAULT_MAX_OPS_PER_DAY = 20;
@@ -25,20 +28,6 @@ export type ScheduleSettings = {
   durationMinMinutes: number;
   durationMaxMinutes: number;
 };
-
-export function utcDayKey(now: Date): string {
-  return now.toISOString().slice(0, 10);
-}
-
-export function utcDayStart(now: Date): Date {
-  return new Date(`${utcDayKey(now)}T00:00:00.000Z`);
-}
-
-export function utcNextDayStart(now: Date): Date {
-  const start = utcDayStart(now);
-  start.setUTCDate(start.getUTCDate() + 1);
-  return start;
-}
 
 export function clampOpsRange(min: number, max: number): {
   min: number;
