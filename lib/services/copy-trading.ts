@@ -246,7 +246,7 @@ export type CopyTraderOperationDto = {
   status: "OPEN" | "CLOSED";
   openedAt: string;
   closedAt: string | null;
-  simulated: true;
+  simulated: boolean;
 };
 
 export type AdminCopyTraderOperationDto = CopyTraderOperationDto & {
@@ -745,6 +745,7 @@ export async function listCopyTraders(input?: {
   pageSize: number;
   total: number;
 }> {
+  await tickCopyTradingEngine();
   const page = Math.max(1, input?.page ?? 1);
   const pageSize = Math.min(300, Math.max(1, input?.pageSize ?? 50));
   const where = { isVisible: true, isActive: true };
@@ -796,6 +797,8 @@ export async function getCopyTraderDetail(
   });
   if (!exists) return null;
 
+  await tickCopyTradingEngine();
+
   // Heal cliffs where a daily result was stored as an absolute curve value.
   await repairTraderChartFromEvents(id);
 
@@ -809,8 +812,13 @@ export async function getCopyTraderDetail(
   if (!row) return null;
 
   const base = serializeTrader(row, { includePerformances: true });
+  const open = await prisma.copyTraderOperation.findFirst({
+    where: { traderId: id, status: "OPEN" },
+    orderBy: { openedAt: "desc" },
+  });
   return {
     ...base,
+    currentOperation: open ? serializeCopyOperation(open) : null,
     performances: row.performances.map((p) => ({
       period: p.period,
       returnBps: p.returnBps,
@@ -2676,6 +2684,7 @@ function liveTraderStatus(
 }
 
 export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
+  await tickCopyTradingEngine();
   const now = new Date();
   const todayStart = utcDayStart(now);
   const dayKey = todayStart.toISOString().slice(0, 10);
@@ -3103,6 +3112,7 @@ export async function getAdminCopyTraderDesk(
   });
   if (!exists) throw new CopyTradingError("Trader not found", "NOT_FOUND");
 
+  await tickCopyTradingEngine();
   await repairTraderChartFromEvents(traderId);
 
   const trader = await prisma.copyTrader.findUnique({
@@ -3720,7 +3730,7 @@ function serializeCopyOperation(
     status: operation.status as "OPEN" | "CLOSED",
     openedAt: operation.openedAt.toISOString(),
     closedAt: operation.closedAt?.toISOString() ?? null,
-    simulated: true,
+    simulated: operation.synthetic === true,
   };
   if (!opts?.forAdmin) return dto;
   return {
@@ -3743,20 +3753,13 @@ export async function userHasActiveCopyInvestment(
 
 export async function getCopyTraderOperations(
   traderId: string,
-  viewerUserId?: string | null,
+  _viewerUserId?: string | null,
 ): Promise<{
   locked: boolean;
   current: CopyTraderOperationDto | null;
   history: CopyTraderOperationDto[];
 }> {
-  const unlocked = viewerUserId
-    ? await userHasActiveCopyInvestment(viewerUserId, traderId)
-    : false;
-
-  if (!unlocked) {
-    return { locked: true, current: null, history: [] };
-  }
-
+  await tickCopyTradingEngine();
   const rows = await prisma.copyTraderOperation.findMany({
     where: { traderId },
     orderBy: [{ status: "desc" }, { openedAt: "desc" }],
@@ -4384,6 +4387,27 @@ export async function closeAdminCopyOperationNow(
     where: { id: operationId },
   });
   return serializeCopyOperation(closed, now, { forAdmin: true });
+}
+
+const ENGINE_TICK_GAP_MS = 5_000;
+let lastEngineTickMs = 0;
+let engineTickInFlight: Promise<void> | null = null;
+
+/** Open/close due live ops. Safe to call from admin and public reads. */
+export async function tickCopyTradingEngine(now = new Date()): Promise<void> {
+  if (engineTickInFlight) {
+    await engineTickInFlight;
+    return;
+  }
+  if (now.getTime() - lastEngineTickMs < ENGINE_TICK_GAP_MS) return;
+  lastEngineTickMs = now.getTime();
+  engineTickInFlight = runCopyTradingSimulation({ now })
+    .then(() => undefined)
+    .catch(() => undefined)
+    .finally(() => {
+      engineTickInFlight = null;
+    });
+  await engineTickInFlight;
 }
 
 export async function runCopyTradingSimulation(input?: {

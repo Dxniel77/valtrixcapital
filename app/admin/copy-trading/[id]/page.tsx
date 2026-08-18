@@ -237,30 +237,34 @@ export default function AdminCopyTraderDeskPage() {
   const [manualDelay, setManualDelay] = React.useState("0");
 
   const load = React.useCallback(
-    async () => {
-      setLoading(true);
+    async (silent = false) => {
+      if (!silent) setLoading(true);
       try {
         const next = await apiFetch<Desk & { ok: boolean }>(
           `/api/admin/copy/traders/${traderId}`,
         );
         setDesk(next);
-        setStats({
-          roiPct: (next.trader.roiBps / 100).toFixed(2),
-          cumulativePct: (next.trader.cumulativeRoiBps / 100).toFixed(2),
-          winRatePct: (next.trader.winRateBps / 100).toFixed(2),
-          drawdownPct: (next.trader.maxDrawdownBps / 100).toFixed(2),
-          profitDays: String(next.trader.profitDays),
-          winningTrades: String(next.trader.winningTrades),
-          losingTrades: String(next.trader.losingTrades),
-          experienceDays: String(next.trader.experienceDays),
-          followersCount: String(next.trader.followersCount),
-        });
+        if (!silent) {
+          setStats({
+            roiPct: (next.trader.roiBps / 100).toFixed(2),
+            cumulativePct: (next.trader.cumulativeRoiBps / 100).toFixed(2),
+            winRatePct: (next.trader.winRateBps / 100).toFixed(2),
+            drawdownPct: (next.trader.maxDrawdownBps / 100).toFixed(2),
+            profitDays: String(next.trader.profitDays),
+            winningTrades: String(next.trader.winningTrades),
+            losingTrades: String(next.trader.losingTrades),
+            experienceDays: String(next.trader.experienceDays),
+            followersCount: String(next.trader.followersCount),
+          });
+        }
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : t("errors.signInFailed"),
-        );
+        if (!silent) {
+          toast.error(
+            error instanceof Error ? error.message : t("errors.signInFailed"),
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [t, traderId],
@@ -268,6 +272,8 @@ export default function AdminCopyTraderDeskPage() {
 
   React.useEffect(() => {
     void load();
+    const timer = window.setInterval(() => void load(true), 5_000);
+    return () => window.clearInterval(timer);
   }, [load]);
 
   async function repairChart() {
