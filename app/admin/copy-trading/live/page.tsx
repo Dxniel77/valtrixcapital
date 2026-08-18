@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { LiveCountdown } from "@/components/admin/live-countdown";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,38 +93,6 @@ type Payload = {
     };
   }>;
 };
-
-function formatCountdown(iso: string | null | undefined, nowMs: number): string | null {
-  if (!iso) return null;
-  const remaining = new Date(iso).getTime() - nowMs;
-  if (!Number.isFinite(remaining)) return null;
-  if (remaining <= 0) return "due";
-  const totalSeconds = Math.ceil(remaining / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (value: number) => String(value).padStart(2, "0");
-  if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
-  return `${minutes}:${pad(seconds)}`;
-}
-
-function LiveCountdown({
-  iso,
-  dueLabel,
-}: {
-  iso: string | null;
-  dueLabel: string;
-}) {
-  const [nowMs, setNowMs] = React.useState(() => Date.now());
-  React.useEffect(() => {
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const label = formatCountdown(iso, nowMs);
-  if (!iso) return <span>—</span>;
-  if (label === "due") return <span>{dueLabel}</span>;
-  return <span className="font-mono">{label}</span>;
-}
 
 function money(value: number, signed = false) {
   const abs = `$${formatNumber(Math.abs(value), { decimals: 2 })}`;
