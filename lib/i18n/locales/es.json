@@ -1135,6 +1135,7 @@
       "direction": "Dirección",
       "leverage": "Apalancamiento",
       "entry": "Entrada",
+      "entryRequired": "Ingresá un precio de entrada antes de guardar.",
       "target": "Objetivo %",
       "settled": "Cierre %",
       "exit": "Salida",

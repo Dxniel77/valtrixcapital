@@ -21,6 +21,8 @@ import {
 import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
+import { COPY_MARKETS } from "@/lib/copy-trading/markets";
+import { isoToLocalInput, localInputToIso } from "@/lib/copy-trading/local-datetime";
 import { useI18n } from "@/lib/i18n/context";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 
@@ -161,7 +163,7 @@ const EMPTY_OP: OpForm = {
   symbol: "BTCUSDT",
   direction: "LONG",
   leverage: "10",
-  entryPrice: "",
+  entryPrice: String(COPY_MARKETS[0]?.basePrice ?? 114250),
   targetPct: "0.40",
   status: "OPEN",
   openedAt: "",
@@ -170,18 +172,11 @@ const EMPTY_OP: OpForm = {
   settledPct: "0.40",
 };
 
-function toLocalInput(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromLocalInput(value: string): string {
-  if (!value) return new Date().toISOString();
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+function defaultEntryPrice(symbol: string): string {
+  const market = COPY_MARKETS.find(
+    (row) => row.symbol === symbol.trim().toUpperCase(),
+  );
+  return market ? String(market.basePrice) : "";
 }
 
 function operationPayload(form: OpForm) {
@@ -189,12 +184,12 @@ function operationPayload(form: OpForm) {
     symbol: form.symbol,
     direction: form.direction,
     leverage: Math.trunc(Number(form.leverage) || 1),
-    entryPrice: Number(form.entryPrice) || 0,
+    entryPrice: Number(form.entryPrice),
     targetReturnBps: Math.round((Number(form.targetPct) || 0) * 100),
     status: form.status,
-    openedAt: fromLocalInput(form.openedAt),
-    closesAt: fromLocalInput(form.closesAt),
-    closedAt: form.status === "CLOSED" ? fromLocalInput(form.closesAt) : null,
+    openedAt: localInputToIso(form.openedAt),
+    closesAt: localInputToIso(form.closesAt),
+    closedAt: form.status === "CLOSED" ? localInputToIso(form.closesAt) : null,
     exitPrice: form.exitPrice ? Number(form.exitPrice) : null,
     settledReturnBps:
       form.status === "CLOSED"
@@ -380,8 +375,10 @@ export default function AdminCopyTraderDeskPage() {
     const later = new Date(now.getTime() + 10 * 60 * 1000);
     setOpForm({
       ...EMPTY_OP,
-      openedAt: toLocalInput(now.toISOString()),
-      closesAt: toLocalInput(later.toISOString()),
+      symbol: EMPTY_OP.symbol,
+      entryPrice: defaultEntryPrice(EMPTY_OP.symbol),
+      openedAt: isoToLocalInput(now.toISOString()),
+      closesAt: isoToLocalInput(later.toISOString()),
     });
     setEditingOp("new");
   }
@@ -394,8 +391,8 @@ export default function AdminCopyTraderDeskPage() {
       entryPrice: String(op.entryPrice),
       targetPct: ((op.targetReturnBps ?? op.floatingReturnBps) / 100).toFixed(2),
       status: op.status,
-      openedAt: toLocalInput(op.openedAt),
-      closesAt: toLocalInput(op.closesAt),
+      openedAt: isoToLocalInput(op.openedAt),
+      closesAt: isoToLocalInput(op.closesAt),
       exitPrice: op.exitPrice != null ? String(op.exitPrice) : "",
       settledPct: ((op.settledReturnBps ?? 0) / 100).toFixed(2),
     });
@@ -405,6 +402,10 @@ export default function AdminCopyTraderDeskPage() {
   async function saveOperation() {
     const current = editingOp;
     if (!current) return;
+    if (!(Number(opForm.entryPrice) > 0)) {
+      toast.error(t("admin.copyTrading.entryRequired"));
+      return;
+    }
     setBusy("op");
     try {
       if (current === "new") {
@@ -1537,10 +1538,23 @@ export default function AdminCopyTraderDeskPage() {
           </DialogHeader>
           <DialogBody className="grid gap-3 sm:grid-cols-2">
             <Field label={t("admin.copyTrading.symbol")}>
-              <Input
+              <Select
                 value={opForm.symbol}
-                onChange={(e) => updateOp("symbol", e.target.value)}
-              />
+                onChange={(e) => {
+                  const symbol = e.target.value;
+                  setOpForm((prev) => ({
+                    ...prev,
+                    symbol,
+                    entryPrice: defaultEntryPrice(symbol) || prev.entryPrice,
+                  }));
+                }}
+              >
+                {COPY_MARKETS.map((market) => (
+                  <option key={market.symbol} value={market.symbol}>
+                    {market.short} ({market.symbol})
+                  </option>
+                ))}
+              </Select>
             </Field>
             <Field label={t("admin.copyTrading.direction")}>
               <Select

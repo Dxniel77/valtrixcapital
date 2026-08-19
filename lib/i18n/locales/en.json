@@ -1077,6 +1077,7 @@
       "direction": "Direction",
       "leverage": "Leverage",
       "entry": "Entry",
+      "entryRequired": "Enter an entry price before saving.",
       "target": "Target %",
       "settled": "Settled %",
       "exit": "Exit",

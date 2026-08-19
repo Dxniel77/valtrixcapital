@@ -102,7 +102,10 @@ export const adminCopyOperationSchema = z.object({
   symbol: z.string().trim().min(2).max(20),
   direction: z.enum(["LONG", "SHORT"]),
   leverage: z.number().int().min(1).max(125),
-  entryPrice: z.number().finite().positive(),
+  entryPrice: z
+    .number({ invalid_type_error: "Entry price is required" })
+    .finite()
+    .positive("Enter an entry price greater than 0"),
   targetReturnBps: z.number().int().min(-10_000).max(10_000),
   status: z.enum(["OPEN", "CLOSED"]),
   openedAt: z.string().min(1).optional(),

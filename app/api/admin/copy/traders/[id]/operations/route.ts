@@ -23,7 +23,12 @@ export async function POST(req: Request, { params }: Params) {
     await req.json().catch(() => null),
   );
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid operation" }, { status: 400 });
+    const issue = parsed.error.issues[0];
+    const path = issue?.path.join(".") || "operation";
+    return NextResponse.json(
+      { error: issue ? `${path}: ${issue.message}` : "Invalid operation" },
+      { status: 400 },
+    );
   }
 
   const admin = await findUserByWallet(auth.session.address);
