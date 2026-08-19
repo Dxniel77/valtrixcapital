@@ -549,20 +549,10 @@ export async function listAdminAudit(limit = 200) {
   const rows = await prisma.adminAction.findMany({
     where: {
       NOT: {
-        AND: [
-          {
-            payload: {
-              path: ["kind"],
-              equals: "COPY_PERFORMANCE",
-            },
-          },
-          {
-            payload: {
-              path: ["source"],
-              equals: "SIMULATION",
-            },
-          },
-        ],
+        payload: {
+          path: ["kind"],
+          string_starts_with: "COPY_",
+        },
       },
     },
     orderBy: { createdAt: "desc" },

@@ -1053,17 +1053,6 @@ export async function createAdminCopyTrader(
         nextOperationAt: input.simulationEnabled ? now : null,
       },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_TRADER_CREATED",
-          traderId: created.id,
-          name: created.name,
-        },
-      },
-    });
     return tx.copyTrader.findUniqueOrThrow({
       where: { id: created.id },
       include: {
@@ -1123,17 +1112,6 @@ export async function updateAdminCopyTrader(
           : input.simulationEnabled && !existing.simulationEnabled
             ? now
             : undefined,
-      },
-    });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_TRADER_UPDATED",
-          traderId,
-          name: input.name.trim(),
-        },
       },
     });
     return tx.copyTrader.findUniqueOrThrow({
@@ -1198,19 +1176,6 @@ export async function updateAdminCopyTraderTarget(
             : existing.targetCycleStartedAt,
       },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_TRADER_TARGET",
-          traderId,
-          targetMode: input.targetMode,
-          monthlyTargetBps,
-          targetCycleDays,
-        },
-      },
-    });
     return tx.copyTrader.findUniqueOrThrow({
       where: { id: traderId },
       include: {
@@ -1249,17 +1214,6 @@ export async function patchAdminCopyTraderFlags(
 
   const row = await prisma.$transaction(async (tx) => {
     await tx.copyTrader.update({ where: { id: traderId }, data });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_TRADER_FLAGS",
-          traderId,
-          ...data,
-        },
-      },
-    });
     return tx.copyTrader.findUniqueOrThrow({
       where: { id: traderId },
       include: {
@@ -1308,21 +1262,7 @@ export async function assignShowcaseCopierRange(
       select: { id: true },
     }),
   );
-  await prisma.$transaction([
-    ...updates,
-    prisma.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_SHOWCASE_RANGE_ASSIGNED",
-          traders: traders.length,
-          min,
-          max,
-        },
-      },
-    }),
-  ]);
+  await prisma.$transaction(updates);
 
   return { updated: traders.length, min, max };
 }
@@ -1402,20 +1342,6 @@ export async function deleteAdminCopyTraders(
         await tx.copyTrader.delete({ where: { id: traderId } });
         deleted += 1;
       }
-
-      await tx.adminAction.create({
-        data: {
-          adminId: adminUserId,
-          action: "UPDATE_CONFIG",
-          payload: {
-            kind: "COPY_TRADERS_DELETED",
-            traderIds: uniqueIds,
-            deleted,
-            refunded,
-            refundedAmount: refundedAmount.toString(),
-          },
-        },
-      });
 
       return { deleted, refunded, refundedAmount };
     },
@@ -1983,29 +1909,6 @@ export async function applyTraderPerformanceUpdate(input: {
           },
         });
 
-        const source = input.source ?? "ADMIN";
-        if (source !== "SIMULATION") {
-          await tx.adminAction.create({
-            data: {
-              adminId: input.adminUserId,
-              action: "UPDATE_CONFIG",
-              targetUserId: null,
-              payload: {
-                kind: "COPY_PERFORMANCE",
-                traderId: input.traderId,
-                period: input.period,
-                returnBps: input.returnBps,
-                source,
-                eventId: event.id,
-                idempotencyKey,
-                affected: active.length,
-                totalDelta: result.totalDelta.toString(),
-                curveBps,
-              },
-            },
-          });
-        }
-
         return {
           event,
           affected: active.length,
@@ -2240,19 +2143,6 @@ export async function generateTraderSyntheticHistory(input: {
     }
   }
   await refreshTraderShowcaseFromOps(trader.id);
-  await prisma.adminAction.create({
-    data: {
-      adminId: input.adminUserId,
-      action: "UPDATE_CONFIG",
-      payload: {
-        kind: "COPY_SYNTHETIC_HISTORY",
-        traderId: trader.id,
-        months: input.months,
-        bias: input.bias,
-        created,
-      },
-    },
-  });
   return { created };
 }
 
@@ -2289,19 +2179,6 @@ export async function applyManualTraderHistory(input: {
         createdById: input.adminUserId,
       },
     });
-    await prisma.adminAction.create({
-      data: {
-        adminId: input.adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_MANUAL_HISTORY_SCHEDULED",
-          traderId: trader.id,
-          returnBps: input.returnBps,
-          executeAt: executeAt.toISOString(),
-          id: row.id,
-        },
-      },
-    });
     return {
       scheduled: true,
       executeAt: executeAt.toISOString(),
@@ -2329,18 +2206,6 @@ export async function cancelScheduledManualResult(input: {
   await prisma.copyScheduledManualResult.update({
     where: { id: row.id },
     data: { canceledAt: new Date() },
-  });
-  await prisma.adminAction.create({
-    data: {
-      adminId: input.adminUserId,
-      action: "UPDATE_CONFIG",
-      payload: {
-        kind: "COPY_MANUAL_HISTORY_CANCELED",
-        traderId: input.traderId,
-        id: row.id,
-        returnBps: row.returnBps,
-      },
-    },
   });
 }
 
@@ -2396,17 +2261,6 @@ async function insertManualHistoryNow(
   });
   await insertSyntheticOperation(trader.id, op);
   await refreshTraderShowcaseFromOps(trader.id);
-  await prisma.adminAction.create({
-    data: {
-      adminId: adminUserId,
-      action: "UPDATE_CONFIG",
-      payload: {
-        kind: "COPY_MANUAL_HISTORY",
-        traderId: trader.id,
-        returnBps,
-      },
-    },
-  });
 }
 
 export async function getAdminCopyDashboard() {
@@ -3294,13 +3148,6 @@ export async function updateAdminTraderVitrina(
         followersCount: clampInt(input.followersCount, 0, 1_000_000_000),
       },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: { kind: "COPY_TRADER_VITRINA", traderId },
-      },
-    });
     return tx.copyTrader.findUniqueOrThrow({
       where: { id: traderId },
       include: {
@@ -3330,18 +3177,6 @@ export async function upsertAdminChartPoint(
       update: { valueBps },
       create: { traderId, date, valueBps },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_TRADER_CHART",
-          traderId,
-          date: dateStr,
-          valueBps,
-        },
-      },
-    });
     return row;
   });
 
@@ -3366,13 +3201,6 @@ export async function deleteAdminChartPoint(
   await prisma.$transaction(async (tx) => {
     await tx.copyTraderChartPoint.delete({
       where: { traderId_date: { traderId, date } },
-    });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: { kind: "COPY_TRADER_CHART_DELETED", traderId, date: dateStr },
-      },
     });
   });
 }
@@ -3485,17 +3313,6 @@ export async function createAdminCopyOperation(
         openKey: input.status === "OPEN" ? simulatedOpenKey(traderId) : null,
       },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_OPERATION_CREATED",
-          traderId,
-          operationId: created.id,
-        },
-      },
-    });
     return created;
   });
 
@@ -3562,17 +3379,6 @@ export async function updateAdminCopyOperation(
             : null,
       },
     });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_OPERATION_UPDATED",
-          traderId: existing.traderId,
-          operationId,
-        },
-      },
-    });
     return updated;
   });
 
@@ -3581,27 +3387,14 @@ export async function updateAdminCopyOperation(
 
 export async function deleteAdminCopyOperation(
   operationId: string,
-  adminUserId: string,
+  _adminUserId: string,
 ): Promise<void> {
   const existing = await prisma.copyTraderOperation.findUnique({
     where: { id: operationId },
   });
   if (!existing) throw new CopyTradingError("Operation not found", "NOT_FOUND");
 
-  await prisma.$transaction(async (tx) => {
-    await tx.copyTraderOperation.delete({ where: { id: operationId } });
-    await tx.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind: "COPY_OPERATION_DELETED",
-          traderId: existing.traderId,
-          operationId,
-        },
-      },
-    });
-  });
+  await prisma.copyTraderOperation.delete({ where: { id: operationId } });
 }
 
 function operationMark(
@@ -4309,17 +4102,6 @@ export async function closeAdminCopyOperationNow(
     adminUserId,
     closeOperationId: operationId,
   });
-  await prisma.adminAction.create({
-    data: {
-      adminId: adminUserId,
-      action: "UPDATE_CONFIG",
-      payload: {
-        kind: "COPY_OPERATION_CLOSED",
-        traderId: trader.id,
-        operationId,
-      },
-    },
-  });
 
   const closed = await prisma.copyTraderOperation.findUniqueOrThrow({
     where: { id: operationId },
@@ -4511,23 +4293,6 @@ export async function decideCopyWithdrawal(input: {
         data: { aum: { decrement: math.withdrawn } },
       });
     }
-
-    await tx.adminAction.create({
-      data: {
-        adminId: input.adminUserId,
-        targetUserId: withdrawal.userId,
-        action: "UPDATE_CONFIG",
-        payload: {
-          kind:
-            input.decision === "APPROVE"
-              ? "COPY_WITHDRAWAL_APPROVED"
-              : "COPY_WITHDRAWAL_REJECTED",
-          withdrawalId: withdrawal.id,
-          investmentId: withdrawal.investmentId,
-          requestedAmount: withdrawal.amount.toString(),
-        },
-      },
-    });
   });
 }
 
