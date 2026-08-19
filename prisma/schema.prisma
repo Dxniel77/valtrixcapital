@@ -957,9 +957,9 @@ model CopyTradingConfig {
   investFeeBps        Int                @default(0)
   /// Fee taken from the amount when leaving a copy (bps).
   withdrawFeeBps      Int                @default(0)
-  /// UTC hour (0–23). Copies started after the last cutoff skip the next result.
+  /// Unused. Kept so existing databases do not need a destructive migration.
   settlementCutoffHour Int               @default(22)
-  /// New copies receive positive/flat results but skip losses for this many settlement days.
+  /// Unused. Kept so existing databases do not need a destructive migration.
   lossGraceDays       Int                @default(2)
   /// Six-level share of each copier's Performance Fee (bps of the fee). Remainder stays with the company.
   performanceFeeNetworkBps Int[]         @default([3000, 1500, 1000, 500, 500, 500])

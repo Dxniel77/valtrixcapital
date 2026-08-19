@@ -89,8 +89,6 @@ type Dashboard = {
   config?: {
     investFeeBps: number;
     withdrawFeeBps: number;
-    settlementCutoffHour: number;
-    lossGraceDays: number;
     globalMinInvestment: number;
     performanceFeeNetworkBps?: number[];
     openFeeBps?: number;
@@ -292,8 +290,6 @@ export default function AdminCopyTradingPage() {
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
   const [investFeePct, setInvestFeePct] = React.useState("0");
   const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
-  const [cutoffHour, setCutoffHour] = React.useState("22");
-  const [lossGraceDays, setLossGraceDays] = React.useState("2");
   const [openFeePct, setOpenFeePct] = React.useState("0.05");
   const [networkPcts, setNetworkPcts] = React.useState([
     "30",
@@ -491,8 +487,6 @@ export default function AdminCopyTradingPage() {
       if (next.config) {
         setInvestFeePct(String(next.config.investFeeBps / 100));
         setWithdrawFeePct(String(next.config.withdrawFeeBps / 100));
-        setCutoffHour(String(next.config.settlementCutoffHour));
-        setLossGraceDays(String(next.config.lossGraceDays ?? 2));
         setOpenFeePct(
           String(((next.config.openFeeBps ?? 5) / 100).toFixed(2)),
         );
@@ -562,14 +556,6 @@ export default function AdminCopyTradingPage() {
         body: JSON.stringify({
           investFeeBps: Math.round((Number(investFeePct) || 0) * 100),
           withdrawFeeBps: Math.round((Number(withdrawFeePct) || 0) * 100),
-          settlementCutoffHour: Math.min(
-            23,
-            Math.max(0, Math.trunc(Number(cutoffHour) || 22)),
-          ),
-          lossGraceDays: Math.min(
-            30,
-            Math.max(0, Math.trunc(Number(lossGraceDays) || 0)),
-          ),
           openFeeBps: Math.round((Number(openFeePct) || 0) * 100),
           performanceFeeNetworkBps: networkPcts.map((value) =>
             Math.max(0, Math.round((Number(value) || 0) * 100)),
@@ -737,24 +723,6 @@ export default function AdminCopyTradingPage() {
                   step="0.1"
                   value={withdrawFeePct}
                   onChange={(e) => setWithdrawFeePct(e.target.value)}
-                />
-              </Field>
-              <Field label={t("admin.copyTrading.cutoffHour")}>
-                <Input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={cutoffHour}
-                  onChange={(e) => setCutoffHour(e.target.value)}
-                />
-              </Field>
-              <Field label={t("admin.copyTrading.lossGraceDays")}>
-                <Input
-                  type="number"
-                  min={0}
-                  max={30}
-                  value={lossGraceDays}
-                  onChange={(e) => setLossGraceDays(e.target.value)}
                 />
               </Field>
               <Field label={t("admin.copyTrading.openFee")}>

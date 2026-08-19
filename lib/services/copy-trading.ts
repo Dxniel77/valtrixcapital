@@ -13,10 +13,7 @@ import {
   applyPerformance,
   applyPerformanceWithFee,
 } from "@/lib/copy-trading/sync-engine";
-import {
-  eligibleForPerformance,
-  protectedFromLoss,
-} from "@/lib/copy-trading/eligibility";
+import { eligibleForLiveOperation } from "@/lib/copy-trading/eligibility";
 import {
   generateShowcaseCopiers,
   showcaseCountForTrader,
@@ -184,8 +181,6 @@ export type CopyTradingConfigDto = {
   notifyOnPerformance: boolean;
   investFeeBps: number;
   withdrawFeeBps: number;
-  settlementCutoffHour: number;
-  lossGraceDays: number;
   performanceFeeNetworkBps: number[];
   openFeeBps: number;
   activeSymbols: string[];
@@ -450,20 +445,6 @@ function utcDateOnly(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00.000Z`);
 }
 
-/** Last settlement cutoff at `hour` UTC on or before `now`. */
-export function lastSettlementCutoff(
-  hour: number,
-  now = new Date(),
-): Date {
-  const h = Math.min(23, Math.max(0, Math.trunc(hour)));
-  const cutoff = new Date(now);
-  cutoff.setUTCHours(h, 0, 0, 0);
-  if (cutoff.getTime() > now.getTime()) {
-    cutoff.setUTCDate(cutoff.getUTCDate() - 1);
-  }
-  return cutoff;
-}
-
 function serializeTrader(
   t: Prisma.CopyTraderGetPayload<{ include?: { performances?: true } }>,
   opts?: { includePerformances?: boolean },
@@ -604,8 +585,6 @@ function serializeCopyConfig(row: {
   notifyOnPerformance: boolean;
   investFeeBps?: number;
   withdrawFeeBps?: number;
-  settlementCutoffHour?: number;
-  lossGraceDays?: number;
   performanceFeeNetworkBps?: number[] | null;
   openFeeBps?: number;
   activeSymbols?: string[] | null;
@@ -616,8 +595,6 @@ function serializeCopyConfig(row: {
     notifyOnPerformance: row.notifyOnPerformance,
     investFeeBps: row.investFeeBps ?? 0,
     withdrawFeeBps: row.withdrawFeeBps ?? 0,
-    settlementCutoffHour: row.settlementCutoffHour ?? 22,
-    lossGraceDays: row.lossGraceDays ?? 2,
     performanceFeeNetworkBps: normalizePerformanceFeeNetworkBps(
       row.performanceFeeNetworkBps ?? DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
     ),
@@ -629,8 +606,6 @@ function serializeCopyConfig(row: {
 export async function updateCopyTradingConfig(input: {
   investFeeBps?: number;
   withdrawFeeBps?: number;
-  settlementCutoffHour?: number;
-  lossGraceDays?: number;
   withdrawalMode?: CopyWithdrawalMode;
   globalMinInvestment?: number;
   performanceFeeNetworkBps?: number[];
@@ -641,8 +616,6 @@ export async function updateCopyTradingConfig(input: {
   const data: {
     investFeeBps?: number;
     withdrawFeeBps?: number;
-    settlementCutoffHour?: number;
-    lossGraceDays?: number;
     withdrawalMode?: CopyWithdrawalMode;
     globalMinInvestment?: bigint;
     performanceFeeNetworkBps?: number[];
@@ -664,26 +637,6 @@ export async function updateCopyTradingConfig(input: {
       throw new CopyTradingError("Invalid withdraw fee", "INVALID_AMOUNT");
     }
     data.withdrawFeeBps = input.withdrawFeeBps;
-  }
-  if (input.settlementCutoffHour !== undefined) {
-    if (
-      !Number.isInteger(input.settlementCutoffHour) ||
-      input.settlementCutoffHour < 0 ||
-      input.settlementCutoffHour > 23
-    ) {
-      throw new CopyTradingError("Invalid cutoff hour", "INVALID_AMOUNT");
-    }
-    data.settlementCutoffHour = input.settlementCutoffHour;
-  }
-  if (input.lossGraceDays !== undefined) {
-    if (
-      !Number.isInteger(input.lossGraceDays) ||
-      input.lossGraceDays < 0 ||
-      input.lossGraceDays > 30
-    ) {
-      throw new CopyTradingError("Invalid loss grace days", "INVALID_AMOUNT");
-    }
-    data.lossGraceDays = input.lossGraceDays;
   }
   if (input.withdrawalMode) data.withdrawalMode = input.withdrawalMode;
   if (input.globalMinInvestment !== undefined) {
@@ -1815,6 +1768,8 @@ export async function applyTraderPerformanceUpdate(input: {
   adminUserId: string;
   idempotencyKey?: string;
   source?: "ADMIN" | "SIMULATION";
+  /** Live close time. Copies that joined by then take this result. */
+  eligibleAsOf?: Date;
 }): Promise<{
   affected: number;
   totalDelta: number;
@@ -1898,24 +1853,17 @@ export async function applyTraderPerformanceUpdate(input: {
         const copyConfig = await tx.copyTradingConfig.findUnique({
           where: { id: 1 },
         });
-        const cutoff = lastSettlementCutoff(
-          copyConfig?.settlementCutoffHour ?? 22,
-        );
+        const asOf = input.eligibleAsOf ?? new Date();
         const candidates = await tx.copyInvestment.findMany({
           where: {
             traderId: input.traderId,
             status: "ACTIVE",
             currentValue: { gt: 0 },
-            startedAt: { lte: cutoff },
+            startedAt: { lte: asOf },
           },
         });
         const active = candidates.filter((investment) =>
-          eligibleForPerformance(
-            investment.startedAt,
-            cutoff,
-            input.returnBps,
-            copyConfig?.lossGraceDays ?? 2,
-          ),
+          eligibleForLiveOperation(investment.startedAt, asOf),
         );
 
     const syncInput = active.map((i) => ({
@@ -2914,16 +2862,11 @@ export type AdminCopyTraderDeskDto = {
   config: CopyTradingConfigDto;
   situation: {
     activeCopies: number;
-    eligibleTonight: number;
-    skippedAfterCutoff: number;
-    lossProtectedTonight: number;
     principal: number;
     currentValue: number;
     pnl: number;
     companyFees: number;
     networkCommissions: number;
-    cutoffAt: string;
-    cutoffHour: number;
   };
   /** Same numbers the mobile public profile / performance tab show. */
   publicFacing: {
@@ -2950,8 +2893,6 @@ export type AdminCopyTraderDeskDto = {
     pnl: number;
     roiBps: number;
     startedAt: string;
-    eligibleTonight: boolean;
-    lossProtected: boolean;
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: AdminCopyTraderOperationDto[];
@@ -3132,7 +3073,6 @@ export async function getAdminCopyTraderDesk(
   if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
 
   const config = await ensureCopyTradingConfig();
-  const cutoff = lastSettlementCutoff(config.settlementCutoffHour);
 
   const [active, chartPoints, operations, events, feeRows, weekStats, networkPaid, cycleSum, scheduledManual] =
     await Promise.all([
@@ -3193,10 +3133,6 @@ export async function getAdminCopyTraderDesk(
 
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
   const currentValue = active.reduce((sum, row) => sum + row.currentValue, 0n);
-  const eligibleTonight = active.filter((row) => row.startedAt <= cutoff).length;
-  const lossProtectedTonight = active.filter((row) =>
-    protectedFromLoss(row.startedAt, cutoff, config.lossGraceDays),
-  ).length;
   const grossFees = feeRows.reduce(
     (sum, row) => sum + companyFeeFromLedger(row),
     0n,
@@ -3233,16 +3169,11 @@ export async function getAdminCopyTraderDesk(
     config,
     situation: {
       activeCopies: active.length,
-      eligibleTonight,
-      skippedAfterCutoff: active.length - eligibleTonight,
-      lossProtectedTonight,
       principal: fromMicro(principal),
       currentValue: fromMicro(currentValue),
       pnl: fromMicro(currentValue - principal),
       companyFees: fromMicro(companyFees),
       networkCommissions: fromMicro(networkPaid),
-      cutoffAt: cutoff.toISOString(),
-      cutoffHour: config.settlementCutoffHour,
     },
     publicFacing: {
       aum: serialized.aum,
@@ -3268,12 +3199,6 @@ export async function getAdminCopyTraderDesk(
       pnl: fromMicro(row.currentValue - row.principal),
       roiBps: roiBpsOf(row.principal, row.currentValue),
       startedAt: row.startedAt.toISOString(),
-      eligibleTonight: row.startedAt <= cutoff,
-      lossProtected: protectedFromLoss(
-        row.startedAt,
-        cutoff,
-        config.lossGraceDays,
-      ),
     })),
     chartPoints: chartPoints.map((point) => ({
       id: point.id,
@@ -4136,6 +4061,7 @@ async function closeSimulatedOperation(input: {
     adminUserId,
     idempotencyKey: operationSettlementKey(operation.id),
     source: "SIMULATION",
+    eligibleAsOf: now,
   });
   const directionSign = operation.direction === "LONG" ? 1 : -1;
   const priceMove =

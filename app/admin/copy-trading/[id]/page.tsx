@@ -69,16 +69,11 @@ type Desk = {
   };
   situation: {
     activeCopies: number;
-    eligibleTonight: number;
-    skippedAfterCutoff: number;
-    lossProtectedTonight: number;
     principal: number;
     currentValue: number;
     pnl: number;
     companyFees: number;
     networkCommissions?: number;
-    cutoffAt: string;
-    cutoffHour: number;
   };
   publicFacing: {
     aum: number;
@@ -103,8 +98,6 @@ type Desk = {
     pnl: number;
     roiBps: number;
     startedAt: string;
-    eligibleTonight: boolean;
-    lossProtected: boolean;
   }>;
   chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: Operation[];
@@ -671,7 +664,7 @@ export default function AdminCopyTraderDeskPage() {
             />
             <Metric
               label={t("admin.copyTrading.activeCopiers")}
-              value={`${desk.situation.activeCopies} / ${desk.situation.eligibleTonight}`}
+              value={String(desk.situation.activeCopies)}
             />
             <Metric
               label={t("admin.copyTrading.platformPnl")}
@@ -690,13 +683,6 @@ export default function AdminCopyTraderDeskPage() {
               amount: formatNumber(desk.situation.networkCommissions ?? 0, {
                 decimals: 2,
               }),
-            })}{" "}
-            · {t("admin.copyTrading.eligibleTonight")}:{" "}
-            {desk.situation.eligibleTonight} ·{" "}
-            {t("admin.copyTrading.afterCutoff")}:{" "}
-            {desk.situation.skippedAfterCutoff} · UTC {desk.situation.cutoffHour}
-            :00 · {t("admin.copyTrading.lossProtected", {
-              n: desk.situation.lossProtectedTonight,
             })}
           </p>
 
@@ -852,7 +838,6 @@ export default function AdminCopyTraderDeskPage() {
                           {t("admin.copyTrading.valueLabel")}
                         </TH>
                         <TH className="text-right">{t("admin.copyTrading.pnl")}</TH>
-                        <TH />
                       </THeadRow>
                     </thead>
                     <TBody>
@@ -873,23 +858,6 @@ export default function AdminCopyTraderDeskPage() {
                           >
                             {row.pnl >= 0 ? "+" : ""}$
                             {formatNumber(row.pnl, { decimals: 2 })}
-                          </TD>
-                          <TD>
-                            {row.eligibleTonight ? (
-                              row.lossProtected ? (
-                                <Badge variant="info">
-                                  {t("admin.copyTrading.lossGraceBadge")}
-                                </Badge>
-                              ) : (
-                                <Badge variant="success">
-                                  {t("admin.copyTrading.eligibleTonight")}
-                                </Badge>
-                              )
-                            ) : (
-                              <Badge variant="outline">
-                                {t("admin.copyTrading.afterCutoff")}
-                              </Badge>
-                            )}
                           </TD>
                         </TR>
                       ))}

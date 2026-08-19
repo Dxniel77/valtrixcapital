@@ -12,8 +12,6 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   investFeeBps: z.number().int().min(0).max(2000).optional(),
   withdrawFeeBps: z.number().int().min(0).max(2000).optional(),
-  settlementCutoffHour: z.number().int().min(0).max(23).optional(),
-  lossGraceDays: z.number().int().min(0).max(30).optional(),
   withdrawalMode: z.enum(["INSTANT", "APPROVAL"]).optional(),
   globalMinInvestment: z.number().finite().min(0).optional(),
   performanceFeeNetworkBps: z

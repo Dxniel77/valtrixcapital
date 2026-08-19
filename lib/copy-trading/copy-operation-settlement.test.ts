@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  eligibleForPerformance,
-  protectedFromLoss,
-} from "./eligibility";
+import { eligibleForLiveOperation } from "./eligibility";
 import {
   operationOpenIdempotencyKey,
   operationSettlementKey,
@@ -12,7 +9,6 @@ import {
 import { applyPerformanceWithFee } from "./sync-engine";
 
 const USDT = 1_000_000n;
-const cutoff = new Date("2026-08-17T22:00:00.000Z");
 
 describe("live operation settlement contracts", () => {
   it("keeps one open operation per trader", () => {
@@ -66,10 +62,9 @@ describe("live operation settlement contracts", () => {
     assert.equal(loss.feeLedger.length, 0);
   });
 
-  it("keeps loss grace on the same settlement path", () => {
-    const startedAt = new Date("2026-08-16T20:00:00.000Z");
-    assert.equal(protectedFromLoss(startedAt, cutoff, 2), true);
-    assert.equal(eligibleForPerformance(startedAt, cutoff, -80, 2), false);
-    assert.equal(eligibleForPerformance(startedAt, cutoff, 80, 2), true);
+  it("settles any copy that joined before the live close", () => {
+    const startedAt = new Date("2026-08-17T23:30:00.000Z");
+    const closedAt = new Date("2026-08-17T23:46:00.000Z");
+    assert.equal(eligibleForLiveOperation(startedAt, closedAt), true);
   });
 });

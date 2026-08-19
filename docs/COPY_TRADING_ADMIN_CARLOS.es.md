@@ -2,19 +2,19 @@
 
 ## Qué es esto
 
-Los usuarios copian traders. Los traders no abren órdenes reales. Tú controlas el resultado del día desde el admin. La empresa gana con comisiones de entrada, salida y fee sobre beneficio. Sin Publish no cambia nada para el usuario.
+Los usuarios copian traders. Los traders no abren órdenes reales. El motor en vivo abre y cierra operaciones cortas; al cerrar cada operación se actualiza el saldo de copy de quien ya está invertido. La empresa gana con comisiones de entrada, salida, fee de plataforma al abrir y fee sobre beneficio. Sin un cierre (motor o Close now) no cambia el saldo del copiador.
 
 ---
 
 ## Dónde trabajar
 
-Entra a **Admin → Copy trading**. Ahí ves la lista de traders, el objetivo del día, fees, cutoff y los botones de preview / publish. Si abres un trader, ves su desk: capital, copiers, stats públicas y preview individual.
+Entra a **Admin → Copy trading**. Ahí ves la lista de traders, el objetivo del día, fees y los botones de preview / publish. Si abres un trader, ves su desk: capital, copiers, stats públicas y el tape de operaciones.
 
 ---
 
 ## Configuración base (hazlo una vez)
 
-Arriba del panel están fees y reglas. El **cutoff hour (UTC)** decide qué copias entran en el cierre de hoy. Si alguien copia después del cutoff, esa copia espera al día siguiente. **Loss grace (days)** protege copias nuevas: durante X días no pueden perder. Guarda estos valores y no los toques cada día salvo que quieras cambiar la política.
+Arriba del panel están fees y reglas: comisión al copiar, al salir, fee de plataforma al abrir, y el % de red sobre el Performance Fee. Guarda estos valores y no los toques cada día salvo que quieras cambiar la política.
 
 ---
 
@@ -38,19 +38,19 @@ Después del preview mira tres cosas: P&L total de usuarios, ingreso de la empre
 
 ## Orden recomendado cada día
 
-Abre el panel. Confirma cutoff y loss grace. Elige Growth, Neutral o Harvest y el monto. Dale a Allocate & preview o Random draft. Revisa números. Si está ok, Publish all. Si no, ajusta y previsualiza otra vez. Nunca publiques sin mirar el preview.
+Abre el panel. Elige Growth, Neutral o Harvest y el monto. Dale a Allocate & preview o Random draft. Revisa números. Si está ok, Publish all. Si no, ajusta y previsualiza otra vez. Nunca publiques sin mirar el preview.
 
 ---
 
 ## Errores típicos
 
-Si el rango disponible sale 0.00–0.00, casi siempre no hay copias elegibles todavía (empezaron después del cutoff). Baja el cutoff o espera al siguiente cierre. Si Harvest solo da positivos en un trader, su min/max no permite pérdidas. Si Publish está bloqueado, falta un preview correcto.
+Si Harvest solo da positivos en un trader, su min/max no permite pérdidas. Si Publish está bloqueado, falta un preview correcto.
 
 ---
 
 ## Reglas simples
 
-Primero preview, después publish. Harvest = cobrar. Growth = crecer usuarios. Mantén loss grace activo para nuevos. No publiques a ciegas.
+Primero preview, después publish. Harvest = cobrar. Growth = crecer usuarios. No publiques a ciegas.
 
 ---
 
