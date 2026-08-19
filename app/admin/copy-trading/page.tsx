@@ -331,6 +331,13 @@ export default function AdminCopyTradingPage() {
     return sorted;
   }, [data?.traders, traderSearch, copierFilter, flagFilter, traderSort]);
 
+  const networkSharePct = React.useMemo(
+    () => networkPcts.reduce((sum, value) => sum + (Number(value) || 0), 0),
+    [networkPcts],
+  );
+  const companySharePct = Math.max(0, 100 - networkSharePct);
+  const networkOverLimit = networkSharePct > 100;
+
   const traderPageCount = Math.max(
     1,
     Math.ceil(filteredTraders.length / TRADER_PAGE_SIZE),
@@ -703,77 +710,115 @@ export default function AdminCopyTradingPage() {
           ) : null}
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t("admin.copyTrading.feesTitle")}
-              </CardTitle>
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.feesTitle")}
+                </CardTitle>
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.feesSubtitle")}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                loading={busy === "config"}
+                onClick={() => void saveFees()}
+              >
+                {t("admin.copyTrading.saveFees")}
+              </Button>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
-              <Field label={t("admin.copyTrading.investFee")}>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={investFeePct}
-                  onChange={(e) => setInvestFeePct(e.target.value)}
-                />
-              </Field>
-              <Field label={t("admin.copyTrading.withdrawFee")}>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={withdrawFeePct}
-                  onChange={(e) => setWithdrawFeePct(e.target.value)}
-                />
-              </Field>
-              <Field label={t("admin.copyTrading.openFee")}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={openFeePct}
-                  onChange={(e) => setOpenFeePct(e.target.value)}
-                />
-              </Field>
-              <div className="flex items-end">
-                <Button
-                  size="sm"
-                  loading={busy === "config"}
-                  onClick={() => void saveFees()}
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field
+                  label={t("admin.copyTrading.investFee")}
+                  hint={t("admin.copyTrading.investFeeHint")}
                 >
-                  {t("admin.copyTrading.saveFees")}
-                </Button>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min={0}
+                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    value={investFeePct}
+                    onChange={(e) => setInvestFeePct(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("admin.copyTrading.withdrawFee")}
+                  hint={t("admin.copyTrading.withdrawFeeHint")}
+                >
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min={0}
+                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    value={withdrawFeePct}
+                    onChange={(e) => setWithdrawFeePct(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("admin.copyTrading.feesOpen")}
+                  hint={t("admin.copyTrading.openFeeHint")}
+                >
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min={0}
+                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    value={openFeePct}
+                    onChange={(e) => setOpenFeePct(e.target.value)}
+                  />
+                </Field>
               </div>
-              <p className="sm:col-span-3 xl:col-span-6 text-xs text-text-muted">
-                {t("admin.copyTrading.feesHint")}
-              </p>
-              <div className="sm:col-span-3 xl:col-span-6 grid gap-3 sm:grid-cols-6">
-                {networkPcts.map((value, index) => (
-                  <Field
-                    key={`network-l${index + 1}`}
-                    label={t("admin.copyTrading.networkLevel", {
-                      n: index + 1,
-                    })}
-                  >
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min={0}
-                      max={100}
-                      value={value}
-                      onChange={(event) =>
-                        setNetworkPcts((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index ? event.target.value : item,
-                          ),
-                        )
-                      }
-                    />
-                  </Field>
-                ))}
+
+              <div className="rounded-lg border border-border-subtle bg-bg-base/40 p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {t("admin.copyTrading.feesNetworkTitle")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {t("admin.copyTrading.networkHint")}
+                    </p>
+                  </div>
+                  <Badge variant={networkOverLimit ? "danger" : "outline"}>
+                    {networkOverLimit
+                      ? t("admin.copyTrading.networkOver")
+                      : t("admin.copyTrading.networkRemainder", {
+                          pct: formatNumber(companySharePct, { decimals: 1 }),
+                        })}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                  {networkPcts.map((value, index) => (
+                    <Field
+                      key={`network-l${index + 1}`}
+                      label={t("admin.copyTrading.networkLevelShort", {
+                        n: index + 1,
+                      })}
+                    >
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        min={0}
+                        max={100}
+                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        value={value}
+                        onChange={(event) =>
+                          setNetworkPcts((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? event.target.value : item,
+                            ),
+                          )
+                        }
+                      />
+                    </Field>
+                  ))}
+                </div>
               </div>
-              <p className="sm:col-span-3 xl:col-span-6 text-xs text-text-muted">
-                {t("admin.copyTrading.networkHint")}
-              </p>
             </CardContent>
           </Card>
 
@@ -1501,15 +1546,18 @@ function TraderDialog({
 
 function Field({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-text-secondary">{label}</span>
       {children}
+      {hint ? <span className="block text-[11px] leading-4 text-text-muted">{hint}</span> : null}
     </label>
   );
 }
