@@ -117,6 +117,8 @@ type Desk = {
     nextOperationAt: string | null;
     currentClosesAt: string | null;
     currentOperationId: string | null;
+    currentTargetReturnBps: number | null;
+    currentFloatingReturnBps: number | null;
   };
   target: {
     enabled: boolean;
@@ -235,6 +237,8 @@ export default function AdminCopyTraderDeskPage() {
   );
   const [manualPct, setManualPct] = React.useState("");
   const [manualDelay, setManualDelay] = React.useState("0");
+  const [targetPct, setTargetPct] = React.useState("6.00");
+  const [targetDays, setTargetDays] = React.useState("30");
 
   const load = React.useCallback(
     async (silent = false) => {
@@ -256,6 +260,8 @@ export default function AdminCopyTraderDeskPage() {
             experienceDays: String(next.trader.experienceDays),
             followersCount: String(next.trader.followersCount),
           });
+          setTargetPct(((next.target.targetBps || 0) / 100).toFixed(2));
+          setTargetDays(String(next.target.cycleDays || 30));
         }
       } catch (error) {
         if (!silent) {
@@ -1106,6 +1112,31 @@ export default function AdminCopyTraderDeskPage() {
                 </div>
                 <div className="text-sm">
                   <p className="text-xs text-text-muted">
+                    {t("admin.copyTrading.liveOpSettleAtLabel")}
+                  </p>
+                  <p className="font-mono">
+                    {desk.liveSchedule.currentTargetReturnBps != null ? (
+                      <>
+                        {t("admin.copyTrading.liveOpNow", {
+                          pct: (
+                            (desk.liveSchedule.currentFloatingReturnBps ?? 0) /
+                            100
+                          ).toFixed(2),
+                        })}
+                        <span className="text-text-muted"> · </span>
+                        {t("admin.copyTrading.liveOpSettleAt", {
+                          pct: (
+                            desk.liveSchedule.currentTargetReturnBps / 100
+                          ).toFixed(2),
+                        })}
+                      </>
+                    ) : (
+                      t("admin.copyTrading.noOpenOp")
+                    )}
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs text-text-muted">
                     {t("admin.copyTrading.nextOpenCountdown")}
                   </p>
                   <p>
@@ -1146,6 +1177,49 @@ export default function AdminCopyTraderDeskPage() {
                     {t("admin.copyTrading.targetInactive")}
                   </p>
                 )}
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.targetHint")}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label={t("admin.copyTrading.periodGoalPct")}>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={targetPct}
+                      onChange={(event) => setTargetPct(event.target.value)}
+                    />
+                  </Field>
+                  <Field label={t("admin.copyTrading.periodGoalDays")}>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={targetDays}
+                      onChange={(event) => setTargetDays(event.target.value)}
+                    />
+                  </Field>
+                  <div className="flex items-end">
+                    <Button
+                      size="sm"
+                      loading={busy === "target"}
+                      onClick={() => {
+                        const pctValue = Number(targetPct);
+                        const days = Math.trunc(Number(targetDays) || 30);
+                        if (!Number.isFinite(pctValue) || days < 1) {
+                          toast.error(t("admin.copyTrading.invalidReturn"));
+                          return;
+                        }
+                        void setTarget({
+                          targetMode: true,
+                          monthlyTargetBps: Math.round(pctValue * 100),
+                          targetCycleDays: Math.min(90, Math.max(1, days)),
+                        });
+                      }}
+                    >
+                      {t("admin.copyTrading.applyTarget")}
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"

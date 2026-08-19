@@ -45,10 +45,16 @@ export function expectedTargetBps(
   monthlyTargetBps: number,
   elapsedDays: number,
   cycleDays: number,
+  wanderSeed = 0,
 ): number {
   const days = Math.max(1, Math.trunc(cycleDays) || DEFAULT_TARGET_CYCLE_DAYS);
   const pace = Math.min(1, elapsedDays / days);
-  return monthlyTargetBps * pace;
+  const linear = monthlyTargetBps * pace;
+  const envelope = Math.sin(pace * Math.PI);
+  const amp = Math.abs(monthlyTargetBps) * 0.34;
+  const wander =
+    Math.sin(elapsedDays * 1.85 + wanderSeed) * envelope * amp;
+  return linear + wander;
 }
 
 export function assignOperationRole(input: {
@@ -66,16 +72,28 @@ export function assignOperationRole(input: {
     input.monthlyTargetBps,
     input.elapsedDays,
     input.cycleDays,
+    unitFromDigest(input.digest, 0) * Math.PI * 2,
   );
   const gap = expected - input.progressBps;
   let probWinner =
     input.monthlyTargetBps >= 0
       ? gap > 0
-        ? 0.74
-        : 0.34
+        ? 0.62
+        : 0.38
       : gap < 0
-        ? 0.34
-        : 0.74;
+        ? 0.38
+        : 0.62;
+  const pace = Math.min(
+    1,
+    input.elapsedDays /
+      Math.max(1, Math.trunc(input.cycleDays) || DEFAULT_TARGET_CYCLE_DAYS),
+  );
+  if (pace >= 0.82) {
+    probWinner = gap > 0 ? 0.84 : 0.16;
+    if (input.monthlyTargetBps < 0) {
+      probWinner = gap < 0 ? 0.16 : 0.84;
+    }
+  }
   probWinner = Math.min(
     0.88,
     Math.max(0.12, probWinner + (unitFromDigest(input.digest, 8) * 0.16 - 0.08)),
@@ -152,7 +170,12 @@ export function targetProgressSnapshot(input: {
     elapsedDays,
     dayIndex: Math.min(cycleDays, Math.max(1, Math.floor(elapsedDays))),
     progressBps: input.progressBps,
-    expectedBps: expectedTargetBps(input.targetBps, elapsedDays, cycleDays),
+    expectedBps: expectedTargetBps(
+      input.targetBps,
+      elapsedDays,
+      cycleDays,
+      startedAt.getTime() / 3_600_000,
+    ),
   };
 }
 
@@ -174,4 +197,51 @@ export function pickLiveReturnBps(input: {
     digest: input.digest,
     offset: 8,
   });
+}
+
+function clampBps(value: number, minBps: number, maxBps: number): number {
+  const lo = Math.min(minBps, maxBps);
+  const hi = Math.max(minBps, maxBps);
+  return Math.min(hi, Math.max(lo, Math.round(value)));
+}
+
+/** Close result for a live op: wanders early, then pulls the cycle toward the exact target. */
+export function pickTargetedReturnBps(input: {
+  targetMode: boolean;
+  monthlyTargetBps: number;
+  progressBps: number;
+  elapsedDays: number;
+  cycleDays: number;
+  minBps: number;
+  maxBps: number;
+  digest: Buffer;
+  role: OperationRole;
+  winProbBps: number;
+  lossProbBps: number;
+}): number {
+  const raw = pickLiveReturnBps({
+    role: input.role,
+    winProbBps: input.winProbBps,
+    lossProbBps: input.lossProbBps,
+    minBps: input.minBps,
+    maxBps: input.maxBps,
+    digest: input.digest,
+  });
+  if (!input.targetMode) return raw;
+
+  const days = Math.max(1, Math.trunc(input.cycleDays) || DEFAULT_TARGET_CYCLE_DAYS);
+  const pace = Math.min(1, input.elapsedDays / days);
+  const remaining = input.monthlyTargetBps - input.progressBps;
+  const noiseAmp = Math.max(
+    18,
+    Math.abs(input.monthlyTargetBps) * (0.24 * (1 - pace) + 0.05),
+  );
+  const noise = (unitFromDigest(input.digest, 24) * 2 - 1) * noiseAmp;
+  if (pace >= 0.82) {
+    const pull = remaining * (0.42 + unitFromDigest(input.digest, 4) * 0.32);
+    return clampBps(pull + noise * 0.22, input.minBps, input.maxBps);
+  }
+  const mixed =
+    raw * (0.62 + 0.28 * (1 - pace)) + remaining * 0.07 * pace + noise;
+  return clampBps(mixed, input.minBps, input.maxBps);
 }

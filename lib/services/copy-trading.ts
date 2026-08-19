@@ -57,12 +57,13 @@ import {
   DEFAULT_TARGET_CYCLE_DAYS,
   DEFAULT_WIN_PROB_BPS,
   assignOperationRole,
-  pickLiveReturnBps,
+  pickTargetedReturnBps,
   resolveTargetCycleStart,
   targetElapsedDays,
   targetProgressSnapshot,
 } from "@/lib/copy-trading/monthly-target";
 import { riskProfileOf } from "@/lib/copy-trading/risk-profiles";
+import { floatingReturnBps } from "@/lib/copy-trading/floating-path";
 import {
   COPY_MARKETS,
   marketsFromSymbols,
@@ -2565,6 +2566,8 @@ export type CopyLiveTraderStatus =
       leverage: number;
       openedAt: string;
       closesAt: string;
+      targetReturnBps: number;
+      floatingReturnBps: number;
     }
   | { kind: "NEXT"; nextAt: string }
   | { kind: "RESTING"; nextAt: string }
@@ -2669,6 +2672,9 @@ function liveTraderStatus(
       leverage: open.leverage,
       openedAt: open.openedAt.toISOString(),
       closesAt: open.closesAt.toISOString(),
+      targetReturnBps: open.targetReturnBps,
+      floatingReturnBps: serializeCopyOperation(open, now, { forAdmin: true })
+        .floatingReturnBps,
     };
   }
   if (trader.simulationOpsToday >= trader.simulationOpsTarget) {
@@ -2961,6 +2967,8 @@ export type AdminCopyTraderDeskDto = {
     nextOperationAt: string | null;
     currentClosesAt: string | null;
     currentOperationId: string | null;
+    currentTargetReturnBps: number | null;
+    currentFloatingReturnBps: number | null;
   };
   target: {
     enabled: boolean;
@@ -3214,6 +3222,11 @@ export async function getAdminCopyTraderDesk(
         : null;
 
   const serialized = serializeAdminTrader(trader);
+  const serializedOps = operations.map((operation) =>
+    serializeCopyOperation(operation, now, { forAdmin: true }),
+  );
+  const openSerialized =
+    serializedOps.find((operation) => operation.status === "OPEN") ?? null;
 
   return {
     trader: serialized,
@@ -3267,9 +3280,7 @@ export async function getAdminCopyTraderDesk(
       date: point.date.toISOString().slice(0, 10),
       valueBps: point.valueBps,
     })),
-    operations: operations.map((operation) =>
-      serializeCopyOperation(operation, now, { forAdmin: true }),
-    ),
+    operations: serializedOps,
     events: events.map((event) => ({
       id: event.id,
       traderId: event.traderId,
@@ -3288,11 +3299,10 @@ export async function getAdminCopyTraderDesk(
       durationMinMinutes: trader.simulationDurationMinMinutes,
       durationMaxMinutes: trader.simulationDurationMaxMinutes,
       nextOperationAt: trader.nextOperationAt?.toISOString() ?? null,
-      currentClosesAt:
-        operations.find((operation) => operation.status === "OPEN")?.closesAt.toISOString() ??
-        null,
-      currentOperationId:
-        operations.find((operation) => operation.status === "OPEN")?.id ?? null,
+      currentClosesAt: openSerialized?.closesAt ?? null,
+      currentOperationId: openSerialized?.id ?? null,
+      currentTargetReturnBps: openSerialized?.targetReturnBps ?? null,
+      currentFloatingReturnBps: openSerialized?.floatingReturnBps ?? null,
     },
     target: targetProgressSnapshot({
       enabled: trader.targetMode,
@@ -3678,25 +3688,19 @@ function operationMark(
     };
   }
 
-  const duration = Math.max(
-    1,
-    operation.closesAt.getTime() - operation.openedAt.getTime(),
-  );
-  const progress = Math.max(
-    0,
-    Math.min(1, (now.getTime() - operation.openedAt.getTime()) / duration),
-  );
-  const waveSeed = scheduleDigest(operation.id).readUInt16BE(0) / 65_535;
-  const wave = Math.sin(progress * Math.PI) * (waveSeed - 0.5) * 36;
-  const floatingReturnBps = Math.round(
-    operation.targetReturnBps * progress + wave,
-  );
+  const floatingBps = floatingReturnBps({
+    operationId: operation.id,
+    targetReturnBps: operation.targetReturnBps,
+    openedAt: operation.openedAt.getTime(),
+    closesAt: operation.closesAt.getTime(),
+    now: now.getTime(),
+  });
   const directionSign = operation.direction === "LONG" ? 1 : -1;
   const priceMove =
-    (floatingReturnBps / operation.leverage / 10_000) * directionSign;
+    (floatingBps / operation.leverage / 10_000) * directionSign;
   return {
     markPrice: Number(operation.entryPrice) * (1 + priceMove),
-    floatingReturnBps,
+    floatingReturnBps: floatingBps,
   };
 }
 
@@ -4034,13 +4038,18 @@ async function openSimulatedOperation(
     cycleDays: trader.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS,
     digest,
   });
-  const targetReturnBps = pickLiveReturnBps({
-    role,
-    winProbBps: trader.winProbBps ?? DEFAULT_WIN_PROB_BPS,
-    lossProbBps: trader.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
+  const targetReturnBps = pickTargetedReturnBps({
+    targetMode: trader.targetMode,
+    monthlyTargetBps: trader.monthlyTargetBps,
+    progressBps,
+    elapsedDays,
+    cycleDays: trader.targetCycleDays ?? DEFAULT_TARGET_CYCLE_DAYS,
     minBps: trader.simulationMinBps,
     maxBps: trader.simulationMaxBps,
     digest,
+    role,
+    winProbBps: trader.winProbBps ?? DEFAULT_WIN_PROB_BPS,
+    lossProbBps: trader.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
   });
   const entryNoiseBps = deterministicRange(digest, 12, -180, 180);
   const entryPrice = market.basePrice * (1 + entryNoiseBps / 10_000);

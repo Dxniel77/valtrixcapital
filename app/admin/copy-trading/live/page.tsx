@@ -24,6 +24,8 @@ type LiveStatus =
       leverage: number;
       openedAt: string;
       closesAt: string;
+      targetReturnBps: number;
+      floatingReturnBps: number;
     }
   | { kind: "NEXT"; nextAt: string }
   | { kind: "RESTING"; nextAt: string }
@@ -199,6 +201,7 @@ export default function AdminCopyLiveBoardPage() {
       return (
         <span>
           {status.symbol} {status.direction} x{status.leverage} ·{" "}
+          {pct(status.floatingReturnBps)} → {pct(status.targetReturnBps)} ·{" "}
           <LiveCountdown
             iso={status.closesAt}
             dueLabel={t("admin.copyTrading.dueNow")}

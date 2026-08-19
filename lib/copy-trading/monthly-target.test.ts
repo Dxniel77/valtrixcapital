@@ -7,6 +7,7 @@ import {
   expectedTargetBps,
   pickLiveReturnBps,
   pickSignedReturnBps,
+  pickTargetedReturnBps,
   resolveTargetCycleStart,
   TARGET_DAY_MS,
 } from "./monthly-target";
@@ -75,7 +76,10 @@ describe("monthly target bias", () => {
       cycleDays: 30,
       digest: digest("ahead-target"),
     });
-    assert.equal(expectedTargetBps(600, 15, 30), 300);
+    assert.equal(expectedTargetBps(600, 30, 30, 0), 600);
+    const mid = expectedTargetBps(600, 15, 30, 0);
+    assert.notEqual(mid, 300);
+    assert.ok(mid > 50 && mid < 550);
     assert.ok(behind === "WINNER" || behind === "NEUTRAL" || behind === "LOSER");
     assert.ok(ahead === "WINNER" || ahead === "NEUTRAL" || ahead === "LOSER");
   });
@@ -97,5 +101,23 @@ describe("monthly target bias", () => {
       digest: digest("live-range"),
     });
     assert.ok(value >= -80 && value <= 120);
+  });
+
+  it("pulls late-cycle results toward the remaining period target", () => {
+    const late = pickTargetedReturnBps({
+      targetMode: true,
+      monthlyTargetBps: 600,
+      progressBps: 200,
+      elapsedDays: 27,
+      cycleDays: 30,
+      minBps: -200,
+      maxBps: 200,
+      digest: digest("late-pull"),
+      role: "LOSER",
+      winProbBps: 6000,
+      lossProbBps: 4000,
+    });
+    assert.ok(late > 0);
+    assert.ok(late >= -200 && late <= 200);
   });
 });
