@@ -1983,25 +1983,28 @@ export async function applyTraderPerformanceUpdate(input: {
           },
         });
 
-    await tx.adminAction.create({
-      data: {
-        adminId: input.adminUserId,
-        action: "UPDATE_CONFIG",
-        targetUserId: null,
-        payload: {
-          kind: "COPY_PERFORMANCE",
-          traderId: input.traderId,
-          period: input.period,
-          returnBps: input.returnBps,
-              source: input.source ?? "ADMIN",
-              eventId: event.id,
-              idempotencyKey,
-          affected: active.length,
-          totalDelta: result.totalDelta.toString(),
-              curveBps,
-        },
-      },
-    });
+        const source = input.source ?? "ADMIN";
+        if (source !== "SIMULATION") {
+          await tx.adminAction.create({
+            data: {
+              adminId: input.adminUserId,
+              action: "UPDATE_CONFIG",
+              targetUserId: null,
+              payload: {
+                kind: "COPY_PERFORMANCE",
+                traderId: input.traderId,
+                period: input.period,
+                returnBps: input.returnBps,
+                source,
+                eventId: event.id,
+                idempotencyKey,
+                affected: active.length,
+                totalDelta: result.totalDelta.toString(),
+                curveBps,
+              },
+            },
+          });
+        }
 
         return {
           event,

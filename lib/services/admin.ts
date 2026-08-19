@@ -547,6 +547,24 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
 
 export async function listAdminAudit(limit = 200) {
   const rows = await prisma.adminAction.findMany({
+    where: {
+      NOT: {
+        AND: [
+          {
+            payload: {
+              path: ["kind"],
+              equals: "COPY_PERFORMANCE",
+            },
+          },
+          {
+            payload: {
+              path: ["source"],
+              equals: "SIMULATION",
+            },
+          },
+        ],
+      },
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
