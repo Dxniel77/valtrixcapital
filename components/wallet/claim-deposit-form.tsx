@@ -53,6 +53,7 @@ export function ClaimDepositForm() {
   const [network, setNetwork] = React.useState<StakingNetwork>(
     chainId === polygon.id ? "POLYGON" : "BSC",
   );
+  const [purpose, setPurpose] = React.useState<"STAKING" | "COPY">("STAKING");
   const [txHash, setTxHash] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -68,7 +69,11 @@ export function ClaimDepositForm() {
     }
     setSubmitting(true);
     try {
-      const res = await claimDepositByTxHash({ network, txHash: trimmed });
+      const res = await claimDepositByTxHash({
+        network,
+        txHash: trimmed,
+        purpose,
+      });
       const deposit = res.deposit as { status?: string } | undefined;
 
       try {
@@ -81,7 +86,13 @@ export function ClaimDepositForm() {
       }
 
       if (deposit?.status === "CONFIRMED") {
-        toast.success(t("walletPage.deposit.claimSuccess"));
+        toast.success(
+          t(
+            purpose === "COPY"
+              ? "walletPage.deposit.claimSuccessCopy"
+              : "walletPage.deposit.claimSuccess",
+          ),
+        );
         setTxHash("");
       } else {
         toast.success(t("walletPage.deposit.pendingTitle"));
@@ -101,8 +112,32 @@ export function ClaimDepositForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-relaxed text-text-secondary">
-          {t("walletPage.deposit.claimDesc")}
+          {t(
+            purpose === "COPY"
+              ? "walletPage.deposit.claimDescCopy"
+              : "walletPage.deposit.claimDesc",
+          )}
         </p>
+
+        <div className="grid grid-cols-2 gap-2">
+          {(["STAKING", "COPY"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPurpose(p)}
+              className={cn(
+                "rounded-md border px-3 py-2 text-sm transition-colors",
+                purpose === p
+                  ? "border-gold/50 bg-gold/10 text-gold"
+                  : "border-border-subtle text-text-secondary hover:border-border-strong",
+              )}
+            >
+              {p === "COPY"
+                ? t("walletPage.deposit.purposeCopy")
+                : t("walletPage.deposit.purposeStaking")}
+            </button>
+          ))}
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           {(["BSC", "POLYGON"] as StakingNetwork[]).map((n) => (

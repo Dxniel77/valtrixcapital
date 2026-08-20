@@ -57,6 +57,11 @@ enum TxStatus {
   FAILED
 }
 
+enum DepositPurpose {
+  STAKING
+  COPY
+}
+
 enum WithdrawalStatus {
   REQUESTED
   APPROVED
@@ -443,6 +448,8 @@ model Deposit {
   status        TxStatus  @default(PENDING)
   detectedAt    DateTime  @default(now())
   confirmedAt   DateTime?
+  /// STAKING credits locked capital. COPY credits idle copy cash.
+  purpose       DepositPurpose @default(STAKING)
 
   user                User                 @relation(fields: [userId], references: [id])
   stake               Stake?

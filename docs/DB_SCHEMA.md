@@ -20,7 +20,7 @@ All monetary values stored as **`BigInt` micro-USDT** (1 USDT = 1,000,000). All 
 | `referrerId` | uuid? | upline user (level 1) |
 | `referralCode` | string | unique, 8 chars |
 | `earningsBalance` | bigint | available for withdrawal, micro-USDT (only source withdrawals draw from). Not used for copy-in. |
-| `copyCashBalance` | bigint | idle copy-trading cash, micro-USDT. Copy-in spends this; copy-out returns here instantly. Funded by admin credit in v1. |
+| `copyCashBalance` | bigint | idle copy-trading cash, micro-USDT. Copy-in spends this; copy-out returns here instantly. Funded by on-chain deposits with purpose `COPY`, or by admin credit. |
 | `lockedCapital` | bigint | sum of active stake principal; never auto-returned to the user |
 | `totalEarned` | bigint | lifetime earnings (passive + trade bonus + commissions), capped at `payoutCap` |
 | `payoutCap` | bigint | 2× `lockedCapital`, recalculated on each new stake |
@@ -117,6 +117,7 @@ Unique (`userId`, `level`).
 | `status` | enum `TxStatus` | `PENDING` / `CONFIRMED` / `FAILED` |
 | `detectedAt` | timestamp | |
 | `confirmedAt` | timestamp? | |
+| `purpose` | enum `DepositPurpose` | `STAKING` (default) credits `lockedCapital`; `COPY` credits `copyCashBalance` |
 
 Unique: `txHash`.
 

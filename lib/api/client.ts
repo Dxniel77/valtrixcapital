@@ -445,6 +445,7 @@ export async function registerDepositRequest(input: {
   fromAddress: string;
   toAddress: string;
   txHash: string;
+  purpose?: "STAKING" | "COPY";
 }) {
   return apiFetch<{
     ok: true;
@@ -458,6 +459,7 @@ export async function registerDepositRequest(input: {
 export async function claimDepositByTxHash(input: {
   network: "BSC" | "POLYGON";
   txHash: string;
+  purpose?: "STAKING" | "COPY";
 }) {
   return apiFetch<{ ok: true; deposit: unknown }>("/api/deposits/claim", {
     method: "POST",

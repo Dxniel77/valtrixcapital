@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const claimSchema = z.object({
   network: z.enum(["BSC", "POLYGON"]),
   txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  purpose: z.enum(["STAKING", "COPY"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
       walletAddress: normalizeWallet(auth.session.address),
       network: parsed.network,
       txHash: parsed.txHash,
+      purpose: parsed.purpose,
     });
     return NextResponse.json({ ok: true, deposit });
   } catch (err) {

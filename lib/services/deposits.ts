@@ -1,4 +1,4 @@
-import type { Network } from "@prisma/client";
+import type { DepositPurpose, Network } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { normalizeWallet } from "@/lib/auth/admins";
 import { fromMicro, toMicro } from "@/lib/utils";
@@ -49,6 +49,7 @@ export interface DepositDto {
   detectedAt: string;
   confirmedAt: string | null;
   stakeId: string | null;
+  purpose: DepositPurpose;
 }
 
 function serializeDeposit(d: {
@@ -62,6 +63,7 @@ function serializeDeposit(d: {
   status: string;
   detectedAt: Date;
   confirmedAt: Date | null;
+  purpose: DepositPurpose;
   stake?: { id: string } | null;
 }): DepositDto {
   return {
@@ -76,7 +78,12 @@ function serializeDeposit(d: {
     detectedAt: d.detectedAt.toISOString(),
     confirmedAt: d.confirmedAt?.toISOString() ?? null,
     stakeId: d.stake?.id ?? null,
+    purpose: d.purpose,
   };
+}
+
+function normalizeDepositPurpose(purpose?: DepositPurpose | string): DepositPurpose {
+  return purpose === "COPY" ? "COPY" : "STAKING";
 }
 
 async function resolveVerifiedDepositInput(input: {
@@ -161,6 +168,7 @@ export async function registerDeposit(input: {
   fromAddress: string;
   toAddress: string;
   txHash: string;
+  purpose?: DepositPurpose | string;
 }): Promise<DepositDto> {
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new DepositServiceError("Invalid amount", "INVALID_AMOUNT");
@@ -200,6 +208,7 @@ export async function registerDeposit(input: {
       toAddress: verifiedInput.toAddress,
       txHash: verifiedInput.txHash,
       status: "PENDING",
+      purpose: normalizeDepositPurpose(input.purpose),
     },
   });
 
@@ -405,7 +414,18 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
     });
 
     let stake = deposit.stake;
-    if (!stake) {
+    if (deposit.purpose === "COPY") {
+      if (!stake) {
+        await tx.user.update({
+          where: { id: deposit.userId },
+          data: {
+            copyCashBalance: {
+              increment: creditedAmount,
+            },
+          },
+        });
+      }
+    } else if (!stake) {
       stake = await tx.stake.create({
         data: {
           userId: deposit.userId,
@@ -464,7 +484,9 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
     });
   });
 
-  await refreshUserPayoutCap(deposit.userId);
+  if (deposit.purpose !== "COPY") {
+    await refreshUserPayoutCap(deposit.userId);
+  }
   await propagateRealDepositVolume(deposit.userId, creditedAmount);
   await evaluateAndPersistWithdrawalUnlock(deposit.userId);
   try {
@@ -491,6 +513,7 @@ export async function claimDepositFromTx(input: {
   walletAddress: string;
   network: StakingNetwork;
   txHash: string;
+  purpose?: DepositPurpose | string;
 }): Promise<DepositDto> {
   const normalizedHash = input.txHash.toLowerCase();
   const existing = await prisma.deposit.findUnique({
@@ -565,6 +588,7 @@ export async function claimDepositFromTx(input: {
     fromAddress: verified.fromAddress,
     toAddress: verified.toAddress,
     txHash: normalizedHash,
+    purpose: normalizeDepositPurpose(input.purpose),
   });
 
   const confirmations = isProductionRuntime()

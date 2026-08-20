@@ -19,6 +19,7 @@ const createSchema = z.object({
   fromAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   toAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   txHash: z.string().regex(/^0x[0-9a-fA-F]+$/),
+  purpose: z.enum(["STAKING", "COPY"]).optional(),
 });
 
 const confirmSchema = z.object({
@@ -91,6 +92,7 @@ export async function POST(req: Request) {
       fromAddress: parsed.fromAddress,
       toAddress: parsed.toAddress,
       txHash: parsed.txHash,
+      purpose: parsed.purpose,
     });
     return NextResponse.json({ ok: true, deposit });
   } catch (err) {

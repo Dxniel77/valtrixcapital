@@ -20,7 +20,7 @@ Arriba del panel están fees y reglas: comisión al copiar, al salir, fee de pla
 
 ## Cómo financiar copy cash
 
-El copy no usa staking ni el saldo retirable. En v1 el admin carga o resta **efectivo copy idle** en **Admin → Users → ajustar saldo → Copy trading cash**. Eso no toca dinero ya copiado en un trader. El usuario copia traders desde ese efectivo y, al salir, el dinero vuelve al instante al mismo bolsillo. No hay transferencia withdrawable → copy.
+El copy no usa staking ni el saldo retirable. El usuario deposita USDT on-chain y en el claim elige **Copy cash** (no Staking). Eso acredita `copyCashBalance`. El admin también puede cargar o restar efectivo copy idle en **Admin → Users → ajustar saldo → Copy trading cash**. Eso no toca dinero ya copiado en un trader. Al copiar un trader se gasta este efectivo; al salir, vuelve al instante al mismo bolsillo. No hay transferencia withdrawable → copy.
 
 ---
 
