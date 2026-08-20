@@ -1230,8 +1230,10 @@ export default function AdminCopyTraderDeskPage() {
                 ) : null}
               </CardContent>
             </Card>
+          </div>
 
-            <Card>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">
                   {t("admin.copyTrading.operations")}
@@ -1337,14 +1339,13 @@ export default function AdminCopyTraderDeskPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t("admin.copyTrading.recentActivity")}
-              </CardTitle>
-            </CardHeader>
+            <Card className="min-w-0">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.recentActivity")}
+                </CardTitle>
+              </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-text-muted">
                 {t("admin.copyTrading.recentActivityHint")}
@@ -1355,6 +1356,7 @@ export default function AdminCopyTraderDeskPage() {
                 </p>
               ) : (
                 <>
+                  <div className={eventsExpanded ? "max-h-96 space-y-3 overflow-auto" : "space-y-3"}>
                   {previewList(desk.events, eventsExpanded, EVENTS_PREVIEW).map(
                     (event) => (
                   <div
@@ -1376,6 +1378,7 @@ export default function AdminCopyTraderDeskPage() {
                   </div>
                     ),
                   )}
+                  </div>
                   {desk.events.length > EVENTS_PREVIEW ? (
                     <Button
                       size="sm"
@@ -1393,6 +1396,7 @@ export default function AdminCopyTraderDeskPage() {
               )}
             </CardContent>
           </Card>
+          </div>
         </>
       )}
 
