@@ -124,12 +124,6 @@ type Desk = {
     progressBps: number;
     expectedBps: number;
   };
-  events: Array<{
-    id: string;
-    returnBps: number;
-    source: string;
-    createdAt: string;
-  }>;
   scheduledManual: Array<{
     id: string;
     returnBps: number;
@@ -172,11 +166,6 @@ function defaultEntryPrice(symbol: string): string {
 }
 
 const CLOSED_OPS_PREVIEW = 8;
-const EVENTS_PREVIEW = 8;
-
-function previewList<T>(items: T[], expanded: boolean, limit: number): T[] {
-  return expanded ? items : items.slice(0, limit);
-}
 
 function visibleOperations<T extends { status: string }>(
   ops: T[],
@@ -240,7 +229,6 @@ export default function AdminCopyTraderDeskPage() {
   const [targetPct, setTargetPct] = React.useState("6.00");
   const [targetDays, setTargetDays] = React.useState("30");
   const [opsExpanded, setOpsExpanded] = React.useState(false);
-  const [eventsExpanded, setEventsExpanded] = React.useState(false);
 
   const load = React.useCallback(
     async (silent = false) => {
@@ -1230,21 +1218,20 @@ export default function AdminCopyTraderDeskPage() {
             </Card>
           </div>
 
-          <div className="grid items-stretch gap-6 xl:grid-cols-2">
-            <Card className="flex min-w-0 flex-col">
-              <CardHeader className="flex min-h-[52px] shrink-0 flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">
-                  {t("admin.copyTrading.operations")}
-                </CardTitle>
-                <Button size="sm" onClick={openNewOp}>
-                  {t("admin.copyTrading.newOperation")}
-                </Button>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
-                <p className="shrink-0 text-xs text-text-muted">
-                  {t("admin.copyTrading.operationsHint")}
-                </p>
-                <div className="h-72 space-y-2 overflow-auto">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardTitle className="text-base">
+                {t("admin.copyTrading.operations")}
+              </CardTitle>
+              <Button size="sm" onClick={openNewOp}>
+                {t("admin.copyTrading.newOperation")}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-text-muted">
+                {t("admin.copyTrading.operationsHint")}
+              </p>
+              <div className="max-h-96 space-y-2 overflow-auto">
                   {desk.operations.length === 0 ? (
                     <p className="text-sm text-text-muted">
                       {t("admin.copyTrading.noOpenOp")}
@@ -1317,89 +1304,28 @@ export default function AdminCopyTraderDeskPage() {
                       </div>
                     ))
                   )}
-                </div>
-                <div className="flex h-8 shrink-0 items-center">
-                  {visibleOperations(desk.operations, true).length !==
-                    visibleOperations(desk.operations, opsExpanded).length ||
-                  opsExpanded ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setOpsExpanded((open) => !open)}
-                    >
-                      {opsExpanded
-                        ? t("admin.copyTrading.showFewer")
-                        : t("admin.copyTrading.showOlderOps", {
-                            n: Math.max(
-                              0,
-                              desk.operations.length -
-                                visibleOperations(desk.operations, false)
-                                  .length,
-                            ),
-                          })}
-                    </Button>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="flex min-w-0 flex-col">
-              <CardHeader className="flex min-h-[52px] shrink-0 flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">
-                  {t("admin.copyTrading.recentActivity")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
-                <p className="shrink-0 text-xs text-text-muted">
-                  {t("admin.copyTrading.recentActivityHint")}
-                </p>
-                <div className="h-72 space-y-2 overflow-auto">
-                  {desk.events.length === 0 ? (
-                    <p className="text-sm text-text-muted">
-                      {t("admin.copyTrading.noActivity")}
-                    </p>
-                  ) : (
-                    previewList(desk.events, eventsExpanded, EVENTS_PREVIEW).map(
-                      (event) => (
-                        <div
-                          key={event.id}
-                          className="flex h-[38px] items-center justify-between gap-2 rounded-md border border-border-subtle px-3"
-                        >
-                          <p className="min-w-0 truncate text-xs text-text-muted">
-                            {event.source === "SIMULATION"
-                              ? t("admin.copyTrading.automatic")
-                              : t("admin.copyTrading.manual")}{" "}
-                            · {new Date(event.createdAt).toLocaleString()}
-                          </p>
-                          <span
-                            className={`shrink-0 font-mono text-sm ${event.returnBps >= 0 ? "text-success" : "text-danger"}`}
-                          >
-                            {event.returnBps >= 0 ? "+" : ""}
-                            {(event.returnBps / 100).toFixed(2)}%
-                          </span>
-                        </div>
-                      ),
-                    )
-                  )}
-                </div>
-                <div className="flex h-8 shrink-0 items-center">
-                  {desk.events.length > EVENTS_PREVIEW ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEventsExpanded((open) => !open)}
-                    >
-                      {eventsExpanded
-                        ? t("admin.copyTrading.showFewer")
-                        : t("admin.copyTrading.showOlderOps", {
-                            n: desk.events.length - EVENTS_PREVIEW,
-                          })}
-                    </Button>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              {visibleOperations(desk.operations, true).length !==
+                visibleOperations(desk.operations, opsExpanded).length ||
+              opsExpanded ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setOpsExpanded((open) => !open)}
+                >
+                  {opsExpanded
+                    ? t("admin.copyTrading.showFewer")
+                    : t("admin.copyTrading.showOlderOps", {
+                        n: Math.max(
+                          0,
+                          desk.operations.length -
+                            visibleOperations(desk.operations, false).length,
+                        ),
+                      })}
+                </Button>
+              ) : null}
+            </CardContent>
+          </Card>
         </>
       )}
 

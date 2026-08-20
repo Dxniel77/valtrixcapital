@@ -2745,7 +2745,6 @@ export type AdminCopyTraderDeskDto = {
     startedAt: string;
   }>;
   operations: AdminCopyTraderOperationDto[];
-  events: CopyPerformanceEventDto[];
   liveSchedule: {
     enabled: boolean;
     opsToday: number;
@@ -2923,7 +2922,7 @@ export async function getAdminCopyTraderDesk(
 
   const config = await ensureCopyTradingConfig();
 
-  const [active, chartPoints, operations, events, feeRows, weekStats, networkPaid, cycleSum, scheduledManual] =
+  const [active, chartPoints, operations, feeRows, weekStats, networkPaid, cycleSum, scheduledManual] =
     await Promise.all([
     prisma.copyInvestment.findMany({
       where: { traderId, status: "ACTIVE" },
@@ -2941,12 +2940,6 @@ export async function getAdminCopyTraderDesk(
       where: { traderId },
       orderBy: [{ status: "desc" }, { openedAt: "desc" }],
       take: 80,
-    }),
-    prisma.copyPerformanceEvent.findMany({
-      where: { traderId },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-      include: { trader: { select: { name: true } } },
     }),
     prisma.copyInvestmentLedger.findMany({
       where: {
@@ -3050,15 +3043,6 @@ export async function getAdminCopyTraderDesk(
       startedAt: row.startedAt.toISOString(),
     })),
     operations: serializedOps,
-    events: events.map((event) => ({
-      id: event.id,
-      traderId: event.traderId,
-      traderName: event.trader.name,
-      period: event.period,
-      returnBps: event.returnBps,
-      source: event.source,
-      createdAt: event.createdAt.toISOString(),
-    })),
     liveSchedule: {
       enabled: trader.simulationEnabled,
       opsToday: trader.simulationOpsToday,
