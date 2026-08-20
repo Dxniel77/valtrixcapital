@@ -187,45 +187,24 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <Table className="min-w-[1480px] table-fixed">
-          <colgroup>
-            <col className="w-10" />
-            <col className="w-[200px]" />
-            <col className="w-[120px]" />
-            <col className="w-[140px]" />
-            <col className="w-16" />
-            <col className="w-20" />
-            <col className="w-20" />
-            <col className="w-20" />
-            {Array.from({ length: 8 }, (_, i) => (
-              <col key={i} className="w-14" />
-            ))}
-            <col className="w-20" />
-            <col className="w-[148px]" />
-            <col className="w-24" />
-            <col className="w-[148px]" />
-          </colgroup>
+        <Table>
           <thead>
             <THeadRow>
-              <TH className="px-2">#</TH>
-              <TH className="px-3">{t("admin.users.colUser")}</TH>
-              <TH className="px-2">{t("admin.users.colRegistration")}</TH>
-              <TH className="px-2">{t("admin.users.colReferredBy")}</TH>
-              <TH className="px-2 text-right">{t("admin.users.colDirectRefs")}</TH>
-              <TH className="px-2 text-right">{t("admin.leaders.colOperational")}</TH>
-              <TH className="px-2 text-right">{t("admin.leaders.colNetwork")}</TH>
-              <TH className="px-2 text-right">{t("admin.leaders.colPassive")}</TH>
-              {Array.from({ length: 8 }, (_, i) => (
-                <TH key={i} className="px-2 text-right">
-                  L{i + 1}
-                </TH>
-              ))}
-              <TH className="px-2 text-right">
+              <TH>#</TH>
+              <TH>{t("admin.users.colUser")}</TH>
+              <TH>{t("admin.users.colRegistration")}</TH>
+              <TH>{t("admin.users.colReferredBy")}</TH>
+              <TH className="text-right">{t("admin.users.colDirectRefs")}</TH>
+              <TH className="text-right">{t("admin.leaders.colOperational")}</TH>
+              <TH className="text-right">{t("admin.leaders.colNetwork")}</TH>
+              <TH className="text-right">{t("admin.leaders.colPassive")}</TH>
+              <TH className="text-right whitespace-nowrap">L1–L8</TH>
+              <TH className="text-right">
                 <span className="text-gold">{t("admin.leaders.colTotal")}</span>
               </TH>
-              <TH className="px-2">{t("admin.users.colUnlockProgress")}</TH>
-              <TH className="px-2">{t("admin.users.colStatus")}</TH>
-              <TH className="px-2 text-right">{t("admin.users.colActions")}</TH>
+              <TH>{t("admin.users.colUnlockProgress")}</TH>
+              <TH>{t("admin.users.colStatus")}</TH>
+              <TH className="text-right">{t("admin.users.colActions")}</TH>
             </THeadRow>
           </thead>
           <TBody>
@@ -240,8 +219,8 @@ export default function AdminUsersPage() {
                     sponsored && "bg-warning/[0.06] hover:bg-warning/[0.09]",
                   )}
                 >
-                  <TD className="px-2 font-mono text-xs text-text-muted">{rowOffset + idx + 1}</TD>
-                  <TD className="px-3">
+                  <TD className="font-mono text-xs text-text-muted">{rowOffset + idx + 1}</TD>
+                  <TD>
                     <div className="flex min-w-0 items-center gap-2.5">
                       {u.isIb ? (
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/35 bg-bg-elevated">
@@ -284,7 +263,7 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
                   </TD>
-                  <TD className="px-2">
+                  <TD>
                     <Badge
                       variant={
                         u.registrationSource === "referral" ? "gold" : "outline"
@@ -296,7 +275,7 @@ export default function AdminUsersPage() {
                         : t("admin.users.registrationDirect")}
                     </Badge>
                   </TD>
-                  <TD className="px-2">
+                  <TD>
                     {referrer ? (
                       <div className="min-w-0">
                         {referrer.adminUserId ? (
@@ -321,35 +300,34 @@ export default function AdminUsersPage() {
                       </span>
                     )}
                   </TD>
-                  <TD className="px-2 text-right font-mono">{u.referrals}</TD>
-                  <TD className="px-2 text-right font-mono text-xs">
+                  <TD className="text-right font-mono">{u.referrals}</TD>
+                  <TD className="text-right font-mono text-xs">
                     ${formatNumber(row.operational, { decimals: 0 })}
                   </TD>
-                  <TD className="px-2 text-right font-mono text-xs">
+                  <TD className="text-right font-mono text-xs">
                     ${formatNumber(row.network, { decimals: 0 })}
                   </TD>
-                  <TD className="px-2 text-right font-mono text-xs">
+                  <TD className="text-right font-mono text-xs">
                     ${formatNumber(row.passive, { decimals: 0 })}
                   </TD>
-                  {Array.from({ length: 8 }, (_, i) => {
-                    const lvl = i + 1;
-                    const cell = row.byLevel.find((l) => l.level === lvl);
-                    return (
-                      <TD
-                        key={lvl}
-                        className="px-2 text-right font-mono text-xs text-text-muted"
-                      >
-                        ${formatNumber(cell?.amount ?? 0, { decimals: 0 })}
-                      </TD>
-                    );
-                  })}
-                  <TD className="px-2 text-right font-mono font-medium text-gold">
+                  <TD className="text-right font-mono text-xs text-text-muted">
+                    {row.byLevel.some((l) => l.amount > 0)
+                      ? row.byLevel
+                          .filter((l) => l.amount > 0)
+                          .map(
+                            (l) =>
+                              `L${l.level} $${formatNumber(l.amount, { decimals: 0 })}`,
+                          )
+                          .join(" · ")
+                      : "—"}
+                  </TD>
+                  <TD className="text-right font-mono font-medium text-gold">
                     ${formatNumber(billingPeriodTotal(row), { decimals: 0 })}
                   </TD>
-                  <TD className="px-2 align-top">
+                  <TD className="align-top">
                     <SponsoredUnlockProgressSummary user={u} />
                   </TD>
-                  <TD className="px-2">
+                  <TD>
                     <Badge
                       variant={u.status === "ACTIVE" ? "success" : "default"}
                       className="whitespace-nowrap text-[10px]"
@@ -359,7 +337,7 @@ export default function AdminUsersPage() {
                         : t("admin.users.inactive")}
                     </Badge>
                   </TD>
-                  <TD className="px-2">
+                  <TD>
                     <div className="flex items-center justify-end gap-0.5">
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/admin/users/${u.id}`}>
@@ -519,7 +497,7 @@ function AdjustBalanceModal({
 
   return (
     <Dialog open={!!user} onOpenChange={(v) => (!v ? onClose() : null)}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t("admin.users.adjustTitle")}</DialogTitle>
           <DialogDescription>
@@ -541,7 +519,7 @@ function AdjustBalanceModal({
             <p className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.users.adjustTargetLabel")}
             </p>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {(
                 [
                   ["WITHDRAWABLE", "adjustTargetWithdrawable", "adjustTargetWithdrawableDesc"],
@@ -563,7 +541,7 @@ function AdjustBalanceModal({
                   <p className="text-sm font-medium text-text-primary">
                     {t(`admin.users.${titleKey}`)}
                   </p>
-                  <p className="mt-1 text-xs text-text-muted">
+                  <p className="mt-1 text-xs leading-snug text-text-muted">
                     {t(`admin.users.${descKey}`)}
                   </p>
                 </button>
