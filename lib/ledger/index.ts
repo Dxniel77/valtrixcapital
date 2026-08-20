@@ -121,7 +121,7 @@ export function useLedger(): LedgerEntry[] {
       });
     }
 
-    for (const a of balanceAdjustments) {
+        for (const a of balanceAdjustments) {
       entries.push({
         id: `adj_${a.id}`,
         category: a.target === "STAKING" ? "DEPOSIT" : "ADJUSTMENT",
@@ -130,7 +130,12 @@ export function useLedger(): LedgerEntry[] {
         network: a.target === "STAKING" ? "BSC" : null,
         txHash: null,
         status: "COMPLETED",
-        note: a.note,
+        note:
+          a.target === "COPY"
+            ? ["copy cash", a.note.trim()].filter(Boolean).join(" · ")
+            : a.target === "WITHDRAWABLE"
+              ? ["withdrawable", a.note.trim()].filter(Boolean).join(" · ")
+              : a.note,
       });
     }
 

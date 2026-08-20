@@ -1,4 +1,5 @@
 import type { LedgerCategory } from "@/lib/ledger";
+import { formatAdjustmentNote } from "@/lib/admin/audit-format";
 import { prisma } from "@/lib/db";
 import { fromMicro } from "@/lib/utils";
 
@@ -144,7 +145,7 @@ export async function buildUserLedger(userId: string): Promise<LedgerEntryDto[]>
   }
 
   for (const a of adjustments) {
-    const payload = a.payload as { delta?: number; note?: string };
+    const payload = a.payload as { delta?: number; note?: string; target?: string };
     entries.push({
       id: `adj_${a.id}`,
       category: "ADJUSTMENT",
@@ -153,7 +154,7 @@ export async function buildUserLedger(userId: string): Promise<LedgerEntryDto[]>
       network: null,
       txHash: null,
       status: "COMPLETED",
-      note: payload.note,
+      note: formatAdjustmentNote(payload),
     });
   }
 

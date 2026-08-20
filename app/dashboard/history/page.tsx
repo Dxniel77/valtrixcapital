@@ -75,6 +75,7 @@ export default function HistoryPage() {
           e.sourceWallet ?? "",
           e.network ?? "",
           e.status ?? "",
+          e.note ?? "",
         ]
           .join(" ")
           .toUpperCase();

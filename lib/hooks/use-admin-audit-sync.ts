@@ -23,6 +23,13 @@ function mapBackendAuditRow(
   };
 }
 
+export async function refreshAdminAuditFromBackend(): Promise<void> {
+  const { audit } = await fetchAdminAudit();
+  if (audit.length > 0) {
+    useAdminStore.getState().setAuditFromBackend(audit.map(mapBackendAuditRow));
+  }
+}
+
 /** Loads admin audit log from Postgres when available. */
 export function useAdminAuditSync(): void {
   const setAuditFromBackend = useAdminStore((s) => s.setAuditFromBackend);

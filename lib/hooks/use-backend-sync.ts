@@ -163,25 +163,10 @@ export function useBackendUserSync(): void {
             .balanceAdjustments.some((b) => b.id === adj.id);
 
           if (adj.target === "COPY") {
-            appliedIdsRef.current.add(adj.id);
-            continue;
-          }
-
-          const stakingTarget: "WITHDRAWABLE" | "STAKING" =
-            adj.target === "STAKING" ? "STAKING" : "WITHDRAWABLE";
-
-          if (!portfolioSynced) {
             if (alreadyRecorded) {
               appliedIdsRef.current.add(adj.id);
               continue;
             }
-            applyBalanceAdjustment({
-              id: adj.id,
-              amount: adj.amount,
-              note: adj.note,
-              target: stakingTarget,
-            });
-          } else if (!alreadyRecorded) {
             useStakingStore.setState((s) => ({
               balanceAdjustments: [
                 {
@@ -189,11 +174,40 @@ export function useBackendUserSync(): void {
                   amount: adj.amount,
                   note: adj.note,
                   createdAt: new Date(adj.createdAt).getTime(),
-                  target: stakingTarget,
+                  target: "COPY" as const,
                 },
                 ...s.balanceAdjustments,
               ].slice(0, 200),
             }));
+          } else {
+            const stakingTarget: "WITHDRAWABLE" | "STAKING" =
+              adj.target === "STAKING" ? "STAKING" : "WITHDRAWABLE";
+
+            if (!portfolioSynced) {
+              if (alreadyRecorded) {
+                appliedIdsRef.current.add(adj.id);
+                continue;
+              }
+              applyBalanceAdjustment({
+                id: adj.id,
+                amount: adj.amount,
+                note: adj.note,
+                target: stakingTarget,
+              });
+            } else if (!alreadyRecorded) {
+              useStakingStore.setState((s) => ({
+                balanceAdjustments: [
+                  {
+                    id: adj.id,
+                    amount: adj.amount,
+                    note: adj.note,
+                    createdAt: new Date(adj.createdAt).getTime(),
+                    target: stakingTarget,
+                  },
+                  ...s.balanceAdjustments,
+                ].slice(0, 200),
+              }));
+            }
           }
 
           appliedIdsRef.current.add(adj.id);

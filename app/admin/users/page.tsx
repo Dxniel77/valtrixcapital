@@ -41,6 +41,8 @@ import {
 } from "@/lib/api/client";
 import { toggleAdminUserStatus } from "@/lib/admin/toggle-user-status";
 import { getReferrerInfo } from "@/lib/admin/sponsor";
+import { refreshAdminMovementsFromBackend } from "@/lib/admin/movements-backend";
+import { refreshAdminAuditFromBackend } from "@/lib/hooks/use-admin-audit-sync";
 import { SponsoredUnlockProgressSummary } from "@/components/admin/sponsored-unlock-progress-summary";
 import { TablePagination } from "@/components/admin/table-pagination";
 import { useTablePagination } from "@/lib/hooks/use-table-pagination";
@@ -477,6 +479,10 @@ function AdjustBalanceModal({
             ),
           }));
           useAdminStore.getState().mergeUsersFromBackend(dbUsers);
+          await Promise.all([
+            refreshAdminMovementsFromBackend(),
+            refreshAdminAuditFromBackend(),
+          ]);
           toast.success(t("admin.users.balanceAdjusted"));
           onClose();
           return;

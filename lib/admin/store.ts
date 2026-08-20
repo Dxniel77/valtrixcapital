@@ -93,6 +93,8 @@ export interface AdminMovement {
   network: AdminNetwork | null;
   status: string;
   timestamp: number;
+  note?: string;
+  adjustmentTarget?: BalanceAdjustmentTarget;
 }
 
 export interface AdminBalanceAdjustment {
@@ -770,6 +772,8 @@ export const useAdminStore = create<AdminState>()(
               network: null,
               status: "COMPLETED",
               timestamp: now,
+              note: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} USDT (${target})${note.trim() ? ` — ${note.trim()}` : ""}`,
+              adjustmentTarget: target,
             },
             ...s.movements,
           ].slice(0, 500),

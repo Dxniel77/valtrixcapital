@@ -62,7 +62,14 @@ export function MovementTable({
                     hour12: false,
                   })}
                 </TD>
-                <TD>{t(`walletPage.category.${m.type}`)}</TD>
+                <TD>
+                  <div>
+                    <p>{t(`walletPage.category.${m.type}`)}</p>
+                    {m.type === "ADJUSTMENT" && m.note ? (
+                      <p className="text-xs text-text-muted">{m.note}</p>
+                    ) : null}
+                  </div>
+                </TD>
                 <TD className="font-mono text-text-secondary">
                   {shortenAddress(m.wallet)}
                 </TD>

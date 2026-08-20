@@ -1,5 +1,25 @@
 import { shortenHash } from "@/lib/utils";
 
+export function adjustmentTargetLabel(target?: unknown): string | null {
+  if (target === "COPY") return "copy cash";
+  if (target === "STAKING") return "staking";
+  if (target === "WITHDRAWABLE") return "withdrawable";
+  return typeof target === "string" && target.trim() ? target.trim() : null;
+}
+
+export function formatAdjustmentNote(payload: {
+  note?: unknown;
+  target?: unknown;
+}): string | undefined {
+  const pocket = adjustmentTargetLabel(payload.target);
+  const note =
+    typeof payload.note === "string" && payload.note.trim()
+      ? payload.note.trim()
+      : null;
+  const parts = [pocket, note].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
 /** Maps DB admin action + payload to a display label key under admin.actions.* */
 export function auditActionLabel(
   action: string,
@@ -63,6 +83,36 @@ export function formatAuditPayload(
   payload: Record<string, unknown> | null,
 ): string {
   if (!payload) return "";
+
+  if (action === "ADJUST_BALANCE") {
+    if (payload.manualPayout === true) {
+      const amount =
+        payload.delta != null ? Math.abs(Number(payload.delta)) : null;
+      const note =
+        typeof payload.note === "string" && payload.note.trim()
+          ? payload.note.trim()
+          : null;
+      return [
+        amount != null && Number.isFinite(amount) ? `−${amount} USDT` : null,
+        "manual payout",
+        note,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+
+    const delta = typeof payload.delta === "number" ? payload.delta : null;
+    const amount =
+      delta != null && Number.isFinite(delta)
+        ? `${delta >= 0 ? "+" : ""}${delta} USDT`
+        : null;
+    const pocket = adjustmentTargetLabel(payload.target);
+    const note =
+      typeof payload.note === "string" && payload.note.trim()
+        ? payload.note.trim()
+        : null;
+    return [amount, pocket, note].filter(Boolean).join(" · ");
+  }
 
   if (action === "UPDATE_USER_PROFILE") {
     const parts: string[] = [];
@@ -140,20 +190,6 @@ export function formatAuditPayload(
     return `+${String(payload.amount)} USDT`;
   }
 
-  if (action === "ADJUST_BALANCE" && payload.manualPayout === true) {
-    const amount = payload.delta != null ? Math.abs(Number(payload.delta)) : null;
-    const note =
-      typeof payload.note === "string" && payload.note.trim()
-        ? payload.note.trim()
-        : null;
-    const parts = [
-      amount != null && Number.isFinite(amount) ? `−${amount} USDT` : null,
-      "manual payout",
-      note,
-    ].filter(Boolean);
-    return parts.join(" · ");
-  }
-
   if (action === "UPSERT_IB_AGREEMENT") {
     const parts: string[] = [];
     if (payload.isIb === true) parts.push("IB");
@@ -187,10 +223,6 @@ export function formatAuditPayload(
     return `+${String(payload.creditedAmount)} USDT${level ? ` · ${level}` : ""}${
       rate ? ` · ${rate}` : ""
     }`;
-  }
-
-  if (action === "ADJUST_BALANCE" && payload.target) {
-    return String(payload.target);
   }
 
   try {

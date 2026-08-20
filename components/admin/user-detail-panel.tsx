@@ -454,7 +454,14 @@ function MovementTable({ rows }: { rows: UserDetailSnapshot["movements"] }) {
             <TD className="text-xs text-text-muted">
               {new Date(m.timestamp).toLocaleString()}
             </TD>
-            <TD>{m.type}</TD>
+            <TD>
+              <div>
+                <p>{m.type}</p>
+                {m.type === "ADJUSTMENT" && m.note ? (
+                  <p className="text-xs text-text-muted">{m.note}</p>
+                ) : null}
+              </div>
+            </TD>
             <TD className="text-right font-mono">
               ${formatNumber(m.amount, { decimals: 2 })}
             </TD>

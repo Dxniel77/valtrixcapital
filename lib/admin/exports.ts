@@ -114,7 +114,7 @@ export function exportUserDetailCsv(detail: UserDetailSnapshot): void {
         `"${r.alias}","${r.wallet}",${r.capital},${r.balance}`,
     ),
     "",
-    "date,type,amount,status,network",
+    "date,type,amount,status,network,note",
     ...detail.movements.map((m) =>
       [
         new Date(m.timestamp).toISOString(),
@@ -122,6 +122,7 @@ export function exportUserDetailCsv(detail: UserDetailSnapshot): void {
         m.amount,
         m.status,
         m.network ?? "",
+        m.note ?? "",
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(","),
@@ -134,7 +135,7 @@ export function exportUserDetailCsv(detail: UserDetailSnapshot): void {
 }
 
 export function exportMovementsCsv(movements: AdminMovement[]): void {
-  const header = ["date", "type", "wallet", "amount", "network", "status"];
+  const header = ["date", "type", "wallet", "amount", "network", "status", "note"];
   const rows = movements.map((m) =>
     [
       new Date(m.timestamp).toISOString(),
@@ -143,6 +144,7 @@ export function exportMovementsCsv(movements: AdminMovement[]): void {
       m.amount,
       m.network ?? "",
       m.status,
+      m.note ?? "",
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),

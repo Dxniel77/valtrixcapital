@@ -1,5 +1,6 @@
 import type { AdminActionType } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { formatAdjustmentNote } from "@/lib/admin/audit-format";
 import { findUserById, serializeUser, type BalanceAdjustmentTarget, type UserDto } from "@/lib/services/users";
 import { refreshUserPayoutCap } from "@/lib/services/stakes";
 import { fromMicro, toMicro } from "@/lib/utils";
@@ -28,6 +29,7 @@ export interface AdminMovementDto {
   timestamp: number;
   note?: string;
   yieldKind?: "operational" | "passive";
+  adjustmentTarget?: BalanceAdjustmentTarget;
 }
 
 export async function adjustUserBalance(input: {
@@ -544,7 +546,8 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
       network: null,
       status: "COMPLETED",
       timestamp: a.createdAt.getTime(),
-      note: payload.note,
+      note: formatAdjustmentNote(payload),
+      adjustmentTarget: payload.target,
     });
   }
 

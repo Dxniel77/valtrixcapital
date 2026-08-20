@@ -13,6 +13,8 @@ function mapBackendMovement(
     status: row.status,
     timestamp: row.timestamp,
     yieldKind: row.yieldKind,
+    note: row.note,
+    adjustmentTarget: row.adjustmentTarget,
   };
 }
 

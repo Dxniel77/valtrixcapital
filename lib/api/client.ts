@@ -226,6 +226,7 @@ export async function fetchAdminMovements(limit = 500) {
       timestamp: number;
       note?: string;
       yieldKind?: "operational" | "passive";
+      adjustmentTarget?: "WITHDRAWABLE" | "STAKING" | "COPY";
     }>;
   }>(`/api/admin/movements?limit=${limit}`);
 }

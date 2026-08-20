@@ -75,7 +75,7 @@ export {
   STAKE_MAX_USDT,
 } from "@/lib/staking/constants";
 
-export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING" | "COPY";
 
 export interface BalanceAdjustment {
   id: string;
@@ -408,6 +408,22 @@ export const useStakingStore = create<StakingState>()(
                 note: note.trim(),
                 createdAt: Date.now(),
                 target: "STAKING" as const,
+              },
+              ...s.balanceAdjustments,
+            ].slice(0, 200),
+          }));
+          return;
+        }
+
+        if (target === "COPY") {
+          set((s) => ({
+            balanceAdjustments: [
+              {
+                id,
+                amount,
+                note: note.trim(),
+                createdAt: Date.now(),
+                target: "COPY" as const,
               },
               ...s.balanceAdjustments,
             ].slice(0, 200),
