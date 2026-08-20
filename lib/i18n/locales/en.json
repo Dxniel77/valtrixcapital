@@ -1343,6 +1343,7 @@
       "USER_ACTIVATED": "Activated user",
       "USER_DEACTIVATED": "Deactivated user",
       "BALANCE_ADJUSTED": "Adjusted balance",
+      "COPY_BALANCE_ADJUSTED": "Adjusted copy cash",
       "SETTINGS_UPDATED": "Updated settings",
       "ACCOUNT_GRANTED": "Account granted",
       "WITHDRAWAL_UNLOCKED": "Withdrawal unlocked",

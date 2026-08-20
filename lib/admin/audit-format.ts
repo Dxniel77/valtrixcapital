@@ -33,6 +33,10 @@ export function auditActionLabel(
     return "MANUAL_PAYOUT_RECONCILED";
   }
 
+  if (action === "ADJUST_BALANCE" && payload?.target === "COPY") {
+    return "COPY_BALANCE_ADJUSTED";
+  }
+
   if (action === "PROCESS_ACCOUNT_DELETION") {
     const sub = payload?.action;
     if (sub === "profile_update") return "USER_PROFILE_UPDATED";

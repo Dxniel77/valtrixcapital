@@ -1401,6 +1401,7 @@
       "USER_ACTIVATED": "Usuario activado",
       "USER_DEACTIVATED": "Usuario desactivado",
       "BALANCE_ADJUSTED": "Saldo ajustado",
+      "COPY_BALANCE_ADJUSTED": "Efectivo copy ajustado",
       "SETTINGS_UPDATED": "Ajustes actualizados",
       "ACCOUNT_GRANTED": "Cuenta concedida",
       "WITHDRAWAL_UNLOCKED": "Retiro habilitado",

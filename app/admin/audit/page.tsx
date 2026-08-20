@@ -21,6 +21,7 @@ const ACTION_VARIANT: Record<string, "success" | "danger" | "info" | "gold" | "w
   USER_DEACTIVATED: "danger",
   USER_PROFILE_UPDATED: "info",
   BALANCE_ADJUSTED: "gold",
+  COPY_BALANCE_ADJUSTED: "gold",
   SETTINGS_UPDATED: "info",
   SPONSORSHIP_UPDATED: "gold",
   ACCOUNT_DELETED: "danger",

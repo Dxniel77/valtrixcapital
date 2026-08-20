@@ -1153,6 +1153,7 @@
       "USER_ACTIVATED": "激活用户",
       "USER_DEACTIVATED": "已停用的用户",
       "BALANCE_ADJUSTED": "调整后的余额",
+      "COPY_BALANCE_ADJUSTED": "调整跟单现金",
       "SETTINGS_UPDATED": "更新的设置",
       "ACCOUNT_GRANTED": "帐户已授予",
       "WITHDRAWAL_UNLOCKED": "已启用提款",

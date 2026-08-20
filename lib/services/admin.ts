@@ -582,32 +582,36 @@ export async function listAdminMovements(limit = 500): Promise<AdminMovementDto[
   return rows.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
 }
 
+function isCopyEngineAuditPayload(payload: unknown): boolean {
+  if (!payload || typeof payload !== "object") return false;
+  const kind = (payload as { kind?: unknown }).kind;
+  return typeof kind === "string" && kind.startsWith("COPY_");
+}
+
 export async function listAdminAudit(limit = 200) {
+  // Filter COPY_* engine ticks in JS. A Prisma JSON `NOT path.kind starts with COPY_`
+  // clause drops rows where `kind` is missing — including ADJUST_BALANCE with
+  // target COPY — because SQL `NOT (NULL LIKE …)` is unknown.
   const rows = await prisma.adminAction.findMany({
-    where: {
-      NOT: {
-        payload: {
-          path: ["kind"],
-          string_starts_with: "COPY_",
-        },
-      },
-    },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: Math.min(Math.max(limit * 2, 200), 500),
     include: {
       admin: { select: { walletAddress: true, username: true } },
       target: { select: { walletAddress: true, username: true } },
     },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    action: row.action,
-    payload: row.payload,
-    actor: row.admin.walletAddress,
-    target: row.target?.walletAddress ?? null,
-    timestamp: row.createdAt.getTime(),
-  }));
+  return rows
+    .filter((row) => !isCopyEngineAuditPayload(row.payload))
+    .slice(0, limit)
+    .map((row) => ({
+      id: row.id,
+      action: row.action,
+      payload: row.payload,
+      actor: row.admin.walletAddress,
+      target: row.target?.walletAddress ?? null,
+      timestamp: row.createdAt.getTime(),
+    }));
 }
 
 export function adminActionLabel(action: AdminActionType): string {

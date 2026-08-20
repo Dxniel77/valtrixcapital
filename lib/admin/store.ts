@@ -780,7 +780,8 @@ export const useAdminStore = create<AdminState>()(
           audit: [
             {
               id: makeId("aud"),
-              action: "BALANCE_ADJUSTED",
+              action:
+                target === "COPY" ? "COPY_BALANCE_ADJUSTED" : "BALANCE_ADJUSTED",
               target: user.alias,
               detail: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} USDT (${target}) — ${note || "sin nota"}`,
               actor: "admin",

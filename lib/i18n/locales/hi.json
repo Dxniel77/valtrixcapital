@@ -1095,6 +1095,7 @@
       "USER_ACTIVATED": "सक्रिय उपयोगकर्ता",
       "USER_DEACTIVATED": "निष्क्रिय उपयोगकर्ता",
       "BALANCE_ADJUSTED": "समायोजित संतुलन",
+      "COPY_BALANCE_ADJUSTED": "कॉपी कैश समायोजित",
       "SETTINGS_UPDATED": "अद्यतन सेटिंग्स",
       "ACCOUNT_GRANTED": "हिसाब दिया गया",
       "WITHDRAWAL_UNLOCKED": "निकासी अनलॉक",

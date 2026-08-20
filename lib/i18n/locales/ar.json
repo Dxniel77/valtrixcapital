@@ -1095,6 +1095,7 @@
       "USER_ACTIVATED": "المستخدم المنشط",
       "USER_DEACTIVATED": "مستخدم معطل",
       "BALANCE_ADJUSTED": "التوازن المعدل",
+      "COPY_BALANCE_ADJUSTED": "تعديل نقد النسخ",
       "SETTINGS_UPDATED": "الإعدادات المحدثة",
       "ACCOUNT_GRANTED": "تم منح الحساب",
       "WITHDRAWAL_UNLOCKED": "الانسحاب مقفلة",
