@@ -163,7 +163,7 @@ const EMPTY_FORM: TraderForm = {
   experienceDays: "365",
   followersCount: "0",
   minInvestment: "15",
-  performanceFeePct: "10",
+  performanceFeePct: "30",
   maxInvestors: "180",
   showcaseCopiers: "20",
   sortOrder: "0",
@@ -193,7 +193,7 @@ function traderToForm(trader: Trader): TraderForm {
     experienceDays: String(trader.experienceDays),
     followersCount: String(trader.followersCount),
     minInvestment: String(trader.minInvestment),
-    performanceFeePct: String((trader.performanceFeeBps ?? 1000) / 100),
+    performanceFeePct: String((trader.performanceFeeBps ?? 3000) / 100),
     maxInvestors: String(trader.maxInvestors ?? 180),
     showcaseCopiers: String(trader.showcaseCopiers ?? 0),
     sortOrder: String(trader.sortOrder),
@@ -967,6 +967,9 @@ export default function AdminCopyTradingPage() {
                         <TH className="text-right">
                           {t("admin.copyTrading.copies")}
                         </TH>
+                        <TH className="text-right">
+                          {t("admin.copyTrading.performanceFee")}
+                        </TH>
                         <TH className="text-right">{t("admin.copyTrading.pnl")}</TH>
                         <TH className="text-right">
                           {t("admin.copyTrading.lastResult")}
@@ -1025,6 +1028,12 @@ export default function AdminCopyTradingPage() {
                           </TD>
                           <TD className="text-right font-mono">
                             {trader.activeInvestments}
+                          </TD>
+                          <TD className="text-right font-mono">
+                            {(
+                              (trader.performanceFeeBps ?? 3000) / 100
+                            ).toFixed(0)}
+                            %
                           </TD>
                           <TD
                             className={`text-right font-mono ${
@@ -1349,9 +1358,14 @@ function TraderDialog({
                 }
               />
             </Field>
-            <Field label={t("admin.copyTrading.performanceFee")}>
+            <Field
+              label={t("admin.copyTrading.performanceFee")}
+              hint={t("admin.copyTrading.performanceFeeHint")}
+            >
               <Input
                 type="number"
+                min={0}
+                max={100}
                 step="0.1"
                 value={form.performanceFeePct}
                 onChange={(event) =>

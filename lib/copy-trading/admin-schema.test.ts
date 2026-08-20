@@ -9,7 +9,7 @@ const base = {
   experienceDays: 365,
   followersCount: 10,
   minInvestment: 15,
-  performanceFeeBps: 1000,
+  performanceFeeBps: 3000,
   maxInvestors: 180,
   showcaseCopiers: 20,
   isActive: true,
@@ -34,6 +34,13 @@ describe("admin copy trader schema", () => {
     assert.equal(parsed.targetMode, false);
     assert.equal(parsed.monthlyTargetBps, 0);
     assert.equal(parsed.targetCycleDays, 30);
+    assert.equal(parsed.performanceFeeBps, 3000);
+  });
+
+  it("defaults Performance Fee to 30% when omitted", () => {
+    const { performanceFeeBps: _omitted, ...withoutFee } = base;
+    const parsed = adminCopyTraderSchema.parse(withoutFee);
+    assert.equal(parsed.performanceFeeBps, 3000);
   });
 
   it("rejects inverted daily operation bounds", () => {

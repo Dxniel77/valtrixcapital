@@ -8,7 +8,7 @@ export const adminCopyTraderSchema = z.object({
   experienceDays: z.number().int().min(0).max(36_500),
   followersCount: z.number().int().min(0).max(1_000_000_000),
   minInvestment: z.number().finite().min(0).max(1_000_000_000),
-  performanceFeeBps: z.number().int().min(0).max(10_000).default(1000),
+  performanceFeeBps: z.number().int().min(0).max(10_000).default(3000),
   maxInvestors: z.number().int().min(1).max(1_000_000).default(180),
   showcaseCopiers: z.number().int().min(0).max(200).default(0),
   isActive: z.boolean(),
@@ -45,6 +45,10 @@ export const adminCopyTraderTargetSchema = z.object({
   targetMode: z.boolean(),
   monthlyTargetBps: z.number().int().min(-10_000).max(10_000).optional(),
   targetCycleDays: z.number().int().min(1).max(90).optional(),
+});
+
+export const adminCopyTraderPerformanceFeeSchema = z.object({
+  performanceFeeBps: z.number().int().min(0).max(10_000),
 });
 
 /** Quick toggles from the admin list (Featured / Visible / Active). */

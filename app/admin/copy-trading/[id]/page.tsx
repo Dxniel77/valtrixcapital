@@ -228,6 +228,7 @@ export default function AdminCopyTraderDeskPage() {
   const [manualDelay, setManualDelay] = React.useState("0");
   const [targetPct, setTargetPct] = React.useState("6.00");
   const [targetDays, setTargetDays] = React.useState("30");
+  const [feePct, setFeePct] = React.useState("30.00");
   const [opsExpanded, setOpsExpanded] = React.useState(false);
 
   const load = React.useCallback(
@@ -252,6 +253,12 @@ export default function AdminCopyTraderDeskPage() {
           });
           setTargetPct(((next.target.targetBps || 0) / 100).toFixed(2));
           setTargetDays(String(next.target.cycleDays || 30));
+          setFeePct(
+            (
+              (next.trader.performanceFeeBps ??
+                next.publicFacing.performanceFeeBps) / 100
+            ).toFixed(2),
+          );
         }
       } catch (error) {
         if (!silent) {
@@ -367,6 +374,31 @@ export default function AdminCopyTraderDeskPage() {
     try {
       await apiFetch(`/api/admin/copy/operations/${id}/close`, { method: "POST" });
       toast.success(t("admin.copyTrading.closedNow"));
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.signInFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function savePerformanceFee() {
+    const pctValue = Number(feePct);
+    if (!Number.isFinite(pctValue) || pctValue < 0 || pctValue > 100) {
+      toast.error(t("admin.copyTrading.performanceFeeInvalid"));
+      return;
+    }
+    setBusy("fee");
+    try {
+      await apiFetch(`/api/admin/copy/traders/${traderId}/performance-fee`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          performanceFeeBps: Math.round(pctValue * 100),
+        }),
+      });
+      toast.success(t("admin.copyTrading.performanceFeeSaved"));
       await load();
     } catch (error) {
       toast.error(
@@ -969,6 +1001,37 @@ export default function AdminCopyTraderDeskPage() {
               </CardContent>
             </Card>
 
+            <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {t("admin.copyTrading.performanceFeeTitle")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-text-muted">
+                  {t("admin.copyTrading.performanceFeeHint")}
+                </p>
+                <Field label={t("admin.copyTrading.performanceFee")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    value={feePct}
+                    onChange={(event) => setFeePct(event.target.value)}
+                  />
+                </Field>
+                <Button
+                  size="sm"
+                  loading={busy === "fee"}
+                  onClick={() => void savePerformanceFee()}
+                >
+                  {t("admin.copyTrading.performanceFeeSave")}
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
@@ -1078,7 +1141,10 @@ export default function AdminCopyTraderDeskPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
+          </div>
 
+          <div className="grid gap-6 xl:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">

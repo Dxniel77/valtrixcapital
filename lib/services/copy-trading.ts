@@ -42,6 +42,7 @@ import {
   DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
   normalizePerformanceFeeNetworkBps,
   splitPerformanceFeeNetwork,
+  traderPerformanceFeeBps,
 } from "@/lib/copy-trading/performance-fee-network";
 import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
 import {
@@ -464,7 +465,7 @@ function serializeTrader(
     winningTrades: t.winningTrades,
     losingTrades: t.losingTrades,
     minInvestment: fromMicro(t.minInvestment),
-    performanceFeeBps: t.performanceFeeBps ?? 1000,
+    performanceFeeBps: traderPerformanceFeeBps(t.performanceFeeBps),
     maxInvestors: t.maxInvestors ?? 180,
     isActive: t.isActive,
     isVisible: t.isVisible,
@@ -1179,6 +1180,40 @@ export async function updateAdminCopyTraderTarget(
   return serializeAdminTrader(row);
 }
 
+export async function updateAdminCopyTraderPerformanceFee(
+  traderId: string,
+  performanceFeeBps: number,
+  _adminUserId: string,
+): Promise<AdminCopyTraderDto> {
+  const existing = await prisma.copyTrader.findUnique({
+    where: { id: traderId },
+  });
+  if (!existing) throw new CopyTradingError("Trader not found", "NOT_FOUND");
+
+  const nextFee = traderPerformanceFeeBps(performanceFeeBps);
+  if (
+    !Number.isInteger(performanceFeeBps) ||
+    performanceFeeBps < 0 ||
+    performanceFeeBps > 10_000
+  ) {
+    throw new CopyTradingError("Invalid performance fee", "INVALID_AMOUNT");
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    await tx.copyTrader.update({
+      where: { id: traderId },
+      data: { performanceFeeBps: nextFee },
+    });
+    return tx.copyTrader.findUniqueOrThrow({
+      where: { id: traderId },
+      include: {
+        _count: { select: { investments: { where: { status: "ACTIVE" } } } },
+      },
+    });
+  });
+  return serializeAdminTrader(row);
+}
+
 export async function patchAdminCopyTraderFlags(
   traderId: string,
   flags: {
@@ -1795,7 +1830,7 @@ export async function applyTraderPerformanceUpdate(input: {
         const result = applyPerformanceWithFee(
           syncInput,
           input.returnBps,
-          trader.performanceFeeBps ?? 1000,
+          traderPerformanceFeeBps(trader.performanceFeeBps),
         );
 
     for (const next of result.investments) {
@@ -1831,7 +1866,7 @@ export async function applyTraderPerformanceUpdate(input: {
               balanceAfter: entry.balanceAfter,
               performanceId: event.id,
               note: `Profit-only performance fee (${(
-                (trader.performanceFeeBps ?? 1000) / 100
+                traderPerformanceFeeBps(trader.performanceFeeBps) / 100
               ).toFixed(2)}%)`,
             })),
           });
@@ -3020,7 +3055,7 @@ export async function getAdminCopyTraderDesk(
     publicFacing: {
       aum: serialized.aum,
       totalInvested: serialized.totalInvested,
-      performanceFeeBps: serialized.performanceFeeBps ?? 1000,
+      performanceFeeBps: traderPerformanceFeeBps(serialized.performanceFeeBps),
       investorsCount: serialized.investorsCount,
       maxInvestors: serialized.maxInvestors ?? 180,
       roiBps: serialized.roiBps,

@@ -1029,6 +1029,11 @@
       "deleted": "{n} 人のトレーダーを削除しました。",
       "deletedWithSkipped": "{deleted} 人を削除。アクティブなコピーがある {skipped} 人はスキップ。",
       "performanceFee": "利益分配 %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "このトレーダーのコピーが利益を出したときだけ課金されます。この％がネットワーク L1–L6 に分配する手数料の 100% です。標準は 30%。トレーダーごとに変更できます。",
+      "performanceFeeSave": "手数料を保存",
+      "performanceFeeSaved": "Performance Fee を保存しました",
+      "performanceFeeInvalid": "0〜100% の手数料を入力してください。",
       "maxInvestors": "最大実投資家数"
     },
     "notifications": {

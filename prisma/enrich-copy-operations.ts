@@ -42,10 +42,10 @@ function range(buf: Buffer, offset: number, min: number, max: number): number {
 }
 
 function feeForRisk(risk: string, seed: Buffer): number {
-  // 8–15% depending on risk, slight per-trader variation.
-  if (risk === "LOW") return range(seed, 0, 800, 1000);
-  if (risk === "HIGH") return range(seed, 0, 1200, 1500);
-  return range(seed, 0, 900, 1200);
+  // Daniel examples: 20–35% around the 30% standard, slight per-trader variation.
+  if (risk === "LOW") return range(seed, 0, 2000, 2500);
+  if (risk === "HIGH") return range(seed, 0, 3000, 3500);
+  return range(seed, 0, 2500, 3200);
 }
 
 function capacityForTrader(seed: Buffer): number {

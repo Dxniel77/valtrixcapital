@@ -8,19 +8,19 @@ Los usuarios copian traders. Los traders no abren órdenes reales. El motor en v
 
 ## Dónde trabajar
 
-Entra a **Admin → Copy trading**. Ahí ves la lista de traders, el objetivo del día, fees y los botones de preview / publish. Si abres un trader, ves su desk: capital, copiers, stats públicas y el tape de operaciones.
+Entra a **Admin → Copy trading**. Ahí ves la lista de traders (incluido el Performance Fee de cada uno), el objetivo del día, fees y los botones de preview / publish. Si abres un trader, ves su desk: capital, copiers, stats públicas, el **Performance Fee editable** y el tape de operaciones.
 
 ---
 
 ## Configuración base (hazlo una vez)
 
-Arriba del panel están fees y reglas: comisión al copiar, al salir, fee de plataforma al abrir, y el % de red sobre el Performance Fee. Guarda estos valores y no los toques cada día salvo que quieras cambiar la política.
+Arriba del panel están fees y reglas: comisión al copiar, al salir, fee de plataforma al abrir, y el % de red sobre el Performance Fee. La red N1–N6 se calcula sobre el Performance Fee de **ese** trader (ese monto = 100%), no sobre la ganancia del usuario. Guarda estos valores y no los toques cada día salvo que quieras cambiar la política.
 
 ---
 
 ## Traders: qué controlar
 
-En la lista puedes filtrar por Featured, Visible u Hidden. **Featured** destaca al trader en la app. **Visible** lo muestra. Si lo ocultas, desaparece del catálogo. También puedes editar un trader: nombre, límites de % (min/max), fee de rendimiento, máximo de inversores y “displayed copiers” (número mostrado, aunque no haya tantos copiers reales).
+En la lista puedes filtrar por Featured, Visible u Hidden. **Featured** destaca al trader en la app. **Visible** lo muestra. Si lo ocultas, desaparece del catálogo. También puedes editar un trader: nombre, límites de %, **Performance Fee** (estándar 30%, distinto por trader; el usuario lo ve al copiar), máximo de inversores y “displayed copiers” (número mostrado, aunque no haya tantos copiers reales). En el desk del trader el fee se cambia y se guarda sin editar el resto del perfil.
 
 Importante: si el min/max del trader solo permite números positivos, Harvest no podrá ponerle pérdida. Entonces Random draft te avisará. Para Harvest, ese trader necesita rango que permita % negativo.
 

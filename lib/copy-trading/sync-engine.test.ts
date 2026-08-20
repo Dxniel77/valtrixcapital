@@ -37,6 +37,15 @@ describe("applyPerformanceWithFee", () => {
     assert.equal(result.feeLedger.length, 0);
   });
 
+  it("charges the 30% standard fee on profit", () => {
+    const result = applyPerformanceWithFee([investment()], 1_000, 3_000);
+
+    assert.equal(result.grossTotalDelta, 10n * USDT);
+    assert.equal(result.totalFee, 3n * USDT);
+    assert.equal(result.totalDelta, 7n * USDT);
+    assert.equal(result.investments[0]?.currentValue, 107n * USDT);
+  });
+
   it("charges no fee when the trader fee is zero", () => {
     const result = applyPerformanceWithFee([investment()], 500, 0);
 

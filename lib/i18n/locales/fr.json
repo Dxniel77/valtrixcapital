@@ -1029,6 +1029,11 @@
       "deleted": "{n} trader(s) supprimé(s).",
       "deletedWithSkipped": "{deleted} supprimé(s). {skipped} ignoré(s) avec copies actives.",
       "performanceFee": "Part des profits %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "Prélevé seulement si les copieurs de ce trader gagnent. Ce % est 100% de la commission que le réseau (L1–L6) répartit. Standard 30% ; propre à chaque trader.",
+      "performanceFeeSave": "Enregistrer le frais",
+      "performanceFeeSaved": "Performance Fee enregistré",
+      "performanceFeeInvalid": "Saisissez un frais entre 0 et 100%.",
       "maxInvestors": "Max. investisseurs réels"
     },
     "notifications": {

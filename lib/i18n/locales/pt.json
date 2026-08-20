@@ -1028,6 +1028,11 @@
       "deleted": "Removido(s) {n} trader(s).",
       "deletedWithSkipped": "Removidos {deleted}. Ignorados {skipped} com cópias ativas.",
       "performanceFee": "Participação nos lucros %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "Cobrado só quando os copiadores deste trader lucram. Este % é 100% da comissão que a rede (L1–L6) reparte. Padrão 30%; cada trader pode ser diferente.",
+      "performanceFeeSave": "Salvar taxa",
+      "performanceFeeSaved": "Performance Fee salvo",
+      "performanceFeeInvalid": "Informe uma taxa entre 0 e 100%.",
       "maxInvestors": "Máx. investidores reais"
     },
     "notifications": {

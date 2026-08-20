@@ -1029,6 +1029,11 @@
       "deleted": "{n} ट्रेडर हटाए गए।",
       "deletedWithSkipped": "{deleted} हटाए गए। सक्रिय कॉपी वाले {skipped} छोड़ दिए गए।",
       "performanceFee": "लाभ साझेदारी %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "केवल तब जब इस ट्रेडर के कॉपियर लाभ कमाएँ। यही % नेटवर्क L1–L6 के लिए 100% कमीशन पूल है। मानक 30%; हर ट्रेडर अलग हो सकता है।",
+      "performanceFeeSave": "शुल्क सहेजें",
+      "performanceFeeSaved": "Performance Fee सहेजा गया",
+      "performanceFeeInvalid": "0 से 100% के बीच शुल्क दर्ज करें।",
       "maxInvestors": "अधिकतम वास्तविक निवेशक"
     },
     "notifications": {

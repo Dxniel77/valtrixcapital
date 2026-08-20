@@ -1029,6 +1029,11 @@
       "deleted": "تمت إزالة {n} من المتداولين.",
       "deletedWithSkipped": "تمت إزالة {deleted}. تم تخطي {skipped} لديهم نسخ نشطة.",
       "performanceFee": "حصة الأرباح %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "تُحصَّل فقط عند ربح ناسخي هذا المتداول. هذه النسبة هي 100% من العمولة التي توزعها الشبكة (L1–L6). المعيار 30٪ ويمكن تغييره لكل متداول.",
+      "performanceFeeSave": "حفظ الرسوم",
+      "performanceFeeSaved": "تم حفظ رسوم الأداء",
+      "performanceFeeInvalid": "أدخل رسومًا بين 0 و100%.",
       "maxInvestors": "الحد الأقصى للمستثمرين الحقيقيين"
     },
     "notifications": {

@@ -1,9 +1,17 @@
 export const COPY_NETWORK_LEVELS = 6;
 
+/** Daniel standard: each trader charges 30% of copier profit. Editable per trader. */
+export const DEFAULT_PERFORMANCE_FEE_BPS = 3000;
+
 /** Daniel defaults: L1 30%, L2 15%, L3 10%, L4–L6 5% each (70% network / 30% company). */
 export const DEFAULT_PERFORMANCE_FEE_NETWORK_BPS: readonly number[] = [
   3000, 1500, 1000, 500, 500, 500,
 ];
+
+export function traderPerformanceFeeBps(value?: number | null): number {
+  if (value == null || !Number.isFinite(value)) return DEFAULT_PERFORMANCE_FEE_BPS;
+  return Math.min(10_000, Math.max(0, Math.trunc(value)));
+}
 
 export type NetworkFeePayout = {
   level: number;

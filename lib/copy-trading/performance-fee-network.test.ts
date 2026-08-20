@@ -1,14 +1,42 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  DEFAULT_PERFORMANCE_FEE_BPS,
   DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
   normalizePerformanceFeeNetworkBps,
   splitPerformanceFeeNetwork,
+  traderPerformanceFeeBps,
 } from "./performance-fee-network";
 
 const USDT = 1_000_000n;
 
 describe("performance fee network split", () => {
+  it("defaults a missing trader fee to 30%", () => {
+    assert.equal(traderPerformanceFeeBps(undefined), DEFAULT_PERFORMANCE_FEE_BPS);
+    assert.equal(traderPerformanceFeeBps(null), 3000);
+    assert.equal(traderPerformanceFeeBps(2000), 2000);
+  });
+  it("uses each trader's Performance Fee as 100% of the network pool", () => {
+    const profit = 100n * USDT;
+    const traderFeeBps = 2000;
+    const fee = (profit * BigInt(traderFeeBps)) / 10_000n;
+    assert.equal(fee, 20n * USDT);
+
+    const split = splitPerformanceFeeNetwork(
+      fee,
+      DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+      6,
+    );
+    assert.equal(split.payouts[0]?.amount, 6n * USDT);
+    assert.equal(split.payouts[1]?.amount, 3n * USDT);
+    assert.equal(split.payouts[2]?.amount, 2n * USDT);
+    assert.equal(split.payouts[3]?.amount, 1n * USDT);
+    assert.equal(split.payouts[4]?.amount, 1n * USDT);
+    assert.equal(split.payouts[5]?.amount, 1n * USDT);
+    assert.equal(split.networkTotal, 14n * USDT);
+    assert.equal(split.companyKept, 6n * USDT);
+  });
+
   it("pays Daniel's 6-level shares from the fee, not from user profit", () => {
     const fee = 30n * USDT;
     const split = splitPerformanceFeeNetwork(

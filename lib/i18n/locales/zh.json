@@ -1087,6 +1087,11 @@
       "deleted": "已移除 {n} 位交易员。",
       "deletedWithSkipped": "已移除 {deleted} 位。跳过 {skipped} 位仍有活跃跟单。",
       "performanceFee": "利润分成 %",
+      "performanceFeeTitle": "Performance Fee",
+      "performanceFeeHint": "仅在该交易员的跟单用户盈利时收取。该百分比是网络 L1–L6 分配的 100% 佣金池。默认 30%，每位交易员可单独设置。",
+      "performanceFeeSave": "保存费率",
+      "performanceFeeSaved": "Performance Fee 已保存",
+      "performanceFeeInvalid": "请输入 0 到 100% 之间的费率。",
       "maxInvestors": "最大真实投资者数"
     },
     "notifications": {
