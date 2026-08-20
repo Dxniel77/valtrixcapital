@@ -519,7 +519,7 @@ function AdjustBalanceModal({
 
   return (
     <Dialog open={!!user} onOpenChange={(v) => (!v ? onClose() : null)}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("admin.users.adjustTitle")}</DialogTitle>
           <DialogDescription>
@@ -541,7 +541,7 @@ function AdjustBalanceModal({
             <p className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.users.adjustTargetLabel")}
             </p>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2">
               {(
                 [
                   ["WITHDRAWABLE", "adjustTargetWithdrawable", "adjustTargetWithdrawableDesc"],
