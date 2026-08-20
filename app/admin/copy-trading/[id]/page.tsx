@@ -1230,9 +1230,9 @@ export default function AdminCopyTraderDeskPage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            <Card className="min-w-0">
-              <CardHeader className="flex flex-row items-center justify-between">
+          <div className="grid items-stretch gap-6 xl:grid-cols-2">
+            <Card className="flex min-w-0 flex-col">
+              <CardHeader className="flex min-h-[52px] shrink-0 flex-row items-center justify-between gap-2">
                 <CardTitle className="text-base">
                   {t("admin.copyTrading.operations")}
                 </CardTitle>
@@ -1240,143 +1240,149 @@ export default function AdminCopyTraderDeskPage() {
                   {t("admin.copyTrading.newOperation")}
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-text-muted">
+              <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
+                <p className="shrink-0 text-xs text-text-muted">
                   {t("admin.copyTrading.operationsHint")}
                 </p>
-                {desk.operations.length === 0 ? (
-                  <p className="text-sm text-text-muted">
-                    {t("admin.copyTrading.noOpenOp")}
-                  </p>
-                ) : (
-                  <>
-                    <div className={opsExpanded ? "max-h-96 space-y-3 overflow-auto" : "space-y-3"}>
-                      {visibleOperations(desk.operations, opsExpanded).map((op) => (
-                    <div
-                      key={op.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border-subtle px-3 py-2"
-                    >
-                      <div className="font-mono text-xs">
-                        <Badge variant={op.status === "OPEN" ? "info" : "outline"}>
-                          {op.status}
-                        </Badge>{" "}
-                        <span
-                          className={
-                            op.direction === "LONG" ? "text-success" : "text-danger"
-                          }
-                        >
-                          {op.symbol} {op.direction} {op.leverage}×
-                        </span>{" "}
-                        <span
-                          className={
-                            (op.settledReturnBps ?? op.floatingReturnBps) >= 0
-                              ? "text-success"
-                              : "text-danger"
-                          }
-                        >
-                          {((op.settledReturnBps ?? op.floatingReturnBps) >= 0
-                            ? "+"
-                            : "") +
-                            (
-                              (op.settledReturnBps ?? op.floatingReturnBps) / 100
-                            ).toFixed(2)}
-                          %
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        {op.status === "OPEN" ? (
+                <div className="h-72 space-y-2 overflow-auto">
+                  {desk.operations.length === 0 ? (
+                    <p className="text-sm text-text-muted">
+                      {t("admin.copyTrading.noOpenOp")}
+                    </p>
+                  ) : (
+                    visibleOperations(desk.operations, opsExpanded).map((op) => (
+                      <div
+                        key={op.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border-subtle px-3 py-2"
+                      >
+                        <div className="min-w-0 font-mono text-xs">
+                          <Badge
+                            variant={op.status === "OPEN" ? "info" : "outline"}
+                          >
+                            {op.status}
+                          </Badge>{" "}
+                          <span
+                            className={
+                              op.direction === "LONG"
+                                ? "text-success"
+                                : "text-danger"
+                            }
+                          >
+                            {op.symbol} {op.direction} {op.leverage}×
+                          </span>{" "}
+                          <span
+                            className={
+                              (op.settledReturnBps ?? op.floatingReturnBps) >= 0
+                                ? "text-success"
+                                : "text-danger"
+                            }
+                          >
+                            {((op.settledReturnBps ?? op.floatingReturnBps) >= 0
+                              ? "+"
+                              : "") +
+                              (
+                                (op.settledReturnBps ?? op.floatingReturnBps) /
+                                100
+                              ).toFixed(2)}
+                            %
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          {op.status === "OPEN" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              loading={busy === `close:${op.id}`}
+                              onClick={() => void closeOperationNow(op.id)}
+                            >
+                              {t("admin.copyTrading.closeNow")}
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="outline"
-                            loading={busy === `close:${op.id}`}
-                            onClick={() => void closeOperationNow(op.id)}
+                            onClick={() => openEditOp(op)}
                           >
-                            {t("admin.copyTrading.closeNow")}
+                            {t("admin.copyTrading.editOperation")}
                           </Button>
-                        ) : null}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditOp(op)}
-                        >
-                          {t("admin.copyTrading.editOperation")}
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          loading={busy === `op:${op.id}`}
-                          onClick={() => void removeOperation(op.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            loading={busy === `op:${op.id}`}
+                            onClick={() => void removeOperation(op.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                      ))}
-                    </div>
-                    {visibleOperations(desk.operations, true).length !==
+                    ))
+                  )}
+                </div>
+                <div className="flex h-8 shrink-0 items-center">
+                  {visibleOperations(desk.operations, true).length !==
                     visibleOperations(desk.operations, opsExpanded).length ||
-                    opsExpanded ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setOpsExpanded((open) => !open)}
-                      >
-                        {opsExpanded
-                          ? t("admin.copyTrading.showFewer")
-                          : t("admin.copyTrading.showOlderOps", {
-                              n: Math.max(
-                                0,
-                                desk.operations.length -
-                                  visibleOperations(desk.operations, false)
-                                    .length,
-                              ),
-                            })}
-                      </Button>
-                    ) : null}
-                  </>
-                )}
+                  opsExpanded ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpsExpanded((open) => !open)}
+                    >
+                      {opsExpanded
+                        ? t("admin.copyTrading.showFewer")
+                        : t("admin.copyTrading.showOlderOps", {
+                            n: Math.max(
+                              0,
+                              desk.operations.length -
+                                visibleOperations(desk.operations, false)
+                                  .length,
+                            ),
+                          })}
+                    </Button>
+                  ) : null}
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="min-w-0">
-              <CardHeader>
+            <Card className="flex min-w-0 flex-col">
+              <CardHeader className="flex min-h-[52px] shrink-0 flex-row items-center justify-between gap-2">
                 <CardTitle className="text-base">
                   {t("admin.copyTrading.recentActivity")}
                 </CardTitle>
               </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-text-muted">
-                {t("admin.copyTrading.recentActivityHint")}
-              </p>
-              {desk.events.length === 0 ? (
-                <p className="text-sm text-text-muted">
-                  {t("admin.copyTrading.noActivity")}
+              <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
+                <p className="shrink-0 text-xs text-text-muted">
+                  {t("admin.copyTrading.recentActivityHint")}
                 </p>
-              ) : (
-                <>
-                  <div className={eventsExpanded ? "max-h-96 space-y-3 overflow-auto" : "space-y-3"}>
-                  {previewList(desk.events, eventsExpanded, EVENTS_PREVIEW).map(
-                    (event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center justify-between border-b border-border-subtle pb-2 last:border-0"
-                  >
-                    <p className="text-xs text-text-muted">
-                      {event.source === "SIMULATION"
-                        ? t("admin.copyTrading.automatic")
-                        : t("admin.copyTrading.manual")}{" "}
-                      · {new Date(event.createdAt).toLocaleString()}
+                <div className="h-72 space-y-2 overflow-auto">
+                  {desk.events.length === 0 ? (
+                    <p className="text-sm text-text-muted">
+                      {t("admin.copyTrading.noActivity")}
                     </p>
-                    <span
-                      className={`font-mono text-sm ${event.returnBps >= 0 ? "text-success" : "text-danger"}`}
-                    >
-                      {event.returnBps >= 0 ? "+" : ""}
-                      {(event.returnBps / 100).toFixed(2)}%
-                    </span>
-                  </div>
-                    ),
+                  ) : (
+                    previewList(desk.events, eventsExpanded, EVENTS_PREVIEW).map(
+                      (event) => (
+                        <div
+                          key={event.id}
+                          className="flex h-[38px] items-center justify-between gap-2 rounded-md border border-border-subtle px-3"
+                        >
+                          <p className="min-w-0 truncate text-xs text-text-muted">
+                            {event.source === "SIMULATION"
+                              ? t("admin.copyTrading.automatic")
+                              : t("admin.copyTrading.manual")}{" "}
+                            · {new Date(event.createdAt).toLocaleString()}
+                          </p>
+                          <span
+                            className={`shrink-0 font-mono text-sm ${event.returnBps >= 0 ? "text-success" : "text-danger"}`}
+                          >
+                            {event.returnBps >= 0 ? "+" : ""}
+                            {(event.returnBps / 100).toFixed(2)}%
+                          </span>
+                        </div>
+                      ),
+                    )
                   )}
-                  </div>
+                </div>
+                <div className="flex h-8 shrink-0 items-center">
                   {desk.events.length > EVENTS_PREVIEW ? (
                     <Button
                       size="sm"
@@ -1390,10 +1396,9 @@ export default function AdminCopyTraderDeskPage() {
                           })}
                     </Button>
                   ) : null}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
