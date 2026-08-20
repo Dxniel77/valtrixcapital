@@ -1,6 +1,6 @@
 # Valtrix Capital — Database Schema
 
-> Reflects `prisma/schema.prisma` (the authoritative source). Doc version 1.1 — reconciled with the shipped schema.
+> Reflects `prisma/schema.prisma` (the authoritative source). Doc version 1.2 — reconciled with the shipped schema.
 
 All monetary values stored as **`BigInt` micro-USDT** (1 USDT = 1,000,000). All timestamps are UTC.
 
@@ -19,7 +19,8 @@ All monetary values stored as **`BigInt` micro-USDT** (1 USDT = 1,000,000). All 
 | `isActive` | bool | default `true`; admin can flip |
 | `referrerId` | uuid? | upline user (level 1) |
 | `referralCode` | string | unique, 8 chars |
-| `earningsBalance` | bigint | available for withdrawal, micro-USDT (only source withdrawals draw from) |
+| `earningsBalance` | bigint | available for withdrawal, micro-USDT (only source withdrawals draw from). Not used for copy-in. |
+| `copyCashBalance` | bigint | idle copy-trading cash, micro-USDT. Copy-in spends this; copy-out returns here instantly. Funded by admin credit in v1. |
 | `lockedCapital` | bigint | sum of active stake principal; never auto-returned to the user |
 | `totalEarned` | bigint | lifetime earnings (passive + trade bonus + commissions), capped at `payoutCap` |
 | `payoutCap` | bigint | 2× `lockedCapital`, recalculated on each new stake |

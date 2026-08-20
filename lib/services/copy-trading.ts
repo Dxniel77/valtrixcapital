@@ -1343,7 +1343,7 @@ export async function deleteAdminCopyTraders(
           if (inv.status !== "ACTIVE" || inv.currentValue <= 0n) continue;
           await tx.user.update({
             where: { id: inv.userId },
-            data: { earningsBalance: { increment: inv.currentValue } },
+            data: { copyCashBalance: { increment: inv.currentValue } },
           });
           await tx.copyInvestmentLedger.create({
             data: {
@@ -1351,7 +1351,7 @@ export async function deleteAdminCopyTraders(
               kind: "WITHDRAWAL",
               amount: -inv.currentValue,
               balanceAfter: 0n,
-              note: "Admin deleted trader — refunded to earnings",
+              note: "Admin deleted trader — refunded to copy cash",
             },
           });
           refunded += 1;
@@ -1521,8 +1521,8 @@ export async function investInCopyTrader(input: {
   if (copiedMicro <= 0n) {
     throw new CopyTradingError("Amount too small after fee", "INVALID_AMOUNT");
   }
-  if (user.earningsBalance < amountMicro) {
-    throw new CopyTradingError("Insufficient balance", "INSUFFICIENT_BALANCE");
+  if (user.copyCashBalance < amountMicro) {
+    throw new CopyTradingError("Insufficient copy balance", "INSUFFICIENT_BALANCE");
   }
 
   const investment = await prisma.$transaction(async (tx) => {
@@ -1549,12 +1549,12 @@ export async function investInCopyTrader(input: {
     }
 
     const updatedUser = await tx.user.updateMany({
-      where: { id: input.userId, earningsBalance: { gte: amountMicro } },
-      data: { earningsBalance: { decrement: amountMicro } },
+      where: { id: input.userId, copyCashBalance: { gte: amountMicro } },
+      data: { copyCashBalance: { decrement: amountMicro } },
     });
     if (updatedUser.count === 0) {
       throw new CopyTradingError(
-        "Insufficient balance",
+        "Insufficient copy balance",
         "INSUFFICIENT_BALANCE",
       );
     }
@@ -1697,7 +1697,7 @@ export async function requestCopyWithdrawal(input: {
     if (credited > 0n) {
       await tx.user.update({
         where: { id: input.userId },
-        data: { earningsBalance: { increment: credited } },
+        data: { copyCashBalance: { increment: credited } },
       });
     }
 
@@ -2885,6 +2885,7 @@ export async function listAdminUserCopyInvestments(userId: string): Promise<{
     principal: number;
     currentValue: number;
     pnl: number;
+    copyCashBalance: number;
   };
   investments: Array<{
     id: string;
@@ -2899,12 +2900,18 @@ export async function listAdminUserCopyInvestments(userId: string): Promise<{
     closedAt: string | null;
   }>;
 }> {
-  const rows = await prisma.copyInvestment.findMany({
+  const [user, rows] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { copyCashBalance: true },
+    }),
+    prisma.copyInvestment.findMany({
     where: { userId },
     include: { trader: { select: { id: true, name: true } } },
     orderBy: { startedAt: "desc" },
     take: 100,
-  });
+    }),
+  ]);
 
   const activeRows = rows.filter((row) => row.status === "ACTIVE");
   const principal = activeRows.reduce((sum, row) => sum + row.principal, 0n);
@@ -2919,6 +2926,7 @@ export async function listAdminUserCopyInvestments(userId: string): Promise<{
       principal: fromMicro(principal),
       currentValue: fromMicro(currentValue),
       pnl: fromMicro(currentValue - principal),
+      copyCashBalance: fromMicro(user?.copyCashBalance ?? 0n),
     },
     investments: rows.map((row) => ({
       id: row.id,
@@ -4245,7 +4253,7 @@ export async function decideCopyWithdrawal(input: {
       });
       await tx.user.update({
         where: { id: withdrawal.userId },
-        data: { earningsBalance: { increment: math.withdrawn } },
+        data: { copyCashBalance: { increment: math.withdrawn } },
       });
       await tx.copyTrader.update({
         where: { id: withdrawal.investment.traderId },

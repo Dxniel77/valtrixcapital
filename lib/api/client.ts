@@ -56,6 +56,7 @@ export async function fetchCurrentUser() {
       walletAddress: string;
       username: string | null;
       earningsBalance: number;
+      copyCashBalance?: number;
       lockedCapital: number;
       totalEarned: number;
       payoutCap: number;
@@ -122,7 +123,7 @@ export async function fetchBalanceAdjustments(sinceMs = 0) {
       id: string;
       amount: number;
       note: string;
-      target: "WITHDRAWABLE" | "STAKING";
+      target: "WITHDRAWABLE" | "STAKING" | "COPY";
       createdAt: string;
     }>;
   }>(`/api/users/me/adjustments?since=${sinceMs}`);
@@ -132,12 +133,13 @@ export async function adminAdjustBalance(
   userId: string,
   delta: number,
   note: string,
-  target: "WITHDRAWABLE" | "STAKING" = "WITHDRAWABLE",
+  target: "WITHDRAWABLE" | "STAKING" | "COPY" = "WITHDRAWABLE",
 ) {
   return apiFetch<{
     ok: true;
     user: {
       earningsBalance: number;
+      copyCashBalance: number;
       lockedCapital: number;
     };
   }>(`/api/admin/users/${userId}/adjust-balance`, {
@@ -169,6 +171,7 @@ export async function fetchAdminUsers() {
       walletAddress: string;
       username: string | null;
       earningsBalance: number;
+      copyCashBalance?: number;
       lockedCapital: number;
       totalEarned: number;
       isActive: boolean;

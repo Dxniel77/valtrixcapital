@@ -97,6 +97,40 @@ export async function adjustUserBalance(input: {
     return serializeUser(fresh ?? updated);
   }
 
+  if (targetType === "COPY") {
+    const deltaMicro = toMicro(input.delta);
+    const nextBalance = targetUser.copyCashBalance + deltaMicro;
+    if (nextBalance < 0n) {
+      throw new AdminServiceError("Insufficient copy balance", "INSUFFICIENT_BALANCE");
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: targetUser.id },
+        data: { copyCashBalance: nextBalance },
+      });
+
+      await tx.adminAction.create({
+        data: {
+          adminId: input.adminUserId,
+          targetUserId: targetUser.id,
+          action: "ADJUST_BALANCE",
+          payload: {
+            delta: input.delta,
+            note: input.note.trim(),
+            target: targetType,
+            previousBalance: fromMicro(targetUser.copyCashBalance),
+            nextBalance: fromMicro(nextBalance),
+          },
+        },
+      });
+
+      return user;
+    });
+
+    return serializeUser(updated);
+  }
+
   const deltaMicro = toMicro(input.delta);
   const nextBalance = targetUser.earningsBalance + deltaMicro;
   if (nextBalance < 0n) {

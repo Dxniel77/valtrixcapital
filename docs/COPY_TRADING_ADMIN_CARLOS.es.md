@@ -18,6 +18,12 @@ Arriba del panel están fees y reglas: comisión al copiar, al salir, fee de pla
 
 ---
 
+## Cómo financiar copy cash
+
+El copy no usa staking ni el saldo retirable. En v1 el admin carga o resta **efectivo copy idle** en **Admin → Users → ajustar saldo → Copy trading cash**. Eso no toca dinero ya copiado en un trader. El usuario copia traders desde ese efectivo y, al salir, el dinero vuelve al instante al mismo bolsillo. No hay transferencia withdrawable → copy.
+
+---
+
 ## Traders: qué controlar
 
 En la lista puedes filtrar por Featured, Visible u Hidden. **Featured** destaca al trader en la app. **Visible** lo muestra. Si lo ocultas, desaparece del catálogo. También puedes editar un trader: nombre, límites de %, **Performance Fee** (estándar 30%, distinto por trader; el usuario lo ve al copiar), máximo de inversores y “displayed copiers” (número mostrado, aunque no haya tantos copiers reales). En el desk del trader el fee se cambia y se guarda sin editar el resto del perfil.

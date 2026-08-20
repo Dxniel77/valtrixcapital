@@ -28,6 +28,7 @@ type Payload = {
     principal: number;
     currentValue: number;
     pnl: number;
+    copyCashBalance?: number;
   };
   investments: CopyRow[];
 };
@@ -46,7 +47,7 @@ export function AdminUserCopyCard({ userId }: { userId: string }) {
         if (!cancelled) setData(next);
       } catch {
         if (!cancelled) setData({
-          summary: { active: 0, principal: 0, currentValue: 0, pnl: 0 },
+          summary: { active: 0, principal: 0, currentValue: 0, pnl: 0, copyCashBalance: 0 },
           investments: [],
         });
       }
@@ -76,7 +77,11 @@ export function AdminUserCopyCard({ userId }: { userId: string }) {
         <CardTitle>{t("admin.copyTrading.userCopyTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat
+            label={t("admin.copyTrading.copyCash")}
+            value={`$${formatNumber(data.summary.copyCashBalance ?? 0, { decimals: 2 })}`}
+          />
           <Stat
             label={t("admin.copyTrading.copies")}
             value={String(data.summary.active)}

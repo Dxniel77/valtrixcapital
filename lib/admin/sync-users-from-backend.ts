@@ -12,6 +12,7 @@ export interface BackendAdminUserDto {
   walletAddress: string;
   username: string | null;
   earningsBalance: number;
+  copyCashBalance?: number;
   lockedCapital: number;
   totalEarned: number;
   isActive: boolean;
@@ -60,6 +61,7 @@ export function mapBackendUserToAdmin(db: BackendAdminUserDto): AdminUser {
     realCapital: db.realCapital,
     companyCapital: db.companyCapital,
     balance: db.earningsBalance,
+    copyCashBalance: db.copyCashBalance ?? 0,
     totalEarned: db.totalEarned,
     referrals: db.directReferrals,
     uplineWallet: db.referrerWallet,

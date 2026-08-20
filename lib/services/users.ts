@@ -21,7 +21,7 @@ import {
 import { getCapitalBreakdownMap } from "@/lib/services/sponsored-capital";
 import { syncUserReferralChain } from "@/lib/services/referral-chain";
 
-export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING" | "COPY";
 
 export interface IbBoostSummary {
   strategyId: string;
@@ -45,6 +45,7 @@ export interface UserDto {
   referrerUsername: string | null;
   directReferrals: number;
   earningsBalance: number;
+  copyCashBalance: number;
   lockedCapital: number;
   totalEarned: number;
   payoutCap: number;
@@ -148,6 +149,7 @@ export function serializeUser(
     referrerUsername: meta?.referrerUsername ?? null,
     directReferrals: meta?.directReferrals ?? 0,
     earningsBalance: fromMicro(user.earningsBalance),
+    copyCashBalance: fromMicro(user.copyCashBalance),
     lockedCapital: fromMicro(user.lockedCapital),
     totalEarned: fromMicro(user.totalEarned),
     payoutCap: fromMicro(user.payoutCap),

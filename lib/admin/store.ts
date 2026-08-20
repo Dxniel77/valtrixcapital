@@ -34,7 +34,7 @@ export type AdminUserStatus = "ACTIVE" | "INACTIVE";
 export type AdminUserRole = "USER" | "ADMIN";
 export type AdminNetwork = "BSC" | "POLYGON";
 export type RegistrationSource = "referral" | "direct";
-export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING";
+export type BalanceAdjustmentTarget = "WITHDRAWABLE" | "STAKING" | "COPY";
 
 export interface AdminUser {
   id: string;
@@ -47,6 +47,7 @@ export interface AdminUser {
   realCapital: number;
   companyCapital: number;
   balance: number;
+  copyCashBalance: number;
   totalEarned: number;
   referrals: number;
   uplineWallet: string | null;
@@ -225,6 +226,7 @@ function buildDemoUsers(): AdminUser[] {
           realCapital: capital,
           companyCapital: 0,
           balance: Math.round(totalEarned * (0.2 + Math.random() * 0.5) * 100) / 100,
+          copyCashBalance: 0,
           totalEarned,
           referrals: Math.floor(Math.random() * 24),
           uplineWallet: i > 2 ? users[Math.floor(Math.random() * Math.min(i, 5))].wallet : null,
@@ -409,6 +411,7 @@ export const useAdminStore = create<AdminState>()(
               realCapital: 0,
               companyCapital: 0,
               balance: 0,
+              copyCashBalance: 0,
               totalEarned: 0,
               referrals: 0,
               uplineWallet: resolvedUpline,
@@ -490,6 +493,7 @@ export const useAdminStore = create<AdminState>()(
           realCapital: 0,
           companyCapital: capitalCredit,
           balance: 0,
+          copyCashBalance: 0,
           totalEarned: 0,
           referrals: 0,
           uplineWallet,
@@ -732,6 +736,12 @@ export const useAdminStore = create<AdminState>()(
                 capital: u.capital + delta,
                 companyCapital: u.companyCapital + (u.accountGranted ? delta : 0),
                 realCapital: u.realCapital + (u.accountGranted ? 0 : delta),
+              };
+            }
+            if (target === "COPY") {
+              return {
+                ...u,
+                copyCashBalance: Math.max(0, (u.copyCashBalance ?? 0) + delta),
               };
             }
             return {

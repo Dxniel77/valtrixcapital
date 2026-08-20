@@ -210,6 +210,8 @@ model User {
   referralCode        String   @unique
   referrerId          String?
   earningsBalance     BigInt   @default(0)
+  /// Idle copy-trading cash (not allocated to a trader). Instant in/out of copies.
+  copyCashBalance     BigInt   @default(0)
   lockedCapital       BigInt   @default(0)
   totalEarned         BigInt   @default(0)
   payoutCap           BigInt   @default(0)

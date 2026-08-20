@@ -15,6 +15,7 @@ export interface AdminUserShape {
   realCapital: number;
   companyCapital: number;
   balance: number;
+  copyCashBalance?: number;
   totalEarned: number;
   referrals: number;
   uplineWallet: string | null;
@@ -75,6 +76,7 @@ export function enrichDemoUser(
 
   return {
     ...base,
+    copyCashBalance: user.copyCashBalance ?? 0,
     withdrawalUnlocked: granted ? shouldUnlockWithdrawals(base) : false,
     withdrawalAllowance: 0,
     ibStrategyId: null,

@@ -456,12 +456,17 @@ function AdjustBalanceModal({
   async function apply() {
     if (!user || !valid || submitting) return;
 
-    const isWithdrawableDebit = target === "WITHDRAWABLE" && delta < 0;
-    if (isWithdrawableDebit) {
+    const isDebit = (target === "WITHDRAWABLE" || target === "COPY") && delta < 0;
+    if (isDebit) {
       const ok = window.confirm(
-        t("admin.users.adjustDebitConfirm", {
-          amount: formatNumber(Math.abs(delta), { decimals: 2 }),
-        }),
+        t(
+          target === "COPY"
+            ? "admin.users.adjustCopyDebitConfirm"
+            : "admin.users.adjustDebitConfirm",
+          {
+            amount: formatNumber(Math.abs(delta), { decimals: 2 }),
+          },
+        ),
       );
       if (!ok) return;
     }
@@ -487,6 +492,7 @@ function AdjustBalanceModal({
                 ? {
                     ...u,
                     balance: result.user.earningsBalance,
+                    copyCashBalance: result.user.copyCashBalance,
                     capital: result.user.lockedCapital,
                   }
                 : u,
@@ -522,6 +528,7 @@ function AdjustBalanceModal({
                   user: user.alias,
                   balance: formatNumber(user.balance, { decimals: 2 }),
                   capital: formatNumber(user.capital, { decimals: 2 }),
+                  copy: formatNumber(user.copyCashBalance ?? 0, { decimals: 2 }),
                 })
               : ""}
           </DialogDescription>
@@ -534,10 +541,11 @@ function AdjustBalanceModal({
             <p className="text-xs uppercase tracking-wider text-text-muted">
               {t("admin.users.adjustTargetLabel")}
             </p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-3">
               {(
                 [
                   ["WITHDRAWABLE", "adjustTargetWithdrawable", "adjustTargetWithdrawableDesc"],
+                  ["COPY", "adjustTargetCopy", "adjustTargetCopyDesc"],
                   ["STAKING", "adjustTargetStaking", "adjustTargetStakingDesc"],
                 ] as const
               ).map(([value, titleKey, descKey]) => (
@@ -576,7 +584,9 @@ function AdjustBalanceModal({
             <p className="text-xs text-text-muted">
               {target === "STAKING"
                 ? t("admin.users.deltaHintStaking")
-                : t("admin.users.deltaHint")}
+                : target === "COPY"
+                  ? t("admin.users.deltaHintCopy")
+                  : t("admin.users.deltaHint")}
             </p>
           </div>
           <div className="space-y-1.5">
