@@ -158,10 +158,37 @@ export function formatAuditPayload(
       const amount = payload.amount;
       const days = payload.durationDays;
       if (amount != null && days != null) {
-        return `sponsorship $${amount} · ${days} days`;
+        return `Created sponsorship · $${amount} USDT · ${days} days`;
       }
     }
     if (typeof payload.action === "string") return String(payload.action);
+  }
+
+  if (action === "RELEASE_WITHDRAWAL_ALLOWANCE") {
+    const amount =
+      payload.amount != null ? `+${String(payload.amount)} USDT withdrawable` : null;
+    const note =
+      typeof payload.note === "string" && payload.note.trim()
+        ? payload.note.trim()
+        : null;
+    return [amount, note ? `note: ${note}` : null].filter(Boolean).join(" · ");
+  }
+
+  if (payload.withdrawalId != null) {
+    const status = String(payload.status ?? "UNKNOWN");
+    const txHash =
+      typeof payload.txHash === "string" ? payload.txHash.trim() : "";
+    const automatic = payload.automatic === true;
+    const parts = [
+      automatic ? "Paid automatically" : "Withdrawal updated",
+      status,
+      txHash
+        ? `tx ${shortenHash(txHash)}`
+        : status === "CONFIRMED" || status === "SENT"
+          ? "no on-chain tx"
+          : null,
+    ].filter(Boolean);
+    return parts.join(" · ");
   }
 
   if (typeof payload.note === "string" && payload.note.trim()) {
@@ -171,27 +198,6 @@ export function formatAuditPayload(
   if (typeof payload.delta === "number") {
     const sign = payload.delta >= 0 ? "+" : "";
     return `${sign}${payload.delta} USDT`;
-  }
-
-  if (payload.withdrawalId != null) {
-    const status = String(payload.status ?? "UNKNOWN");
-    const txHash =
-      typeof payload.txHash === "string" ? payload.txHash.trim() : "";
-    const id = String(payload.withdrawalId).slice(0, 8);
-    const automatic = payload.automatic === true;
-    const parts = [
-      `#${id}`,
-      status,
-      automatic ? "auto" : null,
-      txHash ? shortenHash(txHash) : status === "CONFIRMED" || status === "SENT"
-        ? "no on-chain tx"
-        : null,
-    ].filter(Boolean);
-    return parts.join(" · ");
-  }
-
-  if (action === "RELEASE_WITHDRAWAL_ALLOWANCE" && payload.amount != null) {
-    return `+${String(payload.amount)} USDT`;
   }
 
   if (action === "UPSERT_IB_AGREEMENT") {

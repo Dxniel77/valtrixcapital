@@ -5,7 +5,7 @@ import { listAdminAudit } from "@/lib/services/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAdminSession();
   if (auth.error) return auth.error;
 
@@ -13,6 +13,8 @@ export async function GET() {
     return NextResponse.json({ backend: false, audit: [] });
   }
 
-  const audit = await listAdminAudit();
+  const requested = Number(new URL(request.url).searchParams.get("limit"));
+  const limit = Number.isFinite(requested) ? requested : 1000;
+  const audit = await listAdminAudit(limit);
   return NextResponse.json({ backend: true, audit });
 }

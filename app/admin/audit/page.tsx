@@ -5,6 +5,7 @@ import { ClipboardList } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { CopyableText } from "@/components/ui/copyable-text";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminAuditSync } from "@/lib/hooks/use-admin-audit-sync";
@@ -66,7 +67,7 @@ export default function AdminAuditPage() {
           <TBody>
             {pagination.paginatedItems.map((a) => (
               <TR key={a.id}>
-                <TD className="font-mono text-xs text-text-secondary">
+                <TD className="whitespace-nowrap font-mono text-xs text-text-secondary">
                   {new Date(a.timestamp).toLocaleString("es-ES", {
                     timeZone: "UTC",
                     hour12: false,
@@ -77,7 +78,21 @@ export default function AdminAuditPage() {
                     {t(`admin.actions.${a.action}`)}
                   </Badge>
                 </TD>
-                <TD className="text-text-primary">{a.target}</TD>
+                <TD>
+                  {a.targetWallet ? (
+                    <div className="min-w-0">
+                      {a.target !== a.targetWallet &&
+                      !a.target.startsWith("0x") ? (
+                        <p className="truncate text-sm text-text-primary">
+                          {a.target}
+                        </p>
+                      ) : null}
+                      <CopyableText value={a.targetWallet} kind="address" />
+                    </div>
+                  ) : (
+                    <span className="text-text-muted">{a.target || "—"}</span>
+                  )}
+                </TD>
                 <TD
                   className={
                     auditDetailMissingOnChainTx(a.detail)
@@ -85,9 +100,32 @@ export default function AdminAuditPage() {
                       : "text-text-secondary"
                   }
                 >
-                  {localizeAuditDetail(a.detail, t)}
+                  <p className="text-sm leading-snug">
+                    {localizeAuditDetail(a.detail, t)}
+                  </p>
+                  {a.txHash ? (
+                    <CopyableText
+                      value={a.txHash}
+                      kind="tx"
+                      className="mt-0.5"
+                    />
+                  ) : null}
                 </TD>
-                <TD className="font-mono text-xs text-text-muted">{a.actor}</TD>
+                <TD>
+                  {a.actorWallet ? (
+                    <div className="min-w-0">
+                      {a.actor !== a.actorWallet &&
+                      !a.actor.startsWith("0x") ? (
+                        <p className="truncate text-sm text-text-primary">
+                          {a.actor}
+                        </p>
+                      ) : null}
+                      <CopyableText value={a.actorWallet} kind="address" />
+                    </div>
+                  ) : (
+                    <CopyableText value={a.actor} kind="address" />
+                  )}
+                </TD>
               </TR>
             ))}
           </TBody>

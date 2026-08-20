@@ -1,4 +1,4 @@
-import type { AdminActionType } from "@prisma/client";
+import { Prisma, type AdminActionType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { formatAdjustmentNote } from "@/lib/admin/audit-format";
 import { findUserById, serializeUser, type BalanceAdjustmentTarget, type UserDto } from "@/lib/services/users";
@@ -588,28 +588,43 @@ function isCopyEngineAuditPayload(payload: unknown): boolean {
   return typeof kind === "string" && kind.startsWith("COPY_");
 }
 
-export async function listAdminAudit(limit = 200) {
-  // Filter COPY_* engine ticks in JS. A Prisma JSON `NOT path.kind starts with COPY_`
-  // clause drops rows where `kind` is missing — including ADJUST_BALANCE with
-  // target COPY — because SQL `NOT (NULL LIKE …)` is unknown.
+export async function listAdminAudit(limit = 1000) {
+  const take = Math.min(Math.max(limit, 1), 2000);
+
+  // Filter COPY_* engine ticks in SQL. Taking the newest N rows first, then
+  // dropping COPY_* in JS, hid real admin actions whenever the recent window
+  // was filled with copy-trading simulation ticks.
+  const ids = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id
+    FROM "AdminAction"
+    WHERE COALESCE(payload->>'kind', '') NOT LIKE 'COPY\_%' ESCAPE '\'
+    ORDER BY "createdAt" DESC
+    LIMIT ${Prisma.raw(String(take))}
+  `);
+
+  if (ids.length === 0) return [];
+
   const rows = await prisma.adminAction.findMany({
-    orderBy: { createdAt: "desc" },
-    take: Math.min(Math.max(limit * 2, 200), 500),
+    where: { id: { in: ids.map((row) => row.id) } },
     include: {
       admin: { select: { walletAddress: true, username: true } },
       target: { select: { walletAddress: true, username: true } },
     },
   });
 
+  const order = new Map(ids.map((row, index) => [row.id, index]));
+  rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+
   return rows
     .filter((row) => !isCopyEngineAuditPayload(row.payload))
-    .slice(0, limit)
     .map((row) => ({
       id: row.id,
       action: row.action,
       payload: row.payload,
       actor: row.admin.walletAddress,
+      actorUsername: row.admin.username,
       target: row.target?.walletAddress ?? null,
+      targetUsername: row.target?.username ?? null,
       timestamp: row.createdAt.getTime(),
     }));
 }

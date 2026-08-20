@@ -156,14 +156,17 @@ export function exportMovementsCsv(movements: AdminMovement[]): void {
 }
 
 export function exportAuditCsv(audit: AuditEntry[]): void {
-  const header = ["date", "action", "target", "detail", "actor"];
+  const header = ["date", "action", "user", "user_wallet", "detail", "tx_hash", "admin", "admin_wallet"];
   const rows = audit.map((a) =>
     [
       new Date(a.timestamp).toISOString(),
       a.action,
       a.target,
+      a.targetWallet ?? "",
       a.detail,
+      a.txHash ?? "",
       a.actor,
+      a.actorWallet ?? "",
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),

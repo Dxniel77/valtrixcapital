@@ -634,7 +634,7 @@ export async function adminProvisionUser(input: {
   });
 }
 
-export async function fetchAdminAudit(limit = 200) {
+export async function fetchAdminAudit(limit = 1000) {
   return apiFetch<{
     backend: boolean;
     audit: Array<{
@@ -642,7 +642,9 @@ export async function fetchAdminAudit(limit = 200) {
       action: string;
       payload: unknown;
       actor: string;
+      actorUsername?: string | null;
       target: string | null;
+      targetUsername?: string | null;
       timestamp: number;
     }>;
   }>(`/api/admin/audit?limit=${limit}`);

@@ -112,9 +112,14 @@ export type AdminSettings = PlatformSettings;
 export interface AuditEntry {
   id: string;
   action: string;
+  /** Display label: username or shortened wallet. */
   target: string;
-  detail: string;
+  targetWallet?: string | null;
+  /** Display label: username or shortened wallet. */
   actor: string;
+  actorWallet?: string;
+  detail: string;
+  txHash?: string | null;
   timestamp: number;
 }
 
@@ -864,7 +869,7 @@ export const useAdminStore = create<AdminState>()(
       },
 
       setAuditFromBackend: (audit) => {
-        set({ audit: audit.slice(0, 200) });
+        set({ audit: audit.slice(0, 1000) });
       },
 
       processWithdrawalMovement: (movementId, status, _txHash) => {
