@@ -83,11 +83,6 @@ export const adminCopyVitrinaSchema = z.object({
   followersCount: z.number().int().min(0).max(1_000_000_000),
 });
 
-export const adminCopyChartSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  valueBps: z.number().int().min(-1_000_000).max(1_000_000).optional(),
-});
-
 export const adminCopyHistorySchema = z.object({
   months: z.number().int().min(1).max(12),
   bias: z.enum(["neutral", "positive", "negative"]),

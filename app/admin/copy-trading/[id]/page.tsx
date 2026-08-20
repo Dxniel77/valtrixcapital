@@ -99,7 +99,6 @@ type Desk = {
     roiBps: number;
     startedAt: string;
   }>;
-  chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: Operation[];
   liveSchedule: {
     enabled: boolean;
@@ -217,10 +216,6 @@ export default function AdminCopyTraderDeskPage() {
   const [desk, setDesk] = React.useState<Desk | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState<string | null>(null);
-  const [chartDate, setChartDate] = React.useState(
-    new Date().toISOString().slice(0, 10),
-  );
-  const [chartPct, setChartPct] = React.useState("");
   const [stats, setStats] = React.useState({
     roiPct: "",
     cumulativePct: "",
@@ -289,26 +284,6 @@ export default function AdminCopyTraderDeskPage() {
     return () => window.clearInterval(timer);
   }, [load]);
 
-  async function repairChart() {
-    setBusy("repair");
-    try {
-      const result = await apiFetch<{ fixedDays: number }>(
-        `/api/admin/copy/traders/${traderId}/repair-chart`,
-        { method: "POST" },
-      );
-      toast.success(
-        t("admin.copyTrading.repairChartDone", { n: result.fixedDays }),
-      );
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function saveStats() {
     setBusy("stats");
     try {
@@ -327,51 +302,6 @@ export default function AdminCopyTraderDeskPage() {
         }),
       });
       toast.success(t("admin.copyTrading.saved"));
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function saveChartPoint() {
-    const pct = Number(chartPct);
-    if (!chartDate || !Number.isFinite(pct)) {
-      toast.error(t("admin.copyTrading.invalidReturn"));
-      return;
-    }
-    setBusy("chart");
-    try {
-      await apiFetch(`/api/admin/copy/traders/${traderId}/chart`, {
-        method: "PUT",
-        body: JSON.stringify({
-          date: chartDate,
-          valueBps: Math.round(pct * 100),
-        }),
-      });
-      toast.success(t("admin.copyTrading.savedPoint"));
-      setChartPct("");
-      await load();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.signInFailed"),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function removeChartPoint(date: string) {
-    setBusy(`chart:${date}`);
-    try {
-      await apiFetch(`/api/admin/copy/traders/${traderId}/chart`, {
-        method: "DELETE",
-        body: JSON.stringify({ date }),
-      });
-      toast.success(t("admin.copyTrading.deletedPoint"));
       await load();
     } catch (error) {
       toast.error(
@@ -795,27 +725,6 @@ export default function AdminCopyTraderDeskPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {t("admin.copyTrading.repairChart")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                size="sm"
-                variant="outline"
-                loading={busy === "repair"}
-                onClick={() => void repairChart()}
-              >
-                {t("admin.copyTrading.repairChart")}
-              </Button>
-              <p className="text-xs text-text-muted">
-                {t("admin.copyTrading.repairChartHint")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
                 {t("admin.copyTrading.copiers")}
               </CardTitle>
             </CardHeader>
@@ -973,77 +882,6 @@ export default function AdminCopyTraderDeskPage() {
           </Card>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {t("admin.copyTrading.history")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-end gap-2">
-                  <Field label={t("admin.copyTrading.date")}>
-                    <Input
-                      type="date"
-                      value={chartDate}
-                      onChange={(e) => setChartDate(e.target.value)}
-                    />
-                  </Field>
-                  <Field label={t("admin.copyTrading.value")}>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="w-28"
-                      value={chartPct}
-                      onChange={(e) => setChartPct(e.target.value)}
-                    />
-                  </Field>
-                  <Button
-                    size="sm"
-                    loading={busy === "chart"}
-                    onClick={() => void saveChartPoint()}
-                  >
-                    {t("admin.copyTrading.addPoint")}
-                  </Button>
-                </div>
-                <div className="max-h-80 overflow-auto">
-                  <Table>
-                    <thead>
-                      <THeadRow>
-                        <TH>{t("admin.copyTrading.date")}</TH>
-                        <TH className="text-right">
-                          {t("admin.copyTrading.value")}
-                        </TH>
-                        <TH />
-                      </THeadRow>
-                    </thead>
-                    <TBody>
-                      {desk.chartPoints.map((point) => (
-                        <TR key={point.id}>
-                          <TD>{point.date}</TD>
-                          <TD
-                            className={`text-right font-mono ${point.valueBps >= 0 ? "text-success" : "text-danger"}`}
-                          >
-                            {point.valueBps >= 0 ? "+" : ""}
-                            {(point.valueBps / 100).toFixed(2)}%
-                          </TD>
-                          <TD className="text-right">
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              loading={busy === `chart:${point.date}`}
-                              onClick={() => void removeChartPoint(point.date)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TD>
-                        </TR>
-                      ))}
-                    </TBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">

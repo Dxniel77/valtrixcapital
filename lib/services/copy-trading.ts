@@ -438,13 +438,6 @@ async function copyNetworkPaidMicro(traderId?: string): Promise<bigint> {
   return result._sum.amount ?? 0n;
 }
 
-function utcDateOnly(dateStr: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    throw new CopyTradingError("Invalid date", "INVALID_AMOUNT");
-  }
-  return new Date(`${dateStr}T00:00:00.000Z`);
-}
-
 function serializeTrader(
   t: Prisma.CopyTraderGetPayload<{ include?: { performances?: true } }>,
   opts?: { includePerformances?: boolean },
@@ -2751,7 +2744,6 @@ export type AdminCopyTraderDeskDto = {
     roiBps: number;
     startedAt: string;
   }>;
-  chartPoints: Array<{ id: string; date: string; valueBps: number }>;
   operations: AdminCopyTraderOperationDto[];
   events: CopyPerformanceEventDto[];
   liveSchedule: {
@@ -3057,11 +3049,6 @@ export async function getAdminCopyTraderDesk(
       roiBps: roiBpsOf(row.principal, row.currentValue),
       startedAt: row.startedAt.toISOString(),
     })),
-    chartPoints: chartPoints.map((point) => ({
-      id: point.id,
-      date: point.date.toISOString().slice(0, 10),
-      valueBps: point.valueBps,
-    })),
     operations: serializedOps,
     events: events.map((event) => ({
       id: event.id,
@@ -3156,53 +3143,6 @@ export async function updateAdminTraderVitrina(
     });
   });
   return serializeAdminTrader(row);
-}
-
-export async function upsertAdminChartPoint(
-  traderId: string,
-  dateStr: string,
-  valueBps: number,
-  adminUserId: string,
-): Promise<{ id: string; date: string; valueBps: number }> {
-  if (!Number.isInteger(valueBps) || valueBps < -1_000_000 || valueBps > 1_000_000) {
-    throw new CopyTradingError("Invalid curve value", "INVALID_AMOUNT");
-  }
-  const trader = await prisma.copyTrader.findUnique({ where: { id: traderId } });
-  if (!trader) throw new CopyTradingError("Trader not found", "NOT_FOUND");
-  const date = utcDateOnly(dateStr);
-
-  const point = await prisma.$transaction(async (tx) => {
-    const row = await tx.copyTraderChartPoint.upsert({
-      where: { traderId_date: { traderId, date } },
-      update: { valueBps },
-      create: { traderId, date, valueBps },
-    });
-    return row;
-  });
-
-  return {
-    id: point.id,
-    date: point.date.toISOString().slice(0, 10),
-    valueBps: point.valueBps,
-  };
-}
-
-export async function deleteAdminChartPoint(
-  traderId: string,
-  dateStr: string,
-  adminUserId: string,
-): Promise<void> {
-  const date = utcDateOnly(dateStr);
-  const existing = await prisma.copyTraderChartPoint.findUnique({
-    where: { traderId_date: { traderId, date } },
-  });
-  if (!existing) throw new CopyTradingError("History day not found", "NOT_FOUND");
-
-  await prisma.$transaction(async (tx) => {
-    await tx.copyTraderChartPoint.delete({
-      where: { traderId_date: { traderId, date } },
-    });
-  });
 }
 
 export type AdminCopyOperationInput = {
