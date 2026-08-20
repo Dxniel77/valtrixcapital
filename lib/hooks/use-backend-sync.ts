@@ -162,6 +162,14 @@ export function useBackendUserSync(): void {
             .getState()
             .balanceAdjustments.some((b) => b.id === adj.id);
 
+          if (adj.target === "COPY") {
+            appliedIdsRef.current.add(adj.id);
+            continue;
+          }
+
+          const stakingTarget: "WITHDRAWABLE" | "STAKING" =
+            adj.target === "STAKING" ? "STAKING" : "WITHDRAWABLE";
+
           if (!portfolioSynced) {
             if (alreadyRecorded) {
               appliedIdsRef.current.add(adj.id);
@@ -171,7 +179,7 @@ export function useBackendUserSync(): void {
               id: adj.id,
               amount: adj.amount,
               note: adj.note,
-              target: adj.target ?? "WITHDRAWABLE",
+              target: stakingTarget,
             });
           } else if (!alreadyRecorded) {
             useStakingStore.setState((s) => ({
@@ -181,7 +189,7 @@ export function useBackendUserSync(): void {
                   amount: adj.amount,
                   note: adj.note,
                   createdAt: new Date(adj.createdAt).getTime(),
-                  target: adj.target ?? "WITHDRAWABLE",
+                  target: stakingTarget,
                 },
                 ...s.balanceAdjustments,
               ].slice(0, 200),

@@ -15,7 +15,7 @@ export interface AdminUserShape {
   realCapital: number;
   companyCapital: number;
   balance: number;
-  copyCashBalance?: number;
+  copyCashBalance: number;
   totalEarned: number;
   referrals: number;
   uplineWallet: string | null;

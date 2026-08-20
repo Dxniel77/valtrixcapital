@@ -35,6 +35,7 @@ function mapApiRow(
       realCapital: 0,
       companyCapital: 0,
       balance: 0,
+      copyCashBalance: 0,
       totalEarned: 0,
       referrals: 0,
       uplineWallet: row.isDirectAccount ? null : "",

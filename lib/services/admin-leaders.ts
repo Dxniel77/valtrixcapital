@@ -59,6 +59,7 @@ function mapUsersToAdmin(users: Awaited<ReturnType<typeof listUsersForAdmin>>): 
     realCapital: u.realCapital,
     companyCapital: u.companyCapital,
     balance: u.earningsBalance,
+    copyCashBalance: u.copyCashBalance ?? 0,
     totalEarned: u.totalEarned,
     referrals: u.directReferrals,
     uplineWallet: u.referrerWallet,

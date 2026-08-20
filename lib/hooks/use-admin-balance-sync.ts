@@ -42,6 +42,11 @@ export function useAdminBalanceSync(): void {
         continue;
       }
 
+      if (adj.target === "COPY") {
+        appliedIds.push(adj.id);
+        continue;
+      }
+
       applyBalanceAdjustment({
         id: adj.id,
         amount: adj.delta,
