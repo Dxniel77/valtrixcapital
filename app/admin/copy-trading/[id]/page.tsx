@@ -1006,7 +1006,7 @@ export default function AdminCopyTraderDeskPage() {
                 <p className="text-xs text-text-muted">
                   {t("admin.copyTrading.targetHint")}
                 </p>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field label={t("admin.copyTrading.periodGoalPct")}>
                     <Input
                       type="number"
@@ -1024,29 +1024,27 @@ export default function AdminCopyTraderDeskPage() {
                       onChange={(event) => setTargetDays(event.target.value)}
                     />
                   </Field>
-                  <div className="flex items-end">
-                    <Button
-                      size="sm"
-                      loading={busy === "target"}
-                      onClick={() => {
-                        const pctValue = Number(targetPct);
-                        const days = Math.trunc(Number(targetDays) || 30);
-                        if (!Number.isFinite(pctValue) || days < 1) {
-                          toast.error(t("admin.copyTrading.invalidReturn"));
-                          return;
-                        }
-                        void setTarget({
-                          targetMode: true,
-                          monthlyTargetBps: Math.round(pctValue * 100),
-                          targetCycleDays: Math.min(90, Math.max(1, days)),
-                        });
-                      }}
-                    >
-                      {t("admin.copyTrading.applyTarget")}
-                    </Button>
-                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    loading={busy === "target"}
+                    onClick={() => {
+                      const pctValue = Number(targetPct);
+                      const days = Math.trunc(Number(targetDays) || 30);
+                      if (!Number.isFinite(pctValue) || days < 1) {
+                        toast.error(t("admin.copyTrading.invalidReturn"));
+                        return;
+                      }
+                      void setTarget({
+                        targetMode: true,
+                        monthlyTargetBps: Math.round(pctValue * 100),
+                        targetCycleDays: Math.min(90, Math.max(1, days)),
+                      });
+                    }}
+                  >
+                    {t("admin.copyTrading.applyTarget")}
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1103,7 +1101,7 @@ export default function AdminCopyTraderDeskPage() {
                 <p className="text-xs text-text-muted">
                   {t("admin.copyTrading.historyHint")}
                 </p>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field label={t("admin.copyTrading.historyMonths")}>
                     <Input
                       type="number"
@@ -1136,15 +1134,15 @@ export default function AdminCopyTraderDeskPage() {
                       </option>
                     </Select>
                   </Field>
-                  <div className="flex items-end">
-                    <Button
-                      size="sm"
-                      loading={busy === "history"}
-                      onClick={() => void generateHistory()}
-                    >
-                      {t("admin.copyTrading.generateHistory")}
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    loading={busy === "history"}
+                    onClick={() => void generateHistory()}
+                  >
+                    {t("admin.copyTrading.generateHistory")}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
