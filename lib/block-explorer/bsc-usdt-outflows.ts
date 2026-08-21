@@ -30,7 +30,10 @@ export function bscLogRpcUrls(): string[] {
   const extra = [
     process.env.BSC_LOGS_RPC?.trim(),
     process.env.BSC_RPC?.trim(),
-  ].filter((url): url is string => Boolean(url) && !isDataseed(url));
+  ].filter(
+    (url): url is string =>
+      typeof url === "string" && url.length > 0 && !isDataseed(url),
+  );
   return [...new Set([...extra, ...DEFAULT_LOG_RPCS])];
 }
 
