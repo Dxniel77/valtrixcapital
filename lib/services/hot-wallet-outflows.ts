@@ -1,21 +1,14 @@
 import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { prisma } from "@/lib/db";
-import {
-  fetchExplorerTokenTxs,
-  resolveExplorerApiKey,
-} from "@/lib/block-explorer/etherscan-v2";
+import { fetchBscOfficialUsdtOutflows } from "@/lib/block-explorer/bsc-usdt-outflows";
 import { getPayoutPrivateKey } from "@/lib/services/automatic-payout";
 import { getDepositAddress, getUsdtContract } from "@/lib/wallet/deposit-addresses";
 import { USDT_DECIMALS } from "@/lib/wallet/usdt-transfer";
 import { explorerUrl, shortenAddress } from "@/lib/utils";
 
 export const HOT_WALLET_MIN_USD = 1;
-
-const FETCH_TIMEOUT_MS = 12_000;
-const SCAN_PAGES = 10;
-const PAGE_SIZE = 100;
-const TARGET_OUTFLOWS = 80;
+const CACHE_TTL_MS = 90_000;
 
 export type HotWalletMatch = "unregistered" | "user_payout" | "treasury";
 
@@ -31,39 +24,28 @@ export interface HotWalletOutflowDto {
   match: HotWalletMatch;
 }
 
-function fetchWithTimeout(
-  input: string,
-  init: RequestInit = {},
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
-    clearTimeout(timer);
-  });
+export interface HotWalletOutflowList {
+  items: HotWalletOutflowDto[];
+  wallets: string[];
+  usdtContract: string;
+  explorerConfigured: boolean;
+  minUsd: number;
+  source: "rpc";
+  lookbackHours: number;
+  truncated: boolean;
+  scanError: string | null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+type CacheEntry = {
+  at: number;
+  key: string;
+  value: HotWalletOutflowList;
+};
+
+let cache: CacheEntry | null = null;
 
 function normalizeAddress(value: string | undefined | null): string {
   return (value ?? "").trim().toLowerCase();
-}
-
-function tokenAmount(value: string, decimalsRaw: string | undefined): number {
-  const decimals = Number(decimalsRaw);
-  const places = Number.isFinite(decimals) && decimals >= 0 ? decimals : USDT_DECIMALS.BSC;
-  try {
-    const raw = BigInt(value);
-    const scale = 10n ** BigInt(places);
-    const whole = raw / scale;
-    const frac = raw % scale;
-    return Number(whole) + Number(frac) / Number(scale);
-  } catch {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return 0;
-    return n / 10 ** places;
-  }
 }
 
 function payoutSignerAddress(): string | null {
@@ -139,74 +121,71 @@ async function knownTxMatches(
   return map;
 }
 
-export async function listBscHotWalletUsdtOutflows(): Promise<{
-  items: HotWalletOutflowDto[];
-  wallets: string[];
-  usdtContract: string;
-  explorerConfigured: boolean;
-  minUsd: number;
-}> {
+function emptyResult(
+  wallets: string[],
+  usdtContract: string,
+  scanError: string | null = null,
+): HotWalletOutflowList {
+  return {
+    items: [],
+    wallets,
+    usdtContract,
+    explorerConfigured: true,
+    minUsd: HOT_WALLET_MIN_USD,
+    source: "rpc",
+    lookbackHours: 0,
+    truncated: false,
+    scanError,
+  };
+}
+
+export async function listBscHotWalletUsdtOutflows(): Promise<HotWalletOutflowList> {
   const wallets = bscHotWalletAddresses();
   const usdtContract = getUsdtContract("BSC").toLowerCase();
-  const explorerConfigured = Boolean(resolveExplorerApiKey());
-
-  if (!explorerConfigured || wallets.length === 0) {
-    return {
-      items: [],
-      wallets,
-      usdtContract,
-      explorerConfigured,
-      minUsd: HOT_WALLET_MIN_USD,
-    };
+  const cacheKey = wallets.join(",");
+  if (cache && cache.key === cacheKey && Date.now() - cache.at < CACHE_TTL_MS) {
+    return cache.value;
   }
 
-  const byHash = new Map<string, HotWalletOutflowDto>();
+  if (wallets.length === 0) {
+    return emptyResult(wallets, usdtContract, "No BSC treasury address configured");
+  }
+
   const walletSet = new Set(wallets);
+  const byHash = new Map<string, HotWalletOutflowDto>();
+  let lookbackHours = 0;
+  let truncated = false;
+  let scanError: string | null = null;
 
-  for (const wallet of wallets) {
-    for (let page = 1; page <= SCAN_PAGES; page += 1) {
-      const rows = await fetchExplorerTokenTxs("BSC", {
-        contractAddress: usdtContract,
-        address: wallet,
-        page,
-        offset: PAGE_SIZE,
-        fetch: fetchWithTimeout,
+  try {
+    for (const wallet of wallets) {
+      const scan = await fetchBscOfficialUsdtOutflows({
+        wallet,
+        usdtContract,
+        decimals: USDT_DECIMALS.BSC,
+        minAmount: HOT_WALLET_MIN_USD,
       });
-      if (rows.length === 0) break;
-
-      for (const row of rows) {
-        const hash = normalizeAddress(row.hash);
-        const from = normalizeAddress(row.from);
-        const to = normalizeAddress(row.to);
-        const contract = normalizeAddress(row.contractAddress);
-        if (!hash || !from || !to) continue;
-        if (contract && contract !== usdtContract) continue;
-        if (!walletSet.has(from)) continue;
-        if (walletSet.has(to)) continue;
-        const amount = tokenAmount(row.value, row.tokenDecimal);
-        if (!(amount >= HOT_WALLET_MIN_USD)) continue;
-        const timestamp = Number(row.timeStamp) * 1000;
-        if (!Number.isFinite(timestamp)) continue;
-
-        const prev = byHash.get(hash);
-        if (prev && prev.timestamp >= timestamp) continue;
-        byHash.set(hash, {
-          id: hash,
-          txHash: hash.startsWith("0x") ? hash : `0x${hash}`,
-          fromAddress: from,
-          toAddress: to,
+      lookbackHours = Math.max(lookbackHours, scan.lookbackHours);
+      truncated = truncated || scan.truncated;
+      for (const row of scan.items) {
+        if (walletSet.has(row.to)) continue;
+        const prev = byHash.get(row.txHash);
+        if (prev && prev.timestamp >= row.timestamp) continue;
+        byHash.set(row.txHash, {
+          id: row.txHash,
+          txHash: row.txHash,
+          fromAddress: row.from,
+          toAddress: row.to,
           toLabel: null,
-          amount,
-          timestamp,
-          explorerUrl: explorerUrl("BSC", hash.startsWith("0x") ? hash : `0x${hash}`),
+          amount: row.amount,
+          timestamp: row.timestamp,
+          explorerUrl: explorerUrl("BSC", row.txHash),
           match: "unregistered",
         });
       }
-
-      if (rows.length < PAGE_SIZE) break;
-      if (byHash.size >= TARGET_OUTFLOWS) break;
-      if (page < SCAN_PAGES) await sleep(160);
     }
+  } catch (error) {
+    scanError = error instanceof Error ? error.message : "BSC RPC scan failed";
   }
 
   const items = [...byHash.values()].sort((a, b) => b.timestamp - a.timestamp);
@@ -233,11 +212,17 @@ export async function listBscHotWalletUsdtOutflows(): Promise<{
     item.toLabel = userByWallet.get(item.toAddress) ?? null;
   }
 
-  return {
+  const value: HotWalletOutflowList = {
     items,
     wallets,
     usdtContract,
-    explorerConfigured,
+    explorerConfigured: true,
     minUsd: HOT_WALLET_MIN_USD,
+    source: "rpc",
+    lookbackHours,
+    truncated,
+    scanError,
   };
+  cache = { at: Date.now(), key: cacheKey, value };
+  return value;
 }

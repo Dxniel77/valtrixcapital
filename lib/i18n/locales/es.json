@@ -1679,10 +1679,10 @@
     "hotWallet": {
       "title": "Salidas de la hot wallet",
       "subtitle": "USDT oficial en BSC que salió de la tesorería hacia otra billetera.",
-      "explain": "Solo se listan envíos de USDT oficial (no tokens falsos), desde la hot wallet, de 1 USDT o más. Las filas en rojo no coinciden con un retiro registrado en la app.",
+      "explain": "Solo se listan envíos de USDT oficial en BSC (no tokens falsos), desde la hot wallet, de 1 USDT o más. Las filas en rojo no coinciden con un retiro registrado en la app. Se leen Transfer on-chain; el plan gratuito de Etherscan ya no cubre BSC.",
       "refresh": "Actualizar",
       "scanned": "Salidas encontradas",
-      "scannedHint": "USDT oficial ≥ ${min}",
+      "scannedHint": "USDT oficial ≥ ${min} · últimas {hours} h",
       "unregisteredCount": "Sin registrar",
       "unregisteredHint": "No coinciden con un retiro de usuario ni de tesorería",
       "unregisteredSum": "Suma sin registrar",
@@ -1692,6 +1692,8 @@
       "walletMissing": "no configurada",
       "contractLabel": "Contrato USDT:",
       "noExplorer": "Falta la clave del explorador (ETHERSCAN_API_KEY). Sin ella no se pueden leer las salidas on-chain.",
+      "scanError": "No se pudo completar la lectura on-chain: {error}",
+      "truncated": "La ventana on-chain se cortó por tiempo. Pulsa Actualizar para reintentar.",
       "noWallet": "No hay dirección de tesorería BSC configurada (NEXT_PUBLIC_TREASURY_BSC_ADDRESS).",
       "loadError": "No se pudieron cargar las salidas on-chain.",
       "search": "Buscar destino, usuario o hash…",
@@ -1706,7 +1708,7 @@
       "matchUnregistered": "Sin registrar",
       "matchUserPayout": "Retiro de usuario",
       "matchTreasury": "Retiro de tesorería",
-      "loading": "Leyendo BscScan… puede tardar unos segundos.",
+      "loading": "Leyendo Transfer USDT en BSC… puede tardar hasta un minuto.",
       "empty": "No hay salidas de USDT ≥ $1 en esta ventana."
     },
     "withdrawals": {

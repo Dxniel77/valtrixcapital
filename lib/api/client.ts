@@ -656,6 +656,10 @@ export async function fetchAdminHotWalletOutflows() {
     usdtContract: string;
     explorerConfigured: boolean;
     minUsd: number;
+    source?: "rpc";
+    lookbackHours?: number;
+    truncated?: boolean;
+    scanError?: string | null;
   }>("/api/admin/hot-wallet-outflows");
 }
 

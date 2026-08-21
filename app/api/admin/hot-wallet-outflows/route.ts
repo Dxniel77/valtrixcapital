@@ -18,6 +18,10 @@ export async function GET() {
       usdtContract: "",
       explorerConfigured: false,
       minUsd: 1,
+      source: "rpc",
+      lookbackHours: 0,
+      truncated: false,
+      scanError: null,
     });
   }
 

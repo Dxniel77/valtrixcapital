@@ -42,6 +42,9 @@ export default function AdminHotWalletPage() {
   const [usdtContract, setUsdtContract] = React.useState("");
   const [explorerConfigured, setExplorerConfigured] = React.useState(true);
   const [minUsd, setMinUsd] = React.useState(1);
+  const [lookbackHours, setLookbackHours] = React.useState(0);
+  const [truncated, setTruncated] = React.useState(false);
+  const [scanError, setScanError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -57,6 +60,9 @@ export default function AdminHotWalletPage() {
       setUsdtContract(result.usdtContract);
       setExplorerConfigured(result.explorerConfigured);
       setMinUsd(result.minUsd);
+      setLookbackHours(result.lookbackHours ?? 0);
+      setTruncated(Boolean(result.truncated));
+      setScanError(result.scanError ?? null);
     } catch {
       setError(true);
       setItems([]);
@@ -117,7 +123,10 @@ export default function AdminHotWalletPage() {
         <StatTile
           label={t("admin.hotWallet.scanned")}
           value={loading ? "…" : formatNumber(items.length, { decimals: 0 })}
-          hint={t("admin.hotWallet.scannedHint", { min: minUsd })}
+          hint={t("admin.hotWallet.scannedHint", {
+            min: minUsd,
+            hours: formatNumber(lookbackHours, { decimals: 0 }),
+          })}
           icon={ArrowUpFromLine}
         />
         <StatTile
@@ -156,9 +165,14 @@ export default function AdminHotWalletPage() {
         ) : null}
       </div>
 
-      {!explorerConfigured && !loading ? (
+      {scanError && !loading ? (
+        <div className="rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+          {t("admin.hotWallet.scanError", { error: scanError })}
+        </div>
+      ) : null}
+      {truncated && !loading ? (
         <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm text-warning">
-          {t("admin.hotWallet.noExplorer")}
+          {t("admin.hotWallet.truncated")}
         </div>
       ) : null}
       {explorerConfigured && wallets.length === 0 && !loading ? (

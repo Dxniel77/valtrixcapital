@@ -1621,10 +1621,10 @@
     "hotWallet": {
       "title": "Hot wallet outflows",
       "subtitle": "Official BSC USDT that left the treasury to another wallet.",
-      "explain": "Only official USDT sends from the hot wallet of 1 USDT or more. Red rows are not matched to a withdrawal recorded in the app.",
+      "explain": "Only official USDT sends from the hot wallet of 1 USDT or more. Red rows are not matched to a withdrawal recorded in the app. Reads on-chain Transfer logs; Etherscan’s free plan no longer covers BSC.",
       "refresh": "Refresh",
       "scanned": "Outflows found",
-      "scannedHint": "Official USDT ≥ ${min}",
+      "scannedHint": "Official USDT ≥ ${min} · last {hours} h",
       "unregisteredCount": "Unregistered",
       "unregisteredHint": "Not matched to a user or treasury withdrawal",
       "unregisteredSum": "Unregistered sum",
@@ -1634,6 +1634,8 @@
       "walletMissing": "not configured",
       "contractLabel": "USDT contract:",
       "noExplorer": "Explorer API key is missing (ETHERSCAN_API_KEY). On-chain outflows cannot be read without it.",
+      "scanError": "On-chain scan could not finish: {error}",
+      "truncated": "The on-chain window was cut short. Refresh to try again.",
       "noWallet": "No BSC treasury address is configured (NEXT_PUBLIC_TREASURY_BSC_ADDRESS).",
       "loadError": "Could not load on-chain outflows.",
       "search": "Search destination, user, or hash…",
@@ -1648,7 +1650,7 @@
       "matchUnregistered": "Unregistered",
       "matchUserPayout": "User payout",
       "matchTreasury": "Treasury withdrawal",
-      "loading": "Reading BscScan… this can take a few seconds.",
+      "loading": "Reading official USDT transfers on BSC… this can take up to a minute.",
       "empty": "No USDT outflows ≥ $1 in this window."
     },
     "withdrawals": {
