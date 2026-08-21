@@ -62,22 +62,3 @@ export function uniqueAuditActions(rows: AuditEntry[]): string[] {
     a.localeCompare(b),
   );
 }
-
-export function uniqueAuditAdmins(
-  rows: AuditEntry[],
-  known: Array<{ wallet: string; label: string }>,
-): Array<{ wallet: string; label: string }> {
-  const byWallet = new Map<string, string>();
-  for (const admin of known) {
-    const wallet = admin.wallet.toLowerCase();
-    if (wallet) byWallet.set(wallet, admin.label);
-  }
-  for (const row of rows) {
-    const wallet = (row.actorWallet ?? "").toLowerCase();
-    if (!wallet.startsWith("0x") || byWallet.has(wallet)) continue;
-    byWallet.set(wallet, row.actor || wallet);
-  }
-  return [...byWallet.entries()]
-    .map(([wallet, label]) => ({ wallet, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-}

@@ -15,7 +15,6 @@ import {
   auditActionSeverity,
   auditActionVariant,
   uniqueAuditActions,
-  uniqueAuditAdmins,
   type AuditSeverity,
 } from "@/lib/admin/audit-filters";
 import {
@@ -70,21 +69,26 @@ export default function AdminAuditPage() {
   const [adminWallet, setAdminWallet] = React.useState("all");
   const [actionType, setActionType] = React.useState("all");
 
-  const knownAdmins = React.useMemo(
+  const admins = React.useMemo(
     () =>
       users
         .filter((user) => user.role === "ADMIN")
         .map((user) => ({
           wallet: user.wallet.toLowerCase(),
           label: user.alias?.trim() || shortenAddress(user.wallet),
-        })),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
     [users],
   );
 
-  const admins = React.useMemo(
-    () => uniqueAuditAdmins(audit, knownAdmins),
-    [audit, knownAdmins],
-  );
+  React.useEffect(() => {
+    if (
+      adminWallet !== "all" &&
+      !admins.some((admin) => admin.wallet === adminWallet)
+    ) {
+      setAdminWallet("all");
+    }
+  }, [admins, adminWallet]);
 
   const actionTypes = React.useMemo(() => uniqueAuditActions(audit), [audit]);
 
@@ -135,8 +139,8 @@ export default function AdminAuditPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex flex-col gap-3">
-            <div className="relative max-w-md">
+          <div className="flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-center">
+            <div className="relative min-w-[220px] max-w-md flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
               <Input
                 value={query}
@@ -146,80 +150,82 @@ export default function AdminAuditPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wider text-text-muted">
-                {t("admin.audit.filterSeverity")}
-              </span>
-              <div className="inline-flex flex-wrap rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
-                {SEVERITY_FILTERS.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setSeverity(item.key)}
-                    className={cn(
-                      "rounded-sm px-3 py-1.5 text-xs transition-colors",
-                      severity === item.key
-                        ? item.activeClass
-                        : "text-text-secondary hover:bg-bg-hover",
-                    )}
-                  >
-                    {t(`admin.audit.${item.labelKey}`)}
-                  </button>
-                ))}
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-muted">
+                  {t("admin.audit.filterSeverity")}
+                </span>
+                <div className="inline-flex flex-wrap rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
+                  {SEVERITY_FILTERS.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setSeverity(item.key)}
+                      className={cn(
+                        "rounded-sm px-3 py-1.5 text-xs transition-colors",
+                        severity === item.key
+                          ? item.activeClass
+                          : "text-text-secondary hover:bg-bg-hover",
+                      )}
+                    >
+                      {t(`admin.audit.${item.labelKey}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wider text-text-muted">
-                {t("admin.audit.filterAdmin")}
-              </span>
-              <div className="inline-flex flex-wrap rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setAdminWallet("all")}
-                  className={cn(
-                    "rounded-sm px-3 py-1.5 text-xs transition-colors",
-                    adminWallet === "all"
-                      ? "bg-gold/15 text-gold"
-                      : "text-text-secondary hover:bg-bg-hover",
-                  )}
-                >
-                  {t("admin.audit.filterAll")}
-                </button>
-                {admins.map((admin) => (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-muted">
+                  {t("admin.audit.filterAdmin")}
+                </span>
+                <div className="inline-flex flex-wrap rounded-md border border-border-subtle bg-bg-base/60 p-0.5">
                   <button
-                    key={admin.wallet}
                     type="button"
-                    onClick={() => setAdminWallet(admin.wallet)}
+                    onClick={() => setAdminWallet("all")}
                     className={cn(
                       "rounded-sm px-3 py-1.5 text-xs transition-colors",
-                      adminWallet === admin.wallet
+                      adminWallet === "all"
                         ? "bg-gold/15 text-gold"
                         : "text-text-secondary hover:bg-bg-hover",
                     )}
                   >
-                    {admin.label}
+                    {t("admin.audit.filterAll")}
                   </button>
-                ))}
+                  {admins.map((admin) => (
+                    <button
+                      key={admin.wallet}
+                      type="button"
+                      onClick={() => setAdminWallet(admin.wallet)}
+                      className={cn(
+                        "rounded-sm px-3 py-1.5 text-xs transition-colors",
+                        adminWallet === admin.wallet
+                          ? "bg-gold/15 text-gold"
+                          : "text-text-secondary hover:bg-bg-hover",
+                      )}
+                    >
+                      {admin.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wider text-text-muted">
-                {t("admin.audit.filterAction")}
-              </span>
-              <select
-                value={actionType}
-                onChange={(e) => setActionType(e.target.value)}
-                className="rounded-md border border-border-subtle bg-bg-base px-3 py-1.5 text-xs text-text-primary"
-              >
-                <option value="all">{t("admin.audit.actionAll")}</option>
-                {actionTypes.map((action) => (
-                  <option key={action} value={action}>
-                    {t(`admin.actions.${action}`)}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-muted">
+                  {t("admin.audit.filterAction")}
+                </span>
+                <select
+                  value={actionType}
+                  onChange={(e) => setActionType(e.target.value)}
+                  className="rounded-md border border-border-subtle bg-bg-base px-3 py-1.5 text-xs text-text-primary"
+                >
+                  <option value="all">{t("admin.audit.actionAll")}</option>
+                  {actionTypes.map((action) => (
+                    <option key={action} value={action}>
+                      {t(`admin.actions.${action}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
