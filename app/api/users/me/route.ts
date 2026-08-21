@@ -12,6 +12,7 @@ import {
   UsernameTakenError,
   upsertUserByWallet,
 } from "@/lib/services/users";
+import { unlinkMistakenCopyStakesForUser } from "@/lib/services/stake-repair";
 import { AvatarUrlError } from "@/lib/user/avatar";
 import { t } from "@/lib/i18n";
 
@@ -46,6 +47,10 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ backend: true, user: null });
   }
+
+  await unlinkMistakenCopyStakesForUser(user.id);
+  const fresh = await findUserByWalletWithReferrer(auth.session.address);
+  if (fresh) user = fresh;
 
   return NextResponse.json({
     backend: true,

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth/require-session";
 import { isDatabaseAvailable } from "@/lib/db/available";
-import { listUserTrades, openTrade, TradeServiceError } from "@/lib/services/trades";
+import {
+  listUserTrades,
+  openTrade,
+  settleExpiredUserTrades,
+  TradeServiceError,
+} from "@/lib/services/trades";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +27,9 @@ export async function GET() {
     return NextResponse.json({ backend: false, trades: [] });
   }
 
+  await settleExpiredUserTrades(auth.session.dbUserId);
   const trades = await listUserTrades(auth.session.dbUserId);
-  return NextResponse.json({ backend: true, trades });
+  return NextResponse.json({ backend: true, trades, serverNow: Date.now() });
 }
 
 export async function POST(req: Request) {
@@ -49,7 +55,7 @@ export async function POST(req: Request) {
       entryPrice: parsed.entryPrice,
       durationSec: parsed.durationSec,
     });
-    return NextResponse.json({ ok: true, trade });
+    return NextResponse.json({ ok: true, trade, serverNow: Date.now() });
   } catch (err) {
     if (err instanceof TradeServiceError) {
       const status =

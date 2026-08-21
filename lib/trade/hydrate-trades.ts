@@ -37,6 +37,7 @@ export function positionsToTradeDtos(
       exitPrice: p.exitPrice ?? null,
       durationSec: p.durationSec,
       openedAt: p.openedAt,
+      expiresAt: p.openedAt + p.durationSec * 1000,
       resolvedAt: p.resolvedAt ?? null,
       status: p.status,
       bonusAppliedBps: p.status === "WIN" ? defaultBonusBps : 0,

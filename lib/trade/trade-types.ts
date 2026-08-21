@@ -6,6 +6,8 @@ export interface TradeDto {
   exitPrice: number | null;
   durationSec: number;
   openedAt: number;
+  /** openedAt + durationSec, epoch ms. */
+  expiresAt: number;
   resolvedAt: number | null;
   status: "OPEN" | "WIN" | "LOSS";
   bonusAppliedBps: number;

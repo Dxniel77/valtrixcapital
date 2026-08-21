@@ -10,6 +10,7 @@ import {
   getOperationalBonusCapitalMicro,
 } from "@/lib/services/sponsored-capital";
 import { getUserIbYieldBoost } from "@/lib/services/ib-strategy";
+import { resolveTicker } from "@/lib/exchanges/resolve-market";
 
 const SIMULTANEOUS_TIER_MID_MIN = 501;
 const SIMULTANEOUS_TIER_HIGH_MIN = 1001;
@@ -59,6 +60,7 @@ function resolveTradeOutcome(
 }
 
 function serializeTrade(trade: Trade): TradeDto {
+  const openedAt = trade.openedAt.getTime();
   return {
     id: trade.id,
     pair: trade.pair,
@@ -66,7 +68,8 @@ function serializeTrade(trade: Trade): TradeDto {
     entryPrice: Number(trade.entryPrice),
     exitPrice: trade.exitPrice !== null ? Number(trade.exitPrice) : null,
     durationSec: trade.durationSec,
-    openedAt: trade.openedAt.getTime(),
+    openedAt,
+    expiresAt: openedAt + trade.durationSec * 1000,
     resolvedAt: trade.resolvedAt?.getTime() ?? null,
     status: trade.result ?? "OPEN",
     bonusAppliedBps: trade.bonusAppliedBps,
@@ -84,6 +87,30 @@ function applyEarningsCredit(
   const room = payoutCap - totalEarned;
   if (room <= 0n) return 0n;
   return amountMicro > room ? room : amountMicro;
+}
+
+/** Settle OPEN trades whose duration has elapsed, using a live ticker. */
+export async function settleExpiredUserTrades(userId: string): Promise<void> {
+  const open = await prisma.trade.findMany({
+    where: { userId, result: null },
+  });
+  const now = Date.now();
+  for (const trade of open) {
+    const dueAt = trade.openedAt.getTime() + trade.durationSec * 1000;
+    if (now < dueAt) continue;
+    try {
+      const { data: ticker } = await resolveTicker(trade.pair);
+      if (typeof ticker?.price === "number" && ticker.price > 0) {
+        await resolveTrade({
+          userId,
+          tradeId: trade.id,
+          exitPrice: ticker.price,
+        });
+      }
+    } catch {
+      /* ticker/resolve failure — next poll retries */
+    }
+  }
 }
 
 export async function listUserTrades(userId: string, limit = 500): Promise<TradeDto[]> {

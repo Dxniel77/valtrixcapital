@@ -307,8 +307,8 @@ async function reconcilePendingDepositRow(
  * Unlike a passive finalizer, this actively re-reads the on-chain confirmation
  * count for each pending deposit and confirms those that are ready. This is the
  * safety net that activates a deposit even when the user closed the deposit
- * modal before client-side polling finished: the funds are already on chain, so
- * the stake is created as soon as confirmations reach the threshold.
+ * modal before client-side polling finished. COPY purpose credits copy cash;
+ * STAKING purpose creates a stake.
  */
 export async function finalizeReadyPendingDeposits(userId: string): Promise<number> {
   const pending = await prisma.deposit.findMany({
@@ -415,15 +415,33 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
 
     let stake = deposit.stake;
     if (deposit.purpose === "COPY") {
-      if (!stake) {
-        await tx.user.update({
-          where: { id: deposit.userId },
-          data: {
-            copyCashBalance: {
-              increment: creditedAmount,
-            },
+      await tx.user.update({
+        where: { id: deposit.userId },
+        data: {
+          copyCashBalance: {
+            increment: creditedAmount,
           },
+        },
+      });
+      // COPY must never create or keep a stake — that would double-pay into lockedCapital.
+      if (stake && stake.status === "ACTIVE") {
+        await tx.stake.update({
+          where: { id: stake.id },
+          data: { status: "CANCELED", depositId: null },
         });
+        const user = await tx.user.findUnique({
+          where: { id: deposit.userId },
+          select: { lockedCapital: true },
+        });
+        const locked = user?.lockedCapital ?? 0n;
+        const nextLocked = locked > stake.amount ? locked - stake.amount : 0n;
+        if (nextLocked !== locked) {
+          await tx.user.update({
+            where: { id: deposit.userId },
+            data: { lockedCapital: nextLocked },
+          });
+        }
+        stake = null;
       }
     } else if (!stake) {
       stake = await tx.stake.create({
@@ -530,6 +548,14 @@ export async function claimDepositFromTx(input: {
     }
     if (existing.status === "CONFIRMED") {
       return serializeDeposit(existing);
+    }
+
+    const claimedPurpose = normalizeDepositPurpose(input.purpose);
+    if (input.purpose && existing.purpose !== claimedPurpose) {
+      await prisma.deposit.update({
+        where: { id: existing.id },
+        data: { purpose: claimedPurpose },
+      });
     }
 
     if (isProductionRuntime()) {

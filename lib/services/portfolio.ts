@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { fromMicro } from "@/lib/utils";
 import { finalizeReadyPendingDeposits, listUserDeposits } from "@/lib/services/deposits";
 import { listUserStakes } from "@/lib/services/stakes";
+import { unlinkMistakenCopyStakesForUser } from "@/lib/services/stake-repair";
 import { reconcileUserWinBonuses } from "@/lib/services/trade-bonuses";
 import { accruePassiveYieldForUser } from "@/lib/services/yield";
 import { listUserWithdrawals } from "@/lib/services/withdrawals";
@@ -37,6 +38,7 @@ function pendingFromDeposit(d: {
 
 export async function getUserPortfolio(userId: string): Promise<PortfolioDto> {
   await finalizeReadyPendingDeposits(userId);
+  await unlinkMistakenCopyStakesForUser(userId);
   await reconcileUserWinBonuses(userId);
   await accruePassiveYieldForUser(userId);
 
