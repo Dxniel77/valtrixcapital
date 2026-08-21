@@ -1758,7 +1758,18 @@
       "copied": "Copied",
       "copyFailed": "Could not copy",
       "noOnChainTx": "no on-chain tx",
-      "autoPayoutTag": "auto"
+      "autoPayoutTag": "auto",
+      "searchPlaceholder": "Search user, admin, note, or tx…",
+      "filterSeverity": "Level",
+      "filterAdmin": "Admin",
+      "filterAction": "Action",
+      "filterAll": "All",
+      "severityCritical": "Critical",
+      "severityMoney": "Money",
+      "severityWarning": "Warning",
+      "severityRoutine": "Routine",
+      "actionAll": "All actions",
+      "noMatches": "No audit rows match these filters."
     },
     "grant": {
       "title": "Grant account",

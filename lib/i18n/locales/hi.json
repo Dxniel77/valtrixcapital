@@ -1475,7 +1475,18 @@
       "copied": "कॉपी हो गया",
       "copyFailed": "कॉपी नहीं हो सका",
       "noOnChainTx": "कोई ऑन-चेन tx नहीं",
-      "autoPayoutTag": "ऑटो"
+      "autoPayoutTag": "ऑटो",
+      "searchPlaceholder": "यूज़र, एडमिन, नोट या tx खोजें…",
+      "filterSeverity": "स्तर",
+      "filterAdmin": "एडमिन",
+      "filterAction": "कार्रवाई",
+      "filterAll": "सभी",
+      "severityCritical": "गंभीर",
+      "severityMoney": "धन",
+      "severityWarning": "चेतावनी",
+      "severityRoutine": "नियमित",
+      "actionAll": "सभी कार्रवाइयाँ",
+      "noMatches": "इन फ़िल्टर से कोई रिकॉर्ड नहीं मिला।"
     },
     "grant": {
       "title": "अच्छा कुएंता",

@@ -1475,7 +1475,18 @@
       "copied": "تم النسخ",
       "copyFailed": "تعذر النسخ",
       "noOnChainTx": "لا tx على السلسلة",
-      "autoPayoutTag": "تلقائي"
+      "autoPayoutTag": "تلقائي",
+      "searchPlaceholder": "ابحث عن مستخدم أو مسؤول أو ملاحظة أو معاملة…",
+      "filterSeverity": "المستوى",
+      "filterAdmin": "المسؤول",
+      "filterAction": "الإجراء",
+      "filterAll": "الكل",
+      "severityCritical": "حرج",
+      "severityMoney": "مال",
+      "severityWarning": "تحذير",
+      "severityRoutine": "روتيني",
+      "actionAll": "كل الإجراءات",
+      "noMatches": "لا توجد سجلات تطابق عوامل التصفية."
     },
     "grant": {
       "title": "منح حساب",

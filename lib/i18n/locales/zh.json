@@ -1533,7 +1533,18 @@
       "copied": "已复制",
       "copyFailed": "无法复制",
       "noOnChainTx": "无链上交易",
-      "autoPayoutTag": "自动"
+      "autoPayoutTag": "自动",
+      "searchPlaceholder": "搜索用户、管理员、备注或交易…",
+      "filterSeverity": "级别",
+      "filterAdmin": "管理员",
+      "filterAction": "操作",
+      "filterAll": "全部",
+      "severityCritical": "严重",
+      "severityMoney": "资金",
+      "severityWarning": "警告",
+      "severityRoutine": "常规",
+      "actionAll": "全部操作",
+      "noMatches": "没有符合筛选条件的记录。"
     },
     "grant": {
       "title": "给个账号",

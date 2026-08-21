@@ -1475,7 +1475,18 @@
       "copied": "Kopiert",
       "copyFailed": "Kopieren fehlgeschlagen",
       "noOnChainTx": "keine On-Chain-Tx",
-      "autoPayoutTag": "auto"
+      "autoPayoutTag": "auto",
+      "searchPlaceholder": "Benutzer, Admin, Notiz oder Tx suchen…",
+      "filterSeverity": "Stufe",
+      "filterAdmin": "Admin",
+      "filterAction": "Aktion",
+      "filterAll": "Alle",
+      "severityCritical": "Kritisch",
+      "severityMoney": "Geld",
+      "severityWarning": "Warnung",
+      "severityRoutine": "Routine",
+      "actionAll": "Alle Aktionen",
+      "noMatches": "Keine Einträge passen zu diesen Filtern."
     },
     "grant": {
       "title": "Konto gewähren",

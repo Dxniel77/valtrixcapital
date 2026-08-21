@@ -1475,7 +1475,18 @@
       "copied": "Copié",
       "copyFailed": "Impossible de copier",
       "noOnChainTx": "pas de tx on-chain",
-      "autoPayoutTag": "auto"
+      "autoPayoutTag": "auto",
+      "searchPlaceholder": "Rechercher utilisateur, admin, note ou tx…",
+      "filterSeverity": "Niveau",
+      "filterAdmin": "Admin",
+      "filterAction": "Action",
+      "filterAll": "Tous",
+      "severityCritical": "Critique",
+      "severityMoney": "Argent",
+      "severityWarning": "Alerte",
+      "severityRoutine": "Routine",
+      "actionAll": "Toutes les actions",
+      "noMatches": "Aucune entrée ne correspond à ces filtres."
     },
     "grant": {
       "title": "Le compte",

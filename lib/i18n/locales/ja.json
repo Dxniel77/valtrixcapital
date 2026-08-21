@@ -1475,7 +1475,18 @@
       "copied": "コピーしました",
       "copyFailed": "コピーできませんでした",
       "noOnChainTx": "オンチェーンtxなし",
-      "autoPayoutTag": "自動"
+      "autoPayoutTag": "自動",
+      "searchPlaceholder": "ユーザー、管理者、メモ、tx を検索…",
+      "filterSeverity": "レベル",
+      "filterAdmin": "管理者",
+      "filterAction": "操作",
+      "filterAll": "すべて",
+      "severityCritical": "重大",
+      "severityMoney": "資金",
+      "severityWarning": "警告",
+      "severityRoutine": "通常",
+      "actionAll": "すべての操作",
+      "noMatches": "この条件に一致する記録はありません。"
     },
     "grant": {
       "title": "アカウント付与",

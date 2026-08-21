@@ -1816,7 +1816,18 @@
       "copied": "Copiado",
       "copyFailed": "No se pudo copiar",
       "noOnChainTx": "sin tx en cadena",
-      "autoPayoutTag": "automático"
+      "autoPayoutTag": "automático",
+      "searchPlaceholder": "Buscar usuario, admin, nota o tx…",
+      "filterSeverity": "Nivel",
+      "filterAdmin": "Admin",
+      "filterAction": "Acción",
+      "filterAll": "Todos",
+      "severityCritical": "Crítico",
+      "severityMoney": "Dinero",
+      "severityWarning": "Alerta",
+      "severityRoutine": "Rutina",
+      "actionAll": "Todas las acciones",
+      "noMatches": "Ningún registro coincide con estos filtros."
     },
     "grant": {
       "title": "Dar cuenta",

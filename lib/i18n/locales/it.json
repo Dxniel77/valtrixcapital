@@ -1475,7 +1475,18 @@
       "copied": "Copiato",
       "copyFailed": "Impossibile copiare",
       "noOnChainTx": "nessuna tx on-chain",
-      "autoPayoutTag": "auto"
+      "autoPayoutTag": "auto",
+      "searchPlaceholder": "Cerca utente, admin, nota o tx…",
+      "filterSeverity": "Livello",
+      "filterAdmin": "Admin",
+      "filterAction": "Azione",
+      "filterAll": "Tutti",
+      "severityCritical": "Critico",
+      "severityMoney": "Denaro",
+      "severityWarning": "Avviso",
+      "severityRoutine": "Routine",
+      "actionAll": "Tutte le azioni",
+      "noMatches": "Nessuna riga corrisponde a questi filtri."
     },
     "grant": {
       "title": "Concedi account",

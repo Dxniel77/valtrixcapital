@@ -1474,7 +1474,18 @@
       "copied": "Copiado",
       "copyFailed": "Não foi possível copiar",
       "noOnChainTx": "sem tx on-chain",
-      "autoPayoutTag": "auto"
+      "autoPayoutTag": "auto",
+      "searchPlaceholder": "Pesquisar utilizador, admin, nota ou tx…",
+      "filterSeverity": "Nível",
+      "filterAdmin": "Admin",
+      "filterAction": "Ação",
+      "filterAll": "Todos",
+      "severityCritical": "Crítico",
+      "severityMoney": "Dinheiro",
+      "severityWarning": "Aviso",
+      "severityRoutine": "Rotina",
+      "actionAll": "Todas as ações",
+      "noMatches": "Nenhum registo corresponde a estes filtros."
     },
     "grant": {
       "title": "Conceder conta",
