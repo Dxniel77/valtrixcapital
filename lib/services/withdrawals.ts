@@ -13,6 +13,8 @@ import {
   WithdrawalPayoutError,
 } from "@/lib/services/withdrawal-payout";
 
+type WithdrawalSource = "EARNINGS" | "COPY_CASH";
+
 export class WithdrawalServiceError extends Error {
   constructor(
     message: string,
@@ -37,6 +39,7 @@ export interface WithdrawalDto {
   fee: number;
   netAmount: number;
   toAddress: string;
+  source: WithdrawalSource;
   status: string;
   txHash: string | null;
   requestedAt: string;
@@ -50,6 +53,7 @@ function serializeWithdrawal(w: {
   fee: bigint;
   netAmount: bigint;
   toAddress: string;
+  source?: WithdrawalSource | null;
   status: string;
   txHash: string | null;
   requestedAt: Date;
@@ -62,10 +66,57 @@ function serializeWithdrawal(w: {
     fee: fromMicro(w.fee),
     netAmount: fromMicro(w.netAmount),
     toAddress: w.toAddress,
+    source: "source" in w && w.source ? w.source : "EARNINGS",
     status: w.status,
     txHash: w.txHash,
     requestedAt: w.requestedAt.toISOString(),
     processedAt: w.processedAt?.toISOString() ?? null,
+  };
+}
+
+function normalizeWithdrawalSource(source?: WithdrawalSource | string): WithdrawalSource | null {
+  if (source === "COPY_CASH" || source === "COPY") return "COPY_CASH";
+  if (source === "EARNINGS") return "EARNINGS";
+  return null;
+}
+
+function asMicro(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.round(value));
+  if (typeof value === "string" && /^-?\d+$/.test(value)) return BigInt(value);
+  return 0n;
+}
+
+function resolveWithdrawalSource(input: {
+  source?: WithdrawalSource | string;
+  amountMicro: bigint;
+  copyCash: bigint;
+  earnings: bigint;
+}): WithdrawalSource {
+  const explicit = normalizeWithdrawalSource(input.source);
+  if (explicit) return explicit;
+  // Older mobile builds omit `source`. If yield cannot cover the amount but
+  // copy cash can, debit copy cash instead of failing against dust earnings.
+  if (input.earnings < input.amountMicro && input.copyCash >= input.amountMicro) {
+    return "COPY_CASH";
+  }
+  return "EARNINGS";
+}
+
+function refundWithdrawalBalance(input: {
+  source: WithdrawalSource;
+  amount: bigint;
+  restoreAllowance: boolean;
+}) {
+  const pocket =
+    input.source === "COPY_CASH"
+      ? { copyCashBalance: { increment: input.amount } }
+      : { earningsBalance: { increment: input.amount } };
+  return {
+    ...pocket,
+    ...(input.restoreAllowance
+      ? { withdrawalAllowance: { increment: input.amount } }
+      : {}),
   };
 }
 
@@ -75,16 +126,43 @@ export async function createWithdrawal(input: {
   amount: number;
   feeBps: number;
   toAddress: string;
+  source?: WithdrawalSource | string;
 }): Promise<WithdrawalDto> {
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new WithdrawalServiceError("Invalid amount", "INVALID_AMOUNT");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: {
+      id: true,
+      isActive: true,
+      accountGranted: true,
+      withdrawalUnlocked: true,
+      withdrawalAllowance: true,
+      earningsBalance: true,
+      copyCashBalance: true,
+    },
+  });
   if (!user) throw new WithdrawalServiceError("User not found", "NOT_FOUND");
   if (!user.isActive) throw new WithdrawalServiceError("Account inactive", "INACTIVE");
 
-  const volumeLocked = user.accountGranted && !user.withdrawalUnlocked;
+  const amountMicro = toMicro(input.amount);
+  const copyCash = asMicro(user.copyCashBalance);
+  const earnings = asMicro(user.earningsBalance);
+  const source = resolveWithdrawalSource({
+    source: input.source,
+    amountMicro,
+    copyCash,
+    earnings,
+  });
+
+  // Copy cash is deposited product money, not staking yield. Do not apply
+  // the sponsored-account volume lock that gates earnings withdrawals.
+  const volumeLocked =
+    source !== "COPY_CASH" &&
+    user.accountGranted &&
+    !user.withdrawalUnlocked;
   if (volumeLocked && user.withdrawalAllowance <= 0n) {
     throw new WithdrawalServiceError(
       "Withdrawals locked until requirements are met",
@@ -100,12 +178,15 @@ export async function createWithdrawal(input: {
     );
   }
 
-  const amountMicro = toMicro(input.amount);
   const feeMicro = (amountMicro * BigInt(input.feeBps)) / 10_000n;
   const netMicro = amountMicro - feeMicro;
+  const pocketBalance = source === "COPY_CASH" ? copyCash : earnings;
 
-  if (user.earningsBalance < amountMicro) {
-    throw new WithdrawalServiceError("Insufficient balance", "INSUFFICIENT_BALANCE");
+  if (pocketBalance < amountMicro) {
+    throw new WithdrawalServiceError(
+      source === "COPY_CASH" ? "Insufficient copy cash" : "Insufficient balance",
+      "INSUFFICIENT_BALANCE",
+    );
   }
 
   if (volumeLocked && user.withdrawalAllowance < amountMicro) {
@@ -132,45 +213,81 @@ export async function createWithdrawal(input: {
   }
 
   /**
-   * Debit balance (and allowance when volume-locked) with conditional updateMany
-   * so concurrent requests cannot overdraw the released amount or earnings.
+   * Debit the chosen pocket (and allowance when volume-locked) with conditional
+   * updateMany so concurrent requests cannot overdraw.
    */
   const created = await prisma.$transaction(async (tx) => {
-    const debited = volumeLocked
-      ? await tx.user.updateMany({
-          where: {
-            id: user.id,
-            isActive: true,
-            accountGranted: true,
-            withdrawalUnlocked: false,
-            earningsBalance: { gte: amountMicro },
-            withdrawalAllowance: { gte: amountMicro },
-          },
-          data: {
-            earningsBalance: { decrement: amountMicro },
-            withdrawalAllowance: { decrement: amountMicro },
-          },
-        })
-      : await tx.user.updateMany({
-          where: {
-            id: user.id,
-            isActive: true,
-            earningsBalance: { gte: amountMicro },
-            // Still fully unlocked (or not a sponsored lock) at write time.
-            NOT: {
-              AND: [{ accountGranted: true }, { withdrawalUnlocked: false }],
+    const pocketDebit =
+      source === "COPY_CASH"
+        ? { copyCashBalance: { decrement: amountMicro } }
+        : { earningsBalance: { decrement: amountMicro } };
+    const pocketWhere =
+      source === "COPY_CASH"
+        ? { copyCashBalance: { gte: amountMicro } }
+        : { earningsBalance: { gte: amountMicro } };
+
+    const debited =
+      source === "COPY_CASH"
+        ? await tx.user.updateMany({
+            where: {
+              id: user.id,
+              isActive: true,
+              ...pocketWhere,
             },
-          },
-          data: {
-            earningsBalance: { decrement: amountMicro },
-          },
-        });
+            data: pocketDebit,
+          })
+        : volumeLocked
+          ? await tx.user.updateMany({
+              where: {
+                id: user.id,
+                isActive: true,
+                accountGranted: true,
+                withdrawalUnlocked: false,
+                withdrawalAllowance: { gte: amountMicro },
+                ...pocketWhere,
+              },
+              data: {
+                ...pocketDebit,
+                withdrawalAllowance: { decrement: amountMicro },
+              },
+            })
+          : await tx.user.updateMany({
+              where: {
+                id: user.id,
+                isActive: true,
+                ...pocketWhere,
+                NOT: {
+                  AND: [{ accountGranted: true }, { withdrawalUnlocked: false }],
+                },
+              },
+              data: pocketDebit,
+            });
 
     if (debited.count !== 1) {
-      const latest = await tx.user.findUnique({ where: { id: user.id } });
-      if (!latest || latest.earningsBalance < amountMicro) {
+      const latest = await tx.user.findUnique({
+        where: { id: user.id },
+        select: {
+          copyCashBalance: true,
+          earningsBalance: true,
+          accountGranted: true,
+          withdrawalUnlocked: true,
+          withdrawalAllowance: true,
+        },
+      });
+      const latestPocket = latest
+        ? source === "COPY_CASH"
+          ? asMicro(latest.copyCashBalance)
+          : asMicro(latest.earningsBalance)
+        : undefined;
+      if (!latest || latestPocket == null || latestPocket < amountMicro) {
         throw new WithdrawalServiceError(
-          "Insufficient balance",
+          source === "COPY_CASH" ? "Insufficient copy cash" : "Insufficient balance",
+          "INSUFFICIENT_BALANCE",
+        );
+      }
+      if (source === "COPY_CASH") {
+        throw new WithdrawalServiceError(
+          "Insufficient copy cash",
           "INSUFFICIENT_BALANCE",
         );
       }
@@ -192,17 +309,29 @@ export async function createWithdrawal(input: {
       );
     }
 
-    return tx.withdrawal.create({
-      data: {
-        userId: user.id,
-        network: input.network,
-        amount: amountMicro,
-        fee: feeMicro,
-        netAmount: netMicro,
-        toAddress: input.toAddress.toLowerCase(),
-        status: "REQUESTED",
-      },
-    });
+    const rowData = {
+      userId: user.id,
+      network: input.network,
+      amount: amountMicro,
+      fee: feeMicro,
+      netAmount: netMicro,
+      toAddress: input.toAddress.toLowerCase(),
+      status: "REQUESTED" as const,
+    };
+
+    try {
+      return await tx.withdrawal.create({
+        data: { ...rowData, source },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const missingSourceColumn =
+        /source/i.test(message) &&
+        /(does not exist|Unknown argument|WithdrawalSource|column)/i.test(message);
+      if (!missingSourceColumn) throw err;
+      // Deployed DB may not have the source column yet; debit still succeeded.
+      return tx.withdrawal.create({ data: rowData });
+    }
   });
 
   try {
@@ -300,16 +429,21 @@ export async function updateWithdrawalStatus(input: {
     });
 
     if (input.status === "REJECTED") {
+      const rejectedSource =
+        "source" in existing && existing.source === "COPY_CASH"
+          ? "COPY_CASH"
+          : "EARNINGS";
       const restoreAllowance =
-        existing.user.accountGranted && !existing.user.withdrawalUnlocked;
+        rejectedSource !== "COPY_CASH" &&
+        existing.user.accountGranted &&
+        !existing.user.withdrawalUnlocked;
       await tx.user.update({
         where: { id: existing.userId },
-        data: {
-          earningsBalance: { increment: existing.amount },
-          ...(restoreAllowance
-            ? { withdrawalAllowance: { increment: existing.amount } }
-            : {}),
-        },
+        data: refundWithdrawalBalance({
+          source: rejectedSource,
+          amount: existing.amount,
+          restoreAllowance,
+        }),
       });
     }
 

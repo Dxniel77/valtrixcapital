@@ -70,6 +70,11 @@ enum WithdrawalStatus {
   REJECTED
 }
 
+enum WithdrawalSource {
+  EARNINGS
+  COPY_CASH
+}
+
 enum AdminActionType {
   ACTIVATE
   DEACTIVATE
@@ -467,6 +472,7 @@ model Withdrawal {
   fee         BigInt
   netAmount   BigInt
   toAddress   String
+  source      WithdrawalSource @default(EARNINGS)
   status      WithdrawalStatus @default(REQUESTED)
   txHash      String?
   requestedAt DateTime         @default(now())

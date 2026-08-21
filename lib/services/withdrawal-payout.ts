@@ -108,13 +108,21 @@ export async function rejectWithdrawalAfterFailedPayout(
         withdrawalUnlocked: true,
       },
     });
+    const source =
+      "source" in existing && existing.source === "COPY_CASH" ? "COPY_CASH" : "EARNINGS";
     const restoreAllowance = Boolean(
-      user?.accountGranted && !user.withdrawalUnlocked,
+      source !== "COPY_CASH" &&
+        user?.accountGranted &&
+        !user.withdrawalUnlocked,
     );
+    const pocket =
+      source === "COPY_CASH"
+        ? { copyCashBalance: { increment: existing.amount } }
+        : { earningsBalance: { increment: existing.amount } };
     await tx.user.update({
       where: { id: existing.userId },
       data: {
-        earningsBalance: { increment: existing.amount },
+        ...pocket,
         ...(restoreAllowance
           ? { withdrawalAllowance: { increment: existing.amount } }
           : {}),

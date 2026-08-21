@@ -18,8 +18,9 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   network: z.enum(["BSC", "POLYGON"]),
-  amount: z.number().positive(),
-  toAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  amount: z.coerce.number().positive(),
+  toAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/i),
+  source: z.enum(["EARNINGS", "COPY_CASH", "COPY"]).optional(),
 });
 
 const adminPatchSchema = z.object({
@@ -169,6 +170,7 @@ export async function POST(req: Request) {
       amount: parsed.amount,
       feeBps: config.withdrawalFeeBps,
       toAddress: parsed.toAddress,
+      source: parsed.source ?? url.searchParams.get("source") ?? undefined,
     });
     return NextResponse.json({ ok: true, withdrawal });
   } catch (err) {

@@ -566,7 +566,6 @@ export async function claimDepositFromTx(input: {
   const verified = await verifyUsdtDepositTx({
     network: input.network,
     txHash: normalizedHash,
-    expectedFrom: normalizeWallet(input.walletAddress),
     waitForMining: true,
   });
   if (!verified) {

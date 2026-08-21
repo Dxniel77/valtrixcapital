@@ -71,12 +71,12 @@ function parseVerifiedTransfer(
   receipt: TransactionReceipt,
   input: {
     network: StakingNetwork;
-    expectedFrom: string;
+    expectedFrom?: string;
     expectedTo: string;
   },
 ): VerifiedUsdtDeposit | null {
   const usdt = getUsdtContract(input.network).toLowerCase();
-  const expectedFrom = input.expectedFrom.toLowerCase();
+  const expectedFrom = input.expectedFrom?.toLowerCase() || null;
   const expectedTo = input.expectedTo.toLowerCase();
   const decimals = USDT_DECIMALS[input.network];
 
@@ -92,7 +92,8 @@ function parseVerifiedTransfer(
 
       const from = String(decoded.args.from).toLowerCase();
       const to = String(decoded.args.to).toLowerCase();
-      if (from !== expectedFrom || to !== expectedTo) continue;
+      if (to !== expectedTo) continue;
+      if (expectedFrom && from !== expectedFrom) continue;
 
       const value = decoded.args.value as bigint;
       const amount = Number(formatUnits(value, decimals));
@@ -223,11 +224,11 @@ export async function getTxConfirmationCount(
   }
 }
 
-/** Confirms a USDT transfer to the treasury from the user's wallet. */
+/** Confirms a USDT transfer to the treasury. Sender may be any wallet (CEX, another EOA). */
 export async function verifyUsdtDepositTx(input: {
   network: StakingNetwork;
   txHash: string;
-  expectedFrom: string;
+  expectedFrom?: string;
   /** Poll until mined (default true). Set false for a single immediate check. */
   waitForMining?: boolean;
 }): Promise<VerifiedUsdtDeposit | null> {
