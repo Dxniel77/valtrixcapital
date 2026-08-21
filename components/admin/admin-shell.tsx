@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowUpFromLine,
   Bell,
   ClipboardList,
   FileSpreadsheet,
@@ -44,6 +45,7 @@ import { useTreasurySync } from "@/lib/hooks/use-treasury-sync";
 export const adminNavItems = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
   { href: "/admin/treasury", key: "treasury", icon: Landmark },
+  { href: "/admin/hot-wallet", key: "hotWallet", icon: ArrowUpFromLine },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
   { href: "/admin/ib", key: "ib", icon: Handshake },
   { href: "/admin/copy-trading", key: "copyTrading", icon: Bot },

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ArrowDownToLine, ArrowUpFromLine, Landmark, ShieldAlert } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -49,6 +50,12 @@ export default function AdminTreasuryPage() {
         subtitle={t("admin.treasury.subtitle")}
         actions={
           <>
+            <Button variant="outline" size="md" asChild>
+              <Link href="/admin/hot-wallet">
+                <Landmark className="h-4 w-4" />
+                {t("admin.treasury.outflowsCta")}
+              </Link>
+            </Button>
             <Button variant="outline" size="md" onClick={() => setWithdrawOpen(true)}>
               <ArrowUpFromLine className="h-4 w-4" />
               {t("admin.treasury.withdrawCta")}

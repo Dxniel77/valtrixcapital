@@ -17,7 +17,11 @@ export interface ExplorerTokenTxRow {
   hash: string;
   timeStamp: string;
   value: string;
+  from?: string;
+  to?: string;
+  contractAddress?: string;
   tokenDecimal?: string;
+  tokenSymbol?: string;
 }
 
 /** Single key works for BSC (56), Polygon (137), and 60+ other chains. */
@@ -36,6 +40,7 @@ export async function fetchExplorerTokenTxs(
     contractAddress: string;
     address: string;
     offset?: number;
+    page?: number;
     fetch: (url: string, init?: RequestInit) => Promise<Response>;
   },
 ): Promise<ExplorerTokenTxRow[]> {
@@ -48,7 +53,7 @@ export async function fetchExplorerTokenTxs(
     action: "tokentx",
     contractaddress: input.contractAddress,
     address: input.address,
-    page: "1",
+    page: String(Math.max(1, input.page ?? 1)),
     offset: String(input.offset ?? 80),
     sort: "desc",
     apikey: apiKey,
@@ -70,4 +75,46 @@ export async function fetchExplorerTokenTxs(
   };
   if (data.status !== "1" || !Array.isArray(data.result)) return [];
   return data.result;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Newest official-token transfers, walking several explorer pages. */
+export async function fetchExplorerTokenTxPages(
+  chain: ExplorerChain,
+  input: {
+    contractAddress: string;
+    address: string;
+    pages?: number;
+    pageSize?: number;
+    fetch: (url: string, init?: RequestInit) => Promise<Response>;
+  },
+): Promise<ExplorerTokenTxRow[]> {
+  const pages = Math.min(Math.max(input.pages ?? 5, 1), 10);
+  const pageSize = Math.min(Math.max(input.pageSize ?? 100, 1), 100);
+  const seen = new Set<string>();
+  const rows: ExplorerTokenTxRow[] = [];
+
+  for (let page = 1; page <= pages; page += 1) {
+    const batch = await fetchExplorerTokenTxs(chain, {
+      contractAddress: input.contractAddress,
+      address: input.address,
+      page,
+      offset: pageSize,
+      fetch: input.fetch,
+    });
+    if (batch.length === 0) break;
+    for (const row of batch) {
+      const hash = row.hash?.toLowerCase();
+      if (!hash || seen.has(hash)) continue;
+      seen.add(hash);
+      rows.push(row);
+    }
+    if (batch.length < pageSize) break;
+    if (page < pages) await sleep(160);
+  }
+
+  return rows;
 }

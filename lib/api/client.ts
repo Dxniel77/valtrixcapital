@@ -634,6 +634,31 @@ export async function adminProvisionUser(input: {
   });
 }
 
+export type HotWalletOutflowMatch = "unregistered" | "user_payout" | "treasury";
+
+export interface HotWalletOutflowDto {
+  id: string;
+  txHash: string;
+  fromAddress: string;
+  toAddress: string;
+  toLabel: string | null;
+  amount: number;
+  timestamp: number;
+  explorerUrl: string;
+  match: HotWalletOutflowMatch;
+}
+
+export async function fetchAdminHotWalletOutflows() {
+  return apiFetch<{
+    backend: boolean;
+    items: HotWalletOutflowDto[];
+    wallets: string[];
+    usdtContract: string;
+    explorerConfigured: boolean;
+    minUsd: number;
+  }>("/api/admin/hot-wallet-outflows");
+}
+
 export async function fetchAdminAudit(limit = 1000) {
   return apiFetch<{
     backend: boolean;
