@@ -26,12 +26,10 @@ export function usdtAmountToUnits(
   network: StakingNetwork,
 ): bigint {
   const decimals = USDT_DECIMALS[network];
-  const maxFrac = Math.min(6, decimals);
-  const fixed = amountUsdt.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: maxFrac,
-    useGrouping: false,
-  });
+  if (!Number.isFinite(amountUsdt) || amountUsdt <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
+  const fixed = amountUsdt.toFixed(Math.min(6, decimals));
   return parseUnits(fixed, decimals);
 }
 
