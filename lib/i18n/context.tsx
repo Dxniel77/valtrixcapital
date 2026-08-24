@@ -9,7 +9,7 @@ import {
   loadMessages,
   LOCALE_STORAGE_KEY,
   preloadLocales,
-  translate,
+  translateWithFallback,
   type Locale,
   type Messages,
 } from "./index";
@@ -72,7 +72,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       setLocale,
       messages,
       t: (key: string, vars?: Record<string, string | number>) =>
-        translate(messages, key, vars),
+        translateWithFallback(messages, key, vars),
     }),
     [locale, setLocale, messages],
   );

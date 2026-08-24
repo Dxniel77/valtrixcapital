@@ -1,5 +1,6 @@
 import type { Locale } from "./config";
-import { defaultLocale, isLocale, locales } from "./config";
+import { defaultLocale, locales } from "./config";
+import en from "./locales/en.json";
 import es from "./locales/es.json";
 
 export type { Locale } from "./config";
@@ -14,9 +15,11 @@ export {
 
 export type Messages = typeof es;
 
+const EN_FALLBACK = en as unknown as Messages;
+
 const localeImporters: Record<Locale, () => Promise<Messages>> = {
   es: async () => es,
-  en: async () => (await import("./locales/en.json")).default as unknown as Messages,
+  en: async () => EN_FALLBACK,
   de: async () => (await import("./locales/de.json")).default as unknown as Messages,
   ar: async () => (await import("./locales/ar.json")).default as unknown as Messages,
   zh: async () => (await import("./locales/zh.json")).default as unknown as Messages,
@@ -27,7 +30,10 @@ const localeImporters: Record<Locale, () => Promise<Messages>> = {
   pt: async () => (await import("./locales/pt.json")).default as unknown as Messages,
 };
 
-const messageCache = new Map<Locale, Messages>([[defaultLocale, es]]);
+const messageCache = new Map<Locale, Messages>([
+  [defaultLocale, es],
+  ["en", EN_FALLBACK],
+]);
 
 /** Synchronous access — returns cached messages or the default locale. */
 export function getMessages(locale: Locale = defaultLocale): Messages {
@@ -81,11 +87,28 @@ export function translate(
   );
 }
 
+/** Active locale first, then English, then Spanish — never a raw key if any of those has it. */
+export function translateWithFallback(
+  dict: Messages,
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  const primary = translate(dict, key, vars);
+  if (primary !== key) return primary;
+  if (dict !== EN_FALLBACK) {
+    const enHit = translate(EN_FALLBACK, key, vars);
+    if (enHit !== key) return enHit;
+  }
+  const esHit = translate(es, key, vars);
+  if (esHit !== key) return esHit;
+  return key;
+}
+
 /** Server-side copy — defaults to Spanish */
 export function t(
   key: string,
   vars?: Record<string, string | number>,
   locale: Locale = defaultLocale,
 ): string {
-  return translate(getMessages(locale), key, vars);
+  return translateWithFallback(getMessages(locale), key, vars);
 }
