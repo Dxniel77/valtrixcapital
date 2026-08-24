@@ -12,16 +12,20 @@ function isUsableTreasuryAddress(value: string | undefined): value is string {
   );
 }
 
-/** Treasury deposit addresses — env required in production. */
+/** Live treasury used by the mobile app and production .env. */
+const LIVE_TREASURY = "0xa7d57f3d881dba992cdafe85f5a3e3115626f2cc";
+
+/** Treasury deposit addresses — env required; live wallet is the last-resort fallback. */
 export function getDepositAddress(network: StakingNetwork): string {
   const env =
     network === "BSC"
       ? process.env.NEXT_PUBLIC_TREASURY_BSC_ADDRESS?.trim()
       : process.env.NEXT_PUBLIC_TREASURY_POLYGON_ADDRESS?.trim();
-  if (isUsableTreasuryAddress(env)) return env;
+  if (isUsableTreasuryAddress(env)) return env.toLowerCase();
+  if (isUsableTreasuryAddress(LIVE_TREASURY)) return LIVE_TREASURY;
   if (!allowOfflineSimulation()) return "";
   const fallback = DEPOSIT_ADDRESSES[network];
-  return isUsableTreasuryAddress(fallback) ? fallback : "";
+  return isUsableTreasuryAddress(fallback) ? fallback.toLowerCase() : "";
 }
 
 export function getUsdtContract(network: StakingNetwork): string {

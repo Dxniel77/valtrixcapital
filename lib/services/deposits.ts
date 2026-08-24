@@ -12,12 +12,15 @@ import { getPlatformConfig } from "@/lib/services/config";
 import {
   getTxConfirmationCount,
   getTxOutcome,
-  verifyUsdtDepositTx,
+  inspectUsdtDepositTx,
   type VerifiedUsdtDeposit,
 } from "@/lib/services/deposit-verification";
 import { isProductionRuntime } from "@/lib/runtime-mode";
 import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
 import type { StakingNetwork } from "@/lib/staking/store";
+
+/** Credit as soon as the transfer is mined. Do not wait 12 blocks on the claim request. */
+const CREDIT_AT_CONFIRMATIONS = 1;
 
 export class DepositServiceError extends Error {
   constructor(
@@ -29,6 +32,9 @@ export class DepositServiceError extends Error {
       | "FORBIDDEN"
       | "NOT_READY"
       | "TX_NOT_VERIFIED"
+      | "TX_NOT_FOUND"
+      | "TX_WRONG_TREASURY"
+      | "TX_WRONG_TOKEN"
       | "TX_OWNED_BY_OTHER"
       | "TX_REVERTED",
   ) {
@@ -137,28 +143,14 @@ async function assertDepositReadyForConfirm(deposit: {
     toAddress: "",
   };
 
-  const verified = await verifyUsdtDepositTx({
+  const inspected = await inspectUsdtDepositTx({
     network: deposit.network as StakingNetwork,
     txHash: deposit.txHash,
-    expectedFrom: deposit.fromAddress,
-    waitForMining: true,
   });
-  if (!verified) {
-    throw new DepositServiceError(
-      "Could not verify USDT transfer to treasury",
-      "TX_NOT_VERIFIED",
-    );
+  if (!inspected.ok) {
+    throw new DepositServiceError(inspected.message, inspected.code);
   }
-
-  const confirmations = await getTxConfirmationCount(
-    deposit.network as StakingNetwork,
-    deposit.txHash,
-  );
-  if (confirmations < REQUIRED_CONFIRMATIONS) {
-    throw new DepositServiceError("Not enough confirmations", "NOT_READY");
-  }
-
-  return verified;
+  return inspected.deposit;
 }
 
 export async function registerDeposit(input: {
@@ -232,7 +224,7 @@ export async function advanceDepositConfirmations(
     data: { confirmations: next },
   });
 
-  if (next >= REQUIRED_CONFIRMATIONS) {
+  if (next >= CREDIT_AT_CONFIRMATIONS) {
     return confirmDeposit(deposit.id);
   }
 
@@ -291,7 +283,7 @@ async function reconcilePendingDepositRow(
       });
     }
 
-    if (next >= REQUIRED_CONFIRMATIONS) {
+    if (next >= CREDIT_AT_CONFIRMATIONS) {
       await confirmDeposit(row.id);
       return "confirmed";
     }
@@ -362,7 +354,7 @@ export async function confirmDepositForUser(
   });
   if (!deposit) throw new DepositServiceError("Deposit not found", "NOT_FOUND");
   if (deposit.status === "CONFIRMED") return serializeDeposit(deposit);
-  if (deposit.confirmations < REQUIRED_CONFIRMATIONS) {
+  if (deposit.confirmations < CREDIT_AT_CONFIRMATIONS) {
     throw new DepositServiceError("Not enough confirmations", "NOT_READY");
   }
   await assertDepositReadyForConfirm(deposit);
@@ -567,39 +559,33 @@ export async function claimDepositFromTx(input: {
           "TX_REVERTED",
         );
       }
+      if (outcome === "success") {
+        const confirmations = await getTxConfirmationCount(input.network, normalizedHash);
+        await prisma.deposit.update({
+          where: { id: existing.id },
+          data: { confirmations: Math.min(Math.max(confirmations, 1), REQUIRED_CONFIRMATIONS) },
+        });
+        return confirmDeposit(existing.id);
+      }
+    } else {
+      return confirmDeposit(existing.id);
     }
 
-    const confirmations = isProductionRuntime()
-      ? await getTxConfirmationCount(input.network, normalizedHash)
-      : REQUIRED_CONFIRMATIONS;
-
-    await prisma.deposit.update({
+    const pending = await prisma.deposit.findUniqueOrThrow({
       where: { id: existing.id },
-      data: { confirmations: Math.min(confirmations, REQUIRED_CONFIRMATIONS) },
+      include: { stake: { select: { id: true } } },
     });
-
-    if (confirmations < REQUIRED_CONFIRMATIONS) {
-      const pending = await prisma.deposit.findUniqueOrThrow({
-        where: { id: existing.id },
-        include: { stake: { select: { id: true } } },
-      });
-      return serializeDeposit(pending);
-    }
-
-    return confirmDeposit(existing.id);
+    return serializeDeposit(pending);
   }
 
-  const verified = await verifyUsdtDepositTx({
+  const inspected = await inspectUsdtDepositTx({
     network: input.network,
     txHash: normalizedHash,
-    waitForMining: true,
   });
-  if (!verified) {
-    throw new DepositServiceError(
-      "Could not verify USDT transfer to treasury",
-      "TX_NOT_VERIFIED",
-    );
+  if (!inspected.ok) {
+    throw new DepositServiceError(inspected.message, inspected.code);
   }
+  const verified = inspected.deposit;
 
   const config = await getPlatformConfig();
   if (verified.amount < config.minStake || verified.amount > config.maxStake) {
@@ -622,10 +608,15 @@ export async function claimDepositFromTx(input: {
 
   await prisma.deposit.update({
     where: { id: registered.id },
-    data: { confirmations: Math.min(confirmations, REQUIRED_CONFIRMATIONS) },
+    data: {
+      confirmations: Math.min(
+        Math.max(confirmations, inspected.mined ? 1 : 0),
+        REQUIRED_CONFIRMATIONS,
+      ),
+    },
   });
 
-  if (confirmations < REQUIRED_CONFIRMATIONS) {
+  if (!inspected.mined && confirmations < 1) {
     const pending = await prisma.deposit.findUniqueOrThrow({
       where: { id: registered.id },
       include: { stake: { select: { id: true } } },

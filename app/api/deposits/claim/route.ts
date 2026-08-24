@@ -44,13 +44,13 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof DepositServiceError) {
       const status =
-        err.code === "NOT_FOUND" || err.code === "TX_NOT_VERIFIED"
+        err.code === "NOT_FOUND" || err.code === "TX_NOT_VERIFIED" || err.code === "TX_NOT_FOUND"
           ? 404
           : err.code === "TX_OWNED_BY_OTHER"
             ? 409
             : err.code === "DUPLICATE_TX"
               ? 409
-              : err.code === "TX_REVERTED"
+              : err.code === "TX_REVERTED" || err.code === "TX_WRONG_TREASURY" || err.code === "TX_WRONG_TOKEN"
                 ? 422
                 : 400;
       return NextResponse.json(
