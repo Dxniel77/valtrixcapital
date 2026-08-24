@@ -197,6 +197,7 @@ export default function AdminUsersPage() {
               <TH>{t("admin.users.colRegistration")}</TH>
               <TH>{t("admin.users.colReferredBy")}</TH>
               <TH className="text-right">{t("admin.users.colDirectRefs")}</TH>
+              <TH className="text-right">{t("admin.copyTrading.copyCash")}</TH>
               <TH className="text-right">{t("admin.leaders.colOperational")}</TH>
               <TH className="text-right">{t("admin.leaders.colNetwork")}</TH>
               <TH className="text-right">{t("admin.leaders.colPassive")}</TH>
@@ -303,6 +304,9 @@ export default function AdminUsersPage() {
                     )}
                   </TD>
                   <TD className="text-right font-mono">{u.referrals}</TD>
+                  <TD className="text-right font-mono text-xs">
+                    ${formatNumber(u.copyCashBalance ?? 0, { decimals: 2 })}
+                  </TD>
                   <TD className="text-right font-mono text-xs">
                     ${formatNumber(row.operational, { decimals: 0 })}
                   </TD>

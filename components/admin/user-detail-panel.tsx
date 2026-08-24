@@ -178,6 +178,10 @@ export function UserDetailPanel({
         <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label={t("admin.lookup.capital")} value={`$${formatNumber(totals.capital, { decimals: 0 })}`} />
           <Stat
+            label={t("admin.copyTrading.copyCash")}
+            value={`$${formatNumber(user.copyCashBalance ?? 0, { decimals: 2 })}`}
+          />
+          <Stat
             label={t("admin.partialRelease.balance")}
             value={`$${formatNumber(totals.balance, { decimals: 2 })}`}
           />
