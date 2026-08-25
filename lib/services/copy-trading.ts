@@ -1559,6 +1559,50 @@ export async function investInCopyTrader(input: {
       );
     }
 
+    const existing = await tx.copyInvestment.findFirst({
+      where: {
+        userId: input.userId,
+        traderId: input.traderId,
+        status: "ACTIVE",
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
+    if (existing) {
+      const toppedUp = await tx.copyInvestment.update({
+        where: { id: existing.id },
+        data: {
+          principal: { increment: copiedMicro },
+          currentValue: { increment: copiedMicro },
+          status: "ACTIVE",
+        },
+        include: { trader: true },
+      });
+
+      await tx.copyInvestmentLedger.create({
+        data: {
+          investmentId: toppedUp.id,
+          kind: "INVEST",
+          amount: copiedMicro,
+          balanceAfter: toppedUp.currentValue,
+          note:
+            investFee > 0n
+              ? `Added copy capital (fee ${fromMicro(investFee)} USDT)`
+              : "Added copy capital",
+        },
+      });
+
+      await tx.copyTrader.update({
+        where: { id: input.traderId },
+        data: {
+          aum: { increment: copiedMicro },
+          totalInvested: { increment: copiedMicro },
+        },
+      });
+
+      return toppedUp;
+    }
+
     const created = await tx.copyInvestment.create({
       data: {
         userId: input.userId,
@@ -1589,7 +1633,7 @@ export async function investInCopyTrader(input: {
       data: {
         aum: { increment: copiedMicro },
         totalInvested: { increment: copiedMicro },
-        investorsCount: prior === 0 ? { increment: 1 } : undefined,
+        investorsCount: { increment: 1 },
       },
     });
 
