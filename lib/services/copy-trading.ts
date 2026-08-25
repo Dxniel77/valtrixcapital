@@ -192,12 +192,59 @@ export type CopyInvestmentDto = {
   traderId: string;
   traderName: string;
   traderRisk: CopyRiskLevel;
+  traderPhotoUrl?: string | null;
+  traderCountryCode?: string | null;
+  traderAum?: number;
+  traderRoiBps?: number;
+  traderWinRateBps?: number;
+  investorsCount?: number;
+  maxInvestors?: number;
   principal: number;
   currentValue: number;
   realizedPnl: number;
   roiBps: number;
   status: CopyInvestmentStatus;
   startedAt: number;
+};
+
+export type CopyInvestmentHistoryOperationDto = {
+  id: string;
+  symbol: string;
+  direction: "LONG" | "SHORT";
+  leverage: number;
+  settledReturnBps: number | null;
+  status: "OPEN" | "CLOSED";
+  openedAt: string;
+  closedAt: string | null;
+  myPnl: number;
+  myFee: number;
+  myNet: number;
+};
+
+export type CopyInvestmentHistoryMovementDto = {
+  id: string;
+  kind: CopyLedgerKind;
+  amount: number;
+  balanceAfter: number;
+  at: number;
+  note: string | null;
+};
+
+export type CopyInvestmentHistoryDto = {
+  investment: CopyInvestmentDto;
+  summary: {
+    capitalPlaced: number;
+    startedAt: number;
+    currentValue: number;
+    withdrawn: number;
+    gains: number;
+    losses: number;
+    accumulatedPnl: number;
+    commissionsPaid: number;
+    netResult: number;
+  };
+  operations: CopyInvestmentHistoryOperationDto[];
+  movements: CopyInvestmentHistoryMovementDto[];
 };
 
 export type CopyWithdrawalDto = {
@@ -538,6 +585,13 @@ function serializeInvestment(inv: InvestmentRow): CopyInvestmentDto {
     traderId: inv.traderId,
     traderName: inv.trader.name,
     traderRisk: inv.trader.riskLevel,
+    traderPhotoUrl: inv.trader.photoUrl,
+    traderCountryCode: inv.trader.countryCode,
+    traderAum: fromMicro(inv.trader.aum),
+    traderRoiBps: inv.trader.roiBps,
+    traderWinRateBps: inv.trader.winRateBps,
+    investorsCount: inv.trader.investorsCount,
+    maxInvestors: inv.trader.maxInvestors,
     principal: fromMicro(inv.principal),
     currentValue: fromMicro(inv.currentValue),
     realizedPnl: fromMicro(inv.realizedPnl),
@@ -1392,6 +1446,119 @@ export async function listUserCopyInvestments(
     orderBy: { startedAt: "desc" },
   });
   return rows.map(serializeInvestment);
+}
+
+export async function getCopyInvestmentHistory(
+  userId: string,
+  investmentId: string,
+): Promise<CopyInvestmentHistoryDto> {
+  const inv = await prisma.copyInvestment.findFirst({
+    where: { id: investmentId, userId },
+    include: {
+      trader: true,
+      ledger: { orderBy: { createdAt: "desc" } },
+    },
+  });
+  if (!inv) throw new CopyTradingError("Investment not found", "NOT_FOUND");
+
+  let capitalPlaced = 0n;
+  let withdrawn = 0n;
+  let gains = 0n;
+  let losses = 0n;
+  let commissions = 0n;
+  const pnlByPerf = new Map<string, bigint>();
+  const feeByPerf = new Map<string, bigint>();
+
+  for (const row of inv.ledger) {
+    if (row.kind === "INVEST" && row.amount > 0n) capitalPlaced += row.amount;
+    if (row.kind === "WITHDRAWAL") {
+      withdrawn += row.amount < 0n ? -row.amount : row.amount;
+    }
+    if (row.kind === "PNL") {
+      if (row.amount >= 0n) gains += row.amount;
+      else losses += -row.amount;
+      if (row.performanceId) {
+        pnlByPerf.set(
+          row.performanceId,
+          (pnlByPerf.get(row.performanceId) ?? 0n) + row.amount,
+        );
+      }
+    }
+    const fee = companyFeeFromLedger(row);
+    if (fee > 0n) {
+      commissions += fee;
+      if (row.performanceId) {
+        feeByPerf.set(
+          row.performanceId,
+          (feeByPerf.get(row.performanceId) ?? 0n) + fee,
+        );
+      }
+    }
+  }
+
+  const accumulatedPnl = gains - losses;
+  const netResult = accumulatedPnl - commissions;
+  const perfIds = [
+    ...new Set(
+      inv.ledger.flatMap((row) =>
+        row.performanceId ? [row.performanceId] : [],
+      ),
+    ),
+  ];
+
+  const opRows =
+    perfIds.length > 0
+      ? await prisma.copyTraderOperation.findMany({
+          where: {
+            traderId: inv.traderId,
+            performanceEventId: { in: perfIds },
+          },
+          orderBy: { openedAt: "desc" },
+        })
+      : [];
+
+  const operations = opRows.map((op) => {
+    const eventId = op.performanceEventId;
+    const myPnl = eventId ? (pnlByPerf.get(eventId) ?? 0n) : 0n;
+    const myFee = eventId ? (feeByPerf.get(eventId) ?? 0n) : 0n;
+    return {
+      id: op.id,
+      symbol: op.symbol,
+      direction: op.direction as "LONG" | "SHORT",
+      leverage: op.leverage,
+      settledReturnBps: op.settledReturnBps,
+      status: op.status as "OPEN" | "CLOSED",
+      openedAt: op.openedAt.toISOString(),
+      closedAt: op.closedAt?.toISOString() ?? null,
+      myPnl: fromMicro(myPnl),
+      myFee: fromMicro(myFee),
+      myNet: fromMicro(myPnl - myFee),
+    };
+  });
+
+  return {
+    investment: serializeInvestment(inv),
+    summary: {
+      capitalPlaced: fromMicro(capitalPlaced),
+      startedAt: inv.startedAt.getTime(),
+      currentValue: fromMicro(inv.currentValue),
+      withdrawn: fromMicro(withdrawn),
+      gains: fromMicro(gains),
+      losses: fromMicro(losses),
+      accumulatedPnl: fromMicro(accumulatedPnl),
+      commissionsPaid: fromMicro(commissions),
+      netResult: fromMicro(netResult),
+    },
+    operations,
+    movements: inv.ledger.map((row) => ({
+      id: row.id,
+      kind: row.kind,
+      amount: fromMicro(row.amount),
+      balanceAfter: fromMicro(row.balanceAfter),
+      at: row.createdAt.getTime(),
+      note: row.note,
+    })),
+  };
 }
 
 export async function listUserCopyEvents(userId: string): Promise<
