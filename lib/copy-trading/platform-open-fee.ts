@@ -1,4 +1,8 @@
 export const DEFAULT_OPEN_FEE_BPS = 5;
+/** 1% of capital placed into a copy. */
+export const DEFAULT_INVEST_FEE_BPS = 100;
+/** 0.03% of capital withdrawn from a copy. */
+export const DEFAULT_WITHDRAW_FEE_BPS = 3;
 
 /** 0.05% of notional (capital × leverage) unless a different bps is configured. */
 export function platformOpenFeeMicro(

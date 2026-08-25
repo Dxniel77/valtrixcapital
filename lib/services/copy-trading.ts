@@ -46,7 +46,9 @@ import {
 } from "@/lib/copy-trading/performance-fee-network";
 import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
 import {
+  DEFAULT_INVEST_FEE_BPS,
   DEFAULT_OPEN_FEE_BPS,
+  DEFAULT_WITHDRAW_FEE_BPS,
   platformOpenFeeMicro,
   platformOpenFeeNote,
 } from "@/lib/copy-trading/platform-open-fee";
@@ -622,7 +624,12 @@ export async function ensureCopyTradingConfig(): Promise<CopyTradingConfigDto> {
   const row = await prisma.copyTradingConfig.upsert({
     where: { id: 1 },
     update: {},
-    create: { id: 1 },
+    create: {
+      id: 1,
+      investFeeBps: DEFAULT_INVEST_FEE_BPS,
+      withdrawFeeBps: DEFAULT_WITHDRAW_FEE_BPS,
+      openFeeBps: DEFAULT_OPEN_FEE_BPS,
+    },
   });
   return serializeCopyConfig(row);
 }
@@ -641,8 +648,8 @@ function serializeCopyConfig(row: {
     globalMinInvestment: fromMicro(row.globalMinInvestment),
     withdrawalMode: row.withdrawalMode,
     notifyOnPerformance: row.notifyOnPerformance,
-    investFeeBps: row.investFeeBps ?? 0,
-    withdrawFeeBps: row.withdrawFeeBps ?? 0,
+    investFeeBps: row.investFeeBps ?? DEFAULT_INVEST_FEE_BPS,
+    withdrawFeeBps: row.withdrawFeeBps ?? DEFAULT_WITHDRAW_FEE_BPS,
     performanceFeeNetworkBps: normalizePerformanceFeeNetworkBps(
       row.performanceFeeNetworkBps ?? DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
     ),
@@ -1468,6 +1475,8 @@ export async function getCopyInvestmentHistory(
   let commissions = 0n;
   const pnlByPerf = new Map<string, bigint>();
   const feeByPerf = new Map<string, bigint>();
+  const openFeeByOp = new Map<string, bigint>();
+  const openFeePrefix = platformOpenFeeNote("");
 
   for (const row of inv.ledger) {
     if (row.kind === "INVEST" && row.amount > 0n) capitalPlaced += row.amount;
@@ -1492,6 +1501,15 @@ export async function getCopyInvestmentHistory(
           row.performanceId,
           (feeByPerf.get(row.performanceId) ?? 0n) + fee,
         );
+      }
+      if (
+        row.kind === "PLATFORM_FEE" &&
+        row.note?.startsWith(openFeePrefix)
+      ) {
+        const opId = row.note.slice(openFeePrefix.length);
+        if (opId) {
+          openFeeByOp.set(opId, (openFeeByOp.get(opId) ?? 0n) + fee);
+        }
       }
     }
   }
@@ -1520,7 +1538,9 @@ export async function getCopyInvestmentHistory(
   const operations = opRows.map((op) => {
     const eventId = op.performanceEventId;
     const myPnl = eventId ? (pnlByPerf.get(eventId) ?? 0n) : 0n;
-    const myFee = eventId ? (feeByPerf.get(eventId) ?? 0n) : 0n;
+    const myFee =
+      (eventId ? (feeByPerf.get(eventId) ?? 0n) : 0n) +
+      (openFeeByOp.get(op.id) ?? 0n);
     return {
       id: op.id,
       symbol: op.symbol,

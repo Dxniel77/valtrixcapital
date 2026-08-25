@@ -288,8 +288,8 @@ export default function AdminCopyTradingPage() {
   const [copierFilter, setCopierFilter] = React.useState<CopierFilter>("copiers");
   const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
-  const [investFeePct, setInvestFeePct] = React.useState("0");
-  const [withdrawFeePct, setWithdrawFeePct] = React.useState("0");
+  const [investFeePct, setInvestFeePct] = React.useState("1.00");
+  const [withdrawFeePct, setWithdrawFeePct] = React.useState("0.03");
   const [openFeePct, setOpenFeePct] = React.useState("0.05");
   const [networkPcts, setNetworkPcts] = React.useState([
     "30",
@@ -492,11 +492,9 @@ export default function AdminCopyTradingPage() {
       const next = await apiFetch<Dashboard & { ok: boolean }>("/api/admin/copy");
       setData(next);
       if (next.config) {
-        setInvestFeePct(String(next.config.investFeeBps / 100));
-        setWithdrawFeePct(String(next.config.withdrawFeeBps / 100));
-        setOpenFeePct(
-          String(((next.config.openFeeBps ?? 5) / 100).toFixed(2)),
-        );
+        setInvestFeePct(((next.config.investFeeBps ?? 100) / 100).toFixed(2));
+        setWithdrawFeePct(((next.config.withdrawFeeBps ?? 3) / 100).toFixed(2));
+        setOpenFeePct(((next.config.openFeeBps ?? 5) / 100).toFixed(2));
         if (next.config.performanceFeeNetworkBps?.length === 6) {
           setNetworkPcts(
             next.config.performanceFeeNetworkBps.map((bps) =>
@@ -736,8 +734,9 @@ export default function AdminCopyTradingPage() {
                   <Input
                     type="number"
                     inputMode="decimal"
-                    step="0.1"
+                    step="0.01"
                     min={0}
+                    max={20}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     value={investFeePct}
                     onChange={(e) => setInvestFeePct(e.target.value)}
@@ -750,8 +749,9 @@ export default function AdminCopyTradingPage() {
                   <Input
                     type="number"
                     inputMode="decimal"
-                    step="0.1"
+                    step="0.01"
                     min={0}
+                    max={20}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     value={withdrawFeePct}
                     onChange={(e) => setWithdrawFeePct(e.target.value)}
@@ -766,6 +766,7 @@ export default function AdminCopyTradingPage() {
                     inputMode="decimal"
                     step="0.01"
                     min={0}
+                    max={20}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     value={openFeePct}
                     onChange={(e) => setOpenFeePct(e.target.value)}

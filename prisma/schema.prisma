@@ -969,9 +969,9 @@ model CopyTradingConfig {
   withdrawalMode      CopyWithdrawalMode @default(INSTANT)
   notifyOnPerformance Boolean            @default(true)
   /// Fee taken from the amount when starting a copy (bps, 100 = 1%).
-  investFeeBps        Int                @default(0)
-  /// Fee taken from the amount when leaving a copy (bps).
-  withdrawFeeBps      Int                @default(0)
+  investFeeBps        Int                @default(100)
+  /// Fee taken from the amount when leaving a copy (bps, 3 = 0.03%).
+  withdrawFeeBps      Int                @default(3)
   /// Unused. Kept so existing databases do not need a destructive migration.
   settlementCutoffHour Int               @default(22)
   /// Unused. Kept so existing databases do not need a destructive migration.
