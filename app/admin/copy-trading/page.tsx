@@ -7,7 +7,6 @@ import {
   Bot,
   Eye,
   EyeOff,
-  FileSpreadsheet,
   Pencil,
   Plus,
   Star,
@@ -636,30 +635,10 @@ export default function AdminCopyTradingPage() {
         title={t("admin.copyTrading.title")}
         subtitle={t("admin.copyTrading.subtitle")}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/copy-trading/live">
-                <Activity className="h-3.5 w-3.5" />
-                {t("admin.copyTrading.liveBoard")}
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/copy-trading/income">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                {t("admin.copyTrading.incomeReports")}
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/copy-trading/copiers">
-                <Users className="h-3.5 w-3.5" />
-                {t("admin.copyTrading.allCopiers")}
-              </Link>
-            </Button>
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="h-3.5 w-3.5" />
-              {t("admin.copyTrading.newTrader")}
-            </Button>
-          </div>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            {t("admin.copyTrading.newTrader")}
+          </Button>
         }
       />
 

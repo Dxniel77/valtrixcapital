@@ -4,6 +4,7 @@ import {
   DEFAULT_PERFORMANCE_FEE_BPS,
   DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
   normalizePerformanceFeeNetworkBps,
+  performanceFeeUnfilledRetention,
   splitPerformanceFeeNetwork,
   traderPerformanceFeeBps,
 } from "./performance-fee-network";
@@ -83,5 +84,26 @@ describe("performance fee network split", () => {
     assert.ok(rates.reduce((sum, value) => sum + value, 0) <= 10_000);
     const split = splitPerformanceFeeNetwork(100n * USDT, rates, 6);
     assert.ok(split.networkTotal + split.companyKept <= 100n * USDT);
+  });
+
+  it("separates empty-upline remainder from the configured company share", () => {
+    const fee = 30n * USDT;
+    const full = performanceFeeUnfilledRetention(
+      fee,
+      DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+      [1, 2, 3, 4, 5, 6],
+    );
+    assert.equal(full.expectedNetwork, 21n * USDT);
+    assert.equal(full.unfilledRetained, 0n);
+    assert.equal(full.companyShare, 9n * USDT);
+
+    const short = performanceFeeUnfilledRetention(
+      fee,
+      DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+      [1],
+    );
+    assert.equal(short.unfilledRetained, 12n * USDT);
+    assert.equal(short.companyShare, 9n * USDT);
+    assert.equal(short.unfilledRetained + short.companyShare, 21n * USDT);
   });
 });

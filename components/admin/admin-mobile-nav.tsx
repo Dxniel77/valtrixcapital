@@ -6,6 +6,21 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  copyTradingTabActive,
+  isCopyTradingSection,
+} from "@/lib/admin/copy-trading-tabs";
+
+type AdminMobileNavItem = {
+  href: string;
+  key: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: readonly {
+    href: string;
+    key: string;
+    labelKey: string;
+  }[];
+};
 
 export function AdminMobileNav({
   open,
@@ -14,11 +29,7 @@ export function AdminMobileNav({
 }: {
   open: boolean;
   onClose: () => void;
-  items: readonly {
-    href: string;
-    key: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[];
+  items: readonly AdminMobileNavItem[];
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
@@ -56,8 +67,10 @@ export function AdminMobileNav({
           <ul className="space-y-0.5">
             {items.map((it) => {
               const active =
-                pathname === it.href ||
-                (it.href !== "/admin" && pathname.startsWith(it.href));
+                it.href === "/admin/copy-trading"
+                  ? isCopyTradingSection(pathname)
+                  : pathname === it.href ||
+                    (it.href !== "/admin" && pathname.startsWith(it.href));
               return (
                 <li key={it.href}>
                   <Link
@@ -73,6 +86,32 @@ export function AdminMobileNav({
                     <it.icon className="h-[18px] w-[18px]" />
                     {t(`admin.nav.${it.key}`)}
                   </Link>
+                  {it.children ? (
+                    <ul className="mt-0.5 space-y-0.5 pb-1 pl-4">
+                      {it.children.map((child) => {
+                        const childActive = copyTradingTabActive(
+                          child.href,
+                          pathname,
+                        );
+                        return (
+                          <li key={`${child.href}-${child.key}`}>
+                            <Link
+                              href={child.href}
+                              onClick={onClose}
+                              className={cn(
+                                "block rounded-md px-3 py-2 text-[13px]",
+                                childActive
+                                  ? "bg-gold/10 text-gold"
+                                  : "text-text-muted hover:bg-bg-hover",
+                              )}
+                            >
+                              {t(child.labelKey)}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
                 </li>
               );
             })}

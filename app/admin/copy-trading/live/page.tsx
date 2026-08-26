@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { LiveCountdown } from "@/components/admin/live-countdown";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -253,21 +252,6 @@ export default function AdminCopyLiveBoardPage() {
       <PageHeader
         title={t("admin.copyTrading.liveBoardTitle")}
         subtitle={t("admin.copyTrading.liveBoardSubtitle")}
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/copy-trading/income">
-                {t("admin.copyTrading.incomeReports")}
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/copy-trading">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                {t("admin.copyTrading.backToList")}
-              </Link>
-            </Button>
-          </div>
-        }
       />
 
       {loading && !data ? (

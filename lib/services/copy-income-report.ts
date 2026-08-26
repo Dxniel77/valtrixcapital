@@ -7,6 +7,11 @@ import {
   parseCopyInOutFeeMicro,
   type CopyIncomePeriod,
 } from "@/lib/copy-trading/income-period";
+import {
+  COPY_NETWORK_LEVELS,
+  performanceFeeUnfilledRetention,
+} from "@/lib/copy-trading/performance-fee-network";
+import { ensureCopyTradingConfig } from "@/lib/services/copy-trading";
 import { fromMicro } from "@/lib/utils";
 
 export type CopyIncomeTotals = {
@@ -14,6 +19,9 @@ export type CopyIncomeTotals = {
   performanceFees: number;
   copyInOutFees: number;
   networkPaid: number;
+  networkByLevel: number[];
+  unfilledLevelRetained: number;
+  companyPerfFeeShare: number;
   companyKept: number;
   totalIncome: number;
   grossPositive: number;
@@ -21,6 +29,13 @@ export type CopyIncomeTotals = {
   netGross: number;
   deposits: number;
   opsClosed: number;
+};
+
+export type CopyIncomeSnapshot = {
+  connectedCapital: number;
+  copierPrincipal: number;
+  copierPnl: number;
+  activeCopies: number;
 };
 
 export type CopyIncomeBucketRow = CopyIncomeTotals & {
@@ -37,6 +52,8 @@ export type AdminCopyIncomeReportDto = {
   from: string | null;
   to: string;
   generatedAt: string;
+  networkRatesBps: number[];
+  snapshot: CopyIncomeSnapshot;
   totals: CopyIncomeTotals;
   buckets: CopyIncomeBucketRow[];
   traders: CopyIncomeTraderRow[];
@@ -47,11 +64,18 @@ type MutableTotals = {
   performanceFees: bigint;
   copyInOutFees: bigint;
   networkPaid: bigint;
+  networkByLevel: bigint[];
+  unfilledLevelRetained: bigint;
+  companyPerfFeeShare: bigint;
   grossPositive: bigint;
   grossNegative: bigint;
   deposits: bigint;
   opsClosed: number;
 };
+
+function emptyLevels(): bigint[] {
+  return Array.from({ length: COPY_NETWORK_LEVELS }, () => 0n);
+}
 
 function emptyTotals(): MutableTotals {
   return {
@@ -59,6 +83,9 @@ function emptyTotals(): MutableTotals {
     performanceFees: 0n,
     copyInOutFees: 0n,
     networkPaid: 0n,
+    networkByLevel: emptyLevels(),
+    unfilledLevelRetained: 0n,
+    companyPerfFeeShare: 0n,
     grossPositive: 0n,
     grossNegative: 0n,
     deposits: 0n,
@@ -76,6 +103,9 @@ function serializeTotals(row: MutableTotals): CopyIncomeTotals {
     performanceFees: fromMicro(row.performanceFees),
     copyInOutFees: fromMicro(row.copyInOutFees),
     networkPaid: fromMicro(row.networkPaid),
+    networkByLevel: row.networkByLevel.map((value) => fromMicro(value)),
+    unfilledLevelRetained: fromMicro(row.unfilledLevelRetained),
+    companyPerfFeeShare: fromMicro(row.companyPerfFeeShare),
     companyKept: fromMicro(
       row.platformFees + row.copyInOutFees + companyKeptPerf,
     ),
@@ -93,10 +123,24 @@ function addInto(target: MutableTotals, delta: Partial<MutableTotals>) {
   target.performanceFees += delta.performanceFees ?? 0n;
   target.copyInOutFees += delta.copyInOutFees ?? 0n;
   target.networkPaid += delta.networkPaid ?? 0n;
+  target.unfilledLevelRetained += delta.unfilledLevelRetained ?? 0n;
+  target.companyPerfFeeShare += delta.companyPerfFeeShare ?? 0n;
   target.grossPositive += delta.grossPositive ?? 0n;
   target.grossNegative += delta.grossNegative ?? 0n;
   target.deposits += delta.deposits ?? 0n;
   target.opsClosed += delta.opsClosed ?? 0;
+  if (delta.networkByLevel) {
+    for (let index = 0; index < COPY_NETWORK_LEVELS; index += 1) {
+      target.networkByLevel[index] += delta.networkByLevel[index] ?? 0n;
+    }
+  }
+}
+
+function addNetworkLevel(target: MutableTotals, level: number, amount: bigint) {
+  const index = Math.trunc(level) - 1;
+  if (index < 0 || index >= COPY_NETWORK_LEVELS || amount <= 0n) return;
+  target.networkByLevel[index] += amount;
+  target.networkPaid += amount;
 }
 
 function bucketMap(keys: string[]) {
@@ -121,7 +165,8 @@ export async function getAdminCopyIncomeReport(
   const createdAt = from ? { gte: from, lte: to } : { lte: to };
   const closedAt = createdAt;
 
-  const [ledgers, commissions, operations] = await Promise.all([
+  const [config, ledgers, operations, activeAggregate] = await Promise.all([
+    ensureCopyTradingConfig(),
     prisma.copyInvestmentLedger.findMany({
       where: {
         createdAt,
@@ -138,30 +183,13 @@ export async function getAdminCopyIncomeReport(
         amount: true,
         note: true,
         createdAt: true,
+        networkCommissions: {
+          select: { level: true, amount: true },
+        },
         investment: {
           select: {
             traderId: true,
             trader: { select: { name: true } },
-          },
-        },
-      },
-    }),
-    prisma.commission.findMany({
-      where: {
-        sourceCopyLedgerId: { not: null },
-        createdAt,
-      },
-      select: {
-        amount: true,
-        createdAt: true,
-        copyLedger: {
-          select: {
-            investment: {
-              select: {
-                traderId: true,
-                trader: { select: { name: true } },
-              },
-            },
           },
         },
       },
@@ -177,14 +205,17 @@ export async function getAdminCopyIncomeReport(
         trader: { select: { name: true } },
       },
     }),
+    prisma.copyInvestment.aggregate({
+      where: { status: "ACTIVE" },
+      _count: true,
+      _sum: { principal: true, currentValue: true },
+    }),
   ]);
 
+  const rates = config.performanceFeeNetworkBps;
   const totals = emptyTotals();
   const buckets = bucketMap(copyIncomeBucketLabels(period, from, to));
-  const traders = new Map<
-    string,
-    { name: string; totals: MutableTotals }
-  >();
+  const traders = new Map<string, { name: string; totals: MutableTotals }>();
 
   const traderRow = (traderId: string, traderName: string) => {
     const existing = traders.get(traderId);
@@ -209,9 +240,22 @@ export async function getAdminCopyIncomeReport(
       addInto(trader.totals, { platformFees: fee });
     } else if (row.kind === "PERFORMANCE_FEE") {
       const fee = absFeeMicro(row.amount);
-      addInto(totals, { performanceFees: fee });
-      addInto(bucket, { performanceFees: fee });
-      addInto(trader.totals, { performanceFees: fee });
+      const paidLevels = row.networkCommissions.map((item) => item.level);
+      const retention = performanceFeeUnfilledRetention(fee, rates, paidLevels);
+      const pfDelta: Partial<MutableTotals> = {
+        performanceFees: fee,
+        unfilledLevelRetained: retention.unfilledRetained,
+        companyPerfFeeShare: retention.companyShare,
+      };
+      addInto(totals, pfDelta);
+      addInto(bucket, pfDelta);
+      addInto(trader.totals, pfDelta);
+      for (const commission of row.networkCommissions) {
+        const amount = absFeeMicro(commission.amount);
+        addNetworkLevel(totals, commission.level, amount);
+        addNetworkLevel(bucket, commission.level, amount);
+        addNetworkLevel(trader.totals, commission.level, amount);
+      }
     } else if (row.kind === "INVEST") {
       if (row.amount > 0n) {
         addInto(totals, { deposits: row.amount });
@@ -231,22 +275,6 @@ export async function getAdminCopyIncomeReport(
         addInto(bucket, { copyInOutFees: fee });
         addInto(trader.totals, { copyInOutFees: fee });
       }
-    }
-  }
-
-  for (const row of commissions) {
-    const fee = absFeeMicro(row.amount);
-    const bucket = ensureBucket(
-      buckets,
-      copyIncomeBucketKey(period, row.createdAt),
-    );
-    addInto(totals, { networkPaid: fee });
-    addInto(bucket, { networkPaid: fee });
-    const investment = row.copyLedger?.investment;
-    if (investment) {
-      addInto(traderRow(investment.traderId, investment.trader.name).totals, {
-        networkPaid: fee,
-      });
     }
   }
 
@@ -279,11 +307,21 @@ export async function getAdminCopyIncomeReport(
     }))
     .sort((a, b) => b.totalIncome - a.totalIncome);
 
+  const copierPrincipal = activeAggregate._sum.principal ?? 0n;
+  const connectedCapital = activeAggregate._sum.currentValue ?? 0n;
+
   return {
     period,
     from: from?.toISOString() ?? null,
     to: to.toISOString(),
     generatedAt: now.toISOString(),
+    networkRatesBps: rates,
+    snapshot: {
+      connectedCapital: fromMicro(connectedCapital),
+      copierPrincipal: fromMicro(copierPrincipal),
+      copierPnl: fromMicro(connectedCapital - copierPrincipal),
+      activeCopies: activeAggregate._count,
+    },
     totals: serializeTotals(totals),
     buckets: bucketRows,
     traders: traderRows,

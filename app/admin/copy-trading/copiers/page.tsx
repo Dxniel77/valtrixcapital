@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
@@ -89,14 +87,6 @@ export default function AdminCopyCopiersPage() {
       <PageHeader
         title={t("admin.copyTrading.copiersTitle")}
         subtitle={t("admin.copyTrading.copiersSubtitle")}
-        actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin/copy-trading">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              {t("admin.copyTrading.backToList")}
-            </Link>
-          </Button>
-        }
       />
 
       {loading ? (

@@ -71,3 +71,42 @@ export function splitPerformanceFeeNetwork(
   const companyKept = feeMicro > networkTotal ? feeMicro - networkTotal : 0n;
   return { payouts, networkTotal, companyKept };
 }
+
+export type PerformanceFeeRetention = {
+  expectedNetwork: bigint;
+  unfilledRetained: bigint;
+  companyShare: bigint;
+};
+
+/**
+ * Breaks a Performance Fee into: full L1–L6 if every upline existed,
+ * the slice kept because some levels were empty, and the configured company remainder.
+ */
+export function performanceFeeUnfilledRetention(
+  feeMicro: bigint,
+  ratesBps: readonly number[],
+  paidLevels: Iterable<number>,
+): PerformanceFeeRetention {
+  if (feeMicro <= 0n) {
+    return { expectedNetwork: 0n, unfilledRetained: 0n, companyShare: 0n };
+  }
+
+  const rates = normalizePerformanceFeeNetworkBps(ratesBps);
+  const paid = new Set<number>();
+  for (const raw of paidLevels) {
+    const level = Math.trunc(raw);
+    if (level >= 1 && level <= COPY_NETWORK_LEVELS) paid.add(level);
+  }
+
+  let expectedNetwork = 0n;
+  let unfilledRetained = 0n;
+  for (let index = 0; index < COPY_NETWORK_LEVELS; index += 1) {
+    const expected = (feeMicro * BigInt(rates[index] ?? 0)) / 10_000n;
+    expectedNetwork += expected;
+    if (!paid.has(index + 1)) unfilledRetained += expected;
+  }
+
+  const companyShare =
+    feeMicro > expectedNetwork ? feeMicro - expectedNetwork : 0n;
+  return { expectedNetwork, unfilledRetained, companyShare };
+}

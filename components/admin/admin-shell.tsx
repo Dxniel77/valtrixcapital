@@ -41,14 +41,31 @@ import { usePlatformConfigSync } from "@/lib/hooks/use-platform-config-sync";
 import { useAdminMovementsSync } from "@/lib/hooks/use-admin-movements-sync";
 import { useAdminAuditSync } from "@/lib/hooks/use-admin-audit-sync";
 import { useTreasurySync } from "@/lib/hooks/use-treasury-sync";
+import {
+  COPY_TRADING_TABS,
+  copyTradingTabActive,
+  isCopyTradingSection,
+} from "@/lib/admin/copy-trading-tabs";
 
-export const adminNavItems = [
+type AdminNavItem = {
+  href: string;
+  key: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: typeof COPY_TRADING_TABS;
+};
+
+export const adminNavItems: AdminNavItem[] = [
   { href: "/admin", key: "overview", icon: LayoutDashboard },
   { href: "/admin/treasury", key: "treasury", icon: Landmark },
   { href: "/admin/hot-wallet", key: "hotWallet", icon: ArrowUpFromLine },
   { href: "/admin/grant", key: "grant", icon: UserPlus },
   { href: "/admin/ib", key: "ib", icon: Handshake },
-  { href: "/admin/copy-trading", key: "copyTrading", icon: Bot },
+  {
+    href: "/admin/copy-trading",
+    key: "copyTrading",
+    icon: Bot,
+    children: COPY_TRADING_TABS,
+  },
   { href: "/admin/sponsorship", key: "sponsorship", icon: Calendar },
   { href: "/admin/lookup", key: "lookup", icon: Search },
   { href: "/admin/leaders", key: "leaders", icon: Trophy },
@@ -96,8 +113,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <ul className="space-y-0.5">
             {adminNavItems.map((it) => {
               const active =
-                pathname === it.href ||
-                (it.href !== "/admin" && pathname.startsWith(it.href));
+                it.href === "/admin/copy-trading"
+                  ? isCopyTradingSection(pathname)
+                  : pathname === it.href ||
+                    (it.href !== "/admin" && pathname.startsWith(it.href));
               return (
                 <li key={it.href}>
                   <Link
@@ -115,6 +134,31 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     <it.icon className="h-[18px] w-[18px] shrink-0" />
                     <span>{t(`admin.nav.${it.key}`)}</span>
                   </Link>
+                  {it.children ? (
+                    <ul className="mt-0.5 space-y-0.5 pb-1 pl-4">
+                      {it.children.map((child) => {
+                        const childActive = copyTradingTabActive(
+                          child.href,
+                          pathname,
+                        );
+                        return (
+                          <li key={`${child.href}-${child.key}`}>
+                            <Link
+                              href={child.href}
+                              className={cn(
+                                "block rounded-md px-3 py-1.5 text-[13px] transition-colors",
+                                childActive
+                                  ? "bg-gold/10 text-gold"
+                                  : "text-text-muted hover:bg-bg-hover hover:text-text-primary",
+                              )}
+                            >
+                              {t(child.labelKey)}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
                 </li>
               );
             })}
