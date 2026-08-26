@@ -45,6 +45,7 @@ export interface CommissionRecord {
   sourceWallet: string;
   sourceYieldId: string | null;
   sourceTradeId?: string | null;
+  sourceCopyLedgerId?: string | null;
   yieldDate: string;
   rateBps: number;
   amount: number;

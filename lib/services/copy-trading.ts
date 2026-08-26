@@ -38,13 +38,14 @@ import {
   utcNextDayStart,
 } from "@/lib/copy-trading/operation-schedule";
 import {
-  COPY_NETWORK_LEVELS,
   DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
   normalizePerformanceFeeNetworkBps,
-  splitPerformanceFeeNetwork,
   traderPerformanceFeeBps,
 } from "@/lib/copy-trading/performance-fee-network";
-import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
+import {
+  distributePerformanceFeeRows,
+  ensurePerformanceFeeNetworkForEvent,
+} from "@/lib/copy-trading/distribute-performance-fee-network";
 import {
   DEFAULT_COPY_CASH_WALLET_FEE_BPS,
   DEFAULT_INVEST_FEE_BPS,
@@ -80,7 +81,6 @@ import {
   type HistoryBias,
   type SyntheticHistoryOp,
 } from "@/lib/copy-trading/synthetic-history";
-import { resolveUplineChain } from "@/lib/services/referral-chain";
 import { getDefaultAdminActorId } from "@/lib/services/admin";
 import { fromMicro, toMicro } from "@/lib/utils";
 
@@ -1995,6 +1995,7 @@ export async function applyTraderPerformanceUpdate(input: {
     where: { idempotencyKey },
   });
   if (prior) {
+    await ensurePerformanceFeeNetworkForEvent(prior.id);
     return {
       affected: 0,
       totalDelta: 0,
@@ -2131,15 +2132,15 @@ export async function applyTraderPerformanceUpdate(input: {
             copyConfig?.performanceFeeNetworkBps ??
               DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
           );
-          for (const row of feeRows) {
-            const feeMicro = row.amount < 0n ? -row.amount : row.amount;
-            await distributePerformanceFeeNetwork(tx, {
-              sourceUserId: row.investment.userId,
-              feeLedgerId: row.id,
-              feeMicro,
-              ratesBps: networkRates,
-            });
-          }
+          await distributePerformanceFeeRows(
+            tx,
+            feeRows.map((row) => ({
+              id: row.id,
+              amount: row.amount,
+              userId: row.investment.userId,
+            })),
+            networkRates,
+          );
         }
 
         // Equity curve is cumulative. Continue from the previous day, then add
@@ -2206,6 +2207,7 @@ export async function applyTraderPerformanceUpdate(input: {
         where: { idempotencyKey },
       });
       if (existing) {
+        await ensurePerformanceFeeNetworkForEvent(existing.id);
         return {
           affected: 0,
           totalDelta: 0,

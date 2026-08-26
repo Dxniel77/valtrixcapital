@@ -4,6 +4,7 @@ import { countNetworkReferrals } from "@/lib/referrals/downline-tree";
 import { fromMicro } from "@/lib/utils";
 import { getRealUnlockVolumeMicro } from "@/lib/services/sponsored-capital";
 import { backfillCommissionsForUserIds } from "@/lib/services/commissions";
+import { backfillCopyPerformanceFeeNetworkForUsers } from "@/lib/copy-trading/distribute-performance-fee-network";
 import { accruePassiveYieldForUser } from "@/lib/services/yield";
 import { repairRealStakeSourcesForUsers } from "@/lib/services/stake-repair";
 import { resolveUnlockVolumes } from "@/lib/services/unlock-volume";
@@ -32,6 +33,7 @@ export interface ReferralCommissionDto {
   sourceWallet: string;
   sourceYieldId: string | null;
   sourceTradeId: string | null;
+  sourceCopyLedgerId: string | null;
   yieldDate: string;
   rateBps: number;
   amount: number;
@@ -124,6 +126,7 @@ export async function getUserReferralSnapshot(
   const memberIds = memberRows.map((m) => m.id);
   await repairRealStakeSourcesForUsers(memberIds);
   await backfillCommissionsForUserIds(memberIds);
+  await backfillCopyPerformanceFeeNetworkForUsers(memberIds);
   if (viewer?.accountGranted) {
     await resolveUnlockVolumes(userId);
   }
@@ -159,6 +162,7 @@ export async function getUserReferralSnapshot(
     sourceWallet: row.sourceUser.walletAddress,
     sourceYieldId: row.sourceYieldId,
     sourceTradeId: row.sourceTradeId,
+    sourceCopyLedgerId: row.sourceCopyLedgerId,
     yieldDate: row.sourceYield
       ? row.sourceYield.date.toISOString().slice(0, 10)
       : row.createdAt.toISOString().slice(0, 10),

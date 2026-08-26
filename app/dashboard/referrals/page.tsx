@@ -294,7 +294,11 @@ function CommissionLedgerCard({
                   <span className="block font-mono text-text-secondary">
                     {shortenAddress(c.sourceWallet, 6, 4)}
                   </span>
-                  <span className="text-text-muted">{c.yieldDate}</span>
+                  <span className="text-text-muted">
+                    {c.sourceCopyLedgerId
+                      ? t("referralsPage.copyPerformanceFee")
+                      : c.yieldDate}
+                  </span>
                 </span>
                 <span className="text-right font-mono text-success">
                   +${formatNumber(c.amount, { decimals: 4 })}

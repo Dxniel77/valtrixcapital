@@ -1,17 +1,25 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { REFERRAL_LEVELS } from "@/lib/referrals/constants";
 
-/** Walks `referrerId` up to `maxLevels` ancestors (L1 = direct sponsor). */
+type ReferrerLookup = {
+  user: {
+    findUnique: Prisma.TransactionClient["user"]["findUnique"];
+  };
+};
+
+/** Walks `User.referrerId` up to `maxLevels` ancestors (L1 = direct sponsor). */
 export async function resolveUplineChain(
   startUserId: string,
   maxLevels = REFERRAL_LEVELS,
+  db: ReferrerLookup = prisma,
 ): Promise<string[]> {
   const chain: string[] = [];
   let currentId: string | null = startUserId;
 
   for (let hop = 0; hop < maxLevels && currentId; hop += 1) {
     const row: { referrerId: string | null } | null =
-      await prisma.user.findUnique({
+      await db.user.findUnique({
         where: { id: currentId },
         select: { referrerId: true },
       });
