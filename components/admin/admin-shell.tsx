@@ -24,6 +24,8 @@ import {
   Calendar,
   Handshake,
   Bot,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSelector } from "@/components/i18n/language-selector";
@@ -132,9 +134,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                       <span className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold" />
                     ) : null}
                     <it.icon className="h-[18px] w-[18px] shrink-0" />
-                    <span>{t(`admin.nav.${it.key}`)}</span>
+                    <span className="flex-1">{t(`admin.nav.${it.key}`)}</span>
+                    {it.children ? (
+                      active ? (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                      )
+                    ) : null}
                   </Link>
-                  {it.children ? (
+                  {it.children && active ? (
                     <ul className="mt-0.5 space-y-0.5 pb-1 pl-4">
                       {it.children.map((child) => {
                         const childActive = copyTradingTabActive(

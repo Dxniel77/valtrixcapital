@@ -86,7 +86,7 @@ export function AdminMobileNav({
                     <it.icon className="h-[18px] w-[18px]" />
                     {t(`admin.nav.${it.key}`)}
                   </Link>
-                  {it.children ? (
+                  {it.children && active ? (
                     <ul className="mt-0.5 space-y-0.5 pb-1 pl-4">
                       {it.children.map((child) => {
                         const childActive = copyTradingTabActive(
