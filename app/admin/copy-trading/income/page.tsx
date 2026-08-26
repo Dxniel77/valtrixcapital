@@ -26,6 +26,7 @@ type Totals = {
   networkByLevel: number[];
   unfilledLevelRetained: number;
   companyPerfFeeShare: number;
+  companyPerfFeeRevenue?: number;
   companyKept: number;
   companyEconomicPnl?: number;
   totalIncome: number;
@@ -116,6 +117,7 @@ export default function AdminCopyIncomePage() {
       ...levelHeaders,
       "unfilledLevelRetained",
       "companyPerfFeeShare",
+      "companyPerfFeeRevenue",
       "companyKept",
       "companyEconomicPnl",
       "totalIncome",
@@ -137,6 +139,7 @@ export default function AdminCopyIncomePage() {
         ),
         row.unfilledLevelRetained,
         row.companyPerfFeeShare,
+        row.companyPerfFeeRevenue ?? Math.max(0, row.performanceFees - row.networkPaid),
         row.companyKept,
         row.companyEconomicPnl ?? 0,
         row.totalIncome,
@@ -233,6 +236,7 @@ export default function AdminCopyIncomePage() {
             />
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <Metric
+                badge={t("admin.copyTrading.metricRoleResult")}
                 label={t("admin.copyTrading.companyEconomicPnl")}
                 value={money(totals.companyEconomicPnl ?? 0, true)}
                 hint={t("admin.copyTrading.companyEconomicHint")}
@@ -241,39 +245,60 @@ export default function AdminCopyIncomePage() {
                 }
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleCost")}
                 label={t("admin.copyTrading.copierGrossFunded")}
                 value={money(totals.netGross, true)}
                 hint={t("admin.copyTrading.copierGrossFundedHint")}
-                tone={totals.netGross >= 0 ? "positive" : "negative"}
+                tone={totals.netGross > 0 ? "cost" : "positive"}
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
                 label={t("admin.copyTrading.feesKept")}
                 value={money(totals.companyKept)}
                 hint={t("admin.copyTrading.companyNetHint")}
                 tone="gold"
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
                 label={t("admin.copyTrading.perfFeeGenerated")}
                 value={money(totals.performanceFees)}
+                hint={t("admin.copyTrading.perfFeeGeneratedHint")}
                 tone="gold"
               />
               <Metric
+                badge={t("admin.copyTrading.metricRolePayout")}
                 label={t("admin.copyTrading.networkCommissionsPaid")}
                 value={money(totals.networkPaid)}
+                hint={t("admin.copyTrading.networkCommissionsPaidHint")}
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
                 label={t("admin.copyTrading.unfilledLevels")}
                 value={money(totals.unfilledLevelRetained)}
                 hint={t("admin.copyTrading.unfilledLevelsHint")}
                 tone="gold"
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
                 label={t("admin.copyTrading.incomePlatform")}
                 value={money(totals.platformFees)}
+                hint={t("admin.copyTrading.incomePlatformHint")}
               />
               <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
                 label={t("admin.copyTrading.incomeCopyInOut")}
                 value={money(totals.copyInOutFees)}
+                hint={t("admin.copyTrading.incomeCopyInOutHint")}
+              />
+              <Metric
+                badge={t("admin.copyTrading.metricRoleFee")}
+                label={t("admin.copyTrading.companyPerfFeeRevenue")}
+                value={money(
+                  totals.companyPerfFeeRevenue ??
+                    Math.max(0, totals.performanceFees - totals.networkPaid),
+                )}
+                hint={t("admin.copyTrading.companyPerfFeeRevenueHint")}
+                tone="gold"
               />
             </div>
           </section>
@@ -530,30 +555,61 @@ function IncomeTable({
 }
 
 function Metric({
+  badge,
   label,
   value,
   hint,
   tone,
 }: {
+  badge?: string;
   label: string;
   value: string;
   hint?: string;
-  tone?: "gold" | "positive" | "negative";
+  tone?: "gold" | "positive" | "negative" | "cost";
 }) {
   const color =
     tone === "gold"
       ? "text-gold"
       : tone === "positive"
         ? "text-success"
-        : tone === "negative"
+        : tone === "negative" || tone === "cost"
           ? "text-danger"
           : "text-text-primary";
+  const border =
+    tone === "gold"
+      ? "border-gold/25"
+      : tone === "positive"
+        ? "border-success/25"
+        : tone === "negative"
+          ? "border-danger/30"
+          : tone === "cost"
+            ? "border-danger/20"
+            : "border-border-subtle";
+  const badgeClass =
+    tone === "gold"
+      ? "bg-gold/15 text-gold"
+      : tone === "positive"
+        ? "bg-success/15 text-success"
+        : tone === "negative"
+          ? "bg-danger/15 text-danger"
+          : tone === "cost"
+            ? "bg-danger/10 text-danger"
+            : "bg-bg-hover text-text-muted";
   return (
-    <Card>
+    <Card className={border}>
       <CardContent className="p-4">
-        <p className="text-[11px] uppercase tracking-wider text-text-muted">
-          {label}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[11px] uppercase tracking-wider text-text-muted">
+            {label}
+          </p>
+          {badge ? (
+            <span
+              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${badgeClass}`}
+            >
+              {badge}
+            </span>
+          ) : null}
+        </div>
         <p className={`mt-1 font-mono text-xl font-semibold ${color}`}>{value}</p>
         {hint ? <p className="mt-1 text-xs text-text-muted">{hint}</p> : null}
       </CardContent>

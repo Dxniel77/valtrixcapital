@@ -23,6 +23,7 @@ export type CopyIncomeTotals = {
   networkByLevel: number[];
   unfilledLevelRetained: number;
   companyPerfFeeShare: number;
+  companyPerfFeeRevenue: number;
   companyKept: number;
   companyEconomicPnl: number;
   totalIncome: number;
@@ -111,6 +112,7 @@ function serializeTotals(row: MutableTotals): CopyIncomeTotals {
     networkByLevel: row.networkByLevel.map((value) => fromMicro(value)),
     unfilledLevelRetained: fromMicro(row.unfilledLevelRetained),
     companyPerfFeeShare: fromMicro(row.companyPerfFeeShare),
+    companyPerfFeeRevenue: fromMicro(companyKeptPerf),
     companyKept: fromMicro(companyKept),
     companyEconomicPnl: fromMicro(
       companyCopyEconomicMicro(companyKept, copierGross),
