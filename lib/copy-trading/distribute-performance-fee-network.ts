@@ -27,9 +27,10 @@ export async function copyPerformanceFeeNetworkRates(
 }
 
 /**
- * Pays L1–L6 from one copier's Performance Fee using the staking `referrerId`
- * tree. Credits the same withdrawable pocket as staking commissions
- * (`earningsBalance`). Idempotent per ledger row.
+ * Pays L1–L6 from one copier's Performance Fee using the same `referrerId`
+ * tree as staking. Rates come only from copy admin settings
+ * (`performanceFeeNetworkBps`, default 30/15/10/5/5/5 of the fee) — never
+ * staking/IB 8-level percents. Credits `earningsBalance`. Idempotent per ledger row.
  */
 export async function distributePerformanceFeeNetwork(
   tx: Prisma.TransactionClient,

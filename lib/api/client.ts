@@ -501,6 +501,7 @@ export async function fetchReferralSnapshot() {
         createdAt: number;
       }>;
       totalCommissions: number;
+      copyNetworkRatesBps?: number[];
     } | null;
   }>("/api/referrals/me");
 }

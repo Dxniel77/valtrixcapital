@@ -52,6 +52,7 @@ export function useReferralsSync(pollMs?: number): void {
         downline: [],
         commissions: [],
         totalCommissions: 0,
+        copyNetworkRatesBps: [],
       });
     }
   }, [backend, address]);

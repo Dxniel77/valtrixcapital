@@ -40,7 +40,11 @@ async function creditCommissionDelta(input: {
   });
 }
 
-/** Pays upline referral commissions from a downline earnings credit. */
+/**
+ * Staking/trade upline only: 8 levels, platform or IB rates, share of yield
+ * or trade-win bonus. Copy Performance Fees must use
+ * `distributePerformanceFeeNetwork` (6 levels, copy admin rates).
+ */
 export async function distributeReferralCommissions(input: {
   sourceUserId: string;
   amountMicro: bigint;

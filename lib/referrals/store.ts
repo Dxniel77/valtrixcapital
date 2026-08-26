@@ -72,6 +72,8 @@ interface ReferralsState {
   commissions: CommissionRecord[];
   processedYieldIds: string[];
   totalCommissions: number;
+  /** Copy admin L1–L6 Performance Fee shares (bps). Empty until server snapshot. */
+  copyNetworkRatesBps: number[];
   pendingNetworkEarnings: number;
   lastNetworkPayoutDay: string | null;
   /** True after the first Postgres snapshot loads (production network view). */
@@ -85,6 +87,7 @@ interface ReferralsState {
     downline: DownlineMember[];
     commissions: CommissionRecord[];
     totalCommissions: number;
+    copyNetworkRatesBps?: number[];
   }) => void;
   processCommissionsForYields: (
     yields: { id: string; date: string; creditedAmount: number }[],
@@ -99,6 +102,7 @@ const initial = {
   commissions: [] as CommissionRecord[],
   processedYieldIds: [] as string[],
   totalCommissions: 0,
+  copyNetworkRatesBps: [] as number[],
   pendingNetworkEarnings: 0,
   lastNetworkPayoutDay: null as string | null,
   serverSnapshotLoaded: false,
@@ -224,6 +228,7 @@ export const useReferralsStore = create<ReferralsState>()(
           downline: snapshot.downline,
           commissions: snapshot.commissions,
           totalCommissions: snapshot.totalCommissions,
+          copyNetworkRatesBps: snapshot.copyNetworkRatesBps ?? [],
           pendingNetworkEarnings: 0,
           serverSnapshotLoaded: true,
         });
@@ -353,6 +358,7 @@ export const useReferralsStore = create<ReferralsState>()(
           state.commissions = [];
           state.processedYieldIds = [];
           state.totalCommissions = 0;
+          state.copyNetworkRatesBps = [];
           state.pendingNetworkEarnings = 0;
           state.lastNetworkPayoutDay = null;
           state.serverSnapshotLoaded = false;

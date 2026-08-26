@@ -4,7 +4,10 @@ import { countNetworkReferrals } from "@/lib/referrals/downline-tree";
 import { fromMicro } from "@/lib/utils";
 import { getRealUnlockVolumeMicro } from "@/lib/services/sponsored-capital";
 import { backfillCommissionsForUserIds } from "@/lib/services/commissions";
-import { backfillCopyPerformanceFeeNetworkForUsers } from "@/lib/copy-trading/distribute-performance-fee-network";
+import {
+  backfillCopyPerformanceFeeNetworkForUsers,
+  copyPerformanceFeeNetworkRates,
+} from "@/lib/copy-trading/distribute-performance-fee-network";
 import { accruePassiveYieldForUser } from "@/lib/services/yield";
 import { repairRealStakeSourcesForUsers } from "@/lib/services/stake-repair";
 import { resolveUnlockVolumes } from "@/lib/services/unlock-volume";
@@ -44,6 +47,8 @@ export interface UserReferralSnapshotDto {
   downline: ReferralDownlineDto[];
   commissions: ReferralCommissionDto[];
   totalCommissions: number;
+  /** Copy admin L1–L6 rates (bps of Performance Fee). Not staking 8-level rates. */
+  copyNetworkRatesBps: number[];
 }
 
 function isActiveMember(isActive: boolean, lockedCapital: bigint): boolean {
@@ -131,7 +136,8 @@ export async function getUserReferralSnapshot(
     await resolveUnlockVolumes(userId);
   }
 
-  const [commissionRows, paidBySource, totalAgg] = await Promise.all([
+  const [commissionRows, paidBySource, totalAgg, copyNetworkRatesBps] =
+    await Promise.all([
     prisma.commission.findMany({
       where: { beneficiaryId: userId },
       orderBy: { createdAt: "desc" },
@@ -150,6 +156,7 @@ export async function getUserReferralSnapshot(
       where: { beneficiaryId: userId },
       _sum: { amount: true },
     }),
+    copyPerformanceFeeNetworkRates(),
   ]);
 
   const paidMap = new Map(
@@ -195,5 +202,5 @@ export async function getUserReferralSnapshot(
     }),
   );
 
-  return { downline, commissions, totalCommissions };
+  return { downline, commissions, totalCommissions, copyNetworkRatesBps };
 }

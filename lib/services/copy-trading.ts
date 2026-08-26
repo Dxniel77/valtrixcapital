@@ -43,6 +43,7 @@ import {
   traderPerformanceFeeBps,
 } from "@/lib/copy-trading/performance-fee-network";
 import {
+  copyPerformanceFeeNetworkRates,
   distributePerformanceFeeRows,
   ensurePerformanceFeeNetworkForEvent,
 } from "@/lib/copy-trading/distribute-performance-fee-network";
@@ -2054,9 +2055,6 @@ export async function applyTraderPerformanceUpdate(input: {
           });
         }
 
-        const copyConfig = await tx.copyTradingConfig.findUnique({
-          where: { id: 1 },
-        });
         const asOf = input.eligibleAsOf ?? new Date();
         const candidates = await tx.copyInvestment.findMany({
           where: {
@@ -2128,10 +2126,7 @@ export async function applyTraderPerformanceUpdate(input: {
               investment: { select: { userId: true } },
             },
           });
-          const networkRates = normalizePerformanceFeeNetworkBps(
-            copyConfig?.performanceFeeNetworkBps ??
-              DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
-          );
+          const networkRates = await copyPerformanceFeeNetworkRates(tx);
           await distributePerformanceFeeRows(
             tx,
             feeRows.map((row) => ({

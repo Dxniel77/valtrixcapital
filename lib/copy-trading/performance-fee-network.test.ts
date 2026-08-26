@@ -106,4 +106,22 @@ describe("performance fee network split", () => {
     assert.equal(short.companyShare, 9n * USDT);
     assert.equal(short.unfilledRetained + short.companyShare, 21n * USDT);
   });
+
+  it("never pays staking L7–L8 from a Performance Fee, even with 8 uplines", () => {
+    const fee = 100n * USDT;
+    const stakingEight = [2000, 1000, 1000, 1000, 500, 500, 500, 500];
+    const copySplit = splitPerformanceFeeNetwork(
+      fee,
+      DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
+      8,
+    );
+    assert.equal(copySplit.payouts.length, 6);
+    assert.equal(copySplit.payouts[0]?.rateBps, 3000);
+    assert.equal(copySplit.payouts[5]?.rateBps, 500);
+    assert.equal(copySplit.networkTotal, 70n * USDT);
+
+    const mixed = splitPerformanceFeeNetwork(fee, stakingEight, 8);
+    assert.equal(mixed.payouts.length, 6);
+    assert.notEqual(mixed.payouts[0]?.rateBps, copySplit.payouts[0]?.rateBps);
+  });
 });

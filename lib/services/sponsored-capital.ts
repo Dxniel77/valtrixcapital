@@ -62,6 +62,23 @@ async function getConfirmedDepositTotal(userId: string): Promise<bigint> {
   return agg._sum.amount ?? 0n;
 }
 
+/**
+ * Copy-purpose deposits are real money, but they never count as staking
+ * commissionable capital. Otherwise copy cash + company grants made the
+ * 8-level yield engine pay the same tree as copy referrals.
+ */
+export function isStakingCommissionDepositPurpose(purpose: string): boolean {
+  return purpose === "STAKING";
+}
+
+async function getConfirmedStakingDepositTotal(userId: string): Promise<bigint> {
+  const agg = await prisma.deposit.aggregate({
+    where: { userId, status: "CONFIRMED", purpose: "STAKING" },
+    _sum: { amount: true },
+  });
+  return agg._sum.amount ?? 0n;
+}
+
 /** Sum of active stake amounts from on-chain deposits (real user money). */
 export async function getRealCapitalMicro(userId: string): Promise<bigint> {
   const { real } = await getStakeBreakdown(userId, ACTIVE_CAPITAL_STATUSES);
@@ -127,7 +144,7 @@ async function getCommissionCapitalBreakdown(
   const [{ real: stakeReal, company: stakeCompany }, depositReal, user] =
     await Promise.all([
       getStakeBreakdown(userId, COMMISSION_CAPITAL_STATUSES),
-      getConfirmedDepositTotal(userId),
+      getConfirmedStakingDepositTotal(userId),
       prisma.user.findUnique({
         where: { id: userId },
         select: { lockedCapital: true },
@@ -200,7 +217,11 @@ export async function getCapitalBreakdownMap(
     }),
     prisma.deposit.groupBy({
       by: ["userId"],
-      where: { userId: { in: userIds }, status: "CONFIRMED" },
+      where: {
+        userId: { in: userIds },
+        status: "CONFIRMED",
+        purpose: "STAKING",
+      },
       _sum: { amount: true },
     }),
     prisma.user.findMany({

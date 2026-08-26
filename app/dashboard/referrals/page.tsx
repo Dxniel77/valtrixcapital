@@ -22,6 +22,7 @@ import { useMyReferrer } from "@/lib/referrals/use-my-referrer";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { useReferralsServerLoaded } from "@/lib/hooks/use-referrals-sync";
 import { formatNumber, shortenAddress } from "@/lib/utils";
+import { DEFAULT_PERFORMANCE_FEE_NETWORK_BPS } from "@/lib/copy-trading/performance-fee-network";
 
 export default function ReferralsPage() {
   const { t } = useI18n();
@@ -33,6 +34,7 @@ export default function ReferralsPage() {
   const commissions = useReferralsStore((s) => s.commissions);
   const totalCommissions = useReferralsStore((s) => s.totalCommissions);
   const downline = useReferralsStore((s) => s.downline);
+  const copyNetworkRatesBps = useReferralsStore((s) => s.copyNetworkRatesBps);
   const levelStats = useReferralLevelStats();
   const myReferrer = useMyReferrer();
   const invite = useReferralInvite(address);
@@ -114,7 +116,10 @@ export default function ReferralsPage() {
           loading={invite.loading}
           eligible={invite.eligible}
         />
-        <LevelsCard levelStats={levelStats} />
+        <LevelsCard
+          levelStats={levelStats}
+          copyNetworkRatesBps={copyNetworkRatesBps}
+        />
       </div>
 
       <CommissionLedgerCard commissions={commissions} />
@@ -216,41 +221,81 @@ function InviteCard({
 
 function LevelsCard({
   levelStats,
+  copyNetworkRatesBps,
 }: {
   levelStats: ReturnType<typeof useReferralLevelStats>;
+  copyNetworkRatesBps: number[];
 }) {
   const { t } = useI18n();
+  const copyRates =
+    copyNetworkRatesBps.length === 6
+      ? copyNetworkRatesBps
+      : [...DEFAULT_PERFORMANCE_FEE_NETWORK_BPS];
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">
-            {t("referralsPage.commissionTiers")}
-          </CardTitle>
-          <Badge variant="gold">8</Badge>
-        </div>
+        <CardTitle className="text-base">
+          {t("referralsPage.commissionTiers")}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ul className="divide-y divide-border-subtle">
-          {levelStats.map((lvl) => (
-            <li
-              key={lvl.level}
-              className="flex items-center justify-between py-2 text-sm"
-            >
-              <span className="text-text-secondary">
-                {t("referrals.level", { n: lvl.level })}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-text-muted">
-                  {lvl.active}/{lvl.total}
+      <CardContent className="space-y-4">
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-text-secondary">
+              {t("referralsPage.stakingTiers")}
+            </p>
+            <Badge variant="gold">8</Badge>
+          </div>
+          <p className="mb-2 text-[11px] text-text-muted">
+            {t("referralsPage.stakingTiersHint")}
+          </p>
+          <ul className="divide-y divide-border-subtle">
+            {levelStats.map((lvl) => (
+              <li
+                key={`staking-${lvl.level}`}
+                className="flex items-center justify-between py-1.5 text-sm"
+              >
+                <span className="text-text-secondary">
+                  {t("referrals.level", { n: lvl.level })}
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-text-muted">
+                    {lvl.active}/{lvl.total}
+                  </span>
+                  <span className="w-12 text-right font-mono text-gold">
+                    {(lvl.rateBps / 100).toFixed(2)}%
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-text-secondary">
+              {t("referralsPage.copyTiers")}
+            </p>
+            <Badge variant="default">6</Badge>
+          </div>
+          <p className="mb-2 text-[11px] text-text-muted">
+            {t("referralsPage.copyTiersHint")}
+          </p>
+          <ul className="divide-y divide-border-subtle">
+            {copyRates.map((rateBps, index) => (
+              <li
+                key={`copy-${index}`}
+                className="flex items-center justify-between py-1.5 text-sm"
+              >
+                <span className="text-text-secondary">
+                  {t("referrals.level", { n: index + 1 })}
                 </span>
                 <span className="w-12 text-right font-mono text-gold">
-                  {(lvl.rateBps / 100).toFixed(2)}%
+                  {(rateBps / 100).toFixed(2)}%
                 </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );
@@ -297,7 +342,8 @@ function CommissionLedgerCard({
                   <span className="text-text-muted">
                     {c.sourceCopyLedgerId
                       ? t("referralsPage.copyPerformanceFee")
-                      : c.yieldDate}
+                      : c.yieldDate}{" "}
+                    · {(c.rateBps / 100).toFixed(2)}%
                   </span>
                 </span>
                 <span className="text-right font-mono text-success">
