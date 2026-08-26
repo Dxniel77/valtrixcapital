@@ -38,6 +38,8 @@ type Payload = {
     networkPaid: number;
     companyKept: number;
     companyEconomicPnl?: number;
+    companyPerfFeeRevenue?: number;
+    copyInOutFees?: number;
     totalIncome: number;
     grossPositive: number;
     grossNegative: number;
@@ -272,6 +274,21 @@ export default function AdminCopyLiveBoardPage() {
               }
             />
             <Metric
+              label={t("admin.copyTrading.copierGrossFunded")}
+              value={money(summary.netGross, true)}
+              tone={summary.netGross > 0 ? "negative" : "positive"}
+            />
+            <Metric
+              label={t("admin.copyTrading.feesKept")}
+              value={money(summary.companyKept)}
+              tone="gold"
+            />
+            <Metric
+              label={t("admin.copyTrading.companyPerfFeeRevenue")}
+              value={money(summary.companyPerfFeeRevenue ?? 0)}
+              tone="gold"
+            />
+            <Metric
               label={t("admin.copyTrading.livePlatformFees", {
                 pct: (summary.openFeeBps / 100).toFixed(2),
               })}
@@ -279,9 +296,18 @@ export default function AdminCopyLiveBoardPage() {
               tone="gold"
             />
             <Metric
+              label={t("admin.copyTrading.incomeCopyInOut")}
+              value={money(summary.copyInOutFees ?? 0)}
+              tone="gold"
+            />
+            <Metric
               label={t("admin.copyTrading.livePerformanceFees")}
               value={money(summary.performanceFees)}
               tone="gold"
+            />
+            <Metric
+              label={t("admin.copyTrading.networkCommissionsPaid")}
+              value={money(summary.networkPaid)}
             />
             <Metric
               label={t("admin.copyTrading.liveGrossPositive")}
@@ -294,11 +320,6 @@ export default function AdminCopyLiveBoardPage() {
               tone="negative"
             />
             <Metric
-              label={t("admin.copyTrading.liveNetGross")}
-              value={money(summary.netGross, true)}
-              tone={summary.netGross >= 0 ? "positive" : "negative"}
-            />
-            <Metric
               label={t("admin.copyTrading.liveTradersWithFee")}
               value={`${summary.tradersWithFee} / ${summary.traders}`}
             />
@@ -306,20 +327,6 @@ export default function AdminCopyLiveBoardPage() {
               label={t("admin.copyTrading.liveRealDeposits")}
               value={money(summary.realDeposits)}
               tone="positive"
-            />
-            <Metric
-              label={t("admin.copyTrading.liveTotalIncome")}
-              value={money(summary.totalIncome)}
-              tone="gold"
-            />
-            <Metric
-              label={t("admin.copyTrading.liveNetworkPaid")}
-              value={money(summary.networkPaid)}
-            />
-            <Metric
-              label={t("admin.copyTrading.feesKept")}
-              value={money(summary.companyKept)}
-              tone="gold"
             />
             <Metric
               label={t("admin.copyTrading.connectedCapital")}

@@ -1155,7 +1155,7 @@
       "copiersSubtitle": "Real users currently copying a trader, with earned or lost amount.",
       "liveBoard": "Live board",
       "liveBoardTitle": "Copy company board",
-      "liveBoardSubtitle": "Platform open fee, Performance Fee per close, and live trader operations.",
+      "liveBoardSubtitle": "Same company money as Company earnings. Use this page for live opens, coins, and trader operations.",
       "openFee": "Platform open fee %",
       "livePlatformFees": "Platform fee charged ({pct}% per open)",
       "livePerformanceFees": "Performance Fee charged",

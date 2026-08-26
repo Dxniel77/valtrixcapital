@@ -2710,6 +2710,8 @@ export type AdminCopyLiveBoardDto = {
     networkPaid: number;
     companyKept: number;
     companyEconomicPnl: number;
+    companyPerfFeeRevenue: number;
+    copyInOutFees: number;
     totalIncome: number;
     grossPositive: number;
     grossNegative: number;
@@ -2800,6 +2802,7 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
     performanceLedger,
     investLedger,
     networkPaid,
+    inOutRows,
   ] = await Promise.all([
     ensureCopyTradingConfig(),
     prisma.copyTrader.findMany({
@@ -2847,6 +2850,13 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
       _sum: { amount: true },
     }),
     copyNetworkPaidMicro(),
+    prisma.copyInvestmentLedger.findMany({
+      where: {
+        kind: { in: ["INVEST", "WITHDRAWAL"] },
+        note: { contains: "fee " },
+      },
+      select: { note: true },
+    }),
   ]);
 
   const absFee = (amount: bigint | null | undefined) => {
@@ -2857,6 +2867,10 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
   const performanceFees = absFee(performanceLedger._sum.amount);
   const companyKeptPerf =
     performanceFees > networkPaid ? performanceFees - networkPaid : 0n;
+  let copyInOutFees = 0n;
+  for (const row of inOutRows) {
+    copyInOutFees += parseFeeUsdtFromNote(row.note);
+  }
 
   let grossPositive = 0n;
   let grossNegative = 0n;
@@ -2894,15 +2908,17 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
   );
 
   const copierGross = grossPositive + grossNegative;
-  const companyKept = platformFees + companyKeptPerf;
+  const companyKept = platformFees + copyInOutFees + companyKeptPerf;
 
   return {
     generatedAt: now.toISOString(),
     summary: {
       platformFees: fromMicro(platformFees),
       performanceFees: fromMicro(performanceFees),
+      copyInOutFees: fromMicro(copyInOutFees),
       networkPaid: fromMicro(networkPaid),
       companyKept: fromMicro(companyKept),
+      companyPerfFeeRevenue: fromMicro(companyKeptPerf),
       companyEconomicPnl: fromMicro(
         companyCopyEconomicMicro(companyKept, copierGross),
       ),
