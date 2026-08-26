@@ -37,6 +37,7 @@ type Payload = {
     performanceFees: number;
     networkPaid: number;
     companyKept: number;
+    companyEconomicPnl?: number;
     totalIncome: number;
     grossPositive: number;
     grossNegative: number;
@@ -264,6 +265,13 @@ export default function AdminCopyLiveBoardPage() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric
+              label={t("admin.copyTrading.companyEconomicPnl")}
+              value={money(summary.companyEconomicPnl ?? 0, true)}
+              tone={
+                (summary.companyEconomicPnl ?? 0) >= 0 ? "positive" : "negative"
+              }
+            />
+            <Metric
               label={t("admin.copyTrading.livePlatformFees", {
                 pct: (summary.openFeeBps / 100).toFixed(2),
               })}
@@ -309,7 +317,7 @@ export default function AdminCopyLiveBoardPage() {
               value={money(summary.networkPaid)}
             />
             <Metric
-              label={t("admin.copyTrading.liveCompanyKept")}
+              label={t("admin.copyTrading.feesKept")}
               value={money(summary.companyKept)}
               tone="gold"
             />

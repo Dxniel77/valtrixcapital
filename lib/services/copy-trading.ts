@@ -53,6 +53,7 @@ import {
   platformOpenFeeMicro,
   platformOpenFeeNote,
 } from "@/lib/copy-trading/platform-open-fee";
+import { companyCopyEconomicMicro } from "@/lib/copy-trading/company-economics";
 import {
   DEFAULT_LOSS_PROB_BPS,
   DEFAULT_TARGET_CYCLE_DAYS,
@@ -2550,6 +2551,7 @@ export async function getAdminCopyDashboard() {
     openOperations,
     feeRows,
     networkPaid,
+    pnlLedger,
   ] = await Promise.all([
     ensureCopyTradingConfig(),
     listAdminCopyTraders(),
@@ -2585,6 +2587,10 @@ export async function getAdminCopyDashboard() {
       select: { kind: true, amount: true, note: true },
     }),
     copyNetworkPaidMicro(),
+    prisma.copyInvestmentLedger.aggregate({
+      where: { kind: "PNL" },
+      _sum: { amount: true },
+    }),
   ]);
 
   const principal = activeAggregate._sum.principal ?? 0n;
@@ -2594,6 +2600,7 @@ export async function getAdminCopyDashboard() {
     0n,
   );
   const companyFees = grossFees > networkPaid ? grossFees - networkPaid : 0n;
+  const copierGrossPnl = pnlLedger._sum.amount ?? 0n;
   return {
     config,
     metrics: {
@@ -2606,6 +2613,10 @@ export async function getAdminCopyDashboard() {
       currentValue: fromMicro(currentValue),
       totalPnl: fromMicro(currentValue - principal),
       companyFees: fromMicro(companyFees),
+      companyEconomicPnl: fromMicro(
+        companyCopyEconomicMicro(companyFees, copierGrossPnl),
+      ),
+      copierGrossPnl: fromMicro(copierGrossPnl),
       networkCommissions: fromMicro(networkPaid),
       pendingWithdrawals: pendingRows.length,
     },
@@ -2698,6 +2709,7 @@ export type AdminCopyLiveBoardDto = {
     performanceFees: number;
     networkPaid: number;
     companyKept: number;
+    companyEconomicPnl: number;
     totalIncome: number;
     grossPositive: number;
     grossNegative: number;
@@ -2881,17 +2893,23 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
     0n,
   );
 
+  const copierGross = grossPositive + grossNegative;
+  const companyKept = platformFees + companyKeptPerf;
+
   return {
     generatedAt: now.toISOString(),
     summary: {
       platformFees: fromMicro(platformFees),
       performanceFees: fromMicro(performanceFees),
       networkPaid: fromMicro(networkPaid),
-      companyKept: fromMicro(platformFees + companyKeptPerf),
+      companyKept: fromMicro(companyKept),
+      companyEconomicPnl: fromMicro(
+        companyCopyEconomicMicro(companyKept, copierGross),
+      ),
       totalIncome: fromMicro(platformFees + performanceFees),
       grossPositive: fromMicro(grossPositive),
       grossNegative: fromMicro(grossNegative),
-      netGross: fromMicro(grossPositive + grossNegative),
+      netGross: fromMicro(copierGross),
       realDeposits: fromMicro(investLedger._sum.amount ?? 0n),
       connectedCapital: fromMicro(connectedCapital),
       tradersWithFee: traders.filter((trader) => trader.performanceFeeBps > 0)
@@ -2999,6 +3017,8 @@ export type AdminCopyTraderDeskDto = {
     currentValue: number;
     pnl: number;
     companyFees: number;
+    companyEconomicPnl: number;
+    copierGrossPnl: number;
     networkCommissions: number;
   };
   /** Same numbers the mobile public profile / performance tab show. */
@@ -3213,7 +3233,7 @@ export async function getAdminCopyTraderDesk(
 
   const config = await ensureCopyTradingConfig();
 
-  const [active, chartPoints, operations, feeRows, weekStats, networkPaid, cycleSum, scheduledManual] =
+  const [active, chartPoints, operations, feeRows, weekStats, networkPaid, cycleSum, scheduledManual, pnlLedger] =
     await Promise.all([
     prisma.copyInvestment.findMany({
       where: { traderId, status: "ACTIVE" },
@@ -3262,6 +3282,10 @@ export async function getAdminCopyTraderDesk(
       where: { traderId, canceledAt: null, executedAt: null },
       orderBy: { executeAt: "asc" },
     }),
+    prisma.copyInvestmentLedger.aggregate({
+      where: { kind: "PNL", investment: { traderId } },
+      _sum: { amount: true },
+    }),
   ]);
 
   const principal = active.reduce((sum, row) => sum + row.principal, 0n);
@@ -3271,6 +3295,7 @@ export async function getAdminCopyTraderDesk(
     0n,
   );
   const companyFees = grossFees > networkPaid ? grossFees - networkPaid : 0n;
+  const copierGrossPnl = pnlLedger._sum.amount ?? 0n;
   const now = new Date();
 
   const chartAsc = [...chartPoints]
@@ -3306,6 +3331,10 @@ export async function getAdminCopyTraderDesk(
       currentValue: fromMicro(currentValue),
       pnl: fromMicro(currentValue - principal),
       companyFees: fromMicro(companyFees),
+      companyEconomicPnl: fromMicro(
+        companyCopyEconomicMicro(companyFees, copierGrossPnl),
+      ),
+      copierGrossPnl: fromMicro(copierGrossPnl),
       networkCommissions: fromMicro(networkPaid),
     },
     publicFacing: {

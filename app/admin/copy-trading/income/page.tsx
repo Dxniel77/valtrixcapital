@@ -27,6 +27,7 @@ type Totals = {
   unfilledLevelRetained: number;
   companyPerfFeeShare: number;
   companyKept: number;
+  companyEconomicPnl?: number;
   totalIncome: number;
   grossPositive: number;
   grossNegative: number;
@@ -116,6 +117,7 @@ export default function AdminCopyIncomePage() {
       "unfilledLevelRetained",
       "companyPerfFeeShare",
       "companyKept",
+      "companyEconomicPnl",
       "totalIncome",
       "grossPositive",
       "grossNegative",
@@ -136,6 +138,7 @@ export default function AdminCopyIncomePage() {
         row.unfilledLevelRetained,
         row.companyPerfFeeShare,
         row.companyKept,
+        row.companyEconomicPnl ?? 0,
         row.totalIncome,
         row.grossPositive,
         row.grossNegative,
@@ -230,6 +233,26 @@ export default function AdminCopyIncomePage() {
             />
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <Metric
+                label={t("admin.copyTrading.companyEconomicPnl")}
+                value={money(totals.companyEconomicPnl ?? 0, true)}
+                hint={t("admin.copyTrading.companyEconomicHint")}
+                tone={
+                  (totals.companyEconomicPnl ?? 0) >= 0 ? "positive" : "negative"
+                }
+              />
+              <Metric
+                label={t("admin.copyTrading.copierGrossFunded")}
+                value={money(totals.netGross, true)}
+                hint={t("admin.copyTrading.copierGrossFundedHint")}
+                tone={totals.netGross >= 0 ? "positive" : "negative"}
+              />
+              <Metric
+                label={t("admin.copyTrading.feesKept")}
+                value={money(totals.companyKept)}
+                hint={t("admin.copyTrading.companyNetHint")}
+                tone="gold"
+              />
+              <Metric
                 label={t("admin.copyTrading.perfFeeGenerated")}
                 value={money(totals.performanceFees)}
                 tone="gold"
@@ -242,12 +265,6 @@ export default function AdminCopyIncomePage() {
                 label={t("admin.copyTrading.unfilledLevels")}
                 value={money(totals.unfilledLevelRetained)}
                 hint={t("admin.copyTrading.unfilledLevelsHint")}
-                tone="gold"
-              />
-              <Metric
-                label={t("admin.copyTrading.companyNetProfit")}
-                value={money(totals.companyKept)}
-                hint={t("admin.copyTrading.companyNetHint")}
                 tone="gold"
               />
               <Metric
@@ -464,7 +481,9 @@ function IncomeTable({
             </TH>
           ))}
           <TH className="text-right">{t("admin.copyTrading.unfilledShort")}</TH>
-          <TH className="text-right">{t("admin.copyTrading.liveCompanyKept")}</TH>
+          <TH className="text-right">{t("admin.copyTrading.feesKept")}</TH>
+          <TH className="text-right">{t("admin.copyTrading.copierGrossFunded")}</TH>
+          <TH className="text-right">{t("admin.copyTrading.companyEconomicPnl")}</TH>
         </THeadRow>
         <TBody>
           {rows.map((row) => (
@@ -491,6 +510,16 @@ function IncomeTable({
               </TD>
               <TD className="text-right font-mono text-gold">
                 {money(row.companyKept)}
+              </TD>
+              <TD className="text-right font-mono">
+                {money(row.netGross, true)}
+              </TD>
+              <TD
+                className={`text-right font-mono ${
+                  (row.companyEconomicPnl ?? 0) >= 0 ? "text-success" : "text-danger"
+                }`}
+              >
+                {money(row.companyEconomicPnl ?? 0, true)}
               </TD>
             </TR>
           ))}

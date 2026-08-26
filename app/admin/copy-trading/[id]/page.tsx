@@ -73,6 +73,8 @@ type Desk = {
     currentValue: number;
     pnl: number;
     companyFees: number;
+    companyEconomicPnl?: number;
+    copierGrossPnl?: number;
     networkCommissions?: number;
   };
   publicFacing: {
@@ -622,13 +624,22 @@ export default function AdminCopyTraderDeskPage() {
               tone={desk.situation.pnl >= 0 ? "positive" : "negative"}
             />
             <Metric
-              label={t("admin.copyTrading.companyIncome")}
+              label={t("admin.copyTrading.companyEconomicPnl")}
+              value={`${(desk.situation.companyEconomicPnl ?? 0) >= 0 ? "+" : ""}$${formatNumber(desk.situation.companyEconomicPnl ?? 0, { decimals: 2 })}`}
+              tone={
+                (desk.situation.companyEconomicPnl ?? 0) >= 0
+                  ? "positive"
+                  : "negative"
+              }
+            />
+            <Metric
+              label={t("admin.copyTrading.feesKept")}
               value={`$${formatNumber(desk.situation.companyFees, { decimals: 2 })}`}
               tone="gold"
             />
           </div>
           <p className="text-xs text-text-muted">
-            {t("admin.copyTrading.companyIncomeHint")} ·{" "}
+            {t("admin.copyTrading.companyEconomicHint")} ·{" "}
             {t("admin.copyTrading.networkPaid", {
               amount: formatNumber(desk.situation.networkCommissions ?? 0, {
                 decimals: 2,

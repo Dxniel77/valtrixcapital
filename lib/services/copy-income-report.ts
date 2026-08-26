@@ -13,6 +13,7 @@ import {
 } from "@/lib/copy-trading/performance-fee-network";
 import { ensureCopyTradingConfig } from "@/lib/services/copy-trading";
 import { fromMicro } from "@/lib/utils";
+import { companyCopyEconomicMicro } from "@/lib/copy-trading/company-economics";
 
 export type CopyIncomeTotals = {
   platformFees: number;
@@ -23,6 +24,7 @@ export type CopyIncomeTotals = {
   unfilledLevelRetained: number;
   companyPerfFeeShare: number;
   companyKept: number;
+  companyEconomicPnl: number;
   totalIncome: number;
   grossPositive: number;
   grossNegative: number;
@@ -98,6 +100,9 @@ function serializeTotals(row: MutableTotals): CopyIncomeTotals {
     row.performanceFees > row.networkPaid
       ? row.performanceFees - row.networkPaid
       : 0n;
+  const companyKept =
+    row.platformFees + row.copyInOutFees + companyKeptPerf;
+  const copierGross = row.grossPositive + row.grossNegative;
   return {
     platformFees: fromMicro(row.platformFees),
     performanceFees: fromMicro(row.performanceFees),
@@ -106,13 +111,14 @@ function serializeTotals(row: MutableTotals): CopyIncomeTotals {
     networkByLevel: row.networkByLevel.map((value) => fromMicro(value)),
     unfilledLevelRetained: fromMicro(row.unfilledLevelRetained),
     companyPerfFeeShare: fromMicro(row.companyPerfFeeShare),
-    companyKept: fromMicro(
-      row.platformFees + row.copyInOutFees + companyKeptPerf,
+    companyKept: fromMicro(companyKept),
+    companyEconomicPnl: fromMicro(
+      companyCopyEconomicMicro(companyKept, copierGross),
     ),
     totalIncome: fromMicro(row.platformFees + row.performanceFees),
     grossPositive: fromMicro(row.grossPositive),
     grossNegative: fromMicro(row.grossNegative),
-    netGross: fromMicro(row.grossPositive + row.grossNegative),
+    netGross: fromMicro(copierGross),
     deposits: fromMicro(row.deposits),
     opsClosed: row.opsClosed,
   };

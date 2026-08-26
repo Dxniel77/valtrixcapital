@@ -103,6 +103,8 @@ type Dashboard = {
     currentValue: number;
     totalPnl: number;
     companyFees: number;
+    companyEconomicPnl?: number;
+    copierGrossPnl?: number;
     networkCommissions?: number;
   };
   traders: Trader[];
@@ -679,15 +681,25 @@ export default function AdminCopyTradingPage() {
               tone={data.metrics.totalPnl >= 0 ? "positive" : "negative"}
             />
             <Metric
-              label={t("admin.copyTrading.companyIncome")}
+              label={t("admin.copyTrading.companyEconomicPnl")}
+              value={`${(data.metrics.companyEconomicPnl ?? 0) >= 0 ? "+" : ""}$${formatNumber(data.metrics.companyEconomicPnl ?? 0, { decimals: 2 })}`}
+              tone={
+                (data.metrics.companyEconomicPnl ?? 0) >= 0
+                  ? "positive"
+                  : "negative"
+              }
+            />
+            <Metric
+              label={t("admin.copyTrading.feesKept")}
               value={`$${formatNumber(data.metrics.companyFees ?? 0, { decimals: 2 })}`}
               tone="gold"
             />
           </div>
-          {data.metrics.networkCommissions ? (
+          {data.metrics.networkCommissions || data.metrics.copierGrossPnl != null ? (
             <p className="text-xs text-text-muted">
+              {t("admin.copyTrading.companyEconomicHint")}{" "}
               {t("admin.copyTrading.networkPaid", {
-                amount: formatNumber(data.metrics.networkCommissions, {
+                amount: formatNumber(data.metrics.networkCommissions ?? 0, {
                   decimals: 2,
                 }),
               })}
