@@ -414,7 +414,6 @@ async function chargePlatformOpenFee(
   for (const investment of investments) {
     const fee = platformOpenFeeMicro(
       investment.currentValue,
-      operation.leverage,
       openFeeBps,
     );
     if (fee <= 0n) continue;

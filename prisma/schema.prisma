@@ -980,7 +980,7 @@ model CopyTradingConfig {
   lossGraceDays       Int                @default(2)
   /// Six-level share of each copier's Performance Fee (bps of the fee). Remainder stays with the company.
   performanceFeeNetworkBps Int[]         @default([3000, 1500, 1000, 500, 500, 500])
-  /// Platform fee charged when a live operation opens (bps of notional = capital × leverage). 5 = 0.05%.
+  /// Platform fee charged when a live operation opens (bps of the copier's capital, not leverage). 5 = 0.05%.
   openFeeBps          Int                @default(5)
   /// Symbols the live engine may open. At least one is required.
   activeSymbols       String[]           @default(["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LINKUSDT", "AVAXUSDT"])
