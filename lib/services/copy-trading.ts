@@ -46,6 +46,7 @@ import {
 } from "@/lib/copy-trading/performance-fee-network";
 import { distributePerformanceFeeNetwork } from "@/lib/copy-trading/distribute-performance-fee-network";
 import {
+  DEFAULT_COPY_CASH_WALLET_FEE_BPS,
   DEFAULT_INVEST_FEE_BPS,
   DEFAULT_OPEN_FEE_BPS,
   DEFAULT_WITHDRAW_FEE_BPS,
@@ -184,6 +185,7 @@ export type CopyTradingConfigDto = {
   notifyOnPerformance: boolean;
   investFeeBps: number;
   withdrawFeeBps: number;
+  copyCashWalletFeeBps: number;
   performanceFeeNetworkBps: number[];
   openFeeBps: number;
   activeSymbols: string[];
@@ -628,6 +630,7 @@ export async function ensureCopyTradingConfig(): Promise<CopyTradingConfigDto> {
       id: 1,
       investFeeBps: DEFAULT_INVEST_FEE_BPS,
       withdrawFeeBps: DEFAULT_WITHDRAW_FEE_BPS,
+      copyCashWalletFeeBps: DEFAULT_COPY_CASH_WALLET_FEE_BPS,
       openFeeBps: DEFAULT_OPEN_FEE_BPS,
     },
   });
@@ -640,6 +643,7 @@ function serializeCopyConfig(row: {
   notifyOnPerformance: boolean;
   investFeeBps?: number;
   withdrawFeeBps?: number;
+  copyCashWalletFeeBps?: number;
   performanceFeeNetworkBps?: number[] | null;
   openFeeBps?: number;
   activeSymbols?: string[] | null;
@@ -650,6 +654,8 @@ function serializeCopyConfig(row: {
     notifyOnPerformance: row.notifyOnPerformance,
     investFeeBps: row.investFeeBps ?? DEFAULT_INVEST_FEE_BPS,
     withdrawFeeBps: row.withdrawFeeBps ?? DEFAULT_WITHDRAW_FEE_BPS,
+    copyCashWalletFeeBps:
+      row.copyCashWalletFeeBps ?? DEFAULT_COPY_CASH_WALLET_FEE_BPS,
     performanceFeeNetworkBps: normalizePerformanceFeeNetworkBps(
       row.performanceFeeNetworkBps ?? DEFAULT_PERFORMANCE_FEE_NETWORK_BPS,
     ),
@@ -661,6 +667,7 @@ function serializeCopyConfig(row: {
 export async function updateCopyTradingConfig(input: {
   investFeeBps?: number;
   withdrawFeeBps?: number;
+  copyCashWalletFeeBps?: number;
   withdrawalMode?: CopyWithdrawalMode;
   globalMinInvestment?: number;
   performanceFeeNetworkBps?: number[];
@@ -671,6 +678,7 @@ export async function updateCopyTradingConfig(input: {
   const data: {
     investFeeBps?: number;
     withdrawFeeBps?: number;
+    copyCashWalletFeeBps?: number;
     withdrawalMode?: CopyWithdrawalMode;
     globalMinInvestment?: bigint;
     performanceFeeNetworkBps?: number[];
@@ -692,6 +700,16 @@ export async function updateCopyTradingConfig(input: {
       throw new CopyTradingError("Invalid withdraw fee", "INVALID_AMOUNT");
     }
     data.withdrawFeeBps = input.withdrawFeeBps;
+  }
+  if (input.copyCashWalletFeeBps !== undefined) {
+    if (
+      !Number.isInteger(input.copyCashWalletFeeBps) ||
+      input.copyCashWalletFeeBps < 0 ||
+      input.copyCashWalletFeeBps > 2000
+    ) {
+      throw new CopyTradingError("Invalid copy-cash wallet fee", "INVALID_AMOUNT");
+    }
+    data.copyCashWalletFeeBps = input.copyCashWalletFeeBps;
   }
   if (input.withdrawalMode) data.withdrawalMode = input.withdrawalMode;
   if (input.globalMinInvestment !== undefined) {

@@ -89,6 +89,7 @@ type Dashboard = {
   config?: {
     investFeeBps: number;
     withdrawFeeBps: number;
+    copyCashWalletFeeBps?: number;
     globalMinInvestment: number;
     performanceFeeNetworkBps?: number[];
     openFeeBps?: number;
@@ -289,7 +290,8 @@ export default function AdminCopyTradingPage() {
   const [flagFilter, setFlagFilter] = React.useState<FlagFilter>("all");
   const [traderSort, setTraderSort] = React.useState<TraderSort>("aum");
   const [investFeePct, setInvestFeePct] = React.useState("1.00");
-  const [withdrawFeePct, setWithdrawFeePct] = React.useState("0.03");
+  const [withdrawFeePct, setWithdrawFeePct] = React.useState("0.00");
+  const [copyCashWalletFeePct, setCopyCashWalletFeePct] = React.useState("0.03");
   const [openFeePct, setOpenFeePct] = React.useState("0.05");
   const [networkPcts, setNetworkPcts] = React.useState([
     "30",
@@ -493,7 +495,10 @@ export default function AdminCopyTradingPage() {
       setData(next);
       if (next.config) {
         setInvestFeePct(((next.config.investFeeBps ?? 100) / 100).toFixed(2));
-        setWithdrawFeePct(((next.config.withdrawFeeBps ?? 3) / 100).toFixed(2));
+        setWithdrawFeePct(((next.config.withdrawFeeBps ?? 0) / 100).toFixed(2));
+        setCopyCashWalletFeePct(
+          ((next.config.copyCashWalletFeeBps ?? 3) / 100).toFixed(2),
+        );
         setOpenFeePct(((next.config.openFeeBps ?? 5) / 100).toFixed(2));
         if (next.config.performanceFeeNetworkBps?.length === 6) {
           setNetworkPcts(
@@ -561,6 +566,9 @@ export default function AdminCopyTradingPage() {
         body: JSON.stringify({
           investFeeBps: Math.round((Number(investFeePct) || 0) * 100),
           withdrawFeeBps: Math.round((Number(withdrawFeePct) || 0) * 100),
+          copyCashWalletFeeBps: Math.round(
+            (Number(copyCashWalletFeePct) || 0) * 100,
+          ),
           openFeeBps: Math.round((Number(openFeePct) || 0) * 100),
           performanceFeeNetworkBps: networkPcts.map((value) =>
             Math.max(0, Math.round((Number(value) || 0) * 100)),
@@ -726,7 +734,7 @@ export default function AdminCopyTradingPage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Field
                   label={t("admin.copyTrading.investFee")}
                   hint={t("admin.copyTrading.investFeeHint")}
@@ -740,6 +748,21 @@ export default function AdminCopyTradingPage() {
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     value={investFeePct}
                     onChange={(e) => setInvestFeePct(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("admin.copyTrading.feesOpen")}
+                  hint={t("admin.copyTrading.openFeeHint")}
+                >
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min={0}
+                    max={20}
+                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    value={openFeePct}
+                    onChange={(e) => setOpenFeePct(e.target.value)}
                   />
                 </Field>
                 <Field
@@ -758,8 +781,8 @@ export default function AdminCopyTradingPage() {
                   />
                 </Field>
                 <Field
-                  label={t("admin.copyTrading.feesOpen")}
-                  hint={t("admin.copyTrading.openFeeHint")}
+                  label={t("admin.copyTrading.copyCashWalletFee")}
+                  hint={t("admin.copyTrading.copyCashWalletFeeHint")}
                 >
                   <Input
                     type="number"
@@ -768,8 +791,8 @@ export default function AdminCopyTradingPage() {
                     min={0}
                     max={20}
                     className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    value={openFeePct}
-                    onChange={(e) => setOpenFeePct(e.target.value)}
+                    value={copyCashWalletFeePct}
+                    onChange={(e) => setCopyCashWalletFeePct(e.target.value)}
                   />
                 </Field>
               </div>

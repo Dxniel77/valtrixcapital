@@ -1,6 +1,8 @@
 import type { Network } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getPlatformConfig } from "@/lib/services/config";
+import { ensureCopyTradingConfig } from "@/lib/services/copy-trading";
+import { DEFAULT_COPY_CASH_WALLET_FEE_BPS } from "@/lib/copy-trading/platform-open-fee";
 import { fromMicro, toMicro } from "@/lib/utils";
 import {
   assertTreasuryLiquidityForPayout,
@@ -178,7 +180,13 @@ export async function createWithdrawal(input: {
     );
   }
 
-  const feeMicro = (amountMicro * BigInt(input.feeBps)) / 10_000n;
+  const copyFees =
+    source === "COPY_CASH" ? await ensureCopyTradingConfig() : null;
+  const feeBps =
+    source === "COPY_CASH"
+      ? (copyFees?.copyCashWalletFeeBps ?? DEFAULT_COPY_CASH_WALLET_FEE_BPS)
+      : input.feeBps;
+  const feeMicro = (amountMicro * BigInt(feeBps)) / 10_000n;
   const netMicro = amountMicro - feeMicro;
   const pocketBalance = source === "COPY_CASH" ? copyCash : earnings;
 
