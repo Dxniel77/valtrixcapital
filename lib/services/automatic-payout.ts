@@ -9,6 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { bsc, polygon } from "viem/chains";
 import type { Network } from "@prisma/client";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
+import { readServerSecret } from "@/lib/config/server-env";
 import { getCopyDepositAddress } from "@/lib/wallet/deposit-addresses";
 import { buildUsdtTransferCall } from "@/lib/wallet/usdt-transfer";
 
@@ -45,28 +46,33 @@ function normalizePrivateKey(raw: string): `0x${string}` {
   return (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as `0x${string}`;
 }
 
-/** Server-only treasury hot-wallet key used to push staking / earnings USDT. */
-export function getPayoutPrivateKey(network: Network): `0x${string}` | null {
-  const specific =
-    network === "BSC"
-      ? process.env.TREASURY_BSC_PAYOUT_PRIVATE_KEY?.trim()
-      : process.env.TREASURY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
-  const shared = process.env.TREASURY_PAYOUT_PRIVATE_KEY?.trim();
-  const key = specific || shared;
+function readPayoutKey(
+  specificName: string,
+  sharedName: string,
+): `0x${string}` | null {
+  const key = readServerSecret(specificName, sharedName);
   if (!key) return null;
   return normalizePrivateKey(key);
 }
 
+/** Server-only treasury hot-wallet key used to push staking / earnings USDT. */
+export function getPayoutPrivateKey(network: Network): `0x${string}` | null {
+  return readPayoutKey(
+    network === "BSC"
+      ? "TREASURY_BSC_PAYOUT_PRIVATE_KEY"
+      : "TREASURY_POLYGON_PAYOUT_PRIVATE_KEY",
+    "TREASURY_PAYOUT_PRIVATE_KEY",
+  );
+}
+
 /** Server-only copy-trading hot-wallet key. Never falls back to the staking key. */
 export function getCopyPayoutPrivateKey(network: Network): `0x${string}` | null {
-  const specific =
+  return readPayoutKey(
     network === "BSC"
-      ? process.env.COPY_BSC_PAYOUT_PRIVATE_KEY?.trim()
-      : process.env.COPY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
-  const shared = process.env.COPY_PAYOUT_PRIVATE_KEY?.trim();
-  const key = specific || shared;
-  if (!key) return null;
-  return normalizePrivateKey(key);
+      ? "COPY_BSC_PAYOUT_PRIVATE_KEY"
+      : "COPY_POLYGON_PAYOUT_PRIVATE_KEY",
+    "COPY_PAYOUT_PRIVATE_KEY",
+  );
 }
 
 export function getPoolPayoutPrivateKey(

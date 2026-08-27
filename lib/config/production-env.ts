@@ -1,4 +1,5 @@
 import { isProductionRuntime } from "@/lib/runtime-mode";
+import { readServerSecret } from "@/lib/config/server-env";
 
 export interface ProductionConfigIssue {
   key: string;
@@ -52,10 +53,11 @@ export function getProductionConfigIssues(): ProductionConfigIssue[] {
     });
   }
 
-  const payoutKey =
-    process.env.TREASURY_PAYOUT_PRIVATE_KEY?.trim() ||
-    process.env.TREASURY_BSC_PAYOUT_PRIVATE_KEY?.trim() ||
-    process.env.TREASURY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
+  const payoutKey = readServerSecret(
+    "TREASURY_PAYOUT_PRIVATE_KEY",
+    "TREASURY_BSC_PAYOUT_PRIVATE_KEY",
+    "TREASURY_POLYGON_PAYOUT_PRIVATE_KEY",
+  );
   if (!payoutKey) {
     issues.push({
       key: "TREASURY_PAYOUT_PRIVATE_KEY",
@@ -76,10 +78,11 @@ export function getProductionConfigIssues(): ProductionConfigIssue[] {
     });
   }
 
-  const copyPayoutKey =
-    process.env.COPY_PAYOUT_PRIVATE_KEY?.trim() ||
-    process.env.COPY_BSC_PAYOUT_PRIVATE_KEY?.trim() ||
-    process.env.COPY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
+  const copyPayoutKey = readServerSecret(
+    "COPY_PAYOUT_PRIVATE_KEY",
+    "COPY_BSC_PAYOUT_PRIVATE_KEY",
+    "COPY_POLYGON_PAYOUT_PRIVATE_KEY",
+  );
   if (!copyPayoutKey) {
     issues.push({
       key: "COPY_PAYOUT_PRIVATE_KEY",

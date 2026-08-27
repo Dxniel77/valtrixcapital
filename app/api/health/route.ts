@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDatabaseAvailable, isDatabaseConfigured } from "@/lib/db/available";
+import { readServerSecret } from "@/lib/config/server-env";
 import {
   getProductionConfigIssues,
   isProductionReady,
@@ -13,12 +14,20 @@ export async function GET() {
   const database = configured ? await isDatabaseAvailable() : false;
   const production = isProductionRuntime();
   const configIssues = production ? getProductionConfigIssues() : [];
+  const copyPayoutConfigured = Boolean(
+    readServerSecret(
+      "COPY_PAYOUT_PRIVATE_KEY",
+      "COPY_BSC_PAYOUT_PRIVATE_KEY",
+      "COPY_POLYGON_PAYOUT_PRIVATE_KEY",
+    ),
+  );
 
   return NextResponse.json({
     ok: production ? isProductionReady() && database : true,
     database,
     production,
     productionReady: production ? isProductionReady() : null,
+    copyPayoutConfigured,
     configIssues: configIssues.map(({ key, severity, message }) => ({
       key,
       severity,
