@@ -9,6 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { bsc, polygon } from "viem/chains";
 import type { Network } from "@prisma/client";
 import { allowOfflineSimulation } from "@/lib/runtime-mode";
+import { getCopyDepositAddress } from "@/lib/wallet/deposit-addresses";
 import { buildUsdtTransferCall } from "@/lib/wallet/usdt-transfer";
 
 export class AutomaticPayoutError extends Error {
@@ -40,7 +41,7 @@ function rpcUrl(network: Network): string {
 }
 
 function normalizePrivateKey(raw: string): `0x${string}` {
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().replace(/^["']|["']$/g, "");
   return (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as `0x${string}`;
 }
 
@@ -109,6 +110,17 @@ export async function executeAutomaticUsdtPayout(input: {
           : "Automatic payout signer is not configured on the server.",
       "PAYOUT_SIGNER_NOT_CONFIGURED",
     );
+  }
+
+  if (pool === "COPY") {
+    const copyWallet = getCopyDepositAddress(input.network).toLowerCase();
+    const signer = privateKeyToAccount(privateKey).address.toLowerCase();
+    if (copyWallet && signer !== copyWallet) {
+      throw new AutomaticPayoutError(
+        "Copy-trading payout key does not match the copy wallet. Set COPY_PAYOUT_PRIVATE_KEY to that wallet's key — do not use the staking key.",
+        "PAYOUT_SIGNER_NOT_CONFIGURED",
+      );
+    }
   }
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(input.toAddress)) {

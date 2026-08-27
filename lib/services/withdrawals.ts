@@ -11,6 +11,9 @@ import {
   TreasuryServiceError,
 } from "@/lib/services/treasury";
 import {
+  getCopyPayoutPrivateKey,
+} from "@/lib/services/automatic-payout";
+import {
   processAutomaticWithdrawalPayout,
   rejectWithdrawalAfterFailedPayout,
   WithdrawalPayoutError,
@@ -207,6 +210,12 @@ export async function createWithdrawal(input: {
 
   const netAmount = fromMicro(netMicro);
   const pool = treasuryPoolFromWithdrawalSource(source);
+  if (source === "COPY_CASH" && !getCopyPayoutPrivateKey(input.network)) {
+    throw new WithdrawalServiceError(
+      "Copy-trading payout signer is not configured on the server.",
+      "PAYOUT_FAILED",
+    );
+  }
   try {
     await assertTreasuryLiquidityForPayout(input.network, netAmount, pool);
   } catch (err) {

@@ -83,9 +83,9 @@ export function getProductionConfigIssues(): ProductionConfigIssue[] {
   if (!copyPayoutKey) {
     issues.push({
       key: "COPY_PAYOUT_PRIVATE_KEY",
-      severity: "warning",
+      severity: "error",
       message:
-        "Copy-cash wallet withdrawals need COPY_PAYOUT_PRIVATE_KEY (do not reuse the staking key).",
+        "Copy-cash wallet withdrawals need COPY_PAYOUT_PRIVATE_KEY (the copy wallet key, not the staking key).",
     });
   }
 
