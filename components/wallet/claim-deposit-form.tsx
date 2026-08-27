@@ -17,7 +17,8 @@ import {
 import { hydratePortfolioFromServer } from "@/lib/staking/hydrate-portfolio";
 import type { PortfolioDto } from "@/lib/staking/portfolio-types";
 import { useStakingStore, type StakingNetwork } from "@/lib/staking/store";
-import { cn } from "@/lib/utils";
+import { cn, shortenAddress } from "@/lib/utils";
+import { getPoolDepositAddress } from "@/lib/wallet/deposit-addresses";
 
 const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
@@ -156,6 +157,12 @@ export function ClaimDepositForm() {
             </button>
           ))}
         </div>
+
+        <p className="rounded-md border border-border-subtle bg-bg-base px-3 py-2 font-mono text-xs text-text-secondary">
+          {t("admin.treasury.depositTo", {
+            address: shortenAddress(getPoolDepositAddress(network, purpose)),
+          })}
+        </p>
 
         <input
           type="text"

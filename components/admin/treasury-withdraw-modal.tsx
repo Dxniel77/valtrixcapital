@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/context";
 import { useAdminStore } from "@/lib/admin/store";
 import { useTreasuryStore } from "@/lib/admin/treasury-store";
+import type { TreasuryPoolKind } from "@/lib/admin/treasury-store";
 import { useBackendAvailable } from "@/lib/hooks/use-backend-sync";
 import { recordTreasuryWithdrawalOnBackend } from "@/lib/admin/treasury-backend";
 import type { StakingNetwork } from "@/lib/staking/store";
@@ -41,13 +42,14 @@ export function TreasuryWithdrawModal({
   const recordWithdrawal = useTreasuryStore((s) => s.recordWithdrawal);
 
   const [network, setNetwork] = React.useState<StakingNetwork>("BSC");
+  const [pool, setPool] = React.useState<TreasuryPoolKind>("STAKING");
   const [amountStr, setAmountStr] = React.useState("");
   const [toAddress, setToAddress] = React.useState("");
   const [txHash, setTxHash] = React.useState("");
   const [note, setNote] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
 
-  const available = balanceFor(network);
+  const available = balanceFor(network, pool);
   const amount = Number(amountStr.replace(/,/g, "."));
   const amountValid =
     Number.isFinite(amount) && amount > 0 && amount <= available;
@@ -77,6 +79,7 @@ export function TreasuryWithdrawModal({
       if (backend) {
         await recordTreasuryWithdrawalOnBackend({
           network,
+          pool,
           amount,
           toAddress: toAddress.trim(),
           txHash: txHash.trim() || undefined,
@@ -85,6 +88,7 @@ export function TreasuryWithdrawModal({
       } else {
         const result = recordWithdrawal({
           network,
+          pool,
           amount,
           toAddress: toAddress.trim(),
           txHash: txHash.trim() || undefined,
@@ -131,13 +135,39 @@ export function TreasuryWithdrawModal({
         <DialogBody className="space-y-4">
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-wider text-text-muted">
+              {t("admin.treasury.poolLabel")}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["STAKING", "COPY"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPool(p)}
+                  className={cn(
+                    "rounded-md border px-3 py-2.5 text-left text-sm transition-colors",
+                    pool === p
+                      ? "border-gold/50 bg-gold/10 text-gold"
+                      : "border-border-subtle hover:border-border-strong",
+                  )}
+                >
+                  {t(
+                    p === "COPY"
+                      ? "admin.treasury.poolCopy"
+                      : "admin.treasury.poolStaking",
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-text-muted">
               {t("staking.deposit.networkLabel")}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(["BSC", "POLYGON"] as const).map((n) => {
                 const active = network === n;
                 const meta = CHAIN_META[chainId(n)];
-                const bal = balanceFor(n);
+                const bal = balanceFor(n, pool);
                 return (
                   <button
                     key={n}

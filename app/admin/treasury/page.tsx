@@ -83,27 +83,13 @@ export default function AdminTreasuryPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <StatTile
           label={t("admin.treasury.totalLiquidity")}
           value={`$${formatNumber(hydrated ? treasury.totalBalance : 0, { decimals: 2 })}`}
           icon={Landmark}
           accent="gold"
           hint={t("admin.treasury.totalLiquidityHint")}
-        />
-        <StatTile
-          label={t("admin.treasury.totalLoaded")}
-          value={`$${formatNumber(hydrated ? treasury.adminDeposited : 0, { decimals: 2 })}`}
-          icon={ArrowDownToLine}
-          accent="success"
-          hint={t("admin.treasury.totalLoadedHint")}
-        />
-        <StatTile
-          label={t("admin.treasury.totalPaidOut")}
-          value={`$${formatNumber(hydrated ? treasury.paidOut : 0, { decimals: 2 })}`}
-          icon={ArrowUpFromLine}
-          accent="danger"
-          hint={t("admin.treasury.totalPaidOutHint")}
         />
         <StatTile
           label={t("admin.treasury.bscBalance")}
@@ -125,6 +111,55 @@ export default function AdminTreasuryPage() {
           icon={ShieldAlert}
           accent={lowLiquidity ? "danger" : "success"}
           hint={t("admin.treasury.coverageHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.copyTotalLiquidity")}
+          value={`$${formatNumber(hydrated ? treasury.copyTotalBalance : 0, { decimals: 2 })}`}
+          icon={Landmark}
+          accent="gold"
+          hint={t("admin.treasury.copyTotalLiquidityHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.copyBscBalance")}
+          value={`$${formatNumber(hydrated ? treasury.copyBscBalance : 0, { decimals: 2 })}`}
+          icon={ArrowDownToLine}
+          accent="info"
+          hint="BEP-20"
+        />
+        <StatTile
+          label={t("admin.treasury.copyPolygonBalance")}
+          value={`$${formatNumber(hydrated ? treasury.copyPolygonBalance : 0, { decimals: 2 })}`}
+          icon={ArrowDownToLine}
+          accent="success"
+          hint="Polygon"
+        />
+        <StatTile
+          label={t("admin.treasury.copyPaidOut")}
+          value={`$${formatNumber(hydrated ? treasury.copyPaidOut : 0, { decimals: 2 })}`}
+          icon={ArrowUpFromLine}
+          accent="danger"
+          hint={t("admin.treasury.copyPaidOutHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.totalLoaded")}
+          value={`$${formatNumber(hydrated ? treasury.adminDeposited : 0, { decimals: 2 })}`}
+          icon={ArrowDownToLine}
+          accent="success"
+          hint={t("admin.treasury.totalLoadedHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.totalPaidOut")}
+          value={`$${formatNumber(hydrated ? treasury.paidOut : 0, { decimals: 2 })}`}
+          icon={ArrowUpFromLine}
+          accent="danger"
+          hint={t("admin.treasury.totalPaidOutHint")}
+        />
+        <StatTile
+          label={t("admin.treasury.copyInflow")}
+          value={`$${formatNumber(hydrated ? treasury.copyInflow : 0, { decimals: 2 })}`}
+          icon={ArrowDownToLine}
+          accent="success"
+          hint={t("admin.treasury.copyInflowHint")}
         />
       </div>
 
@@ -155,6 +190,13 @@ export default function AdminTreasuryPage() {
                     <div>
                       <Badge variant="success">+USDT</Badge>
                       <span className="ml-2 text-text-muted">{d.network}</span>
+                      <span className="ml-2 text-text-muted">
+                        {t(
+                          d.pool === "COPY"
+                            ? "admin.treasury.poolCopy"
+                            : "admin.treasury.poolStaking",
+                        )}
+                      </span>
                     </div>
                     <span className="font-mono text-success">
                       +${formatNumber(d.amount, { decimals: 2 })}
@@ -183,6 +225,13 @@ export default function AdminTreasuryPage() {
                     <div>
                       <Badge variant="danger">−USDT</Badge>
                       <span className="ml-2 text-text-muted">{w.network}</span>
+                      <span className="ml-2 text-text-muted">
+                        {t(
+                          w.pool === "COPY"
+                            ? "admin.treasury.poolCopy"
+                            : "admin.treasury.poolStaking",
+                        )}
+                      </span>
                     </div>
                     <span className="font-mono text-danger">
                       −${formatNumber(w.amount, { decimals: 2 })}

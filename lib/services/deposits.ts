@@ -18,6 +18,7 @@ import {
 import { isProductionRuntime } from "@/lib/runtime-mode";
 import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
 import type { StakingNetwork } from "@/lib/staking/store";
+import { incrementTreasuryPoolInTx } from "@/lib/services/treasury";
 
 /** Credit as soon as the transfer is mined. Do not wait 12 blocks on the claim request. */
 const CREDIT_AT_CONFIRMATIONS = 1;
@@ -136,6 +137,7 @@ async function assertDepositReadyForConfirm(deposit: {
   network: Network;
   txHash: string;
   fromAddress: string;
+  purpose?: DepositPurpose | string;
 }): Promise<VerifiedUsdtDeposit> {
   if (!isProductionRuntime()) return {
     amount: 0,
@@ -146,6 +148,7 @@ async function assertDepositReadyForConfirm(deposit: {
   const inspected = await inspectUsdtDepositTx({
     network: deposit.network as StakingNetwork,
     txHash: deposit.txHash,
+    purpose: deposit.purpose === "COPY" ? "COPY" : "STAKING",
   });
   if (!inspected.ok) {
     throw new DepositServiceError(inspected.message, inspected.code);
@@ -415,6 +418,12 @@ export async function confirmDeposit(depositId: string): Promise<DepositDto> {
           },
         },
       });
+      await incrementTreasuryPoolInTx(
+        tx,
+        deposit.network,
+        creditedAmount,
+        "COPY",
+      );
       // COPY must never create or keep a stake — that would double-pay into lockedCapital.
       if (stake && stake.status === "ACTIVE") {
         await tx.stake.update({
@@ -581,6 +590,7 @@ export async function claimDepositFromTx(input: {
   const inspected = await inspectUsdtDepositTx({
     network: input.network,
     txHash: normalizedHash,
+    purpose: normalizeDepositPurpose(input.purpose),
   });
   if (!inspected.ok) {
     throw new DepositServiceError(inspected.message, inspected.code);

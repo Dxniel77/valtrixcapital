@@ -28,9 +28,10 @@ import {
   syncTreasuryFromBackend,
 } from "@/lib/admin/treasury-backend";
 import { REQUIRED_CONFIRMATIONS } from "@/lib/staking/constants";
-import { getDepositAddress } from "@/lib/wallet/deposit-addresses";
+import { getPoolDepositAddress } from "@/lib/wallet/deposit-addresses";
 import { CHAIN_META } from "@/lib/wagmi";
 import type { StakingNetwork } from "@/lib/staking/store";
+import type { TreasuryPoolKind } from "@/lib/admin/treasury-store";
 import {
   cn,
   explorerUrl,
@@ -65,6 +66,7 @@ export function TreasuryDepositModal({
   const [network, setNetwork] = React.useState<StakingNetwork>(() =>
     chainId === polygon.id ? "POLYGON" : "BSC",
   );
+  const [pool, setPool] = React.useState<TreasuryPoolKind>("STAKING");
   const [backendDeposit, setBackendDeposit] = React.useState(false);
   const confirmStartedRef = React.useRef(false);
 
@@ -117,7 +119,7 @@ export function TreasuryDepositModal({
       setBackendDeposit(useBackend);
 
       if (allowOfflineSimulation() && !useBackend) {
-        beginDeposit({ amount, network });
+        beginDeposit({ amount, network, pool });
         window.setTimeout(() => setStep("confirming"), 1600);
         return;
       }
@@ -127,6 +129,7 @@ export function TreasuryDepositModal({
         await beginTreasuryDepositOnBackend({
           amount,
           network,
+          pool,
           txHash,
           requiredConfirmations: REQUIRED_CONFIRMATIONS,
         });
@@ -134,7 +137,7 @@ export function TreasuryDepositModal({
         return;
       }
 
-      const toAddress = getDepositAddress(network);
+      const toAddress = getPoolDepositAddress(network, pool);
       if (!toAddress) {
         toast.error(t("staking.deposit.treasuryMissing"));
         setStep("form");
@@ -151,11 +154,12 @@ export function TreasuryDepositModal({
         await beginTreasuryDepositOnBackend({
           amount,
           network,
+          pool,
           txHash,
           requiredConfirmations: REQUIRED_CONFIRMATIONS,
         });
       } else {
-        beginDeposit({ amount, network, txHash });
+        beginDeposit({ amount, network, pool, txHash });
       }
       setStep("confirming");
     } catch (err) {
@@ -258,6 +262,35 @@ export function TreasuryDepositModal({
               <p className="text-sm text-text-secondary">
                 {t("admin.treasury.depositExplain")}
               </p>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-text-muted">
+                  {t("admin.treasury.poolLabel")}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["STAKING", "COPY"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPool(p)}
+                      className={cn(
+                        "rounded-md border px-3 py-2.5 text-left text-sm transition-colors",
+                        pool === p
+                          ? "border-gold/50 bg-gold/10 text-gold"
+                          : "border-border-subtle hover:border-border-strong",
+                      )}
+                    >
+                      {t(
+                        p === "COPY"
+                          ? "admin.treasury.poolCopy"
+                          : "admin.treasury.poolStaking",
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-text-muted">
+                  {t("admin.treasury.poolHint")}
+                </p>
+              </div>
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-wider text-text-muted">
                   {t("admin.treasury.amountLabel")}

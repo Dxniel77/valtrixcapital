@@ -62,6 +62,11 @@ enum DepositPurpose {
   COPY
 }
 
+enum TreasuryPool {
+  STAKING
+  COPY
+}
+
 enum WithdrawalStatus {
   REQUESTED
   APPROVED
@@ -514,15 +519,18 @@ model AdminAction {
 }
 
 model TreasuryState {
-  id             Int      @id @default(1)
-  bscBalance     BigInt   @default(0)
-  polygonBalance BigInt   @default(0)
-  updatedAt      DateTime @updatedAt
+  id               Int      @id @default(1)
+  bscBalance       BigInt   @default(0)
+  polygonBalance   BigInt   @default(0)
+  copyBscBalance   BigInt   @default(0)
+  copyPolygonBalance BigInt @default(0)
+  updatedAt        DateTime @updatedAt
 }
 
 model TreasuryDeposit {
   id                    String                @id @default(uuid())
   network               Network
+  pool                  TreasuryPool          @default(STAKING)
   amount                BigInt
   txHash                String                @unique
   confirmations         Int                   @default(0)
@@ -533,11 +541,13 @@ model TreasuryDeposit {
   confirmedAt           DateTime?
 
   @@index([status, startedAt(sort: Desc)])
+  @@index([pool, network])
 }
 
 model TreasuryWithdrawal {
   id               String                 @id @default(uuid())
   network          Network
+  pool             TreasuryPool           @default(STAKING)
   amount           BigInt
   toAddress        String
   txHash           String?
@@ -550,6 +560,7 @@ model TreasuryWithdrawal {
   userWithdrawal Withdrawal? @relation(fields: [userWithdrawalId], references: [id])
 
   @@index([createdAt(sort: Desc)])
+  @@index([pool, network])
 }
 
 model AppConfig {

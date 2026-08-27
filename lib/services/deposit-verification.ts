@@ -14,7 +14,7 @@ import {
   resolveExplorerApiKey,
 } from "@/lib/block-explorer/etherscan-v2";
 import type { StakingNetwork } from "@/lib/staking/store";
-import { getDepositAddress, getUsdtContract } from "@/lib/wallet/deposit-addresses";
+import { getPoolDepositAddress, getUsdtContract } from "@/lib/wallet/deposit-addresses";
 import { USDT_DECIMALS } from "@/lib/wallet/usdt-transfer";
 
 const RECEIPT_WAIT_MS = 8_000;
@@ -346,8 +346,11 @@ export async function getTxConfirmationCount(
   }
 }
 
-function treasuryOrNull(network: StakingNetwork): string | null {
-  const treasury = getDepositAddress(network);
+function treasuryOrNull(
+  network: StakingNetwork,
+  pool: "STAKING" | "COPY" = "STAKING",
+): string | null {
+  const treasury = getPoolDepositAddress(network, pool);
   if (
     !treasury ||
     treasury.toLowerCase() === "0x0000000000000000000000000000000000000000"
@@ -362,14 +365,19 @@ export async function inspectUsdtDepositTx(input: {
   network: StakingNetwork;
   txHash: string;
   expectedFrom?: string;
+  purpose?: "STAKING" | "COPY";
+  pool?: "STAKING" | "COPY";
 }): Promise<DepositVerifyResult> {
-  const expectedTo = treasuryOrNull(input.network);
+  const pool = input.pool ?? input.purpose ?? "STAKING";
+  const expectedTo = treasuryOrNull(input.network, pool);
   const chainLabel = input.network === "POLYGON" ? "Polygon" : "BNB Chain";
+  const destLabel =
+    pool === "COPY" ? "copy-trading wallet" : "treasury";
   if (!expectedTo) {
     return {
       ok: false,
       code: "TX_NOT_FOUND",
-      message: `Valtrix ${chainLabel} treasury is not configured. Contact support.`,
+      message: `Valtrix ${chainLabel} ${destLabel} is not configured. Contact support.`,
     };
   }
 
@@ -396,14 +404,14 @@ export async function inspectUsdtDepositTx(input: {
         code: "TX_WRONG_TREASURY",
         sentTo: anyUsdt.toAddress,
         expectedTo,
-        message: `USDT went to ${shortAddr(anyUsdt.toAddress)}, not the Valtrix ${chainLabel} treasury ${shortAddr(expectedTo)}. Send again using the address shown in the app, or paste this hash to support.`,
+        message: `USDT went to ${shortAddr(anyUsdt.toAddress)}, not the Valtrix ${chainLabel} ${destLabel} ${shortAddr(expectedTo)}. Send again using the address shown in the app, or paste this hash to support.`,
       };
     }
     return {
       ok: false,
       code: "TX_WRONG_TOKEN",
       expectedTo,
-      message: `This hash is not a USDT transfer to the Valtrix ${chainLabel} treasury ${shortAddr(expectedTo)}. Check the network (BSC vs Polygon) and token.`,
+      message: `This hash is not a USDT transfer to the Valtrix ${chainLabel} ${destLabel} ${shortAddr(expectedTo)}. Check the network (BSC vs Polygon) and token.`,
     };
   }
 
@@ -432,7 +440,7 @@ export async function inspectUsdtDepositTx(input: {
       code: "TX_WRONG_TREASURY",
       sentTo: decoded.toAddress,
       expectedTo,
-      message: `USDT was sent to ${shortAddr(decoded.toAddress)}, not the Valtrix ${chainLabel} treasury ${shortAddr(expectedTo)}.`,
+      message: `USDT was sent to ${shortAddr(decoded.toAddress)}, not the Valtrix ${chainLabel} ${destLabel} ${shortAddr(expectedTo)}.`,
     };
   }
   if (
@@ -454,6 +462,8 @@ export async function verifyUsdtDepositTx(input: {
   txHash: string;
   expectedFrom?: string;
   waitForMining?: boolean;
+  purpose?: "STAKING" | "COPY";
+  pool?: "STAKING" | "COPY";
 }): Promise<VerifiedUsdtDeposit | null> {
   const result = await inspectUsdtDepositTx(input);
   if (!result.ok) return null;
@@ -467,6 +477,7 @@ export async function verifyAdminTreasuryDeposit(input: {
   txHash: string;
   expectedFrom: string;
   waitForMining?: boolean;
+  pool?: "STAKING" | "COPY";
 }): Promise<VerifiedUsdtDeposit | null> {
   return verifyUsdtDepositTx(input);
 }

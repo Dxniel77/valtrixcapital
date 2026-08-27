@@ -2,8 +2,8 @@ import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { prisma } from "@/lib/db";
 import { fetchBscOfficialUsdtOutflows } from "@/lib/block-explorer/bsc-usdt-outflows";
-import { getPayoutPrivateKey } from "@/lib/services/automatic-payout";
-import { getDepositAddress, getUsdtContract } from "@/lib/wallet/deposit-addresses";
+import { getCopyPayoutPrivateKey, getPayoutPrivateKey } from "@/lib/services/automatic-payout";
+import { getCopyDepositAddress, getDepositAddress, getUsdtContract } from "@/lib/wallet/deposit-addresses";
 import { USDT_DECIMALS } from "@/lib/wallet/usdt-transfer";
 import { explorerUrl, shortenAddress } from "@/lib/utils";
 
@@ -48,8 +48,10 @@ function normalizeAddress(value: string | undefined | null): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-function payoutSignerAddress(): string | null {
-  const key = getPayoutPrivateKey("BSC");
+function payoutSignerAddress(
+  getKey: typeof getPayoutPrivateKey,
+): string | null {
+  const key = getKey("BSC");
   if (!key) return null;
   try {
     return privateKeyToAccount(key).address.toLowerCase();
@@ -60,10 +62,18 @@ function payoutSignerAddress(): string | null {
 
 export function bscHotWalletAddresses(): string[] {
   const wallets = new Set<string>();
-  const treasury = normalizeAddress(getDepositAddress("BSC"));
-  if (treasury.startsWith("0x")) wallets.add(treasury);
-  const signer = payoutSignerAddress();
-  if (signer) wallets.add(signer);
+  for (const address of [
+    normalizeAddress(getDepositAddress("BSC")),
+    normalizeAddress(getCopyDepositAddress("BSC")),
+  ]) {
+    if (address.startsWith("0x")) wallets.add(address);
+  }
+  for (const signer of [
+    payoutSignerAddress(getPayoutPrivateKey),
+    payoutSignerAddress(getCopyPayoutPrivateKey),
+  ]) {
+    if (signer) wallets.add(signer);
+  }
   return [...wallets];
 }
 

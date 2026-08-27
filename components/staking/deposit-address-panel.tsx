@@ -10,8 +10,9 @@ import { useI18n } from "@/lib/i18n/context";
 import { CHAIN_META } from "@/lib/wagmi";
 import type { StakingNetwork } from "@/lib/staking/store";
 import {
-  getDepositAddress,
+  getPoolDepositAddress,
   getUsdtContract,
+  type TreasuryPoolKind,
 } from "@/lib/wallet/deposit-addresses";
 import { cn, formatNumber } from "@/lib/utils";
 
@@ -33,12 +34,14 @@ export function DepositAddressPanel({
   onNetworkChange,
   showNetworkSelector = true,
   amount,
+  pool = "STAKING",
   className,
 }: {
   network: StakingNetwork;
   onNetworkChange?: (network: StakingNetwork) => void;
   showNetworkSelector?: boolean;
   amount?: number;
+  pool?: TreasuryPoolKind;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -47,7 +50,7 @@ export function DepositAddressPanel({
   >(null);
 
   const meta = CHAIN_META[targetChainId(network)];
-  const depositAddress = getDepositAddress(network);
+  const depositAddress = getPoolDepositAddress(network, pool);
   const usdtContract = getUsdtContract(network);
 
   async function handleCopy(

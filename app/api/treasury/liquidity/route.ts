@@ -15,6 +15,9 @@ export async function GET() {
       bscBalance: 0,
       polygonBalance: 0,
       totalBalance: 0,
+      copyBscBalance: 0,
+      copyPolygonBalance: 0,
+      copyTotalBalance: 0,
     });
   }
 

@@ -44,7 +44,7 @@ function normalizePrivateKey(raw: string): `0x${string}` {
   return (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as `0x${string}`;
 }
 
-/** Server-only treasury hot-wallet key used to push USDT payouts. */
+/** Server-only treasury hot-wallet key used to push staking / earnings USDT. */
 export function getPayoutPrivateKey(network: Network): `0x${string}` | null {
   const specific =
     network === "BSC"
@@ -56,24 +56,57 @@ export function getPayoutPrivateKey(network: Network): `0x${string}` | null {
   return normalizePrivateKey(key);
 }
 
+/** Server-only copy-trading hot-wallet key. Never falls back to the staking key. */
+export function getCopyPayoutPrivateKey(network: Network): `0x${string}` | null {
+  const specific =
+    network === "BSC"
+      ? process.env.COPY_BSC_PAYOUT_PRIVATE_KEY?.trim()
+      : process.env.COPY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
+  const shared = process.env.COPY_PAYOUT_PRIVATE_KEY?.trim();
+  const key = specific || shared;
+  if (!key) return null;
+  return normalizePrivateKey(key);
+}
+
+export function getPoolPayoutPrivateKey(
+  network: Network,
+  pool: "STAKING" | "COPY" = "STAKING",
+): `0x${string}` | null {
+  return pool === "COPY"
+    ? getCopyPayoutPrivateKey(network)
+    : getPayoutPrivateKey(network);
+}
+
 export function isAutomaticPayoutConfigured(): boolean {
   return Boolean(
     getPayoutPrivateKey("BSC") || getPayoutPrivateKey("POLYGON"),
   );
 }
 
-/** Sends net USDT from the treasury hot wallet to the user's destination address. */
+export function isCopyPayoutConfigured(): boolean {
+  return Boolean(
+    getCopyPayoutPrivateKey("BSC") || getCopyPayoutPrivateKey("POLYGON"),
+  );
+}
+
+/** Sends net USDT from the staking or copy hot wallet to the user's destination. */
 export async function executeAutomaticUsdtPayout(input: {
   network: Network;
   toAddress: string;
   netAmount: number;
+  pool?: "STAKING" | "COPY";
 }): Promise<Hash> {
-  const privateKey = getPayoutPrivateKey(input.network);
+  const pool = input.pool ?? "STAKING";
+  const privateKey = getPoolPayoutPrivateKey(input.network, pool);
   if (!privateKey) {
     throw new AutomaticPayoutError(
       allowOfflineSimulation()
-        ? "Set TREASURY_PAYOUT_PRIVATE_KEY (or per-network keys) to enable automatic withdrawals in dev."
-        : "Automatic payout signer is not configured on the server.",
+        ? pool === "COPY"
+          ? "Set COPY_PAYOUT_PRIVATE_KEY to enable copy-cash withdrawals in dev."
+          : "Set TREASURY_PAYOUT_PRIVATE_KEY (or per-network keys) to enable automatic withdrawals in dev."
+        : pool === "COPY"
+          ? "Copy-trading payout signer is not configured on the server."
+          : "Automatic payout signer is not configured on the server.",
       "PAYOUT_SIGNER_NOT_CONFIGURED",
     );
   }

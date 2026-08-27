@@ -437,6 +437,9 @@ export async function fetchTreasuryLiquidity() {
     bscBalance: number;
     polygonBalance: number;
     totalBalance: number;
+    copyBscBalance?: number;
+    copyPolygonBalance?: number;
+    copyTotalBalance?: number;
   }>("/api/treasury/liquidity");
 }
 
@@ -806,14 +809,20 @@ export async function fetchAdminTreasury() {
         bscBalance: number;
         polygonBalance: number;
         totalBalance: number;
+        copyBscBalance: number;
+        copyPolygonBalance: number;
+        copyTotalBalance: number;
       };
       totals: {
         adminDeposited: number;
         paidOut: number;
+        copyInflow: number;
+        copyPaidOut: number;
       };
       deposits: Array<{
         id: string;
         network: "BSC" | "POLYGON";
+        pool?: "STAKING" | "COPY";
         amount: number;
         txHash: string;
         confirmations: number;
@@ -825,6 +834,7 @@ export async function fetchAdminTreasury() {
       withdrawals: Array<{
         id: string;
         network: "BSC" | "POLYGON";
+        pool?: "STAKING" | "COPY";
         amount: number;
         toAddress: string;
         txHash: string | null;
@@ -839,6 +849,7 @@ export async function fetchAdminTreasury() {
 
 export async function adminCreateTreasuryDeposit(input: {
   network: "BSC" | "POLYGON";
+  pool?: "STAKING" | "COPY";
   amount: number;
   txHash: string;
   requiredConfirmations: number;
@@ -889,6 +900,7 @@ export async function adminUpdateTreasuryDeposit(
 
 export async function adminRecordTreasuryWithdrawal(input: {
   network: "BSC" | "POLYGON";
+  pool?: "STAKING" | "COPY";
   amount: number;
   toAddress: string;
   txHash?: string;

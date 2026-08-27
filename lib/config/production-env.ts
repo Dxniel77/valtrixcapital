@@ -64,6 +64,31 @@ export function getProductionConfigIssues(): ProductionConfigIssue[] {
     });
   }
 
+  if (
+    !isValidEthAddress(process.env.NEXT_PUBLIC_COPY_BSC_ADDRESS?.trim()) &&
+    !isValidEthAddress(process.env.NEXT_PUBLIC_COPY_POLYGON_ADDRESS?.trim())
+  ) {
+    issues.push({
+      key: "NEXT_PUBLIC_COPY_BSC_ADDRESS",
+      severity: "warning",
+      message:
+        "Copy-trading deposit address is unset; the app will use the live copy wallet fallback.",
+    });
+  }
+
+  const copyPayoutKey =
+    process.env.COPY_PAYOUT_PRIVATE_KEY?.trim() ||
+    process.env.COPY_BSC_PAYOUT_PRIVATE_KEY?.trim() ||
+    process.env.COPY_POLYGON_PAYOUT_PRIVATE_KEY?.trim();
+  if (!copyPayoutKey) {
+    issues.push({
+      key: "COPY_PAYOUT_PRIVATE_KEY",
+      severity: "warning",
+      message:
+        "Copy-cash wallet withdrawals need COPY_PAYOUT_PRIVATE_KEY (do not reuse the staking key).",
+    });
+  }
+
   const wcId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() ?? "";
   if (wcId.length < 32 || wcId === "valtrix-dev") {
     issues.push({

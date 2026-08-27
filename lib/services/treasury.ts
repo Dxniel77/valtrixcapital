@@ -1,4 +1,4 @@
-import type { Network, Prisma, TreasuryDepositStatus } from "@prisma/client";
+import type { Network, Prisma, TreasuryDepositStatus, TreasuryPool } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { normalizeWallet } from "@/lib/auth/admins";
 import { fromMicro, toMicro } from "@/lib/utils";
@@ -31,16 +31,22 @@ export interface TreasuryBalancesDto {
   bscBalance: number;
   polygonBalance: number;
   totalBalance: number;
+  copyBscBalance: number;
+  copyPolygonBalance: number;
+  copyTotalBalance: number;
 }
 
 export interface TreasuryPoolTotalsDto {
   adminDeposited: number;
   paidOut: number;
+  copyInflow: number;
+  copyPaidOut: number;
 }
 
 export interface TreasuryDepositDto {
   id: string;
   network: Network;
+  pool: TreasuryPool;
   amount: number;
   txHash: string;
   confirmations: number;
@@ -53,6 +59,7 @@ export interface TreasuryDepositDto {
 export interface TreasuryWithdrawalDto {
   id: string;
   network: Network;
+  pool: TreasuryPool;
   amount: number;
   toAddress: string;
   txHash: string | null;
@@ -76,70 +83,149 @@ const adminPoolDepositWhere = {
   NOT: { recordedBy: TREASURY_USER_DEPOSIT_MARKER },
 };
 
-function balanceField(network: Network): "bscBalance" | "polygonBalance" {
+function stakingBalanceField(network: Network): "bscBalance" | "polygonBalance" {
   return network === "POLYGON" ? "polygonBalance" : "bscBalance";
+}
+
+function copyBalanceField(
+  network: Network,
+): "copyBscBalance" | "copyPolygonBalance" {
+  return network === "POLYGON" ? "copyPolygonBalance" : "copyBscBalance";
+}
+
+function balanceField(
+  network: Network,
+  pool: TreasuryPool = "STAKING",
+): "bscBalance" | "polygonBalance" | "copyBscBalance" | "copyPolygonBalance" {
+  return pool === "COPY" ? copyBalanceField(network) : stakingBalanceField(network);
+}
+
+function emptyNetworkTotals(): Record<Network, bigint> {
+  return { BSC: 0n, POLYGON: 0n };
+}
+
+function applyNetworkSums(
+  rows: Array<{ network: Network; _sum: { amount: bigint | null } }>,
+): Record<Network, bigint> {
+  const out = emptyNetworkTotals();
+  for (const row of rows) {
+    out[row.network] = row._sum.amount ?? 0n;
+  }
+  return out;
+}
+
+export function treasuryPoolFromPurpose(
+  purpose: "STAKING" | "COPY" | string | null | undefined,
+): TreasuryPool {
+  return purpose === "COPY" ? "COPY" : "STAKING";
+}
+
+export function treasuryPoolFromWithdrawalSource(
+  source: "EARNINGS" | "COPY_CASH" | string | null | undefined,
+): TreasuryPool {
+  return source === "COPY_CASH" ? "COPY" : "STAKING";
 }
 
 function isAdminPoolDeposit(recordedBy: string | null | undefined): boolean {
   return recordedBy !== TREASURY_USER_DEPOSIT_MARKER;
 }
 
-async function sumConfirmedAdminDepositsByNetwork(): Promise<
-  Record<Network, bigint>
-> {
+async function sumConfirmedAdminDepositsByPool(
+  pool: TreasuryPool,
+): Promise<Record<Network, bigint>> {
   const rows = await prisma.treasuryDeposit.groupBy({
     by: ["network"],
-    where: adminPoolDepositWhere,
+    where: { ...adminPoolDepositWhere, pool },
     _sum: { amount: true },
   });
-
-  const out: Record<Network, bigint> = { BSC: 0n, POLYGON: 0n };
-  for (const row of rows) {
-    out[row.network] = row._sum.amount ?? 0n;
-  }
-  return out;
+  return applyNetworkSums(rows);
 }
 
-async function sumWithdrawalsByNetwork(): Promise<Record<Network, bigint>> {
+async function sumWithdrawalsByPool(
+  pool: TreasuryPool,
+): Promise<Record<Network, bigint>> {
   const rows = await prisma.treasuryWithdrawal.groupBy({
     by: ["network"],
+    where: { pool },
     _sum: { amount: true },
   });
+  return applyNetworkSums(rows);
+}
 
-  const out: Record<Network, bigint> = { BSC: 0n, POLYGON: 0n };
-  for (const row of rows) {
-    out[row.network] = row._sum.amount ?? 0n;
-  }
-  return out;
+async function sumConfirmedUserCopyDepositsByNetwork(): Promise<
+  Record<Network, bigint>
+> {
+  const rows = await prisma.deposit.groupBy({
+    by: ["network"],
+    where: { status: "CONFIRMED", purpose: "COPY" },
+    _sum: { amount: true },
+  });
+  return applyNetworkSums(rows);
 }
 
 function netPoolBalance(deposits: bigint, withdrawals: bigint): bigint {
   return deposits > withdrawals ? deposits - withdrawals : 0n;
 }
 
-/** Recomputes payout pool from admin loads minus all treasury outflows. */
-export async function reconcileTreasuryState(): Promise<TreasuryBalancesDto> {
-  const [deposits, withdrawals] = await Promise.all([
-    sumConfirmedAdminDepositsByNetwork(),
-    sumWithdrawalsByNetwork(),
-  ]);
-
-  const bscBalance = netPoolBalance(deposits.BSC, withdrawals.BSC);
-  const polygonBalance = netPoolBalance(deposits.POLYGON, withdrawals.POLYGON);
-
-  await prisma.treasuryState.upsert({
-    where: { id: 1 },
-    update: { bscBalance, polygonBalance },
-    create: { id: 1, bscBalance, polygonBalance },
-  });
-
-  const bsc = fromMicro(bscBalance);
-  const polygon = fromMicro(polygonBalance);
+function toBalancesDto(
+  staking: Record<Network, bigint>,
+  copy: Record<Network, bigint>,
+): TreasuryBalancesDto {
+  const bsc = fromMicro(staking.BSC);
+  const polygon = fromMicro(staking.POLYGON);
+  const copyBsc = fromMicro(copy.BSC);
+  const copyPolygon = fromMicro(copy.POLYGON);
   return {
     bscBalance: bsc,
     polygonBalance: polygon,
     totalBalance: bsc + polygon,
+    copyBscBalance: copyBsc,
+    copyPolygonBalance: copyPolygon,
+    copyTotalBalance: copyBsc + copyPolygon,
   };
+}
+
+/** Recomputes staking (admin loads − staking payouts) and copy (user COPY deposits + admin copy loads − copy payouts). */
+export async function reconcileTreasuryState(): Promise<TreasuryBalancesDto> {
+  const [stakingIn, stakingOut, copyAdminIn, copyUserIn, copyOut] =
+    await Promise.all([
+      sumConfirmedAdminDepositsByPool("STAKING"),
+      sumWithdrawalsByPool("STAKING"),
+      sumConfirmedAdminDepositsByPool("COPY"),
+      sumConfirmedUserCopyDepositsByNetwork(),
+      sumWithdrawalsByPool("COPY"),
+    ]);
+
+  const staking = {
+    BSC: netPoolBalance(stakingIn.BSC, stakingOut.BSC),
+    POLYGON: netPoolBalance(stakingIn.POLYGON, stakingOut.POLYGON),
+  };
+  const copy = {
+    BSC: netPoolBalance(copyAdminIn.BSC + copyUserIn.BSC, copyOut.BSC),
+    POLYGON: netPoolBalance(
+      copyAdminIn.POLYGON + copyUserIn.POLYGON,
+      copyOut.POLYGON,
+    ),
+  };
+
+  await prisma.treasuryState.upsert({
+    where: { id: 1 },
+    update: {
+      bscBalance: staking.BSC,
+      polygonBalance: staking.POLYGON,
+      copyBscBalance: copy.BSC,
+      copyPolygonBalance: copy.POLYGON,
+    },
+    create: {
+      id: 1,
+      bscBalance: staking.BSC,
+      polygonBalance: staking.POLYGON,
+      copyBscBalance: copy.BSC,
+      copyPolygonBalance: copy.POLYGON,
+    },
+  });
+
+  return toBalancesDto(staking, copy);
 }
 
 export async function getTreasuryLiquidity(): Promise<TreasuryBalancesDto> {
@@ -149,6 +235,7 @@ export async function getTreasuryLiquidity(): Promise<TreasuryBalancesDto> {
 export async function assertTreasuryLiquidityForPayout(
   network: Network,
   netAmount: number,
+  pool: TreasuryPool = "STAKING",
 ): Promise<void> {
   if (!Number.isFinite(netAmount) || netAmount <= 0) {
     throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
@@ -156,10 +243,18 @@ export async function assertTreasuryLiquidityForPayout(
 
   const balances = await getTreasuryLiquidity();
   const available =
-    network === "POLYGON" ? balances.polygonBalance : balances.bscBalance;
+    pool === "COPY"
+      ? network === "POLYGON"
+        ? balances.copyPolygonBalance
+        : balances.copyBscBalance
+      : network === "POLYGON"
+        ? balances.polygonBalance
+        : balances.bscBalance;
   if (netAmount > available) {
     throw new TreasuryServiceError(
-      "Insufficient treasury liquidity for payout",
+      pool === "COPY"
+        ? "Insufficient copy-trading liquidity for payout"
+        : "Insufficient treasury liquidity for payout",
       "INSUFFICIENT_FUNDS",
     );
   }
@@ -168,6 +263,7 @@ export async function assertTreasuryLiquidityForPayout(
 function serializeDeposit(row: {
   id: string;
   network: Network;
+  pool: TreasuryPool;
   amount: bigint;
   txHash: string;
   confirmations: number;
@@ -179,6 +275,7 @@ function serializeDeposit(row: {
   return {
     id: row.id,
     network: row.network,
+    pool: row.pool,
     amount: fromMicro(row.amount),
     txHash: row.txHash,
     confirmations: row.confirmations,
@@ -192,6 +289,7 @@ function serializeDeposit(row: {
 function serializeWithdrawal(row: {
   id: string;
   network: Network;
+  pool: TreasuryPool;
   amount: bigint;
   toAddress: string;
   txHash: string | null;
@@ -203,6 +301,7 @@ function serializeWithdrawal(row: {
   return {
     id: row.id,
     network: row.network,
+    pool: row.pool,
     amount: fromMicro(row.amount),
     toAddress: row.toAddress,
     txHash: row.txHash,
@@ -214,19 +313,37 @@ function serializeWithdrawal(row: {
 }
 
 async function computePoolTotals(): Promise<TreasuryPoolTotalsDto> {
-  const [adminDeposits, paidOutRows] = await Promise.all([
-    prisma.treasuryDeposit.aggregate({
-      where: adminPoolDepositWhere,
-      _sum: { amount: true },
-    }),
-    prisma.treasuryWithdrawal.aggregate({
-      _sum: { amount: true },
-    }),
-  ]);
+  const [adminStaking, stakingPaid, adminCopy, userCopy, copyPaid] =
+    await Promise.all([
+      prisma.treasuryDeposit.aggregate({
+        where: { ...adminPoolDepositWhere, pool: "STAKING" },
+        _sum: { amount: true },
+      }),
+      prisma.treasuryWithdrawal.aggregate({
+        where: { pool: "STAKING" },
+        _sum: { amount: true },
+      }),
+      prisma.treasuryDeposit.aggregate({
+        where: { ...adminPoolDepositWhere, pool: "COPY" },
+        _sum: { amount: true },
+      }),
+      prisma.deposit.aggregate({
+        where: { status: "CONFIRMED", purpose: "COPY" },
+        _sum: { amount: true },
+      }),
+      prisma.treasuryWithdrawal.aggregate({
+        where: { pool: "COPY" },
+        _sum: { amount: true },
+      }),
+    ]);
 
   return {
-    adminDeposited: fromMicro(adminDeposits._sum.amount ?? 0n),
-    paidOut: fromMicro(paidOutRows._sum.amount ?? 0n),
+    adminDeposited: fromMicro(adminStaking._sum.amount ?? 0n),
+    paidOut: fromMicro(stakingPaid._sum.amount ?? 0n),
+    copyInflow: fromMicro(
+      (adminCopy._sum.amount ?? 0n) + (userCopy._sum.amount ?? 0n),
+    ),
+    copyPaidOut: fromMicro(copyPaid._sum.amount ?? 0n),
   };
 }
 
@@ -255,12 +372,13 @@ export async function getTreasurySnapshot(
   };
 }
 
-async function incrementPoolBalanceInTx(
+export async function incrementTreasuryPoolInTx(
   tx: TreasuryTx,
   network: Network,
   amountMicro: bigint,
+  pool: TreasuryPool = "STAKING",
 ): Promise<void> {
-  const field = balanceField(network);
+  const field = balanceField(network, pool);
   await tx.treasuryState.upsert({
     where: { id: 1 },
     update: { [field]: { increment: amountMicro } },
@@ -272,8 +390,9 @@ async function decrementPoolBalanceInTx(
   tx: TreasuryTx,
   network: Network,
   amountMicro: bigint,
+  pool: TreasuryPool = "STAKING",
 ): Promise<void> {
-  const field = balanceField(network);
+  const field = balanceField(network, pool);
   const state = await tx.treasuryState.upsert({
     where: { id: 1 },
     update: {},
@@ -290,6 +409,7 @@ async function decrementPoolBalanceInTx(
 
 export async function createTreasuryDeposit(input: {
   network: Network;
+  pool?: TreasuryPool;
   amount: number;
   txHash: string;
   requiredConfirmations: number;
@@ -301,6 +421,7 @@ export async function createTreasuryDeposit(input: {
     throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
   }
 
+  const pool = input.pool ?? "STAKING";
   let amount = input.amount;
   let txHash = input.txHash.toLowerCase();
   let status = input.status ?? "CONFIRMING";
@@ -319,6 +440,7 @@ export async function createTreasuryDeposit(input: {
       txHash,
       expectedFrom: normalizeWallet(input.recordedBy),
       waitForMining: true,
+      pool,
     });
     if (!verified) {
       throw new TreasuryServiceError(
@@ -346,6 +468,7 @@ export async function createTreasuryDeposit(input: {
       const deposit = await tx.treasuryDeposit.create({
         data: {
           network: input.network,
+          pool,
           amount: amountMicro,
           txHash: txHash,
           confirmations: input.requiredConfirmations,
@@ -357,7 +480,7 @@ export async function createTreasuryDeposit(input: {
       });
 
       if (isAdminPoolDeposit(deposit.recordedBy)) {
-        await incrementPoolBalanceInTx(tx, input.network, amountMicro);
+        await incrementTreasuryPoolInTx(tx, input.network, amountMicro, pool);
       }
 
       return deposit;
@@ -368,6 +491,7 @@ export async function createTreasuryDeposit(input: {
   const row = await prisma.treasuryDeposit.create({
     data: {
       network: input.network,
+      pool,
       amount: amountMicro,
       txHash,
       confirmations,
@@ -427,6 +551,7 @@ export async function updateTreasuryDeposit(input: {
       txHash: existing.txHash,
       expectedFrom: normalizeWallet(existing.recordedBy),
       waitForMining: false,
+      pool: existing.pool,
     });
     if (!verified) {
       throw new TreasuryServiceError(
@@ -454,7 +579,12 @@ export async function updateTreasuryDeposit(input: {
     });
 
     if (isAdminPoolDeposit(deposit.recordedBy)) {
-      await incrementPoolBalanceInTx(tx, existing.network, existing.amount);
+      await incrementTreasuryPoolInTx(
+        tx,
+        existing.network,
+        existing.amount,
+        existing.pool,
+      );
     }
 
     return deposit;
@@ -465,6 +595,7 @@ export async function updateTreasuryDeposit(input: {
 
 export async function recordTreasuryWithdrawal(input: {
   network: Network;
+  pool?: TreasuryPool;
   amount: number;
   toAddress: string;
   txHash?: string | null;
@@ -478,14 +609,16 @@ export async function recordTreasuryWithdrawal(input: {
     throw new TreasuryServiceError("Invalid address", "INVALID_ADDRESS");
   }
 
+  const pool = input.pool ?? "STAKING";
   const amountMicro = toMicro(input.amount);
 
   const row = await prisma.$transaction(async (tx) => {
-    await decrementPoolBalanceInTx(tx, input.network, amountMicro);
+    await decrementPoolBalanceInTx(tx, input.network, amountMicro, pool);
 
     return tx.treasuryWithdrawal.create({
       data: {
         network: input.network,
+        pool,
         amount: amountMicro,
         toAddress: input.toAddress.toLowerCase(),
         txHash: input.txHash?.trim() || null,
@@ -505,6 +638,7 @@ export async function deductTreasuryForUserPayoutInTx(
   input: {
     userWithdrawalId: string;
     network: Network;
+    pool?: TreasuryPool;
     netAmount: number;
     toAddress: string;
     txHash?: string | null;
@@ -520,12 +654,14 @@ export async function deductTreasuryForUserPayoutInTx(
     throw new TreasuryServiceError("Invalid amount", "INVALID_AMOUNT");
   }
 
+  const pool = input.pool ?? "STAKING";
   const amountMicro = toMicro(input.netAmount);
-  await decrementPoolBalanceInTx(tx, input.network, amountMicro);
+  await decrementPoolBalanceInTx(tx, input.network, amountMicro, pool);
 
   await tx.treasuryWithdrawal.create({
     data: {
       network: input.network,
+      pool,
       amount: amountMicro,
       toAddress: input.toAddress.toLowerCase(),
       txHash: input.txHash?.trim() || null,
@@ -541,6 +677,7 @@ export async function deductTreasuryForUserPayoutInTx(
 export async function deductTreasuryForUserPayout(input: {
   userWithdrawalId: string;
   network: Network;
+  pool?: TreasuryPool;
   netAmount: number;
   toAddress: string;
   txHash?: string | null;

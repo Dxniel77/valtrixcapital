@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/automatic-payout";
 import {
   deductTreasuryForUserPayoutInTx,
+  treasuryPoolFromWithdrawalSource,
   TreasuryServiceError,
 } from "@/lib/services/treasury";
 
@@ -57,6 +58,11 @@ export async function confirmWithdrawalAfterPayout(input: {
     await deductTreasuryForUserPayoutInTx(tx, {
       userWithdrawalId: existing.id,
       network: existing.network,
+      pool: treasuryPoolFromWithdrawalSource(
+        "source" in existing && existing.source === "COPY_CASH"
+          ? "COPY_CASH"
+          : "EARNINGS",
+      ),
       netAmount: fromMicro(existing.netAmount),
       toAddress: existing.toAddress,
       txHash: input.txHash,
@@ -174,6 +180,11 @@ export async function processAutomaticWithdrawalPayout(
       network: existing.network as Network,
       toAddress: existing.toAddress,
       netAmount,
+      pool: treasuryPoolFromWithdrawalSource(
+        "source" in existing && existing.source === "COPY_CASH"
+          ? "COPY_CASH"
+          : "EARNINGS",
+      ),
     });
   } catch (err) {
     const message =

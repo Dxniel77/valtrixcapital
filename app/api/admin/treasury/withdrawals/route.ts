@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   network: z.enum(["BSC", "POLYGON"]),
+  pool: z.enum(["STAKING", "COPY"]).optional(),
   amount: z.number().positive(),
   toAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   txHash: z.string().regex(/^0x[0-9a-fA-F]+$/).optional(),
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
   try {
     const withdrawal = await recordTreasuryWithdrawal({
       network: parsed.network,
+      pool: parsed.pool,
       amount: parsed.amount,
       toAddress: parsed.toAddress,
       txHash: parsed.txHash,

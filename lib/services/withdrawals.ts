@@ -7,6 +7,7 @@ import { fromMicro, toMicro } from "@/lib/utils";
 import {
   assertTreasuryLiquidityForPayout,
   deductTreasuryForUserPayoutInTx,
+  treasuryPoolFromWithdrawalSource,
   TreasuryServiceError,
 } from "@/lib/services/treasury";
 import {
@@ -205,15 +206,18 @@ export async function createWithdrawal(input: {
   }
 
   const netAmount = fromMicro(netMicro);
+  const pool = treasuryPoolFromWithdrawalSource(source);
   try {
-    await assertTreasuryLiquidityForPayout(input.network, netAmount);
+    await assertTreasuryLiquidityForPayout(input.network, netAmount, pool);
   } catch (err) {
     if (
       err instanceof TreasuryServiceError &&
       err.code === "INSUFFICIENT_FUNDS"
     ) {
       throw new WithdrawalServiceError(
-        "Insufficient treasury liquidity for payout",
+        source === "COPY_CASH"
+          ? "Insufficient copy-trading liquidity for payout"
+          : "Insufficient treasury liquidity for payout",
         "INSUFFICIENT_TREASURY",
       );
     }
@@ -460,6 +464,11 @@ export async function updateWithdrawalStatus(input: {
         await deductTreasuryForUserPayoutInTx(tx, {
           userWithdrawalId: existing.id,
           network: existing.network,
+          pool: treasuryPoolFromWithdrawalSource(
+            "source" in existing && existing.source === "COPY_CASH"
+              ? "COPY_CASH"
+              : "EARNINGS",
+          ),
           netAmount: fromMicro(existing.netAmount),
           toAddress: existing.toAddress,
           txHash: input.txHash ?? existing.txHash,

@@ -7,6 +7,7 @@ import {
 import {
   useTreasuryStore,
   type TreasuryDeposit,
+  type TreasuryPoolKind,
   type TreasuryWithdrawal,
 } from "@/lib/admin/treasury-store";
 import { loadBackendAvailability } from "@/lib/hooks/use-backend-sync";
@@ -15,6 +16,7 @@ import { refreshAdminMovementsFromBackend } from "@/lib/admin/movements-backend"
 function mapDeposit(row: {
   id: string;
   network: "BSC" | "POLYGON";
+  pool?: TreasuryPoolKind;
   amount: number;
   txHash: string;
   confirmations: number;
@@ -25,6 +27,7 @@ function mapDeposit(row: {
   return {
     id: row.id,
     network: row.network,
+    pool: row.pool ?? "STAKING",
     amount: row.amount,
     txHash: row.txHash,
     startedAt: Date.parse(row.startedAt) || Date.now(),
@@ -37,6 +40,7 @@ function mapDeposit(row: {
 function mapWithdrawal(row: {
   id: string;
   network: "BSC" | "POLYGON";
+  pool?: TreasuryPoolKind;
   amount: number;
   toAddress: string;
   txHash: string | null;
@@ -46,6 +50,7 @@ function mapWithdrawal(row: {
   return {
     id: row.id,
     network: row.network,
+    pool: row.pool ?? "STAKING",
     amount: row.amount,
     toAddress: row.toAddress,
     txHash: row.txHash,
@@ -68,8 +73,12 @@ export async function syncTreasuryFromBackend(): Promise<boolean> {
   useTreasuryStore.getState().hydrateFromBackend({
     bscBalance: res.treasury.balances.bscBalance,
     polygonBalance: res.treasury.balances.polygonBalance,
+    copyBscBalance: res.treasury.balances.copyBscBalance ?? 0,
+    copyPolygonBalance: res.treasury.balances.copyPolygonBalance ?? 0,
     adminDeposited: res.treasury.totals.adminDeposited,
     paidOut: res.treasury.totals.paidOut,
+    copyInflow: res.treasury.totals.copyInflow ?? 0,
+    copyPaidOut: res.treasury.totals.copyPaidOut ?? 0,
     deposits,
     withdrawals: res.treasury.withdrawals.map(mapWithdrawal),
   });
@@ -83,6 +92,7 @@ export async function syncTreasuryFromBackend(): Promise<boolean> {
 
 export async function beginTreasuryDepositOnBackend(input: {
   network: "BSC" | "POLYGON";
+  pool?: TreasuryPoolKind;
   amount: number;
   txHash: string;
   requiredConfirmations: number;
@@ -115,6 +125,7 @@ export async function confirmTreasuryDepositOnBackend(
 
 export async function recordTreasuryWithdrawalOnBackend(input: {
   network: "BSC" | "POLYGON";
+  pool?: TreasuryPoolKind;
   amount: number;
   toAddress: string;
   txHash?: string;
