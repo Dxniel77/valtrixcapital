@@ -1590,7 +1590,7 @@
       "totalLiquidity": "Staking-Liquidität",
       "totalLiquidityHint": "Verfügbar für Rendite-/Gewinnauszahlungen (Admin-Einlagen minus Staking-Auszahlungen)",
       "copyTotalLiquidity": "Copy-Trading-Liquidität",
-      "copyTotalLiquidityHint": "Verfügbar für Copy-Cash-Auszahlungen (Copy-Einlagen minus Copy-Auszahlungen)",
+      "copyTotalLiquidityHint": "Verfügbares USDT in der Copy-Wallet (abzüglich laufender Copy-Auszahlungen). Keine manuelle Datenbankzahl.",
       "totalLoaded": "Staking vom Admin geladen",
       "totalLoadedHint": "USDT, die über die Treasury in den Staking-Auszahlungspool eingezahlt wurden",
       "totalPaidOut": "Staking ausgezahlt",

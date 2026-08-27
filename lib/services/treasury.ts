@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/deposit-verification";
 import { isProductionRuntime } from "@/lib/runtime-mode";
 import type { StakingNetwork } from "@/lib/staking/store";
+import { getCopyPayoutLiquidity } from "@/lib/services/copy-wallet-liquidity";
 
 export const TREASURY_USER_DEPOSIT_MARKER = "USER_DEPOSIT";
 
@@ -185,7 +186,24 @@ function toBalancesDto(
   };
 }
 
-/** Recomputes staking (admin loads − staking payouts) and copy (user COPY deposits + admin copy loads − copy payouts). */
+async function withLiveCopyWalletBalances(
+  ledger: TreasuryBalancesDto,
+): Promise<TreasuryBalancesDto> {
+  const [copyBsc, copyPolygon] = await Promise.all([
+    getCopyPayoutLiquidity("BSC"),
+    getCopyPayoutLiquidity("POLYGON"),
+  ]);
+  const copyBscBalance = copyBsc ?? ledger.copyBscBalance;
+  const copyPolygonBalance = copyPolygon ?? ledger.copyPolygonBalance;
+  return {
+    ...ledger,
+    copyBscBalance,
+    copyPolygonBalance,
+    copyTotalBalance: copyBscBalance + copyPolygonBalance,
+  };
+}
+
+/** Recomputes staking (admin loads − staking payouts) and copy ledger (deposits − payouts). */
 export async function reconcileTreasuryState(): Promise<TreasuryBalancesDto> {
   const [stakingIn, stakingOut, copyAdminIn, copyUserIn, copyOut] =
     await Promise.all([
@@ -229,7 +247,7 @@ export async function reconcileTreasuryState(): Promise<TreasuryBalancesDto> {
 }
 
 export async function getTreasuryLiquidity(): Promise<TreasuryBalancesDto> {
-  return reconcileTreasuryState();
+  return withLiveCopyWalletBalances(await reconcileTreasuryState());
 }
 
 export async function assertTreasuryLiquidityForPayout(
@@ -351,7 +369,7 @@ export async function getTreasurySnapshot(
   limit = 100,
 ): Promise<TreasurySnapshotDto> {
   const [balances, totals, deposits, withdrawals] = await Promise.all([
-    reconcileTreasuryState(),
+    getTreasuryLiquidity(),
     computePoolTotals(),
     prisma.treasuryDeposit.findMany({
       where: { NOT: { recordedBy: TREASURY_USER_DEPOSIT_MARKER } },

@@ -1589,7 +1589,7 @@
       "totalLiquidity": "Liquidez de staking",
       "totalLiquidityHint": "Disponível para pagar saques de rendimento / ganhos (cargas do admin menos pagamentos de staking)",
       "copyTotalLiquidity": "Liquidez de copy-trading",
-      "copyTotalLiquidityHint": "Disponível para pagar saques de copy cash (depósitos copy menos pagamentos copy)",
+      "copyTotalLiquidityHint": "USDT real na carteira copy (menos saques copy em andamento). Não é um número para subir no banco.",
       "totalLoaded": "Staking carregado pelo admin",
       "totalLoadedHint": "USDT adicionados ao pool de pagamento de staking via tesouraria",
       "totalPaidOut": "Staking pago",

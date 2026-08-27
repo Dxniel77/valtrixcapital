@@ -1648,7 +1648,7 @@
       "totalLiquidity": "质押流动性",
       "totalLiquidityHint": "可用于支付收益提现（管理员充值减去质押支付）",
       "copyTotalLiquidity": "跟单流动性",
-      "copyTotalLiquidityHint": "可用于支付跟单现金提现（跟单充值减去跟单支付）",
+      "copyTotalLiquidityHint": "跟单钱包内的实时 USDT（减去进行中的跟单提现）。无需在数据库里手动加余额。",
       "totalLoaded": "管理员充入的质押资金",
       "totalLoadedHint": "通过金库加入质押支付池的 USDT",
       "totalPaidOut": "已支付的质押资金",

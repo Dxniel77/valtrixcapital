@@ -1590,7 +1590,7 @@
       "totalLiquidity": "ステーキング流動性",
       "totalLiquidityHint": "利回り／収益の出金に利用可能（管理者入金からステーキング支払いを差し引いた額）",
       "copyTotalLiquidity": "コピー取引の流動性",
-      "copyTotalLiquidityHint": "コピー現金の出金に利用可能（コピー入金からコピー支払いを差し引いた額）",
+      "copyTotalLiquidityHint": "コピーウォレット内の実USDT（進行中のコピー出金を差し引き）。データベースの数字を手で上げる必要はありません。",
       "totalLoaded": "管理者が入金したステーキング",
       "totalLoadedHint": "財務経由でステーキング支払いプールに追加されたUSDT",
       "totalPaidOut": "支払済みステーキング",

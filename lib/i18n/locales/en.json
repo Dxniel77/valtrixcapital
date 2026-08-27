@@ -1623,7 +1623,7 @@
       "totalLiquidity": "Staking liquidity",
       "totalLiquidityHint": "Available to pay yield / earnings withdrawals (admin loads minus staking payouts)",
       "copyTotalLiquidity": "Copy-trading liquidity",
-      "copyTotalLiquidityHint": "Available to pay copy-cash withdrawals (copy deposits minus copy payouts)",
+      "copyTotalLiquidityHint": "Live USDT in the copy wallet (minus copy withdrawals still in flight). Not a database number to raise by hand.",
       "totalLoaded": "Staking loaded by admin",
       "totalLoadedHint": "USDT added to the staking payout pool via treasury",
       "totalPaidOut": "Staking paid out",
