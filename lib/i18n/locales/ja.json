@@ -270,7 +270,7 @@
       "portfolio": "ポートフォリオ",
       "history": "記録",
       "referrals": "紹介",
-      "share": "共有",
+      "share": "収益",
       "wallet": "デポジット",
       "profile": "プロフィール",
       "support": "サポート"
@@ -852,7 +852,7 @@
     }
   },
   "share": {
-    "title": "株式収益",
+    "title": "収益",
     "subtitle": "公式 Valtrix デザインの画像を期間 (日、週、月、または 3 か月) ごとに 1 つダウンロードします。",
     "sponsoredPosterHint": "スポンサー資本ではパッシブ収益とトレード収益は含まれません。実際のUSDT入金まで、ポスターにはネットワークコミッションのみ表示されます。",
     "posterDepositRequiredTitle": "ポスターのダウンロードには入金が必要です",

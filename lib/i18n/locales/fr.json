@@ -270,7 +270,7 @@
       "portfolio": "Portefeuille",
       "history": "Enregistrer",
       "referrals": "Références",
-      "share": "Partager",
+      "share": "Gains",
       "wallet": "Dépôt",
       "profile": "Profil",
       "support": "Support"
@@ -852,7 +852,7 @@
     }
   },
   "share": {
-    "title": "Partager les bénéfices",
+    "title": "Gains",
     "subtitle": "Téléchargez une image par période (jour, semaine, mois ou 3 mois) avec le design officiel Valtrix.",
     "sponsoredPosterHint": "Le rendement passif et le profit de trading ne sont pas inclus sur le capital sponsorisé. Votre affiche n'affiche que les commissions réseau tant que vous n'avez pas effectué un dépôt USDT réel.",
     "posterDepositRequiredTitle": "Dépôt requis pour télécharger les affiches",

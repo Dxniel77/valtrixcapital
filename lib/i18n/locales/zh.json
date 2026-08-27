@@ -270,7 +270,7 @@
       "portfolio": "文件夹",
       "history": "记录",
       "referrals": "推荐人",
-      "share": "分享",
+      "share": "收益",
       "wallet": "订金",
       "profile": "轮廓",
       "support": "支持"
@@ -852,7 +852,7 @@
     }
   },
   "share": {
-    "title": "分享利润",
+    "title": "收益",
     "subtitle": "使用官方 Valtrix 设计下载每个时间段（天、周、月或 3 个月）的图像。",
     "sponsoredPosterHint": "赞助资金不包含被动和交易收益。在您进行真实 USDT 存款之前，海报仅显示网络佣金。",
     "posterDepositRequiredTitle": "下载海报需要存款",

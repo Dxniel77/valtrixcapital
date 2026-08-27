@@ -270,7 +270,7 @@
       "portfolio": "Depot",
       "history": "Aufzeichnen",
       "referrals": "Empfehlungen",
-      "share": "Aktie",
+      "share": "Einnahmen",
       "wallet": "Kaution",
       "profile": "Profil",
       "support": "Support"
@@ -852,7 +852,7 @@
     }
   },
   "share": {
-    "title": "Aktiengewinne",
+    "title": "Einnahmen",
     "subtitle": "Laden Sie pro Zeitraum (Tag, Woche, Monat oder 3 Monate) ein Bild mit dem offiziellen Valtrix-Design herunter.",
     "sponsoredPosterHint": "Passives und Handels-Einkommen sind auf gesponsertem Kapital nicht enthalten. Ihr Poster zeigt nur Netzwerkprovisionen, bis Sie eine echte USDT-Einzahlung tätigen.",
     "posterDepositRequiredTitle": "Einzahlung erforderlich zum Herunterladen von Postern",

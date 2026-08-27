@@ -270,7 +270,7 @@
       "portfolio": "Portafoglio",
       "history": "Documentazione",
       "referrals": "Referral",
-      "share": "Condividere",
+      "share": "Guadagni",
       "wallet": "Depositare",
       "profile": "Profilo",
       "support": "Supporto"
@@ -852,7 +852,7 @@
     }
   },
   "share": {
-    "title": "Condividi i guadagni",
+    "title": "Guadagni",
     "subtitle": "Scarica un'immagine per periodo (giorno, settimana, mese o 3 mesi) con il design ufficiale Valtrix.",
     "sponsoredPosterHint": "Il profitto passivo e da trading non sono inclusi sul capitale sponsorizzato. Il poster mostra solo le commissioni di rete finché non effettui un deposito USDT reale.",
     "posterDepositRequiredTitle": "Deposito richiesto per scaricare i poster",

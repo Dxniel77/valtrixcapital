@@ -45,7 +45,7 @@
   "notFound": {
     "message": "The page you are looking for has moved or never existed. The markets, however, remain very active.",
     "backHome": "Back to top",
-    "dashboard": "Panel"
+    "dashboard": "Home"
   },
   "api": {
     "invalidBody": "Invalid request body",
@@ -73,8 +73,8 @@
     "how": "How it works",
     "yield": "Performance model",
     "referrals": "Referrals",
-    "dashboard": "Panel",
-    "openDashboard": "Open panel",
+    "dashboard": "Home",
+    "openDashboard": "Open home",
     "toggleMenu": "Open menu"
   },
   "hero": {
@@ -88,11 +88,11 @@
     "trustQuickTrades": "Quick operations of 1–5 min",
     "trustNetwork": "8 level network",
     "mockNav": {
-      "dashboard": "Panel",
+      "dashboard": "Home",
       "companyTools": "Company tools",
-      "trade": "Operate",
+      "trade": "Trade",
       "portfolio": "Portfolio",
-      "history": "Record",
+      "history": "History",
       "referrals": "Referrals",
       "wallet": "Wallet"
     },
@@ -236,7 +236,7 @@
     "how": "How it works",
     "yield": "Performance model",
     "docs": "Documentation",
-    "support": "Medium",
+    "support": "Support",
     "terms": "Terms of service",
     "privacy": "Privacy Policy",
     "risk": "Risk Disclosure",
@@ -263,16 +263,16 @@
   },
   "dashboard": {
     "nav": {
-      "dashboard": "Panel",
+      "dashboard": "Home",
       "companyTools": "Company tools",
-      "trade": "Operate",
+      "trade": "Trade",
       "portfolio": "Portfolio",
-      "history": "Record",
+      "history": "History",
       "referrals": "Referrals",
-      "share": "Share",
+      "share": "Earnings",
       "wallet": "Wallet",
       "profile": "Profile",
-      "support": "Medium"
+      "support": "Support"
     },
     "header": {
       "search": "Search for pairs, operations, users...",
@@ -323,7 +323,7 @@
       "attemptsLeft": "remaining attempts",
       "resetsIn": "Reboot in",
       "useNextAttempt": "Use next try",
-      "quickTrade": "Operate",
+      "quickTrade": "Trade",
       "quickPortfolio": "Portfolio",
       "quickCompanyTools": "Company tools",
       "quickWallet": "Wallet",
@@ -381,7 +381,7 @@
         "comingDesc": "Viral mechanic that accelerates your cap by 200% with each active downline."
       },
       "history": {
-        "title": "Record",
+        "title": "History",
         "subtitle": "All trading activity by pair and duration.",
         "exportCsv": "Export CSV",
         "filterPlaceholder": "Filter by pair (e.g. BTC)…",
@@ -457,7 +457,7 @@
         }
       },
       "support": {
-        "title": "Medium",
+        "title": "Support",
         "subtitle": "Contact the Valtrix Capital team. Help Center in Week 6.",
         "liveChat": "live chat",
         "liveChatDesc": "Talk to a member of the Valtrix team. Average response < 10 minutes.",
@@ -741,7 +741,7 @@
       "partialBadge": "Partial release"
     },
     "deposit": {
-      "title": "Add funds to staking",
+      "title": "Deposit",
       "description": "Choose amount and network, then confirm the USDT transfer in your connected wallet.",
       "walletConnected": "Account linked · {address}",
       "walletDisconnected": "Connect your wallet to deposit USDT.",
@@ -843,7 +843,7 @@
     }
   },
   "share": {
-    "title": "Share earnings",
+    "title": "Earnings",
     "subtitle": "Download one image per period (day, week, month or 3 months) with the official Valtrix design.",
     "sponsoredPosterHint": "Passive and trading profit are not included on sponsored capital. Your poster shows network commissions only until you make a real USDT deposit.",
     "posterDepositRequiredTitle": "Deposit required to download posters",

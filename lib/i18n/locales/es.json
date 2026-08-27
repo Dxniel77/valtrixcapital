@@ -45,7 +45,7 @@
   "notFound": {
     "message": "La página que buscas se movió o nunca existió. Los mercados, en cambio, siguen muy activos.",
     "backHome": "Volver al inicio",
-    "dashboard": "Panel"
+    "dashboard": "Inicio"
   },
   "api": {
     "invalidBody": "Cuerpo de solicitud no válido",
@@ -73,8 +73,8 @@
     "how": "Cómo funciona",
     "yield": "Modelo de rendimiento",
     "referrals": "Referidos",
-    "dashboard": "Panel",
-    "openDashboard": "Abrir panel",
+    "dashboard": "Inicio",
+    "openDashboard": "Abrir inicio",
     "toggleMenu": "Abrir menú"
   },
   "hero": {
@@ -88,7 +88,7 @@
     "trustQuickTrades": "Operaciones rápidas de 1–5 min",
     "trustNetwork": "Red de 8 niveles",
     "mockNav": {
-      "dashboard": "Panel",
+      "dashboard": "Inicio",
       "companyTools": "Herramientas",
       "trade": "Operar",
       "portfolio": "Portafolio",
@@ -263,13 +263,13 @@
   },
   "dashboard": {
     "nav": {
-      "dashboard": "Panel",
+      "dashboard": "Inicio",
       "companyTools": "Herramientas",
       "trade": "Operar",
       "portfolio": "Portafolio",
       "history": "Historial",
       "referrals": "Referidos",
-      "share": "Compartir",
+      "share": "Ganancias",
       "wallet": "Billetera",
       "profile": "Perfil",
       "support": "Soporte"
@@ -741,7 +741,7 @@
       "partialBadge": "Liberación parcial"
     },
     "deposit": {
-      "title": "Depositar fondos",
+      "title": "Depósito",
       "description": "Elige monto y red, luego confirma la transferencia de USDT en tu billetera conectada.",
       "walletConnected": "Cuenta vinculada · {address}",
       "walletDisconnected": "Conecta tu billetera para depositar USDT.",
@@ -760,13 +760,13 @@
       "pendingDesc": "${amount} USDT en {network} · {current}/{required} confirmaciones — se completará automáticamente.",
       "claimTitle": "¿Ya enviaste USDT?",
       "claimDesc": "Si transferiste manualmente a la wallet oficial, pega aquí el hash de la transacción para acreditar capital de staking.",
-      "claimDescCopy": "Si transferiste manualmente a la wallet oficial, pega aquí el hash para acreditar efectivo copy.",
+      "claimDescCopy": "Si transferiste manualmente a la wallet oficial, pega aquí el hash para acreditar copy cash.",
       "purposeStaking": "Staking",
-      "purposeCopy": "Efectivo copy",
+      "purposeCopy": "Copy cash",
       "claimPlaceholder": "0x… hash de transacción",
       "claimSubmit": "Acreditar mi depósito",
       "claimSuccess": "Depósito acreditado al capital de staking.",
-      "claimSuccessCopy": "Depósito acreditado al efectivo copy.",
+      "claimSuccessCopy": "Depósito acreditado al copy cash.",
       "claimFailed": "No se pudo acreditar el depósito. Inténtalo de nuevo o contacta soporte.",
       "claimNotVerified": "Transferencia no encontrada. Verifica red, hash y que el USDT se envió desde tu wallet conectada a la dirección oficial.",
       "claimOwnedByOther": "Esta transacción ya está vinculada a otra cuenta.",
@@ -843,7 +843,7 @@
     }
   },
   "share": {
-    "title": "Compartir ganancias",
+    "title": "Ganancias",
     "subtitle": "Descarga una imagen por periodo (día, semana, mes o 3 meses) con el diseño oficial de Valtrix.",
     "sponsoredPosterHint": "El rendimiento pasivo y el beneficio por operaciones no se incluyen en capital patrocinado. Tu póster muestra solo comisiones de red hasta que hagas un depósito real en USDT.",
     "posterDepositRequiredTitle": "Depósito requerido para descargar imágenes",
@@ -1324,7 +1324,7 @@
       "filterLosing": "Perdiendo",
       "winLose": "Ganando / perdiendo",
       "userCopyTitle": "Copy trading",
-      "copyCash": "Efectivo copy",
+      "copyCash": "Copy cash",
       "userCopyEmpty": "Este usuario no tiene copias.",
       "repairChart": "Reparar curva",
       "repairChartHint": "Si la app muestra una caída enorme después de un resultado diario pequeño, usa esto. Reconstruye la curva para que cada día continúe desde el día anterior.",
@@ -1450,7 +1450,7 @@
       "USER_ACTIVATED": "Usuario activado",
       "USER_DEACTIVATED": "Usuario desactivado",
       "BALANCE_ADJUSTED": "Saldo ajustado",
-      "COPY_BALANCE_ADJUSTED": "Efectivo copy ajustado",
+      "COPY_BALANCE_ADJUSTED": "Copy cash ajustado",
       "SETTINGS_UPDATED": "Ajustes actualizados",
       "ACCOUNT_GRANTED": "Cuenta concedida",
       "WITHDRAWAL_UNLOCKED": "Retiro habilitado",
