@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ImagePlus, Pin, Send, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, Pin, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,8 +180,21 @@ export function AdminNewsPanel() {
             {editingId ? t("admin.news.editTitle") : t("admin.news.composeTitle")}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
+          {saving ? (
+            <div
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-md bg-bg-elevated/80 backdrop-blur-[2px]"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <Loader2 className="h-8 w-8 animate-spin text-gold" />
+              <p className="text-sm text-text-secondary">
+                {t("admin.news.saving")}
+              </p>
+            </div>
+          ) : null}
           <form onSubmit={(e) => void save(e)} className="space-y-4">
+            <fieldset disabled={saving} className="space-y-4 disabled:opacity-70">
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-text-muted">
                 {t("admin.news.titleLabel")}
@@ -271,8 +284,12 @@ export function AdminNewsPanel() {
               {t("admin.news.notify")}
             </label>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="gap-2" disabled={saving}>
-                <Send className="h-4 w-4" />
+              <Button type="submit" className="min-w-[9rem] gap-2">
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
                 {saving
                   ? t("admin.news.saving")
                   : editingId
@@ -285,6 +302,7 @@ export function AdminNewsPanel() {
                 </Button>
               ) : null}
             </div>
+            </fieldset>
           </form>
         </CardContent>
       </Card>
@@ -308,7 +326,8 @@ export function AdminNewsPanel() {
                   <button
                     type="button"
                     onClick={() => editPost(post)}
-                    className="min-w-0 text-left"
+                    disabled={saving}
+                    className="min-w-0 text-left disabled:opacity-50"
                   >
                     <p className="truncate text-sm font-medium text-text-primary">
                       {post.title}
@@ -320,7 +339,8 @@ export function AdminNewsPanel() {
                   <button
                     type="button"
                     onClick={() => void remove(post.id)}
-                    className="shrink-0 rounded-md p-1 text-text-muted hover:text-danger"
+                    disabled={saving}
+                    className="shrink-0 rounded-md p-1 text-text-muted hover:text-danger disabled:opacity-50"
                     aria-label={t("admin.news.delete")}
                   >
                     <Trash2 className="h-4 w-4" />
