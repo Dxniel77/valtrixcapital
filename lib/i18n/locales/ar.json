@@ -273,6 +273,7 @@
       "share": "الأرباح",
       "wallet": "إيداع",
       "profile": "حساب تعريفي",
+      "news": "الأخبار",
       "support": "الدعم"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "الوضع والحوادث",
         "statusDesc": "حالة النظام الأساسي في الوقت الفعلي، والصيانة المخططة، وعمليات التشريح بعد الوفاة.",
         "viewStatus": "عرض الحالة"
+      },
+      "news": {
+        "title": "الأخبار",
+        "subtitle": "تحديثات وإشعارات Valtrix Capital.",
+        "empty": "لا توجد أخبار بعد. عد لاحقًا.",
+        "loadFailed": "تعذر تحميل الأخبار.",
+        "notFound": "هذا الخبر غير متاح.",
+        "back": "العودة إلى الأخبار"
       }
     }
   },
@@ -956,6 +965,7 @@
       "reports": "التقارير",
       "settings": "إعدادات",
       "notifications": "إشعارات",
+      "news": "الأخبار",
       "support": "تذاكر الدعم",
       "audit": "مراجعة",
       "sponsorTerms": "Sponsor terms",
@@ -1350,6 +1360,39 @@
       "validation": "العنوان والرسالة مطلوبة",
       "recentTitle": "عمليات البث الأخيرة",
       "recentEmpty": "لم يتم إرسال أي إشعارات مخصصة حتى الآن."
+    },
+    "news": {
+      "title": "الأخبار",
+      "subtitle": "انشر إعلانات بالنص وبصورة اختيارية. يراها المستخدمون في الأخبار.",
+      "composeTitle": "منشور جديد",
+      "editTitle": "تعديل المنشور",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "مثال: سوق جديد متاح",
+      "bodyLabel": "النص",
+      "bodyPlaceholder": "اكتب الخبر…",
+      "imageLabel": "صورة (اختياري)",
+      "imageHint": "أضف صورة غلاف",
+      "imageInvalid": "تعذر استخدام هذه الصورة. جرّب JPEG أو PNG أقل من 8 ميغابايت.",
+      "removeImage": "إزالة الصورة",
+      "publishNow": "انشر الآن (ظاهر للمستخدمين)",
+      "pin": "تثبيت في الأعلى",
+      "notify": "أرسل أيضًا كإشعار",
+      "publish": "نشر",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ…",
+      "publishedToast": "تم نشر الخبر",
+      "saved": "تم تحديث الخبر",
+      "deleted": "تم حذف الخبر",
+      "saveFailed": "تعذر حفظ الخبر.",
+      "loadFailed": "تعذر تحميل الأخبار.",
+      "validation": "العنوان والنص مطلوبان",
+      "listTitle": "المنشورات والمسودات",
+      "empty": "لا توجد أخبار بعد.",
+      "statusPublished": "منشور",
+      "statusDraft": "مسودة",
+      "statusPinned": "مثبت",
+      "delete": "حذف",
+      "deleteConfirm": "حذف هذا الخبر؟"
     },
     "support": {
       "title": "تذاكر الدعم",

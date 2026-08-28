@@ -273,6 +273,7 @@
       "share": "収益",
       "wallet": "デポジット",
       "profile": "プロフィール",
+      "news": "ニュース",
       "support": "サポート"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "状況と出来事",
         "statusDesc": "プラットフォームのリアルタイムのステータス、計画されたメンテナンス、事後分析。",
         "viewStatus": "ステータスの表示"
+      },
+      "news": {
+        "title": "ニュース",
+        "subtitle": "Valtrix Capitalからのお知らせ。",
+        "empty": "まだニュースはありません。後でもう一度ご確認ください。",
+        "loadFailed": "ニュースを読み込めませんでした。",
+        "notFound": "このニュースは利用できません。",
+        "back": "ニュースに戻る"
       }
     }
   },
@@ -956,6 +965,7 @@
       "reports": "レポート",
       "settings": "設定",
       "notifications": "通知",
+      "news": "ニュース",
       "support": "サポートチケット",
       "audit": "監査",
       "sponsorTerms": "Sponsor terms",
@@ -1350,6 +1360,39 @@
       "validation": "タイトルとメッセージは必須です",
       "recentTitle": "最近の放送",
       "recentEmpty": "カスタム通知はまだ送信されていません。"
+    },
+    "news": {
+      "title": "ニュース",
+      "subtitle": "テキストと任意の画像でお知らせを公開します。ユーザーはニュースで確認できます。",
+      "composeTitle": "新規投稿",
+      "editTitle": "投稿を編集",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "例：新しい市場が利用可能",
+      "bodyLabel": "本文",
+      "bodyPlaceholder": "ニュース本文を入力…",
+      "imageLabel": "画像（任意）",
+      "imageHint": "カバー画像を追加",
+      "imageInvalid": "その画像は使用できません。8 MB未満のJPEGまたはPNGをお試しください。",
+      "removeImage": "画像を削除",
+      "publishNow": "今すぐ公開（ユーザーに表示）",
+      "pin": "上部に固定",
+      "notify": "通知としても送信",
+      "publish": "公開",
+      "save": "変更を保存",
+      "saving": "保存中…",
+      "publishedToast": "ニュースを公開しました",
+      "saved": "ニュースを更新しました",
+      "deleted": "ニュースを削除しました",
+      "saveFailed": "ニュースを保存できませんでした。",
+      "loadFailed": "ニュースを読み込めませんでした。",
+      "validation": "タイトルと本文は必須です",
+      "listTitle": "公開済みと下書き",
+      "empty": "まだニュースはありません。",
+      "statusPublished": "公開中",
+      "statusDraft": "下書き",
+      "statusPinned": "固定",
+      "delete": "削除",
+      "deleteConfirm": "このニュースを削除しますか？"
     },
     "support": {
       "title": "サポートチケット",

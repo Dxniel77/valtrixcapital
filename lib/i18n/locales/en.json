@@ -272,6 +272,7 @@
       "share": "Earnings",
       "wallet": "Wallet",
       "profile": "Profile",
+      "news": "News",
       "support": "Support"
     },
     "header": {
@@ -470,6 +471,14 @@
         "status": "Status and incidents",
         "statusDesc": "Platform status in real time, planned maintenance and post-mortems.",
         "viewStatus": "View status"
+      },
+      "news": {
+        "title": "News",
+        "subtitle": "Updates and notices from Valtrix Capital.",
+        "empty": "No news yet. Check back later.",
+        "loadFailed": "Could not load news.",
+        "notFound": "This news post is not available.",
+        "back": "Back to news"
       }
     }
   },
@@ -947,6 +956,7 @@
       "reports": "Reports",
       "settings": "Settings",
       "notifications": "Notifications",
+      "news": "News",
       "support": "Support tickets",
       "audit": "Audit",
       "sponsorTerms": "Sponsor terms",
@@ -1355,6 +1365,39 @@
       "validation": "Title and message are required",
       "recentTitle": "Recent broadcasts",
       "recentEmpty": "No custom notifications sent yet."
+    },
+    "news": {
+      "title": "News",
+      "subtitle": "Publish notices with text and an optional image. Users see them in News.",
+      "composeTitle": "New post",
+      "editTitle": "Edit post",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. New market available",
+      "bodyLabel": "Text",
+      "bodyPlaceholder": "Write the news post…",
+      "imageLabel": "Image (optional)",
+      "imageHint": "Add a cover image",
+      "imageInvalid": "Could not use that image. Try JPEG or PNG under 8 MB.",
+      "removeImage": "Remove image",
+      "publishNow": "Publish now (visible to users)",
+      "pin": "Pin to top",
+      "notify": "Also send as a notification",
+      "publish": "Publish",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "publishedToast": "News published",
+      "saved": "News updated",
+      "deleted": "News deleted",
+      "saveFailed": "Could not save the news post.",
+      "loadFailed": "Could not load news.",
+      "validation": "Title and text are required",
+      "listTitle": "Published and drafts",
+      "empty": "No news posts yet.",
+      "statusPublished": "Published",
+      "statusDraft": "Draft",
+      "statusPinned": "Pinned",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this news post?"
     },
     "support": {
       "title": "Support tickets",

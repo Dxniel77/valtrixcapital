@@ -602,6 +602,23 @@ model PlatformBroadcast {
   @@index([createdAt(sort: Desc)])
 }
 
+model NewsPost {
+  id           String    @id @default(uuid())
+  title        String
+  body         String    @db.Text
+  published    Boolean   @default(true)
+  pinned       Boolean   @default(false)
+  imageBytes   Bytes?
+  imageMime    String?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  publishedAt  DateTime?
+
+  @@index([published, pinned(sort: Desc), publishedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
 model SupportTicket {
   id        String                @id
   userId    String?

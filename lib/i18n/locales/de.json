@@ -273,6 +273,7 @@
       "share": "Einnahmen",
       "wallet": "Kaution",
       "profile": "Profil",
+      "news": "Nachrichten",
       "support": "Support"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "Status und Vorfälle",
         "statusDesc": "Plattformstatus in Echtzeit, geplante Wartung und Obduktionen.",
         "viewStatus": "Status anzeigen"
+      },
+      "news": {
+        "title": "Nachrichten",
+        "subtitle": "Updates und Hinweise von Valtrix Capital.",
+        "empty": "Noch keine Nachrichten. Schau später wieder vorbei.",
+        "loadFailed": "Nachrichten konnten nicht geladen werden.",
+        "notFound": "Dieser Beitrag ist nicht verfügbar.",
+        "back": "Zurück zu den Nachrichten"
       }
     }
   },
@@ -956,6 +965,7 @@
       "reports": "Berichte",
       "settings": "Einstellungen",
       "notifications": "Benachrichtigungen",
+      "news": "Nachrichten",
       "support": "Support-Tickets",
       "audit": "Prüfung",
       "sponsorTerms": "Sponsor terms",
@@ -1350,6 +1360,39 @@
       "validation": "Titel und Nachricht sind erforderlich",
       "recentTitle": "Aktuelle Sendungen",
       "recentEmpty": "Es wurden noch keine benutzerdefinierten Benachrichtigungen gesendet."
+    },
+    "news": {
+      "title": "Nachrichten",
+      "subtitle": "Veröffentliche Hinweise mit Text und optional einem Bild. Nutzer sehen sie unter Nachrichten.",
+      "composeTitle": "Neuer Beitrag",
+      "editTitle": "Beitrag bearbeiten",
+      "titleLabel": "Titel",
+      "titlePlaceholder": "z. B. Neuer Markt verfügbar",
+      "bodyLabel": "Text",
+      "bodyPlaceholder": "Schreibe den Nachrichtenbeitrag…",
+      "imageLabel": "Bild (optional)",
+      "imageHint": "Titelbild hinzufügen",
+      "imageInvalid": "Dieses Bild konnte nicht verwendet werden. Versuche JPEG oder PNG unter 8 MB.",
+      "removeImage": "Bild entfernen",
+      "publishNow": "Jetzt veröffentlichen (für Nutzer sichtbar)",
+      "pin": "Oben anheften",
+      "notify": "Auch als Benachrichtigung senden",
+      "publish": "Veröffentlichen",
+      "save": "Änderungen speichern",
+      "saving": "Speichern…",
+      "publishedToast": "Nachricht veröffentlicht",
+      "saved": "Nachricht aktualisiert",
+      "deleted": "Nachricht gelöscht",
+      "saveFailed": "Der Beitrag konnte nicht gespeichert werden.",
+      "loadFailed": "Nachrichten konnten nicht geladen werden.",
+      "validation": "Titel und Text sind erforderlich",
+      "listTitle": "Veröffentlicht und Entwürfe",
+      "empty": "Noch keine Beiträge.",
+      "statusPublished": "Veröffentlicht",
+      "statusDraft": "Entwurf",
+      "statusPinned": "Angeheftet",
+      "delete": "Löschen",
+      "deleteConfirm": "Diesen Beitrag löschen?"
     },
     "support": {
       "title": "Support-Tickets",

@@ -26,6 +26,7 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
+  Newspaper,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSelector } from "@/components/i18n/language-selector";
@@ -74,6 +75,7 @@ export const adminNavItems: AdminNavItem[] = [
   { href: "/admin/users", key: "users", icon: Users },
   { href: "/admin/movements", key: "movements", icon: Wallet },
   { href: "/admin/notifications", key: "notifications", icon: Bell },
+  { href: "/admin/news", key: "news", icon: Newspaper },
   { href: "/admin/support", key: "support", icon: LifeBuoy },
   { href: "/admin/network", key: "network", icon: Network },
   { href: "/admin/reports", key: "reports", icon: FileSpreadsheet },

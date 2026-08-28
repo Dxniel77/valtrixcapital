@@ -273,6 +273,7 @@
       "share": "Guadagni",
       "wallet": "Depositare",
       "profile": "Profilo",
+      "news": "Notizie",
       "support": "Supporto"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "Stato e incidenti",
         "statusDesc": "Stato della piattaforma in tempo reale, manutenzione programmata e post-mortem.",
         "viewStatus": "Visualizza lo stato"
+      },
+      "news": {
+        "title": "Notizie",
+        "subtitle": "Aggiornamenti e avvisi di Valtrix Capital.",
+        "empty": "Nessuna notizia ancora. Torna più tardi.",
+        "loadFailed": "Impossibile caricare le notizie.",
+        "notFound": "Questa notizia non è disponibile.",
+        "back": "Torna alle notizie"
       }
     }
   },
@@ -956,6 +965,7 @@
       "reports": "Rapporti",
       "settings": "Impostazioni",
       "notifications": "Notifiche",
+      "news": "Notizie",
       "support": "Ticket di supporto",
       "audit": "Controllo",
       "sponsorTerms": "Sponsor terms",
@@ -1350,6 +1360,39 @@
       "validation": "Titolo e messaggio sono obbligatori",
       "recentTitle": "Trasmissioni recenti",
       "recentEmpty": "Nessuna notifica personalizzata ancora inviata."
+    },
+    "news": {
+      "title": "Notizie",
+      "subtitle": "Pubblica avvisi con testo e, se vuoi, un’immagine. Gli utenti li vedono in Notizie.",
+      "composeTitle": "Nuovo post",
+      "editTitle": "Modifica post",
+      "titleLabel": "Titolo",
+      "titlePlaceholder": "es. Nuovo mercato disponibile",
+      "bodyLabel": "Testo",
+      "bodyPlaceholder": "Scrivi la notizia…",
+      "imageLabel": "Immagine (opzionale)",
+      "imageHint": "Aggiungi un’immagine di copertina",
+      "imageInvalid": "Impossibile usare questa immagine. Prova JPEG o PNG sotto gli 8 MB.",
+      "removeImage": "Rimuovi immagine",
+      "publishNow": "Pubblica ora (visibile agli utenti)",
+      "pin": "Fissa in alto",
+      "notify": "Invia anche come notifica",
+      "publish": "Pubblica",
+      "save": "Salva modifiche",
+      "saving": "Salvataggio…",
+      "publishedToast": "Notizia pubblicata",
+      "saved": "Notizia aggiornata",
+      "deleted": "Notizia eliminata",
+      "saveFailed": "Impossibile salvare la notizia.",
+      "loadFailed": "Impossibile caricare le notizie.",
+      "validation": "Titolo e testo sono obbligatori",
+      "listTitle": "Pubblicate e bozze",
+      "empty": "Nessuna notizia ancora.",
+      "statusPublished": "Pubblicata",
+      "statusDraft": "Bozza",
+      "statusPinned": "Fissata",
+      "delete": "Elimina",
+      "deleteConfirm": "Eliminare questa notizia?"
     },
     "support": {
       "title": "Ticket di supporto",

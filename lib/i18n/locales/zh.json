@@ -273,6 +273,7 @@
       "share": "收益",
       "wallet": "订金",
       "profile": "轮廓",
+      "news": "新闻",
       "support": "支持"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "现状和事件",
         "statusDesc": "平台实时状态、计划维护和事后分析。",
         "viewStatus": "查看状态"
+      },
+      "news": {
+        "title": "新闻",
+        "subtitle": "Valtrix Capital 的更新与公告。",
+        "empty": "暂无新闻。请稍后再来。",
+        "loadFailed": "无法加载新闻。",
+        "notFound": "该新闻不可用。",
+        "back": "返回新闻"
       }
     }
   },
@@ -1014,6 +1023,7 @@
       "reports": "报告",
       "settings": "设置",
       "notifications": "通知",
+      "news": "新闻",
       "support": "支持工单",
       "audit": "审计",
       "sponsorTerms": "Sponsor terms",
@@ -1408,6 +1418,39 @@
       "validation": "标题和内容为必填项",
       "recentTitle": "最近发货",
       "recentEmpty": "目前还没有自定义通知。"
+    },
+    "news": {
+      "title": "新闻",
+      "subtitle": "用文字发布公告，也可附带图片。用户会在新闻中看到。",
+      "composeTitle": "新帖子",
+      "editTitle": "编辑帖子",
+      "titleLabel": "标题",
+      "titlePlaceholder": "例如：新市场上线",
+      "bodyLabel": "正文",
+      "bodyPlaceholder": "撰写新闻内容…",
+      "imageLabel": "图片（可选）",
+      "imageHint": "添加封面图",
+      "imageInvalid": "无法使用该图片。请尝试小于 8 MB 的 JPEG 或 PNG。",
+      "removeImage": "移除图片",
+      "publishNow": "立即发布（对用户可见）",
+      "pin": "置顶",
+      "notify": "同时作为通知发送",
+      "publish": "发布",
+      "save": "保存更改",
+      "saving": "保存中…",
+      "publishedToast": "新闻已发布",
+      "saved": "新闻已更新",
+      "deleted": "新闻已删除",
+      "saveFailed": "无法保存新闻。",
+      "loadFailed": "无法加载新闻。",
+      "validation": "标题和正文为必填项",
+      "listTitle": "已发布与草稿",
+      "empty": "暂无新闻。",
+      "statusPublished": "已发布",
+      "statusDraft": "草稿",
+      "statusPinned": "已置顶",
+      "delete": "删除",
+      "deleteConfirm": "删除这篇新闻？"
     },
     "support": {
       "title": "支持工单",

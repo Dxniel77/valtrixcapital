@@ -273,6 +273,7 @@
       "share": "Gains",
       "wallet": "Dépôt",
       "profile": "Profil",
+      "news": "Actualités",
       "support": "Support"
     },
     "header": {
@@ -471,6 +472,14 @@
         "status": "Statut et incidents",
         "statusDesc": "Statut de la plateforme en temps réel, maintenance planifiée et post-mortem.",
         "viewStatus": "Afficher l'état"
+      },
+      "news": {
+        "title": "Actualités",
+        "subtitle": "Mises à jour et avis de Valtrix Capital.",
+        "empty": "Pas encore d’actualités. Revenez plus tard.",
+        "loadFailed": "Impossible de charger les actualités.",
+        "notFound": "Cette actualité n’est pas disponible.",
+        "back": "Retour aux actualités"
       }
     }
   },
@@ -956,6 +965,7 @@
       "reports": "Rapports",
       "settings": "Paramètres",
       "notifications": "Alertes",
+      "news": "Actualités",
       "support": "Tickets de support",
       "audit": "Journal d'audit",
       "sponsorTerms": "Sponsor terms",
@@ -1350,6 +1360,39 @@
       "validation": "Le titre et le message sont obligatoires",
       "recentTitle": "Diffusions récentes",
       "recentEmpty": "Aucune notification personnalisée envoyée pour le moment."
+    },
+    "news": {
+      "title": "Actualités",
+      "subtitle": "Publiez des avis avec du texte et, si vous voulez, une image. Les utilisateurs les voient dans Actualités.",
+      "composeTitle": "Nouveau billet",
+      "editTitle": "Modifier le billet",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "ex. Nouveau marché disponible",
+      "bodyLabel": "Texte",
+      "bodyPlaceholder": "Rédigez l’actualité…",
+      "imageLabel": "Image (facultatif)",
+      "imageHint": "Ajouter une image de couverture",
+      "imageInvalid": "Impossible d’utiliser cette image. Essayez un JPEG ou PNG de moins de 8 Mo.",
+      "removeImage": "Retirer l’image",
+      "publishNow": "Publier maintenant (visible pour les utilisateurs)",
+      "pin": "Épingler en haut",
+      "notify": "Envoyer aussi comme notification",
+      "publish": "Publier",
+      "save": "Enregistrer les modifications",
+      "saving": "Enregistrement…",
+      "publishedToast": "Actualité publiée",
+      "saved": "Actualité mise à jour",
+      "deleted": "Actualité supprimée",
+      "saveFailed": "Impossible d’enregistrer l’actualité.",
+      "loadFailed": "Impossible de charger les actualités.",
+      "validation": "Le titre et le texte sont obligatoires",
+      "listTitle": "Publiés et brouillons",
+      "empty": "Aucune actualité pour le moment.",
+      "statusPublished": "Publié",
+      "statusDraft": "Brouillon",
+      "statusPinned": "Épinglé",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer cette actualité ?"
     },
     "support": {
       "title": "Tickets de support",

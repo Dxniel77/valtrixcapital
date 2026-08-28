@@ -272,6 +272,7 @@
       "share": "Ganhos",
       "wallet": "Depósito",
       "profile": "Perfil",
+      "news": "Notícias",
       "support": "Suporte"
     },
     "header": {
@@ -470,6 +471,14 @@
         "status": "Status e incidentes",
         "statusDesc": "Status da plataforma em tempo real, manutenção planejada e post-mortems.",
         "viewStatus": "Ver status"
+      },
+      "news": {
+        "title": "Notícias",
+        "subtitle": "Atualizações e avisos da Valtrix Capital.",
+        "empty": "Ainda não há notícias. Volte mais tarde.",
+        "loadFailed": "Não foi possível carregar as notícias.",
+        "notFound": "Esta notícia não está disponível.",
+        "back": "Voltar às notícias"
       }
     }
   },
@@ -955,6 +964,7 @@
       "reports": "Relatórios",
       "settings": "Configurações",
       "notifications": "Notificações",
+      "news": "Notícias",
       "support": "Tickets de suporte",
       "audit": "Auditoria",
       "sponsorTerms": "Sponsor terms",
@@ -1349,6 +1359,39 @@
       "validation": "Título e mensagem são obrigatórios",
       "recentTitle": "Transmissões recentes",
       "recentEmpty": "Nenhuma notificação personalizada foi enviada ainda."
+    },
+    "news": {
+      "title": "Notícias",
+      "subtitle": "Publique avisos com texto e, se quiser, uma imagem. Os utilizadores veem-nos em Notícias.",
+      "composeTitle": "Nova publicação",
+      "editTitle": "Editar publicação",
+      "titleLabel": "Título",
+      "titlePlaceholder": "ex. Novo mercado disponível",
+      "bodyLabel": "Texto",
+      "bodyPlaceholder": "Escreva a notícia…",
+      "imageLabel": "Imagem (opcional)",
+      "imageHint": "Adicionar uma imagem de capa",
+      "imageInvalid": "Não foi possível usar essa imagem. Tente JPEG ou PNG com menos de 8 MB.",
+      "removeImage": "Remover imagem",
+      "publishNow": "Publicar agora (visível para os utilizadores)",
+      "pin": "Fixar no topo",
+      "notify": "Enviar também como notificação",
+      "publish": "Publicar",
+      "save": "Guardar alterações",
+      "saving": "A guardar…",
+      "publishedToast": "Notícia publicada",
+      "saved": "Notícia atualizada",
+      "deleted": "Notícia eliminada",
+      "saveFailed": "Não foi possível guardar a notícia.",
+      "loadFailed": "Não foi possível carregar as notícias.",
+      "validation": "O título e o texto são obrigatórios",
+      "listTitle": "Publicadas e rascunhos",
+      "empty": "Ainda não há notícias.",
+      "statusPublished": "Publicada",
+      "statusDraft": "Rascunho",
+      "statusPinned": "Fixada",
+      "delete": "Eliminar",
+      "deleteConfirm": "Eliminar esta notícia?"
     },
     "support": {
       "title": "Tickets de suporte",
