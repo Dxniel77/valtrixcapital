@@ -74,6 +74,11 @@ import {
   normalizeActiveSymbols,
   pickMarket,
 } from "@/lib/copy-trading/markets";
+import { isCatalogDemoPrice } from "@/lib/copy-trading/copy-price";
+import {
+  fetchLiveCopyPrice,
+  resolveCopyEntryPrice,
+} from "@/lib/copy-trading/live-price";
 import {
   MAX_MANUAL_DELAY_MINUTES,
   buildManualHistoryOp,
@@ -799,7 +804,7 @@ export async function listCopyTraders(input?: {
     },
   });
   const operationByTrader = new Map(
-    operations.map((operation) => [
+    (await hydrateOpenOperations(operations)).map((operation) => [
       operation.traderId,
       serializeCopyOperation(operation),
     ]),
@@ -844,9 +849,10 @@ export async function getCopyTraderDetail(
     where: { traderId: id, status: "OPEN" },
     orderBy: { openedAt: "desc" },
   });
+  const current = open ? await replaceDemoEntryWithLive(open) : null;
   return {
     ...base,
-    currentOperation: open ? serializeCopyOperation(open) : null,
+    currentOperation: current ? serializeCopyOperation(current) : null,
     performances: row.performances.map((p) => ({
       period: p.period,
       returnBps: p.returnBps,
@@ -2618,7 +2624,9 @@ export async function getAdminCopyDashboard() {
       pendingWithdrawals: pendingRows.length,
     },
     traders,
-    openOperations: openOperations.map((operation) =>
+    openOperations: (
+      await hydrateOpenOperations(openOperations)
+    ).map((operation) =>
       serializeCopyOperation(operation, undefined, { forAdmin: true }),
     ),
     pendingWithdrawals: pendingRows.map((w) => ({
@@ -2856,6 +2864,8 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
     }),
   ]);
 
+  const liveOpenRows = await hydrateOpenOperations(openRows);
+
   const absFee = (amount: bigint | null | undefined) => {
     const value = amount ?? 0n;
     return value < 0n ? -value : value;
@@ -2898,7 +2908,7 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
   const capitalByTrader = new Map(
     capitalGroups.map((row) => [row.traderId, row._sum.currentValue ?? 0n]),
   );
-  const openByTrader = new Map(openRows.map((row) => [row.traderId, row]));
+  const openByTrader = new Map(liveOpenRows.map((row) => [row.traderId, row]));
   const connectedCapital = capitalGroups.reduce(
     (sum, row) => sum + (row._sum.currentValue ?? 0n),
     0n,
@@ -2935,7 +2945,7 @@ export async function getAdminCopyLiveBoard(): Promise<AdminCopyLiveBoardDto> {
         short: market.short,
       })),
     },
-    openOperations: openRows.map((operation) => ({
+    openOperations: liveOpenRows.map((operation) => ({
       ...serializeCopyOperation(operation, now, { forAdmin: true }),
       traderName: operation.trader.name,
       platformFee: fromMicro(operation.platformFeeMicro),
@@ -3329,7 +3339,8 @@ export async function getAdminCopyTraderDesk(
         : null;
 
   const serialized = serializeAdminTrader(trader);
-  const serializedOps = operations.map((operation) =>
+  const liveOperations = await hydrateOpenOperations(operations);
+  const serializedOps = liveOperations.map((operation) =>
     serializeCopyOperation(operation, now, { forAdmin: true }),
   );
   const openSerialized =
@@ -3547,15 +3558,20 @@ export async function createAdminCopyOperation(
         ? new Date(input.closedAt)
         : new Date()
       : null;
+  const symbol = input.symbol.trim().toUpperCase();
+  const entryPrice =
+    input.status === "OPEN"
+      ? await resolveCopyEntryPrice(symbol, input.entryPrice)
+      : input.entryPrice;
 
   const row = await prisma.$transaction(async (tx) => {
     const created = await tx.copyTraderOperation.create({
       data: {
         traderId,
-        symbol: input.symbol.trim().toUpperCase(),
+        symbol,
         direction: input.direction,
         leverage: input.leverage,
-        entryPrice: input.entryPrice,
+        entryPrice,
         targetReturnBps: input.targetReturnBps,
         status: input.status,
         openedAt,
@@ -3611,15 +3627,20 @@ export async function updateAdminCopyOperation(
         ? new Date(input.closedAt)
         : (existing.closedAt ?? new Date())
       : null;
+  const symbol = input.symbol.trim().toUpperCase();
+  const entryPrice =
+    input.status === "OPEN"
+      ? await resolveCopyEntryPrice(symbol, input.entryPrice)
+      : input.entryPrice;
 
   const row = await prisma.$transaction(async (tx) => {
     const updated = await tx.copyTraderOperation.update({
       where: { id: operationId },
       data: {
-        symbol: input.symbol.trim().toUpperCase(),
+        symbol,
         direction: input.direction,
         leverage: input.leverage,
-        entryPrice: input.entryPrice,
+        entryPrice,
         targetReturnBps: input.targetReturnBps,
         status: input.status,
         openedAt,
@@ -3742,11 +3763,13 @@ export async function getCopyTraderOperations(
   history: CopyTraderOperationDto[];
 }> {
   await tickCopyTradingEngine();
-  const rows = await prisma.copyTraderOperation.findMany({
-    where: { traderId },
-    orderBy: [{ status: "desc" }, { openedAt: "desc" }],
-    take: 80,
-  });
+  const rows = await hydrateOpenOperations(
+    await prisma.copyTraderOperation.findMany({
+      where: { traderId },
+      orderBy: [{ status: "desc" }, { openedAt: "desc" }],
+      take: 80,
+    }),
+  );
   const now = new Date();
   const current = rows.find((operation) => operation.status === "OPEN") ?? null;
   return {
@@ -3949,6 +3972,28 @@ export async function listCopyTraderCopiers(
   };
 }
 
+async function replaceDemoEntryWithLive<
+  T extends Prisma.CopyTraderOperationGetPayload<object>,
+>(operation: T): Promise<T> {
+  if (operation.status !== "OPEN") return operation;
+  if (!isCatalogDemoPrice(operation.symbol, Number(operation.entryPrice))) {
+    return operation;
+  }
+  const live = await fetchLiveCopyPrice(operation.symbol);
+  if (live == null || live <= 0) return operation;
+  await prisma.copyTraderOperation.update({
+    where: { id: operation.id },
+    data: { entryPrice: live },
+  });
+  return { ...operation, entryPrice: live } as T;
+}
+
+async function hydrateOpenOperations<
+  T extends Prisma.CopyTraderOperationGetPayload<object>,
+>(operations: T[]): Promise<T[]> {
+  return Promise.all(operations.map((operation) => replaceDemoEntryWithLive(operation)));
+}
+
 async function openSimulatedOperation(
   trader: Prisma.CopyTraderGetPayload<object>,
   plan: DayPlan,
@@ -4029,8 +4074,9 @@ async function openSimulatedOperation(
     winProbBps: trader.winProbBps ?? DEFAULT_WIN_PROB_BPS,
     lossProbBps: trader.lossProbBps ?? DEFAULT_LOSS_PROB_BPS,
   });
-  const entryNoiseBps = deterministicRange(digest, 12, -180, 180);
-  const entryPrice = market.basePrice * (1 + entryNoiseBps / 10_000);
+  const livePrice = await resolveCopyEntryPrice(market.symbol);
+  const entryNoiseBps = deterministicRange(digest, 12, -8, 8);
+  const entryPrice = livePrice * (1 + entryNoiseBps / 10_000);
   const durationMs = operationDurationMs(
     trader.id,
     plan.dayKey,
@@ -4240,10 +4286,13 @@ async function processTraderLifecycle(input: {
   const { now, adminUserId } = input;
   const { trader, plan } = await syncTraderDayPlan(input.trader, now);
   const settings = scheduleSettingsFromTrader(trader);
-  const current = await prisma.copyTraderOperation.findFirst({
+  let current = await prisma.copyTraderOperation.findFirst({
     where: { traderId: trader.id, status: "OPEN" },
     orderBy: { openedAt: "desc" },
   });
+  if (current) {
+    current = await replaceDemoEntryWithLive(current);
+  }
 
   const shouldClose =
     current != null &&

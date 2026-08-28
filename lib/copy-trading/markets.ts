@@ -4,7 +4,10 @@ export type CopyMarket = {
   basePrice: number;
 };
 
-/** Pairs the live copy engine can open. Matches the HTML simulator set. */
+/**
+ * Pairs the live copy engine can open.
+ * `basePrice` is a last-resort fallback when the live ticker is unavailable.
+ */
 export const COPY_MARKETS: CopyMarket[] = [
   { symbol: "BTCUSDT", short: "BTC", basePrice: 114_250 },
   { symbol: "ETHUSDT", short: "ETH", basePrice: 3_720 },

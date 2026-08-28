@@ -21,8 +21,9 @@ import {
 import { Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THeadRow, TR } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api/client";
-import { COPY_MARKETS } from "@/lib/copy-trading/markets";
+import { formatCopyPriceInput } from "@/lib/copy-trading/copy-price";
 import { isoToLocalInput, localInputToIso } from "@/lib/copy-trading/local-datetime";
+import { COPY_MARKETS } from "@/lib/copy-trading/markets";
 import { useI18n } from "@/lib/i18n/context";
 import { formatNumber, shortenAddress } from "@/lib/utils";
 
@@ -164,7 +165,21 @@ function defaultEntryPrice(symbol: string): string {
   const market = COPY_MARKETS.find(
     (row) => row.symbol === symbol.trim().toUpperCase(),
   );
-  return market ? String(market.basePrice) : "";
+  return market ? formatCopyPriceInput(market.basePrice) : "";
+}
+
+async function fetchLiveEntryPrice(symbol: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({ symbol: symbol.trim().toUpperCase() });
+    const res = await fetch(`/api/market/ticker?${params}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { ticker?: { price?: number } };
+    const price = Number(body.ticker?.price);
+    if (!(price > 0)) return null;
+    return formatCopyPriceInput(price);
+  } catch {
+    return null;
+  }
 }
 
 const CLOSED_OPS_PREVIEW = 8;
@@ -309,17 +324,27 @@ export default function AdminCopyTraderDeskPage() {
     }
   }
 
+  async function fillLiveEntry(symbol: string) {
+    const live = await fetchLiveEntryPrice(symbol);
+    if (!live) return;
+    setOpForm((prev) =>
+      prev.symbol === symbol ? { ...prev, entryPrice: live } : prev,
+    );
+  }
+
   function openNewOp() {
     const now = new Date();
     const later = new Date(now.getTime() + 10 * 60 * 1000);
+    const symbol = EMPTY_OP.symbol;
     setOpForm({
       ...EMPTY_OP,
-      symbol: EMPTY_OP.symbol,
-      entryPrice: defaultEntryPrice(EMPTY_OP.symbol),
+      symbol,
+      entryPrice: defaultEntryPrice(symbol),
       openedAt: isoToLocalInput(now.toISOString()),
       closesAt: isoToLocalInput(later.toISOString()),
     });
     setEditingOp("new");
+    void fillLiveEntry(symbol);
   }
 
   function openEditOp(op: Operation) {
@@ -1429,6 +1454,7 @@ export default function AdminCopyTraderDeskPage() {
                     symbol,
                     entryPrice: defaultEntryPrice(symbol) || prev.entryPrice,
                   }));
+                  void fillLiveEntry(symbol);
                 }}
               >
                 {COPY_MARKETS.map((market) => (
@@ -1459,6 +1485,7 @@ export default function AdminCopyTraderDeskPage() {
             <Field label={t("admin.copyTrading.entry")}>
               <Input
                 type="number"
+                step="any"
                 value={opForm.entryPrice}
                 onChange={(e) => updateOp("entryPrice", e.target.value)}
               />

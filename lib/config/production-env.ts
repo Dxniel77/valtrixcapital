@@ -66,10 +66,9 @@ export function getProductionConfigIssues(): ProductionConfigIssue[] {
     });
   }
 
-  if (
-    !isValidEthAddress(process.env.NEXT_PUBLIC_COPY_BSC_ADDRESS?.trim()) &&
-    !isValidEthAddress(process.env.NEXT_PUBLIC_COPY_POLYGON_ADDRESS?.trim())
-  ) {
+  const copyBscAddress = readServerSecret("NEXT_PUBLIC_COPY_BSC_ADDRESS");
+  const copyPolygonAddress = readServerSecret("NEXT_PUBLIC_COPY_POLYGON_ADDRESS");
+  if (!isValidEthAddress(copyBscAddress) && !isValidEthAddress(copyPolygonAddress)) {
     issues.push({
       key: "NEXT_PUBLIC_COPY_BSC_ADDRESS",
       severity: "warning",

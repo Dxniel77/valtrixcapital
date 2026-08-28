@@ -28,6 +28,22 @@ export async function GET() {
     production,
     productionReady: production ? isProductionReady() : null,
     copyPayoutConfigured,
+    envPresent: {
+      TREASURY_PAYOUT_PRIVATE_KEY: Boolean(
+        readServerSecret(
+          "TREASURY_PAYOUT_PRIVATE_KEY",
+          "TREASURY_BSC_PAYOUT_PRIVATE_KEY",
+          "TREASURY_POLYGON_PAYOUT_PRIVATE_KEY",
+        ),
+      ),
+      COPY_PAYOUT_PRIVATE_KEY: copyPayoutConfigured,
+      NEXT_PUBLIC_COPY_BSC_ADDRESS: Boolean(
+        readServerSecret("NEXT_PUBLIC_COPY_BSC_ADDRESS"),
+      ),
+      NEXT_PUBLIC_COPY_POLYGON_ADDRESS: Boolean(
+        readServerSecret("NEXT_PUBLIC_COPY_POLYGON_ADDRESS"),
+      ),
+    },
     configIssues: configIssues.map(({ key, severity, message }) => ({
       key,
       severity,
