@@ -15,10 +15,10 @@ function isUsableTreasuryAddress(value: string | undefined): value is string {
 }
 
 /** Live staking treasury used by the mobile app and production .env. */
-const LIVE_TREASURY = "0x535804F1b54dEB00aB39D903df1d223EE2Bb7611";
+const LIVE_TREASURY = "0x1f172141cb71bbBA551bA610266e7dC49dAd35C2";
 
 /** Live copy-trading treasury (same EOA on BSC and Polygon). */
-const LIVE_COPY_TREASURY = "0x535804F1b54dEB00aB39D903df1d223EE2Bb7611";
+const LIVE_COPY_TREASURY = "0x1f172141cb71bbBA551bA610266e7dC49dAd35C2";
 
 function envAddress(
   bscKey: string,
