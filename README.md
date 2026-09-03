@@ -1,4 +1,4 @@
-# Valtrix Capitall
+# Valtrix Capitalll
 
 > Web3 trading and yield platform on BNB Chain (BEP20) and Polygon.
 
